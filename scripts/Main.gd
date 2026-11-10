@@ -145,6 +145,8 @@ func show_page(page):
 			_add_label("ساختمان‌های فعلی:", 18)
 			for i in range(s.buildings.size()):
 				var id = s.buildings[i].id
+				if int(s.buildings[i].get("balance",0)) > 0:
+					_add_button("💰 برداشت سود %s: %d سکه" % [str(game.get_building_definitions()[id].name),int(s.buildings[i].get("balance",0))], self, "collect_profit", [i])
 				_add_button("تخریب: "+str(game.get_building_definitions()[id].name), self, "demolish_building", [i])
 		"citizens":
 			_add_label("👥 جمعیت: %d | شاغل: %d | بیکار: %d" % [s.population,game.get_employed_count(),game.get_unemployed_count()], 20)
@@ -173,6 +175,8 @@ func show_page(page):
 			_add_label("📜 گزارش روزانه", 22)
 			var report_economy = s.get("last_economy", {})
 			_add_label("درآمد مالیات: %d سکه" % int(report_economy.get("tax_income",0)))
+			_add_label("خرید شهروندان: %d سکه از %d خریدار" % [int(report_economy.get("consumer_spending",0)),int(report_economy.get("consumer_buyers",0))])
+			_add_label("مالیات خرید شهروندان: %d سکه" % int(report_economy.get("consumer_tax_income",0)))
 			_add_label("درآمد کسب‌وکارها: %d سکه" % int(report_economy.get("business_income",0)))
 			_add_label("درآمد فروش منابع: %d سکه" % int(report_economy.get("resource_income",0)))
 			_add_label("کل درآمد دریافت‌شده: %d سکه" % int(report_economy.get("accepted_income",0)))
@@ -235,6 +239,11 @@ func _resource_summary():
 
 func build_building(id):
 	var result = game.build(id)
+	show_page("buildings")
+	_show_message(result.message)
+
+func collect_profit(index):
+	var result = game.collect_business_profit(index)
 	show_page("buildings")
 	_show_message(result.message)
 
