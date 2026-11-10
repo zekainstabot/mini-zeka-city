@@ -980,7 +980,7 @@ func trade_with_city(city_id, resource_id, requested_amount):
 	state.trade_demand_remaining[city_id] = demand_by_resource
 	state.last_trade_report = "%d واحد %s به %s صادر شد؛ درآمد: %d سکه." % [amount,RESOURCES[resource_id].name,city.name,final_revenue]
 	save_game()
-	return {"ok":true,"message":state.last_trade_report,"amount":accepted_amount,"revenue":final_revenue}
+	return {"ok":true,"message":state.last_trade_report,"amount":amount,"revenue":final_revenue}
 
 func _refresh_trade_capacity():
 	for city_id in TRADE_CITIES.keys():
