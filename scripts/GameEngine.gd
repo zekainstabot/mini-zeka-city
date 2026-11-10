@@ -351,13 +351,14 @@ func _advance_mines(report):
 			continue
 		var resource_id = str(mine.get("resource", ""))
 		var production = (5 if resource_id == "stone" else 3)
+		production = min(production, get_free_storage())
 		if resource_id == "iron_ore":
 			production = min(production, int(mine.get("remaining", 0)))
 		if production <= 0:
 			mine.active = false
 			state.mines[i] = mine
 			continue
-		if get_free_storage() < production:
+		if production <= 0:
 			report.append("استخراج معدن متوقف شد؛ فضای انبار کافی نیست.")
 			continue
 		state.resources[resource_id] = int(state.resources.get(resource_id, 0)) + production
