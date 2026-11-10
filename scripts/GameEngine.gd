@@ -48,26 +48,26 @@ const BUILDINGS = {
 	"carpenter": {"name":"کارگاه مبلمان","category":"کارخانه‌ها","cost":2600,"unlock":35,"jobs":3,"wage":48,"input":"lumber","input_amount":2,"output":"furniture","amount":1},
 	"stone_mine": {"name":"معدن سنگ","category":"معادن","cost":1200,"unlock":10,"jobs":4,"wage":38,"output":"stone","amount":2},
 	"iron_mine": {"name":"معدن آهن","category":"معادن","cost":2200,"unlock":30,"jobs":5,"wage":45,"output":"iron_ore","amount":1},
-	"grocery_store": {"name":"فروشگاه مواد غذایی","category":"کسب‌وکارها","cost":300,"unlock":5,"jobs":3,"wage":30,"daily_revenue":120},
-	"bakery": {"name":"نانوایی","category":"کسب‌وکارها","cost":400,"unlock":10,"jobs":4,"wage":35,"daily_revenue":1600},
-	"restaurant": {"name":"رستوران","category":"کسب‌وکارها","cost":1000,"unlock":25,"jobs":6,"wage":45,"daily_revenue":350},
+	"grocery_store": {"name":"فروشگاه مواد غذایی","category":"کسب‌وکارها","cost":300,"unlock":5,"jobs":3,"wage":30,"daily_revenue":120,"service_need":"food","service_capacity":12},
+	"bakery": {"name":"نانوایی","category":"کسب‌وکارها","cost":400,"unlock":10,"jobs":4,"wage":35,"daily_revenue":1600,"service_need":"food","service_capacity":16},
+	"restaurant": {"name":"رستوران","category":"کسب‌وکارها","cost":1000,"unlock":25,"jobs":6,"wage":45,"daily_revenue":350,"service_need":"food","service_capacity":20},
 	"office": {"name":"ساختمان اداری","category":"کسب‌وکارها","cost":1800,"unlock":40,"jobs":20,"wage":60,"daily_revenue":180},
 	"factory": {"name":"کارخانه","category":"کسب‌وکارها","cost":6000,"unlock":100,"jobs":25,"wage":55,"daily_revenue":1800},
 	"mineral_market": {"name":"بازار مواد معدنی","category":"کسب‌وکارها","cost":500,"unlock":0,"jobs":1,"wage":35},
-	"water_tower": {"name":"برج آب","category":"خدمات شهری","cost":500,"unlock":5,"jobs":2,"wage":30},
-	"power_station": {"name":"نیروگاه","category":"خدمات شهری","cost":1000,"unlock":10,"jobs":4,"wage":40},
-	"sewage_plant": {"name":"تصفیه‌خانه فاضلاب","category":"خدمات شهری","cost":1800,"unlock":25,"jobs":3,"wage":42},
-	"waste_facility": {"name":"مرکز پسماند","category":"خدمات شهری","cost":1500,"unlock":30,"jobs":3,"wage":38},
-	"school": {"name":"مدرسه","category":"خدمات شهری","cost":1200,"unlock":20,"jobs":5,"wage":40},
-	"clinic": {"name":"درمانگاه","category":"خدمات شهری","cost":1400,"unlock":25,"jobs":4,"wage":45},
-	"hospital": {"name":"بیمارستان","category":"خدمات شهری","cost":5000,"unlock":100,"jobs":12,"wage":55},
-	"police_station": {"name":"کلانتری","category":"خدمات شهری","cost":2500,"unlock":80,"jobs":6,"wage":48},
-	"fire_station": {"name":"آتش‌نشانی","category":"خدمات شهری","cost":2500,"unlock":80,"jobs":6,"wage":48},
-	"small_park": {"name":"پارک کوچک","category":"تفریح و فرهنگ","cost":250,"unlock":10,"jobs":1,"wage":20},
-	"playground": {"name":"زمین بازی","category":"تفریح و فرهنگ","cost":350,"unlock":15,"jobs":1,"wage":20},
-	"sports_center": {"name":"مجموعه ورزشی","category":"تفریح و فرهنگ","cost":2500,"unlock":100,"jobs":5,"wage":40},
-	"university": {"name":"دانشگاه","category":"خدمات شهری","cost":6000,"unlock":150,"jobs":15,"wage":60},
-	"cultural_center": {"name":"مرکز فرهنگی","category":"تفریح و فرهنگ","cost":4500,"unlock":300,"jobs":8,"wage":50}
+	"water_tower": {"name":"برج آب","category":"خدمات شهری","cost":500,"unlock":5,"jobs":2,"wage":30,"service_need":"water","service_capacity":35},
+	"power_station": {"name":"نیروگاه","category":"خدمات شهری","cost":1000,"unlock":10,"jobs":4,"wage":40,"service_need":"power","service_capacity":40},
+	"sewage_plant": {"name":"تصفیه‌خانه فاضلاب","category":"خدمات شهری","cost":1800,"unlock":25,"jobs":3,"wage":42,"service_need":"sanitation","service_capacity":35},
+	"waste_facility": {"name":"مرکز پسماند","category":"خدمات شهری","cost":1500,"unlock":30,"jobs":3,"wage":38,"service_need":"sanitation","service_capacity":30},
+	"school": {"name":"مدرسه","category":"خدمات شهری","cost":1200,"unlock":20,"jobs":5,"wage":40,"service_need":"education","service_capacity":22},
+	"clinic": {"name":"درمانگاه","category":"خدمات شهری","cost":1400,"unlock":25,"jobs":4,"wage":45,"service_need":"health","service_capacity":18},
+	"hospital": {"name":"بیمارستان","category":"خدمات شهری","cost":5000,"unlock":100,"jobs":12,"wage":55,"service_need":"health","service_capacity":45},
+	"police_station": {"name":"کلانتری","category":"خدمات شهری","cost":2500,"unlock":80,"jobs":6,"wage":48,"service_need":"safety","service_capacity":30},
+	"fire_station": {"name":"آتش‌نشانی","category":"خدمات شهری","cost":2500,"unlock":80,"jobs":6,"wage":48,"service_need":"safety","service_capacity":25},
+	"small_park": {"name":"پارک کوچک","category":"تفریح و فرهنگ","cost":250,"unlock":10,"jobs":1,"wage":20,"service_need":"leisure","service_capacity":12},
+	"playground": {"name":"زمین بازی","category":"تفریح و فرهنگ","cost":350,"unlock":15,"jobs":1,"wage":20,"service_need":"leisure","service_capacity":15},
+	"sports_center": {"name":"مجموعه ورزشی","category":"تفریح و فرهنگ","cost":2500,"unlock":100,"jobs":5,"wage":40,"service_need":"leisure","service_capacity":28},
+	"university": {"name":"دانشگاه","category":"خدمات شهری","cost":6000,"unlock":150,"jobs":15,"wage":60,"service_need":"education","service_capacity":45},
+	"cultural_center": {"name":"مرکز فرهنگی","category":"تفریح و فرهنگ","cost":4500,"unlock":300,"jobs":8,"wage":50,"service_need":"leisure","service_capacity":30}
 }
 
 var state = {}
@@ -82,6 +82,7 @@ func new_game():
 		"xp": 0,
 		"reputation": 50,
 		"satisfaction": 50,
+		"needs": {"food":65,"water":70,"power":70,"health":70,"education":50,"safety":70,"leisure":50,"sanitation":70},
 		"services": {},
 		"missions": [],
 		"central_bank_rebuild_days_left": 0,
@@ -142,6 +143,10 @@ func _normalize_state():
 		state["satisfaction"] = 50
 	if typeof(state.get("services", null)) != TYPE_DICTIONARY:
 		state["services"] = {}
+	if typeof(state.get("needs", null)) != TYPE_DICTIONARY:
+		state["needs"] = {"food":65,"water":70,"power":70,"health":70,"education":50,"safety":70,"leisure":50,"sanitation":70}
+	for need_id in ["food","water","power","health","education","safety","leisure","sanitation"]:
+		state.needs[need_id] = int(clamp(int(state.needs.get(need_id, 60)), 0, 100))
 	if typeof(state.get("missions", null)) != TYPE_ARRAY:
 		state["missions"] = []
 	if typeof(state.get("mines", null)) != TYPE_ARRAY:
@@ -410,37 +415,51 @@ func _advance_mines(report):
 		state.mines[i] = mine
 
 
-func _service_has_staffed_building(building_ids):
+func _get_service_capacity(need_id):
+	var capacity = 0
 	for i in range(state.buildings.size()):
-		var id = str(state.buildings[i].get("id", ""))
-		if id in building_ids:
-			var jobs = int(BUILDINGS.get(id, {}).get("jobs", 0))
-			if jobs == 0 or _workers_for_building(i) > 0:
-				return true
-	return false
+		var building_id = str(state.buildings[i].get("id", ""))
+		var data = BUILDINGS.get(building_id, {})
+		if str(data.get("service_need", "")) != need_id:
+			continue
+		var jobs = int(data.get("jobs", 0))
+		if jobs > 0 and _workers_for_building(i) <= 0:
+			continue
+		capacity += int(data.get("service_capacity", 0))
+	return capacity
 
 func _update_city_services(report):
-	var covered = 0
+	var population = max(1, int(state.population))
 	var service_state = {}
-	for key in SERVICE_GROUPS.keys():
-		var definition = SERVICE_GROUPS[key]
-		var active = _service_has_staffed_building(definition.buildings)
-		service_state[key] = active
-		if active:
-			covered += 1
+	var needs = state.get("needs", {})
+	var need_ids = ["food","water","power","health","education","safety","leisure","sanitation"]
+	var daily_decay = {"food":8,"water":10,"power":4,"health":3,"education":2,"safety":2,"leisure":4,"sanitation":3}
+	var total_need = 0
+	for need_id in need_ids:
+		var capacity = _get_service_capacity(need_id)
+		var coverage = int(clamp(round(float(capacity) * 100.0 / float(population)), 0, 100))
+		service_state[need_id] = coverage
+		var current = int(needs.get(need_id, 60))
+		var decay = int(daily_decay.get(need_id, 2))
+		var recovery = int(round(float(coverage) * 0.12))
+		needs[need_id] = int(clamp(current - decay + recovery, 0, 100))
+		total_need += int(needs[need_id])
+	state.needs = needs
 	state.services = service_state
-	var previous = int(state.get("satisfaction", 50))
-	var change = 0
-	if covered >= 6:
-		change = 1
-	elif covered <= 2:
-		change = -1
-	state.satisfaction = int(clamp(previous + change, 0, 100))
-	if state.satisfaction < 30:
+	var average = int(round(float(total_need) / float(need_ids.size())))
+	state.satisfaction = average
+	if average < 30:
+		state.reputation = max(0, int(state.reputation) - 2)
+	elif average < 45:
 		state.reputation = max(0, int(state.reputation) - 1)
-	elif state.satisfaction >= 75:
+	elif average >= 80:
 		state.reputation = min(100, int(state.reputation) + 1)
-	report.append("رضایت شهروندان: %d از ۱۰۰ | پوشش خدمات: %d از ۸" % [state.satisfaction, covered])
+	var names = {"food":"خوراک","water":"آب","power":"برق","health":"سلامت","education":"آموزش","safety":"امنیت","leisure":"تفریح","sanitation":"بهداشت"}
+	var summaries = []
+	for need_id in need_ids:
+		summaries.append("%s %d%%" % [names[need_id], int(needs[need_id])])
+	report.append("نیاز شهروندان: " + " | ".join(summaries))
+	report.append("رضایت میانگین: %d از ۱۰۰" % average)
 
 func _sync_missions():
 	if typeof(state.get("missions", null)) != TYPE_ARRAY:
