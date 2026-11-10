@@ -27,7 +27,8 @@ const RESOURCES = {
 	"iron_ore": {"name": "سنگ‌آهن", "buy": 42, "sell": 30},
 	"wood": {"name": "چوب", "buy": 22, "sell": 15},
 	"lumber": {"name": "الوار", "buy": 50, "sell": 36},
-	"furniture": {"name": "مبلمان", "buy": 130, "sell": 95}
+	"furniture": {"name": "مبلمان", "buy": 130, "sell": 95},
+	"food": {"name": "مواد غذایی", "buy": 10, "sell": 6}
 }
 
 const TRADE_CITIES = {
@@ -43,6 +44,7 @@ const BUILDINGS = {
 	"high_apartment": {"name":"آپارتمان بلند","category":"خانه‌ها","cost":3000,"unlock":100,"capacity":14,"jobs":0,"wage":0,"level_unlock":5},
 	"residential_tower": {"name":"برج مسکونی","category":"خانه‌ها","cost":10000,"unlock":500,"capacity":22,"jobs":0,"wage":0,"level_unlock":8},
 	"transport_depot": {"name":"پایانه حمل‌ونقل","category":"زیرساخت","cost":1800,"unlock":15,"jobs":4,"wage":40,"level_unlock":2},
+	"farm": {"name":"مزرعه","category":"کشاورزی","cost":1200,"unlock":8,"jobs":4,"wage":35,"output":"food","amount":8,"level_unlock":2},
 	"shopping_mall": {"name":"مرکز خرید","category":"کسب‌وکارها","cost":8000,"unlock":150,"jobs":30,"wage":65,"daily_revenue":2600,"level_unlock":6},
 	"small_warehouse": {"name":"انبار کوچک","category":"انبارها","cost":500,"unlock":0,"storage":100,"jobs":0,"wage":0},
 	"central_bank": {"name":"بانک مرکزی","category":"خدمات شهری","cost":5000,"unlock":100,"jobs":8,"wage":55,"level_unlock":4},
@@ -81,7 +83,7 @@ var state = {}
 
 func new_game():
 	state = {
-		"version": 7,
+		"version": 8,
 		"day": 1,
 		"money": 10000,
 		"population": 4,
@@ -102,8 +104,8 @@ func new_game():
 			{"id":"small_house","workers":0,"balance":0},
 			{"id":"small_warehouse","workers":0,"balance":0}
 		],
-		"resources": {"stone":0,"iron_ore":0,"wood":0,"lumber":0,"furniture":0},
-		"market_stock": {"stone":60,"iron_ore":60,"wood":60,"lumber":60,"furniture":60},
+		"resources": {"stone":0,"iron_ore":0,"wood":0,"lumber":0,"furniture":0,"food":0},
+		"market_stock": {"stone":60,"iron_ore":60,"wood":60,"lumber":60,"furniture":60,"food":60},
 		"trade_remaining": {"mehrabad":25,"navid":18,"golestan":30},
 		"trade_demand_remaining": {"mehrabad":{"stone":20,"iron_ore":10,"wood":25,"lumber":15,"furniture":8},"navid":{"stone":8,"iron_ore":25,"wood":10,"lumber":20,"furniture":18},"golestan":{"stone":15,"iron_ore":8,"wood":18,"lumber":12,"furniture":25}},
 		"last_trade_report": "هنوز معامله بین‌شهری انجام نشده است.",
@@ -127,7 +129,7 @@ func load_game():
 		return false
 	var parsed = parse_json(file.get_as_text())
 	file.close()
-	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 7:
+	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 8:
 		return false
 	state = parsed
 	_normalize_state()
@@ -193,7 +195,7 @@ func _normalize_state():
 	if typeof(state.get("mines", null)) != TYPE_ARRAY:
 		state["mines"] = []
 	# Save schema migration: add dynamic market, trade and shipping state.
-	state["version"] = 7
+	state["version"] = 8
 	for id in RESOURCES.keys():
 		state.market_stock[id] = int(clamp(int(state.market_stock.get(id, 60)), 0, 100))
 	for city_id in TRADE_CITIES.keys():
@@ -527,6 +529,9 @@ func _update_city_services(report):
 	var total_need = 0
 	for need_id in need_ids:
 		var capacity = _get_service_capacity(need_id)
+		if need_id == "food":
+			var food_limit = int(floor(float(state.resources.get("food",0)) * 100.0 / float(population)))
+			capacity = min(capacity, food_limit)
 		var coverage = int(clamp(round(float(capacity) * 100.0 / float(population)), 0, 100))
 		service_state[need_id] = coverage
 		var current = int(needs.get(need_id, 60))
@@ -730,6 +735,8 @@ func end_day():
 		"consumer_spending": int(citizen_market.spending),
 		"consumer_business_revenue": int(citizen_market.business_revenue),
 		"consumer_buyers": int(citizen_market.buyers),
+		"food_units_sold": int(citizen_market.food_units),
+		"food_stock": int(state.resources.get("food",0)),
 		"business_income": business_income_total,
 		"resource_income": resource_income_total,
 		"gross_income": income,
@@ -802,19 +809,27 @@ func _process_citizen_purchases(report):
 		shops.append({"index":i,"weight":weight})
 		total_weight += weight
 	if shops.empty() or total_weight <= 0:
-		return {"spending":0,"tax":0,"buyers":0,"business_revenue":0}
+		return {"spending":0,"tax":0,"buyers":0,"business_revenue":0,"food_units":0}
 	var spending = 0
 	var sales_tax = 0
 	var buyers = 0
 	var business_revenue_total = 0
+	var food_units = 0
 	var food_need = int(state.get("needs", {}).get("food", 60))
-	for citizen_index in range(state.citizens.size()):
+	var food_stock = int(state.resources.get("food",0))
+	var citizen_count = state.citizens.size()
+	var start_index = int(state.day) % max(1,citizen_count)
+	for step in range(citizen_count):
+		var citizen_index = (start_index + step) % max(1,citizen_count)
 		var citizen = state.citizens[citizen_index]
 		var wallet = int(citizen.get("wallet", 0))
-		var demand = 5 + int(floor(float(100 - food_need) / 10.0))
-		var purchase = min(wallet, demand)
-		if purchase <= 0:
+		var demand_units = 1 + int(floor(float(100 - food_need) / 50.0))
+		var affordable_units = int(floor(float(wallet) / 10.0))
+		var purchase_units = min(demand_units, affordable_units, food_stock)
+		if purchase_units <= 0:
 			continue
+		var purchase = purchase_units * 10
+		food_stock -= purchase_units
 		var ticket = (int(citizen.get("id", citizen_index + 1)) + int(state.day)) % total_weight
 		var selected_index = int(shops[0].index)
 		for shop in shops:
@@ -830,11 +845,14 @@ func _process_citizen_purchases(report):
 		spending += purchase
 		sales_tax += tax
 		business_revenue_total += business_revenue
+		food_units += purchase_units
 		buyers += 1
-	if spending > 0:
-		report.append("شهروندان %d خرید خوراک انجام دادند؛ گردش خرید %d سکه و مالیات فروش %d سکه بود." % [buyers,spending,sales_tax])
-	return {"spending":spending,"tax":sales_tax,"buyers":buyers,"business_revenue":business_revenue_total}
-
+	state.resources.food = food_stock
+	if buyers > 0:
+		report.append("شهروندان %d خرید خوراک انجام دادند؛ %d واحد غذا مصرف شد و %d سکه گردش مالی ایجاد کرد." % [buyers,food_units,spending])
+	elif food_stock <= 0:
+		report.append("ذخیره غذا تمام شده است؛ شهروندان از فروشگاه‌ها خریدی انجام ندادند.")
+	return {"spending":spending,"tax":sales_tax,"buyers":buyers,"business_revenue":business_revenue_total,"food_units":food_units}
 func collect_business_profit(building_index):
 	if building_index < 0 or building_index >= state.buildings.size():
 		return {"ok":false,"message":"ساختمان پیدا نشد."}
@@ -860,6 +878,8 @@ func _workers_for(id):
 func _get_reserve(id):
 	if id in ["stone","iron_ore"]:
 		return STORAGE_RESERVE
+	if id == "food":
+		return max(0, int(state.get("population",0)) * 2)
 	return int(FORESTRY_RESERVES.get(id, 0))
 
 
