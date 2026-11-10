@@ -36,8 +36,10 @@ func _build_ui():
 	header_label.add_color_override("font_color", Color("#f8fafc"))
 	header_label.add_font_size_override("font_size", 28)
 	root.add_child(header_label)
-	var nav = HBoxContainer.new()
-	nav.add_constant_override("separation", 8)
+	var nav = GridContainer.new()
+	nav.columns = 3
+	nav.add_constant_override("hseparation", 8)
+	nav.add_constant_override("vseparation", 8)
 	root.add_child(nav)
 	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بازار","p":"market"},{"t":"انبار","p":"storage"},{"t":"گزارش روز","p":"report"},{"t":"ماموریت‌ها","p":"missions"}]:
 		var b = Button.new()
