@@ -146,6 +146,7 @@ func show_page(page):
 			for i in range(s.buildings.size()):
 				var id = s.buildings[i].id
 				if int(s.buildings[i].get("balance",0)) > 0:
+					_add_label("حساب %s: %d سکه" % [str(game.get_building_definitions()[id].name),int(s.buildings[i].get("balance",0))])
 					_add_button("💰 برداشت سود %s: %d سکه" % [str(game.get_building_definitions()[id].name),int(s.buildings[i].get("balance",0))], self, "collect_profit", [i])
 				_add_button("تخریب: "+str(game.get_building_definitions()[id].name), self, "demolish_building", [i])
 		"citizens":
@@ -154,7 +155,7 @@ func show_page(page):
 			_add_label("رضایت شهروندان: %d/۱۰۰" % int(s.get("satisfaction",50)))
 			_add_label("نیازهای روزانه: " + _needs_summary(), 15)
 			for citizen in s.citizens:
-				_add_label("شهروند %s — %s" % [str(citizen.id),("بیکار" if citizen.job == "" else citizen.job)])
+				_add_label("شهروند %s — %s | کیف پول: %d سکه" % [str(citizen.id),("بیکار" if citizen.job == "" else citizen.job),int(citizen.get("wallet",0))])
 			_add_button("🔄 تخصیص دوباره شغل‌ها", self, "reassign_jobs")
 		"market":
 			_add_label("بازار شهر — قیمت خرید و فروش", 22)
@@ -176,6 +177,7 @@ func show_page(page):
 			var report_economy = s.get("last_economy", {})
 			_add_label("درآمد مالیات: %d سکه" % int(report_economy.get("tax_income",0)))
 			_add_label("خرید شهروندان: %d سکه از %d خریدار" % [int(report_economy.get("consumer_spending",0)),int(report_economy.get("consumer_buyers",0))])
+			_add_label("واریزی حساب فروشگاه‌ها: %d سکه" % int(report_economy.get("consumer_business_revenue",0)))
 			_add_label("مالیات خرید شهروندان: %d سکه" % int(report_economy.get("consumer_tax_income",0)))
 			_add_label("درآمد کسب‌وکارها: %d سکه" % int(report_economy.get("business_income",0)))
 			_add_label("درآمد فروش منابع: %d سکه" % int(report_economy.get("resource_income",0)))
