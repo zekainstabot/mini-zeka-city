@@ -31,9 +31,9 @@ const RESOURCES = {
 }
 
 const TRADE_CITIES = {
-	"mehrabad": {"name":"مهرآباد","price_factor":1.20,"daily_capacity":25,"demand":{"stone":20,"iron_ore":10,"wood":25,"lumber":15,"furniture":8}},
-	"navid": {"name":"نویدشهر","price_factor":1.35,"daily_capacity":18,"demand":{"stone":8,"iron_ore":25,"wood":10,"lumber":20,"furniture":18}},
-	"golestan": {"name":"گلستان","price_factor":1.12,"daily_capacity":30,"demand":{"stone":15,"iron_ore":8,"wood":18,"lumber":12,"furniture":25}}
+	"mehrabad": {"name":"مهرآباد","price_factor":1.20,"daily_capacity":25,"travel_days":1,"demand":{"stone":20,"iron_ore":10,"wood":25,"lumber":15,"furniture":8},"supply":{"stone":35,"iron_ore":12,"wood":8,"lumber":10,"furniture":5}},
+	"navid": {"name":"نویدشهر","price_factor":1.35,"daily_capacity":18,"travel_days":2,"demand":{"stone":8,"iron_ore":25,"wood":10,"lumber":20,"furniture":18},"supply":{"stone":8,"iron_ore":40,"wood":10,"lumber":25,"furniture":22}},
+	"golestan": {"name":"گلستان","price_factor":1.12,"daily_capacity":30,"travel_days":1,"demand":{"stone":15,"iron_ore":8,"wood":18,"lumber":12,"furniture":25},"supply":{"stone":18,"iron_ore":8,"wood":30,"lumber":18,"furniture":35}}
 }
 
 const BUILDINGS = {
@@ -80,7 +80,7 @@ var state = {}
 
 func new_game():
 	state = {
-		"version": 5,
+		"version": 6,
 		"day": 1,
 		"money": 10000,
 		"population": 4,
@@ -104,6 +104,10 @@ func new_game():
 		"trade_remaining": {"mehrabad":25,"navid":18,"golestan":30},
 		"trade_demand_remaining": {"mehrabad":{"stone":20,"iron_ore":10,"wood":25,"lumber":15,"furniture":8},"navid":{"stone":8,"iron_ore":25,"wood":10,"lumber":20,"furniture":18},"golestan":{"stone":15,"iron_ore":8,"wood":18,"lumber":12,"furniture":25}},
 		"last_trade_report": "هنوز معامله بین‌شهری انجام نشده است.",
+		"city_export_stock": {"mehrabad":{"stone":35,"iron_ore":12,"wood":8,"lumber":10,"furniture":5},"navid":{"stone":8,"iron_ore":40,"wood":10,"lumber":25,"furniture":22},"golestan":{"stone":18,"iron_ore":8,"wood":30,"lumber":18,"furniture":35}},
+		"trade_shipments": [],
+		"import_contracts": [],
+		"last_import_report": "هنوز محموله‌ای سفارش داده نشده است.",
 		"citizens": [],
 		"last_economy": {"tax_income":0,"business_income":0,"resource_income":0,"gross_income":0,"accepted_income":0,"wages_due":0,"wages_paid":0,"net_cashflow":0},
 		"last_report": "شهر جدید ساخته شد. به مینی زکا سیتی خوش آمدی."
@@ -120,7 +124,7 @@ func load_game():
 		return false
 	var parsed = parse_json(file.get_as_text())
 	file.close()
-	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 5:
+	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 6:
 		return false
 	state = parsed
 	_normalize_state()
@@ -149,6 +153,14 @@ func _normalize_state():
 		state["trade_remaining"] = {}
 	if typeof(state.get("trade_demand_remaining", null)) != TYPE_DICTIONARY:
 		state["trade_demand_remaining"] = {}
+	if typeof(state.get("city_export_stock", null)) != TYPE_DICTIONARY:
+		state["city_export_stock"] = {}
+	if typeof(state.get("trade_shipments", null)) != TYPE_ARRAY:
+		state["trade_shipments"] = []
+	if typeof(state.get("import_contracts", null)) != TYPE_ARRAY:
+		state["import_contracts"] = []
+	if not state.has("last_import_report"):
+		state["last_import_report"] = "هنوز محموله‌ای سفارش داده نشده است."
 	if not state.has("central_bank_rebuild_days_left"):
 		state["central_bank_rebuild_days_left"] = 0
 	if not state.has("forest_trees"):
@@ -171,12 +183,17 @@ func _normalize_state():
 		state["missions"] = []
 	if typeof(state.get("mines", null)) != TYPE_ARRAY:
 		state["mines"] = []
-	# Save schema migration: add dynamic market and inter-city trade state.
-	state["version"] = 5
+	# Save schema migration: add dynamic market, trade and shipping state.
+	state["version"] = 6
 	for id in RESOURCES.keys():
 		state.market_stock[id] = int(clamp(int(state.market_stock.get(id, 60)), 0, 100))
 	for city_id in TRADE_CITIES.keys():
 		state.trade_remaining[city_id] = int(clamp(int(state.trade_remaining.get(city_id, TRADE_CITIES[city_id].daily_capacity)), 0, int(TRADE_CITIES[city_id].daily_capacity)))
+		if typeof(state.city_export_stock.get(city_id, null)) != TYPE_DICTIONARY:
+			state.city_export_stock[city_id] = TRADE_CITIES[city_id].supply.duplicate(true)
+		else:
+			for resource_id in RESOURCES.keys():
+				state.city_export_stock[city_id][resource_id] = max(0, int(state.city_export_stock[city_id].get(resource_id, TRADE_CITIES[city_id].supply.get(resource_id,0))))
 		if typeof(state.trade_demand_remaining.get(city_id, null)) != TYPE_DICTIONARY:
 			state.trade_demand_remaining[city_id] = TRADE_CITIES[city_id].demand.duplicate(true)
 		else:
@@ -693,6 +710,14 @@ func end_day():
 				report.append("مهلت بازسازی بانک مرکزی تمام شد؛ ظرفیت عادی خزانه فعال شد.")
 	_update_city_services(report)
 	state.day += 1
+	_process_trade_arrivals(report)
+	_dispatch_import_contracts(report)
+	# Neighboring cities replenish their export inventories gradually.
+	for city_id in TRADE_CITIES.keys():
+		for resource_id in RESOURCES.keys():
+			var city_stock = state.city_export_stock.get(city_id, TRADE_CITIES[city_id].supply)
+			city_stock[resource_id] = min(int(TRADE_CITIES[city_id].supply.get(resource_id,0)), int(city_stock.get(resource_id,0)) + max(1,int(TRADE_CITIES[city_id].supply.get(resource_id,0) / 5)))
+			state.city_export_stock[city_id] = city_stock
 	state.xp += 5 + state.population
 	var levels_gained = 0
 	while state.xp >= state.level * 100:
@@ -782,6 +807,131 @@ func _get_reserve(id):
 	return int(FORESTRY_RESERVES.get(id, 0))
 
 
+
+func get_import_price(city_id, resource_id):
+	if not TRADE_CITIES.has(city_id) or not RESOURCES.has(resource_id):
+		return 0
+	var city = TRADE_CITIES[city_id]
+	var stock = int(state.get("city_export_stock", {}).get(city_id, city.supply).get(resource_id, 0))
+	if stock <= 0:
+		return 0
+	var base = int(RESOURCES[resource_id].buy)
+	var scarcity = 1.0 + max(0.0, 1.0 - float(stock) / max(1.0, float(city.supply.get(resource_id, 1)))) * 0.35
+	return max(1, int(round(float(base) * float(city.price_factor) * scarcity)))
+
+func get_import_cities():
+	return TRADE_CITIES
+
+func get_import_price_label(city_id, resource_id):
+	var price = get_import_price(city_id, resource_id)
+	if price <= 0:
+		return "ناموجود"
+	return str(price)+" سکه/واحد"
+
+func order_import(city_id, resource_id, requested_amount):
+	if not TRADE_CITIES.has(city_id) or not RESOURCES.has(resource_id) or requested_amount <= 0:
+		return {"ok":false,"message":"سفارش واردات نامعتبر است."}
+	var city = TRADE_CITIES[city_id]
+	var city_stock = state.city_export_stock.get(city_id, city.supply)
+	var available = int(city_stock.get(resource_id, 0))
+	var amount = min(int(requested_amount), available)
+	if amount <= 0:
+		return {"ok":false,"message":"این کالا فعلاً در شهر مقصد موجود نیست."}
+	if get_free_storage() < amount:
+		return {"ok":false,"message":"برای محموله فضای کافی در انبار نداری."}
+	var unit_price = get_import_price(city_id, resource_id)
+	var shipping_fee = max(1, int(ceil(float(amount * unit_price) * 0.10)))
+	var total_cost = amount * unit_price + shipping_fee
+	if get_available_money() < total_cost:
+		return {"ok":false,"message":"پول آزاد خزانه برای خرید و کرایه حمل کافی نیست."}
+	_spend_money(total_cost)
+	city_stock[resource_id] = available - amount
+	state.city_export_stock[city_id] = city_stock
+	var shipment = {"id":_next_shipment_id(),"city_id":city_id,"resource_id":resource_id,"amount":amount,"arrival_day":int(state.day)+int(city.travel_days),"paid":total_cost}
+	state.trade_shipments.append(shipment)
+	state.last_import_report = "%d واحد %s از %s سفارش داده شد؛ تحویل روز %d؛ هزینه با حمل: %d سکه." % [amount,RESOURCES[resource_id].name,city.name,int(shipment.arrival_day),total_cost]
+	save_game()
+	return {"ok":true,"message":state.last_import_report}
+
+func _next_shipment_id():
+	var highest = 0
+	for shipment in state.trade_shipments:
+		highest = max(highest, int(shipment.get("id",0)))
+	return highest + 1
+
+func create_import_contract(city_id, resource_id, daily_amount, duration_days):
+	if not TRADE_CITIES.has(city_id) or not RESOURCES.has(resource_id):
+		return {"ok":false,"message":"شهر یا کالای قرارداد معتبر نیست."}
+	if daily_amount < 1 or daily_amount > 10 or duration_days < 3 or duration_days > 30:
+		return {"ok":false,"message":"قرارداد باید روزانه ۱ تا ۱۰ واحد و بین ۳ تا ۳۰ روز باشد."}
+	for contract in state.import_contracts:
+		if bool(contract.get("active",true)) and str(contract.get("city_id","")) == city_id and str(contract.get("resource_id","")) == resource_id:
+			return {"ok":false,"message":"برای این کالا از این شهر قرارداد فعالی داری."}
+	var contract = {"id":_next_contract_id(),"city_id":city_id,"resource_id":resource_id,"daily_amount":int(daily_amount),"days_left":int(duration_days),"active":true,"created_day":int(state.day)}
+	state.import_contracts.append(contract)
+	save_game()
+	return {"ok":true,"message":"قرارداد %d روزه ثبت شد؛ سفارش‌ها روزانه با بررسی پول و فضای انبار ارسال می‌شوند." % int(duration_days)}
+
+func _next_contract_id():
+	var highest = 0
+	for contract in state.import_contracts:
+		highest = max(highest, int(contract.get("id",0)))
+	return highest + 1
+
+func cancel_import_contract(contract_index):
+	if contract_index < 0 or contract_index >= state.import_contracts.size():
+		return {"ok":false,"message":"قرارداد پیدا نشد."}
+	state.import_contracts[contract_index]["active"] = false
+	save_game()
+	return {"ok":true,"message":"قرارداد لغو شد؛ محموله‌های در راه طبق سفارش قبلی تحویل می‌شوند."}
+
+func _process_trade_arrivals(report):
+	var remaining_shipments = []
+	for shipment in state.trade_shipments:
+		if int(shipment.get("arrival_day",0)) > int(state.day):
+			remaining_shipments.append(shipment)
+			continue
+		var amount = int(shipment.get("amount",0))
+		if get_free_storage() < amount:
+			shipment["arrival_day"] = int(state.day) + 1
+			remaining_shipments.append(shipment)
+			report.append("محموله %d به‌دلیل پر بودن انبار یک روز در گمرک متوقف شد." % int(shipment.get("id",0)))
+			continue
+		var resource_id = str(shipment.get("resource_id",""))
+		if RESOURCES.has(resource_id):
+			state.resources[resource_id] = int(state.resources.get(resource_id,0)) + amount
+			report.append("محموله %d رسید: %d واحد %s." % [int(shipment.get("id",0)),amount,RESOURCES[resource_id].name])
+	state.trade_shipments = remaining_shipments
+
+func _dispatch_import_contracts(report):
+	for contract_index in range(state.import_contracts.size()):
+		var contract = state.import_contracts[contract_index]
+		if not bool(contract.get("active",false)) or int(contract.get("days_left",0)) <= 0:
+			continue
+		var city_id = str(contract.get("city_id",""))
+		var resource_id = str(contract.get("resource_id",""))
+		if not TRADE_CITIES.has(city_id) or not RESOURCES.has(resource_id):
+			contract["active"] = false
+			state.import_contracts[contract_index] = contract
+			continue
+		var amount = int(contract.get("daily_amount",1))
+		var stock = state.city_export_stock.get(city_id,TRADE_CITIES[city_id].supply)
+		amount = min(amount,int(stock.get(resource_id,0)),get_free_storage())
+		var price = get_import_price(city_id,resource_id)
+		var total = amount * price + max(1,int(ceil(float(amount * price)*0.10)))
+		if amount <= 0 or price <= 0 or get_available_money() < total:
+			report.append("قرارداد واردات %s امروز به‌دلیل کمبود کالا، پول یا فضای انبار اجرا نشد." % RESOURCES[resource_id].name)
+		else:
+			_spend_money(total)
+			stock[resource_id] = int(stock.get(resource_id,0)) - amount
+			state.city_export_stock[city_id] = stock
+			state.trade_shipments.append({"id":_next_shipment_id(),"city_id":city_id,"resource_id":resource_id,"amount":amount,"arrival_day":int(state.day)+int(TRADE_CITIES[city_id].travel_days),"paid":total})
+			report.append("قرارداد واردات %s: محموله %d واحدی ارسال شد." % [RESOURCES[resource_id].name,amount])
+		contract["days_left"] = int(contract.get("days_left",0)) - 1
+		if int(contract.days_left) <= 0:
+			contract["active"] = false
+		state.import_contracts[contract_index] = contract
+
 func get_market_price(id, action):
 	if not RESOURCES.has(id):
 		return 0
@@ -828,7 +978,7 @@ func trade_with_city(city_id, resource_id, requested_amount):
 	state.trade_remaining[city_id] = remaining - amount
 	demand_by_resource[resource_id] = demand - amount
 	state.trade_demand_remaining[city_id] = demand_by_resource
-	state.last_trade_report = "%d واحد %s به %s صادر شد؛ درآمد: %d سکه." % [accepted_amount,RESOURCES[resource_id].name,city.name,final_revenue]
+	state.last_trade_report = "%d واحد %s به %s صادر شد؛ درآمد: %d سکه." % [amount,RESOURCES[resource_id].name,city.name,final_revenue]
 	save_game()
 	return {"ok":true,"message":state.last_trade_report,"amount":accepted_amount,"revenue":final_revenue}
 
