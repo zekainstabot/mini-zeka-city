@@ -99,9 +99,17 @@ func save_game():
 	return true
 
 func _normalize_state():
-	for key in ["day","money","population","level","xp","reputation","buildings","resources","market_stock","citizens"]:
+	if typeof(state.get("buildings", null)) != TYPE_ARRAY:
+		state.buildings = []
+	if typeof(state.get("citizens", null)) != TYPE_ARRAY:
+		state.citizens = []
+	if typeof(state.get("resources", null)) != TYPE_DICTIONARY:
+		state.resources = {}
+	if typeof(state.get("market_stock", null)) != TYPE_DICTIONARY:
+		state.market_stock = {}
+	for key in ["day","money","population","level","xp","reputation"]:
 		if not state.has(key):
-			return
+			state[key] = {"day":1,"money":10000,"population":0,"level":1,"xp":0,"reputation":50}[key]
 	for id in RESOURCES.keys():
 		if not state.resources.has(id):
 			state.resources[id] = 0
@@ -130,6 +138,12 @@ func get_housing_capacity():
 	for building in state.buildings:
 		total += int(BUILDINGS.get(building.id, {}).get("capacity", 0))
 	return total
+
+func get_building_definitions():
+	return BUILDINGS
+
+func get_resource_definitions():
+	return RESOURCES
 
 func get_storage_capacity():
 	var total = 0
