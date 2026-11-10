@@ -805,7 +805,7 @@ func _process_citizen_purchases(report):
 		var workers = _workers_for_building(i)
 		if required <= 0 or workers <= 0:
 			continue
-		var weight = max(1, int(data.get("service_capacity", 1)) * workers / required)
+		var weight = int(max(1, int(data.get("service_capacity", 1)) * workers / required))
 		shops.append({"index":i,"weight":weight})
 		total_weight += weight
 	if shops.empty() or total_weight <= 0:
