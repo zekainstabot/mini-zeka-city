@@ -1,5 +1,9 @@
 name: Build Mini ZekaCity exports
 
+concurrency:
+  group: mini-zeka-city-export
+  cancel-in-progress: true
+
 on:
   workflow_dispatch:
   push:
