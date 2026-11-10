@@ -544,9 +544,10 @@ func end_day():
 		if str(citizen.get("job", "")) == "":
 			continue
 		var wage = int(BUILDINGS.get(citizen.job, {}).get("wage", 0))
-		total_wages += wage
 		var wallet_room = max(0, 500 - int(citizen.get("wallet", 0)))
-		var payment = min(wage, wallet_room, treasury_for_payroll)
+		var payable_wage = min(wage, wallet_room)
+		total_wages += payable_wage
+		var payment = min(payable_wage, treasury_for_payroll)
 		citizen.wallet = int(citizen.get("wallet", 0)) + payment
 		state.citizens[citizen_index] = citizen
 		treasury_for_payroll -= payment
