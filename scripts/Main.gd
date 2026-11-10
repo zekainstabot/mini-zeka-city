@@ -115,7 +115,7 @@ func show_page(page):
 					if not unlocked:
 						label += " | 🔒 قفل"
 					var b = _add_button(label, self, "build_building", [id])
-					b.disabled = not unlocked or s.money < int(data.cost)
+					b.disabled = not unlocked or game.get_available_money() < int(data.cost) or (id == "central_bank" and int(s.get("central_bank_rebuild_days_left",0)) > 0)
 			_add_label("مدیریت معادن:", 18)
 			for mine_index in range(game.get_mines().size()):
 				var mine = game.get_mines()[mine_index]
