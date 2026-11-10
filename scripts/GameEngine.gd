@@ -48,9 +48,9 @@ const BUILDINGS = {
 	"carpenter": {"name":"کارگاه مبلمان","category":"کارخانه‌ها","cost":2600,"unlock":35,"jobs":3,"wage":48,"input":"lumber","input_amount":2,"output":"furniture","amount":1,"level_unlock":4},
 	"stone_mine": {"name":"معدن سنگ","category":"معادن","cost":1200,"unlock":10,"jobs":4,"wage":38,"output":"stone","amount":2},
 	"iron_mine": {"name":"معدن آهن","category":"معادن","cost":2200,"unlock":30,"jobs":5,"wage":45,"output":"iron_ore","amount":1,"level_unlock":3},
-	"grocery_store": {"name":"فروشگاه مواد غذایی","category":"کسب‌وکارها","cost":300,"unlock":5,"jobs":3,"wage":30,"daily_revenue":120,"service_need":"food","service_capacity":12},
-	"bakery": {"name":"نانوایی","category":"کسب‌وکارها","cost":400,"unlock":10,"jobs":4,"wage":35,"daily_revenue":180,"service_need":"food","service_capacity":16},
-	"restaurant": {"name":"رستوران","category":"کسب‌وکارها","cost":1000,"unlock":25,"jobs":6,"wage":45,"daily_revenue":350,"service_need":"food","service_capacity":20},
+	"grocery_store": {"name":"فروشگاه مواد غذایی","category":"کسب‌وکارها","cost":300,"unlock":5,"jobs":3,"wage":30,"service_need":"food","service_capacity":12},
+	"bakery": {"name":"نانوایی","category":"کسب‌وکارها","cost":400,"unlock":10,"jobs":4,"wage":35,"service_need":"food","service_capacity":16},
+	"restaurant": {"name":"رستوران","category":"کسب‌وکارها","cost":1000,"unlock":25,"jobs":6,"wage":45,"service_need":"food","service_capacity":20},
 	"office": {"name":"ساختمان اداری","category":"کسب‌وکارها","cost":1800,"unlock":40,"jobs":20,"wage":60,"daily_revenue":1800},
 	"factory": {"name":"کارخانه","category":"کسب‌وکارها","cost":6000,"unlock":100,"jobs":25,"wage":55,"daily_revenue":1800,"level_unlock":6},
 	"mineral_market": {"name":"بازار مواد معدنی","category":"کسب‌وکارها","cost":500,"unlock":0,"jobs":1,"wage":35},
@@ -74,7 +74,7 @@ var state = {}
 
 func new_game():
 	state = {
-		"version": 3,
+		"version": 4,
 		"day": 1,
 		"money": 10000,
 		"population": 4,
@@ -111,7 +111,7 @@ func load_game():
 		return false
 	var parsed = parse_json(file.get_as_text())
 	file.close()
-	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 3:
+	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 4:
 		return false
 	state = parsed
 	_normalize_state()
@@ -150,12 +150,16 @@ func _normalize_state():
 		state["needs"] = {"food":65,"water":70,"power":70,"health":70,"education":50,"safety":70,"leisure":50,"sanitation":70}
 	for need_id in ["food","water","power","health","education","safety","leisure","sanitation"]:
 		state.needs[need_id] = int(clamp(int(state.needs.get(need_id, 60)), 0, 100))
+	for citizen in state.citizens:
+		citizen["wallet"] = int(clamp(int(citizen.get("wallet", 100)), 0, 500))
+	for building in state.buildings:
+		building["balance"] = max(0, int(building.get("balance", 0)))
 	if typeof(state.get("missions", null)) != TYPE_ARRAY:
 		state["missions"] = []
 	if typeof(state.get("mines", null)) != TYPE_ARRAY:
 		state["mines"] = []
 	# Save schema migration: retain old saves and add the daily economy ledger.
-	state["version"] = 3
+	state["version"] = 4
 	state["central_bank_rebuild_days_left"] = max(0, int(state.get("central_bank_rebuild_days_left", 0)))
 	state["forest_trees"] = int(clamp(int(state.get("forest_trees", 100)), 0, 100))
 	state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)), 0, 100))
@@ -533,17 +537,26 @@ func end_day():
 	var report = []
 	assign_jobs()
 	var total_wages = 0
-	for citizen in state.citizens:
-		if citizen.job == "":
+	var paid_wages = 0
+	var treasury_for_payroll = get_available_money()
+	for citizen_index in range(state.citizens.size()):
+		var citizen = state.citizens[citizen_index]
+		if str(citizen.get("job", "")) == "":
 			continue
-		total_wages += int(BUILDINGS.get(citizen.job, {}).get("wage", 0))
-	var paid_wages = min(get_available_money(), total_wages)
+		var wage = int(BUILDINGS.get(citizen.job, {}).get("wage", 0))
+		total_wages += wage
+		var wallet_room = max(0, 500 - int(citizen.get("wallet", 0)))
+		var payment = min(wage, wallet_room, treasury_for_payroll)
+		citizen.wallet = int(citizen.get("wallet", 0)) + payment
+		state.citizens[citizen_index] = citizen
+		treasury_for_payroll -= payment
+		paid_wages += payment
 	state.money = int(state.money) - paid_wages
 	if paid_wages < total_wages:
 		state.reputation = max(0, state.reputation - 3)
-		report.append("کسری بودجه؛ بخشی از حقوق پرداخت نشد.")
+		report.append("کسری حقوق: %d از %d سکه پرداخت شد." % [paid_wages,total_wages])
 	else:
-		report.append("حقوق روزانه پرداخت شد: "+str(total_wages)+" سکه.")
+		report.append("حقوق روزانه به کیف پول کارکنان واریز شد: "+str(paid_wages)+" سکه.")
 
 	_advance_mines(report)
 	# Forest regrowth is gradual and capped; logging consumes actual trees.
@@ -551,7 +564,9 @@ func end_day():
 	var tax_income = int(state.population) * 2
 	var business_income_total = 0
 	var resource_income_total = 0
-	var income = tax_income
+	var citizen_market = _process_citizen_purchases(report)
+	var consumer_tax_income = int(citizen_market.tax)
+	var income = tax_income + consumer_tax_income
 	if tax_income > 0:
 		report.append("مالیات شهری دریافت شد: "+str(tax_income)+" سکه.")
 	for building_index in range(state.buildings.size()):
@@ -619,6 +634,9 @@ func end_day():
 		report.append("ظرفیت خزانه پر است؛ %d سکه از درآمد امروز دریافت نشد." % (income - accepted_income))
 	state.last_economy = {
 		"tax_income": tax_income,
+		"consumer_tax_income": consumer_tax_income,
+		"consumer_spending": int(citizen_market.spending),
+		"consumer_buyers": int(citizen_market.buyers),
 		"business_income": business_income_total,
 		"resource_income": resource_income_total,
 		"gross_income": income,
@@ -661,6 +679,68 @@ func end_day():
 	state.last_report = "\n".join(report)
 	save_game()
 	return state.last_report
+
+func _process_citizen_purchases(report):
+	var shops = []
+	var total_weight = 0
+	for i in range(state.buildings.size()):
+		var building = state.buildings[i]
+		var data = BUILDINGS.get(str(building.get("id", "")), {})
+		if str(data.get("service_need", "")) != "food":
+			continue
+		var required = int(data.get("jobs", 0))
+		var workers = _workers_for_building(i)
+		if required <= 0 or workers <= 0:
+			continue
+		var weight = max(1, int(data.get("service_capacity", 1)) * workers / required)
+		shops.append({"index":i,"weight":weight})
+		total_weight += weight
+	if shops.empty() or total_weight <= 0:
+		return {"spending":0,"tax":0,"buyers":0}
+	var spending = 0
+	var sales_tax = 0
+	var buyers = 0
+	var food_need = int(state.get("needs", {}).get("food", 60))
+	for citizen_index in range(state.citizens.size()):
+		var citizen = state.citizens[citizen_index]
+		var wallet = int(citizen.get("wallet", 0))
+		var demand = 2 + int(floor(float(100 - food_need) / 20.0))
+		var purchase = min(wallet, demand)
+		if purchase <= 0:
+			continue
+		var ticket = (int(citizen.get("id", citizen_index + 1)) + int(state.day)) % total_weight
+		var selected_index = int(shops[0].index)
+		for shop in shops:
+			if ticket < int(shop.weight):
+				selected_index = int(shop.index)
+				break
+			ticket -= int(shop.weight)
+		var tax = int(floor(float(purchase) * 0.10))
+		var business_revenue = purchase - tax
+		state.buildings[selected_index].balance = int(state.buildings[selected_index].get("balance", 0)) + business_revenue
+		citizen.wallet = wallet - purchase
+		state.citizens[citizen_index] = citizen
+		spending += purchase
+		sales_tax += tax
+		buyers += 1
+	if spending > 0:
+		report.append("شهروندان %d خرید خوراک انجام دادند؛ گردش خرید %d سکه و مالیات فروش %d سکه بود." % [buyers,spending,sales_tax])
+	return {"spending":spending,"tax":sales_tax,"buyers":buyers}
+
+func collect_business_profit(building_index):
+	if building_index < 0 or building_index >= state.buildings.size():
+		return {"ok":false,"message":"ساختمان پیدا نشد."}
+	var building = state.buildings[building_index]
+	var balance = max(0, int(building.get("balance", 0)))
+	if balance <= 0:
+		return {"ok":false,"message":"این کسب‌وکار هنوز سود قابل برداشت ندارد."}
+	var accepted = _add_money(balance)
+	if accepted <= 0:
+		return {"ok":false,"message":"ظرفیت خزانه پر است؛ فعلاً امکان برداشت سود وجود ندارد."}
+	building.balance = balance - accepted
+	state.buildings[building_index] = building
+	save_game()
+	return {"ok":true,"message":"%d سکه سود به خزانه منتقل شد." % accepted}
 
 func _workers_for(id):
 	var count = 0
