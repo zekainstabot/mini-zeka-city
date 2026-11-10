@@ -45,7 +45,7 @@ func _build_ui():
 	nav.add_constant_override("hseparation", 8)
 	nav.add_constant_override("vseparation", 8)
 	root.add_child(nav)
-	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بازار","p":"market"},{"t":"انبار","p":"storage"},{"t":"گزارش روز","p":"report"},{"t":"ماموریت‌ها","p":"missions"}]:
+	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بازار","p":"market"},{"t":"تجارت شهرها","p":"trade"},{"t":"انبار","p":"storage"},{"t":"گزارش روز","p":"report"},{"t":"ماموریت‌ها","p":"missions"}]:
 		var b = Button.new()
 		b.text = item.t
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -158,14 +158,32 @@ func show_page(page):
 				_add_label("شهروند %s — %s | کیف پول: %d سکه" % [str(citizen.id),("بیکار" if citizen.job == "" else citizen.job),int(citizen.get("wallet",0))])
 			_add_button("🔄 تخصیص دوباره شغل‌ها", self, "reassign_jobs")
 		"market":
-			_add_label("بازار شهر — قیمت خرید و فروش", 22)
+			_add_label("بازار شهر — قیمت‌ها بر اساس عرضه و تقاضا", 22)
+			_add_label("موجودی بازار کمتر باشد، قیمت بالاتر می‌رود؛ با افزایش موجودی، قیمت کاهش می‌یابد.", 15)
 			for id in game.get_resource_definitions().keys():
 				var d = game.get_resource_definitions()[id]
 				var stock = int(s.resources.get(id,0))
 				var market_stock = int(s.market_stock.get(id,0))
-				_add_label("%s | انبار: %d | بازار: %d | خرید: %d | فروش: %d" % [d.name,stock,market_stock,d.buy,d.sell])
+				var buy_price = game.get_market_price(id,"buy")
+				var sell_price = game.get_market_price(id,"sell")
+				_add_label("%s | انبار: %d | موجودی بازار: %d/۱۰۰ | خرید: %d | فروش: %d" % [d.name,stock,market_stock,buy_price,sell_price])
 				_add_button("خرید ۵ واحد "+d.name, self, "buy_item", [id,5])
 				_add_button("فروش ۵ واحد "+d.name, self, "sell_item", [id,5])
+		"trade":
+			_add_label("🚚 تجارت با شهرهای همسایه", 22)
+			_add_label("هر شهر تقاضا و ظرفیت خرید روزانه دارد. صادرات با قیمت توافقی انجام می‌شود و درآمد مستقیم به خزانه می‌رود.", 15)
+			_add_label("ظرفیت باقی‌مانده امروز:", 18)
+			for city_id in game.get_trade_cities().keys():
+				var city = game.get_trade_cities()[city_id]
+				_add_label("%s: %d / %d واحد" % [city.name,int(s.trade_remaining.get(city_id,city.daily_capacity)),int(city.daily_capacity)])
+				for resource_id in game.get_resource_definitions().keys():
+					var export_price = game.get_trade_export_price(city_id,resource_id)
+					if export_price <= 0:
+						continue
+					_add_label("%s — %s | تقاضا: %d | قیمت صادرات: %d سکه" % [city.name,game.get_resource_definitions()[resource_id].name,int(city.demand.get(resource_id,0)),export_price],15)
+					var export_button = _add_button("صادرات ۵ واحد "+game.get_resource_definitions()[resource_id].name+" به "+city.name,self,"export_to_city",[city_id,resource_id,5])
+					export_button.disabled = int(s.resources.get(resource_id,0)) <= 0 or int(s.trade_remaining.get(city_id,city.daily_capacity)) <= 0
+			_add_label("آخرین معامله: "+str(s.get("last_trade_report","هنوز معامله‌ای انجام نشده است.")),16)
 		"storage":
 			_add_label("📦 مدیریت انبار", 22)
 			_add_label("ظرفیت: %d | مصرف‌شده: %d | فضای خالی: %d" % [game.get_storage_capacity(),game.get_storage_used(),game.get_free_storage()])
@@ -264,6 +282,11 @@ func advance_day():
 	var report = game.end_day()
 	show_page("home")
 	_show_message(report)
+
+func export_to_city(city_id, resource_id, amount):
+	var result = game.trade_with_city(city_id, resource_id, amount)
+	show_page("trade")
+	_show_message(result.message)
 
 func buy_item(id, amount):
 	var result = game.buy_resource(id, amount)
