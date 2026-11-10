@@ -337,14 +337,14 @@ func end_day():
 			var reserve = _get_reserve(id)
 			var surplus = max(0, int(state.resources.get(id, 0)) - reserve)
 			var market_room = max(0, 100 - int(state.market_stock.get(id, 0)))
-		var sell_amount = min(surplus, market_room, 10)
+			var sell_amount = min(surplus, market_room, 10)
 			if sell_amount > 0:
 				state.resources[id] -= sell_amount
-				state.market_stock[id] -= sell_amount
+				state.market_stock[id] = int(state.market_stock.get(id, 0)) + sell_amount
 				var revenue = sell_amount * int(RESOURCES[id].sell)
 				income += revenue
 				report.append(str(sell_amount)+" واحد "+RESOURCES[id].name+" فروخته شد.")
-		var accepted_income = _add_money(income)
+	var accepted_income = _add_money(income)
 	if accepted_income < income:
 		report.append("ظرفیت خزانه پر است؛ %d سکه از درآمد امروز دریافت نشد." % (income - accepted_income))
 	for restock_id in ["stone", "iron_ore"]:
