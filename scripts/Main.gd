@@ -256,7 +256,7 @@ func show_page(page):
 			var report_economy = s.get("last_economy", {})
 			_add_label("درآمد مالیات: %d سکه" % int(report_economy.get("tax_income",0)))
 			_add_label("خرید شهروندان: %d سکه از %d خریدار" % [int(report_economy.get("consumer_spending",0)),int(report_economy.get("consumer_buyers",0))])
-			_add_label("غذای مصرف‌شده شهروندان: %d واحد | ذخیره پایان روز: %d" % [int(report_economy.get("food_units_sold",0)),int(report_economy.get("food_stock",0))])
+			_add_label("غذای مصرف‌شده شهروندان: %d واحد | ذخیره پایان روز: %d" % [int(report_economy.get("food_units_consumed",0)),int(report_economy.get("food_stock",0))])
 			_add_label("واریزی حساب فروشگاه‌ها: %d سکه" % int(report_economy.get("consumer_business_revenue",0)))
 			_add_label("مالیات خرید شهروندان: %d سکه" % int(report_economy.get("consumer_tax_income",0)))
 			_add_label("درآمد کسب‌وکارها: %d سکه" % int(report_economy.get("business_income",0)))
