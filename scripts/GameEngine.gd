@@ -718,7 +718,7 @@ func end_day():
 			var unit_price = get_market_price(id, "sell")
 			var treasury_room_for_sales = max(0, get_treasury_capacity() - int(state.money) - income)
 			var affordable_sale = int(floor(float(treasury_room_for_sales) / float(unit_price)))
-			var sell_amount = min(surplus, market_room, 10, affordable_sale)
+			var sell_amount = min(min(surplus, market_room), min(10, affordable_sale))
 			if sell_amount > 0:
 				state.resources[id] -= sell_amount
 				state.market_stock[id] = int(state.market_stock.get(id, 0)) + sell_amount
@@ -825,7 +825,7 @@ func _process_citizen_purchases(report):
 		var wallet = int(citizen.get("wallet", 0))
 		var demand_units = 1 + int(floor(float(100 - food_need) / 50.0))
 		var affordable_units = int(floor(float(wallet) / 10.0))
-		var purchase_units = min(demand_units, affordable_units, food_stock)
+		var purchase_units = min(min(demand_units, affordable_units), food_stock)
 		if purchase_units <= 0:
 			continue
 		var purchase = purchase_units * 10
@@ -910,7 +910,7 @@ func order_import(city_id, resource_id, requested_amount):
 	var city = TRADE_CITIES[city_id]
 	var city_stock = state.city_export_stock.get(city_id, city.supply)
 	var available = int(city_stock.get(resource_id, 0))
-	var amount = min(int(requested_amount), available, get_transport_capacity_remaining())
+	var amount = min(min(int(requested_amount), available), get_transport_capacity_remaining())
 	if amount <= 0:
 		return {"ok":false,"message":"کالا یا ظرفیت کامیون‌های آزاد برای واردات کافی نیست؛ پایانه حمل‌ونقل و نیروی کار آن را بررسی کن."}
 	if get_free_storage() < amount:
@@ -997,7 +997,7 @@ func _dispatch_import_contracts(report):
 			continue
 		var amount = int(contract.get("daily_amount",1))
 		var stock = state.city_export_stock.get(city_id,TRADE_CITIES[city_id].supply)
-		amount = min(amount,int(stock.get(resource_id,0)),get_free_storage(),get_transport_capacity_remaining())
+		amount = min(min(amount,int(stock.get(resource_id,0))),min(get_free_storage(),get_transport_capacity_remaining()))
 		var price = get_import_price(city_id,resource_id)
 		var total = amount * price + max(1,int(ceil(float(amount * price)*0.10)))
 		if amount <= 0 or price <= 0 or get_available_money() < total:
@@ -1051,7 +1051,7 @@ func trade_with_city(city_id, resource_id, requested_amount):
 	var unit_price = get_trade_export_price(city_id, resource_id)
 	var treasury_room = max(0, get_treasury_capacity() - int(state.money))
 	var affordable_amount = int(floor(float(treasury_room) / float(unit_price)))
-	var amount = min(int(requested_amount), remaining, available, demand, affordable_amount, get_transport_capacity_remaining())
+	var amount = min(min(min(int(requested_amount),remaining),min(available,demand)),min(affordable_amount,get_transport_capacity_remaining()))
 	if amount <= 0:
 		return {"ok":false,"message":"موجودی کالا، تقاضای شهر یا ظرفیت خزانه کافی نیست."}
 	var final_revenue = amount * unit_price
