@@ -21,7 +21,7 @@ func _ready():
 
 func _build_ui():
 	var background = ColorRect.new()
-	background.color = Color("#111827")
+	background.color = Color("#0b1220")
 	background.anchor_right = 1
 	background.anchor_bottom = 1
 	add_child(background)
@@ -39,7 +39,7 @@ func _build_ui():
 	header_label = Label.new()
 	header_label.text = "🏙️ مینی زکا سیتی"
 	header_label.align = Label.ALIGN_CENTER
-	header_label.add_color_override("font_color", Color("#f8fafc"))
+	header_label.add_color_override("font_color", Color("#67e8f9"))
 	root.add_child(header_label)
 	var nav = GridContainer.new()
 	nav.columns = 2 if compact_layout else 3
@@ -68,6 +68,31 @@ func _build_ui():
 	message_label.add_color_override("font_color", Color("#fbbf24"))
 	root.add_child(message_label)
 
+func _button_style(bg_color, border_color):
+	var style = StyleBoxFlat.new()
+	style.bg_color = bg_color
+	style.border_color = border_color
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(9)
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 8
+	style.content_margin_bottom = 8
+	return style
+
+func _style_button(button, navigation=false):
+	var normal_color = Color("#164e63") if navigation else Color("#1e293b")
+	var hover_color = Color("#0e7490") if navigation else Color("#334155")
+	var pressed_color = Color("#155e75") if navigation else Color("#0f172a")
+	button.add_stylebox_override("normal", _button_style(normal_color, Color("#0e7490") if navigation else Color("#475569")))
+	button.add_stylebox_override("hover", _button_style(hover_color, Color("#67e8f9")))
+	button.add_stylebox_override("pressed", _button_style(pressed_color, Color("#22d3ee")))
+	button.add_stylebox_override("disabled", _button_style(Color("#1f2937"), Color("#374151")))
+	button.add_color_override("font_color", Color("#f8fafc"))
+	button.add_color_override("font_color_hover", Color("#ffffff"))
+	button.add_color_override("font_color_pressed", Color("#ecfeff"))
+	button.add_color_override("font_color_disabled", Color("#64748b"))
+
 func _clear_content():
 	for child in content.get_children():
 		child.queue_free()
@@ -76,15 +101,16 @@ func _add_label(text, size=18):
 	var label = Label.new()
 	label.text = text
 	label.autowrap = true
-	label.add_color_override("font_color", Color("#e5e7eb"))
+	label.add_color_override("font_color", Color("#e2e8f0"))
 	content.add_child(label)
 	return label
 
 func _add_button(text, target, callback, args=[]):
 	var button = Button.new()
 	button.text = text
-	button.rect_min_size = Vector2(0, 46)
+	button.rect_min_size = Vector2(0, 50)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_button(button, false)
 	button.connect("pressed", target, callback, args)
 	content.add_child(button)
 	return button
