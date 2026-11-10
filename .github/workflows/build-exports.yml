@@ -110,8 +110,11 @@ jobs:
       - name: Upload browser build to Pages
         uses: actions/upload-pages-artifact@v3
         with:
+          name: mini-zeka-city-pages-${{ github.run_id }}-${{ github.run_attempt }}
           path: build/web
 
       - name: Publish browser game
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          artifact_name: mini-zeka-city-pages-${{ github.run_id }}-${{ github.run_attempt }}
