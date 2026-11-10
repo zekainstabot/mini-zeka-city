@@ -104,8 +104,8 @@ func show_page(page):
 			var categories = ["خانه‌ها","کارخانه‌ها","معادن","کسب‌وکارها","خدمات شهری","تفریح و فرهنگ","انبارها"]
 			for category in categories:
 				_add_label("【"+category+"】", 18)
-				for id in game.BUILDINGS.keys():
-					var data = game.BUILDINGS[id]
+				for id in game.get_building_definitions().keys():
+					var data = game.get_building_definitions()[id]
 					if data.category != category:
 						continue
 					var unlocked = s.population >= int(data.unlock)
@@ -117,7 +117,7 @@ func show_page(page):
 			_add_label("ساختمان‌های فعلی:", 18)
 			for i in range(s.buildings.size()):
 				var id = s.buildings[i].id
-				_add_button("تخریب: "+str(game.BUILDINGS[id].name), self, "demolish_building", [i])
+				_add_button("تخریب: "+str(game.get_building_definitions()[id].name), self, "demolish_building", [i])
 		"citizens":
 			_add_label("👥 جمعیت: %d | شاغل: %d | بیکار: %d" % [s.population,game.get_employed_count(),game.get_unemployed_count()], 20)
 			_add_label("ظرفیت شغلی: %d" % game.get_job_capacity())
@@ -126,8 +126,8 @@ func show_page(page):
 			_add_button("🔄 تخصیص دوباره شغل‌ها", self, "reassign_jobs")
 		"market":
 			_add_label("بازار شهر — قیمت خرید و فروش", 22)
-			for id in game.RESOURCES.keys():
-				var d = game.RESOURCES[id]
+			for id in game.get_resource_definitions().keys():
+				var d = game.get_resource_definitions()[id]
 				var stock = int(s.resources.get(id,0))
 				var market_stock = int(s.market_stock.get(id,0))
 				_add_label("%s | انبار: %d | بازار: %d | خرید: %d | فروش: %d" % [d.name,stock,market_stock,d.buy,d.sell])
