@@ -20,11 +20,11 @@ func _init():
 	food_game.state.resources.food = 10
 	var purchase_report = []
 	var purchases = food_game._process_citizen_purchases(purchase_report)
-	assert(int(purchases.food_units) == 3)
-	assert(int(food_game.state.resources.food) == 7)
-	assert(int(purchases.spending) == 30)
-	assert(int(purchases.tax) == 3)
-	assert(int(food_game.state.buildings[3].balance) == 27)
+	assert(int(purchases.food_units) == 4)
+	assert(int(food_game.state.resources.food) == 6)
+	assert(int(purchases.spending) == 40)
+	assert(int(purchases.tax) == 4)
+	assert(int(food_game.state.buildings[3].balance) == 36)
 
 	var no_shop_game = EngineScript.new()
 	no_shop_game.new_game()
