@@ -40,7 +40,6 @@ func _build_ui():
 	header_label.text = "🏙️ مینی زکا سیتی"
 	header_label.align = Label.ALIGN_CENTER
 	header_label.add_color_override("font_color", Color("#f8fafc"))
-	header_label.add_font_size_override("font_size", 22 if compact_layout else 28)
 	root.add_child(header_label)
 	var nav = GridContainer.new()
 	nav.columns = 2 if compact_layout else 3
@@ -78,7 +77,6 @@ func _add_label(text, size=18):
 	label.text = text
 	label.autowrap = true
 	label.add_color_override("font_color", Color("#e5e7eb"))
-	label.add_font_size_override("font_size", size)
 	content.add_child(label)
 	return label
 
