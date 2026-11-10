@@ -45,7 +45,7 @@ func _build_ui():
 	nav.add_constant_override("hseparation", 8)
 	nav.add_constant_override("vseparation", 8)
 	root.add_child(nav)
-	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بازار","p":"market"},{"t":"تجارت شهرها","p":"trade"},{"t":"انبار","p":"storage"},{"t":"گزارش روز","p":"report"},{"t":"ماموریت‌ها","p":"missions"}]:
+	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بازار","p":"market"},{"t":"تجارت شهرها","p":"trade"},{"t":"واردات و قراردادها","p":"imports"},{"t":"انبار","p":"storage"},{"t":"گزارش روز","p":"report"},{"t":"ماموریت‌ها","p":"missions"}]:
 		var b = Button.new()
 		b.text = item.t
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -185,6 +185,42 @@ func show_page(page):
 					var export_button = _add_button("صادرات ۵ واحد "+game.get_resource_definitions()[resource_id].name+" به "+city.name,self,"export_to_city",[city_id,resource_id,5])
 					export_button.disabled = int(s.resources.get(resource_id,0)) <= 0 or int(s.trade_remaining.get(city_id,city.daily_capacity)) <= 0
 			_add_label("آخرین معامله: "+str(s.get("last_trade_report","هنوز معامله‌ای انجام نشده است.")),16)
+		"imports":
+			_add_label("📦 واردات و حمل‌ونقل بین‌شهری", 22)
+			_add_label("هزینه کالا و ۱۰٪ کرایه حمل هنگام سفارش پرداخت می‌شود. محموله پس از ۱ یا ۲ روز می‌رسد.",15)
+			for city_id in game.get_import_cities().keys():
+				var city = game.get_import_cities()[city_id]
+				_add_label("%s | زمان حمل: %d روز" % [city.name,int(city.travel_days)],18)
+				for resource_id in game.get_resource_definitions().keys():
+					var stock = int(s.city_export_stock.get(city_id,city.supply).get(resource_id,0))
+					var price = game.get_import_price(city_id,resource_id)
+					if stock <= 0:
+						continue
+					_add_label("%s | موجودی: %d | قیمت: %d سکه/واحد" % [game.get_resource_definitions()[resource_id].name,stock,price],15)
+					var import_button = _add_button("سفارش ۵ واحد "+game.get_resource_definitions()[resource_id].name+" از "+city.name,self,"import_from_city",[city_id,resource_id,5])
+					import_button.disabled = game.get_free_storage() < 5 or game.get_available_money() < (5 * price + int(ceil(float(5 * price) * 0.10)))
+			_add_label("🚚 محموله‌های در راه:",18)
+			if s.trade_shipments.empty():
+				_add_label("محموله‌ای در راه نیست.")
+			for shipment in s.trade_shipments:
+				var shipment_city = game.get_import_cities().get(str(shipment.get("city_id","")),{"name":"نامشخص"})
+				var shipment_resource = game.get_resource_definitions().get(str(shipment.get("resource_id","")),{"name":"کالای نامشخص"})
+				_add_label("#%d | %s | %d واحد %s | تحویل روز %d" % [int(shipment.get("id",0)),shipment_city.name,int(shipment.get("amount",0)),shipment_resource.name,int(shipment.get("arrival_day",0))],15)
+			_add_label("آخرین سفارش: "+str(s.get("last_import_report","")),15)
+			_add_label("📑 قراردادهای واردات:",18)
+			if s.import_contracts.empty():
+				_add_label("قرارداد فعالی ثبت نشده است.")
+			for contract_index in range(s.import_contracts.size()):
+				var contract = s.import_contracts[contract_index]
+				var contract_city = game.get_import_cities().get(str(contract.get("city_id","")),{"name":"نامشخص"})
+				var contract_resource = game.get_resource_definitions().get(str(contract.get("resource_id","")),{"name":"نامشخص"})
+				var active_label = "فعال" if bool(contract.get("active",false)) else "پایان‌یافته/لغوشده"
+				_add_label("%s | %s | روزانه %d واحد | %d روز باقی‌مانده | %s" % [contract_city.name,contract_resource.name,int(contract.get("daily_amount",0)),int(contract.get("days_left",0)),active_label],15)
+				if bool(contract.get("active",false)):
+					_add_button("لغو قرارداد "+contract_resource.name,self,"cancel_import",[contract_index])
+			for city_id in game.get_import_cities().keys():
+				var city = game.get_import_cities()[city_id]
+				_add_button("قرارداد ۷ روزه: ۲ واحد چوب از "+city.name,self,"make_import_contract",[city_id,"wood",2,7])
 		"storage":
 			_add_label("📦 مدیریت انبار", 22)
 			_add_label("ظرفیت: %d | مصرف‌شده: %d | فضای خالی: %d" % [game.get_storage_capacity(),game.get_storage_used(),game.get_free_storage()])
@@ -283,6 +319,21 @@ func advance_day():
 	var report = game.end_day()
 	show_page("home")
 	_show_message(report)
+
+func import_from_city(city_id, resource_id, amount):
+	var result = game.order_import(city_id, resource_id, amount)
+	show_page("imports")
+	_show_message(result.message)
+
+func make_import_contract(city_id, resource_id, amount, days):
+	var result = game.create_import_contract(city_id, resource_id, amount, days)
+	show_page("imports")
+	_show_message(result.message)
+
+func cancel_import(index):
+	var result = game.cancel_import_contract(index)
+	show_page("imports")
+	_show_message(result.message)
 
 func export_to_city(city_id, resource_id, amount):
 	var result = game.trade_with_city(city_id, resource_id, amount)
