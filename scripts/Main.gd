@@ -7,6 +7,10 @@ var message_label = null
 var content = null
 var header_label = null
 
+func _notification(what):
+	if what == MainLoop.NOTIFICATION_WM_QUIT_REQUEST and game != null:
+		game.save_game()
+
 func _ready():
 	game = EngineScript.new()
 	if not game.load_game():
@@ -212,6 +216,7 @@ func demolish_building(index):
 
 func reassign_jobs():
 	game.assign_jobs()
+	game.save_game()
 	show_page("citizens")
 	_show_message("تخصیص شغل‌ها به‌روزرسانی شد.")
 
