@@ -47,10 +47,14 @@ func _build_ui():
 		nav.add_child(b)
 	var line = HSeparator.new()
 	root.add_child(line)
+	var scroll = ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.add_child(scroll)
 	content = VBoxContainer.new()
-	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_constant_override("separation", 10)
-	root.add_child(content)
+	scroll.add_child(content)
 	message_label = Label.new()
 	message_label.autowrap = true
 	message_label.add_color_override("font_color", Color("#fbbf24"))
@@ -150,18 +154,18 @@ func _resource_summary():
 
 func build_building(id):
 	var result = game.build(id)
-	_show_message(result.message)
 	show_page("buildings")
+	_show_message(result.message)
 
 func demolish_building(index):
 	var result = game.demolish(index)
-	_show_message(result.message)
 	show_page("buildings")
+	_show_message(result.message)
 
 func reassign_jobs():
 	game.assign_jobs()
-	_show_message("تخصیص شغل‌ها به‌روزرسانی شد.")
 	show_page("citizens")
+	_show_message("تخصیص شغل‌ها به‌روزرسانی شد.")
 
 func advance_day():
 	var report = game.end_day()
@@ -170,13 +174,13 @@ func advance_day():
 
 func buy_item(id, amount):
 	var result = game.buy_resource(id, amount)
-	_show_message(result.message)
 	show_page("market")
+	_show_message(result.message)
 
 func sell_item(id, amount):
 	var result = game.sell_resource(id, amount)
-	_show_message(result.message)
 	show_page("market")
+	_show_message(result.message)
 
 func save_now():
 	var ok = game.save_game()
