@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/**'
+      - 'tests/**'
       - '*.godot'
       - '*.tscn'
       - 'export_presets.cfg'
