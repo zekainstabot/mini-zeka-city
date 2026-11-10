@@ -99,6 +99,8 @@ Open `project.godot` in Godot 3.6.x and run the project.
 - با اجرای GitHub Actions به نام Build Mini ZekaCity exports، بازی با Godot 3.6.3 برای هر دو بستر ساخته می‌شود.
 - خروجی APK نسخه Debug برای نصب و آزمایش روی گوشی است؛ برای انتشار عمومی در فروشگاه، کلید امضای اختصاصی لازم است.
 - خروجی وب به‌صورت ZIP شامل فایل HTML و منابع WebAssembly است؛ آن را استخراج کن و از طریق وب‌سرور اجرا کن، نه با بازکردن مستقیم فایل HTML.
+- برای اجرای محلی وب در ویندوز، وارد پوشه استخراج‌شده شو و دستور `py -m http.server 8000` را اجرا کن؛ سپس `http://localhost:8000` را در مرورگر باز کن.
+- برای دریافت فایل‌ها وارد [صفحه اجرای خروجی‌ها در GitHub Actions](https://github.com/zekainstabot/mini-zeka-city/actions/workflows/build-exports.yml) شو، آخرین اجرای موفق را باز کن و از بخش Artifacts فایل‌ها را دریافت کن.
 - فایل‌های خروجی در GitHub Actions بخش Artifacts به مدت ۱۴ روز قابل دریافت هستند.
 
 ## جاده‌ها، ناوگان و لجستیک زمینی
