@@ -39,6 +39,11 @@ jobs:
           yes | sdkmanager --licenses >/dev/null
           sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;23.2.8568313" "cmake;3.10.2.4988404"
 
+      - name: Install virtual display for Godot editor
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+
       - name: Download Godot 3.6.3 editor and export templates
         run: |
           wget -q https://github.com/godotengine/godot/releases/download/3.6.3-stable/Godot_v3.6.3-stable_x11.64.zip -O /tmp/godot.zip
@@ -52,7 +57,7 @@ jobs:
 
       - name: Run game logic smoke tests
         run: |
-          /tmp/godot/Godot_v3.6.3-stable_x11.64 --headless --path . --script res://tests/logic_smoke_test.gd
+          xvfb-run -a /tmp/godot/Godot_v3.6.3-stable_x11.64 --path . --script res://tests/logic_smoke_test.gd
 
       - name: Configure Android debug signing
         run: |
@@ -70,11 +75,11 @@ jobs:
       - name: Export HTML5 build
         run: |
           mkdir -p build/web build/android
-          /tmp/godot/Godot_v3.6.3-stable_x11.64 --headless --path . --export-debug "HTML5" build/web/index.html
+          xvfb-run -a /tmp/godot/Godot_v3.6.3-stable_x11.64 --path . --export-debug "HTML5" build/web/index.html
 
       - name: Export Android debug APK
         run: |
-          /tmp/godot/Godot_v3.6.3-stable_x11.64 --headless --path . --export-debug "Android" build/android/MiniZekaCity.apk
+          xvfb-run -a /tmp/godot/Godot_v3.6.3-stable_x11.64 --path . --export-debug "Android" build/android/MiniZekaCity.apk
 
       - name: Package browser build
         run: |
