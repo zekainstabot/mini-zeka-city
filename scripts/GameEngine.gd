@@ -19,6 +19,7 @@ const BUILDINGS = {
 	"low_apartment": {"name":"آپارتمان کم‌ارتفاع","category":"خانه‌ها","cost":800,"unlock":20,"capacity":8,"jobs":0,"wage":0},
 	"high_apartment": {"name":"آپارتمان بلند","category":"خانه‌ها","cost":3000,"unlock":100,"capacity":14,"jobs":0,"wage":0},
 	"residential_tower": {"name":"برج مسکونی","category":"خانه‌ها","cost":10000,"unlock":500,"capacity":22,"jobs":0,"wage":0},
+	"shopping_mall": {"name":"مرکز خرید","category":"کسب‌وکارها","cost":8000,"unlock":150,"jobs":30,"wage":65,"daily_revenue":420},
 	"small_warehouse": {"name":"انبار کوچک","category":"انبارها","cost":500,"unlock":0,"storage":100,"jobs":0,"wage":0},
 	"medium_warehouse": {"name":"انبار متوسط","category":"انبارها","cost":2000,"unlock":0,"storage":500,"jobs":0,"wage":0},
 	"large_warehouse": {"name":"انبار بزرگ","category":"انبارها","cost":6000,"unlock":0,"storage":2000,"jobs":0,"wage":0},
@@ -281,6 +282,8 @@ func end_day():
 			income += revenue
 			report.append(str(sell_amount)+" واحد "+RESOURCES[id].name+" فروخته شد.")
 	state.money += income
+	for restock_id in ["stone", "iron_ore"]:
+		state.market_stock[restock_id] = min(100, int(state.market_stock.get(restock_id, 0)) + 5)
 
 	var housing = get_housing_capacity()
 	if state.population < housing and state.reputation >= 25:
