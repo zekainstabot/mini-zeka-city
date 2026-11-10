@@ -203,6 +203,7 @@ func show_page(page):
 			_add_label("ظرفیت کامیون‌ها بین واردات، قراردادهای تأمین و صادرات مشترک است.",15)
 		"imports":
 			_add_label("📦 واردات و حمل‌ونقل بین‌شهری", 22)
+			_add_label("ظرفیت کامیون آزاد امروز: %d از %d واحد" % [game.get_transport_capacity_remaining(),game.get_transport_daily_capacity()],16)
 			_add_label("هزینه کالا و ۱۰٪ کرایه حمل هنگام سفارش پرداخت می‌شود. محموله پس از ۱ یا ۲ روز می‌رسد.",15)
 			for city_id in game.get_import_cities().keys():
 				var city = game.get_import_cities()[city_id]
