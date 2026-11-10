@@ -22,7 +22,7 @@ func _ready():
 
 func _build_ui():
 	var background = ColorRect.new()
-	background.color = Color("#071426")
+	background.color = Color("#101827")
 	background.anchor_right = 1
 	background.anchor_bottom = 1
 	add_child(background)
@@ -38,7 +38,7 @@ func _build_ui():
 	root.add_constant_override("separation", 12)
 	add_child(root)
 	header_label = Label.new()
-	header_label.text = "🏙️ مینی زکا سیتی"
+	header_label.text = PersianText.reshaper("🏙️ مینی زکا سیتی")
 	header_label.align = Label.ALIGN_CENTER
 	header_label.add_color_override("font_color", Color("#ffffff"))
 	root.add_child(header_label)
@@ -83,18 +83,18 @@ func _button_style(bg_color, border_color):
 	return style
 
 func _style_button(button, navigation=false):
-	var normal_color = Color("#164e63") if navigation else Color("#1e293b")
-	var hover_color = Color("#0e7490") if navigation else Color("#334155")
-	var pressed_color = Color("#155e75") if navigation else Color("#0f172a")
-	button.add_stylebox_override("normal", _button_style(Color("#087f8c") if navigation else Color("#26364d"), Color("#5eead4") if navigation else Color("#94a3b8")))
-	button.add_stylebox_override("hover", _button_style(Color("#0e9f9a") if navigation else Color("#3b526f"), Color("#ccfbf1")))
-	button.add_stylebox_override("focus", _button_style(Color("#0e9f9a") if navigation else Color("#3b526f"), Color("#ffffff")))
-	button.add_stylebox_override("pressed", _button_style(pressed_color, Color("#22d3ee")))
+	var normal_color = Color("#fbbf24") if navigation else Color("#7c3aed")
+	var hover_color = Color("#fde68a") if navigation else Color("#8b5cf6")
+	var pressed_color = Color("#d97706") if navigation else Color("#5b21b6")
+	button.add_stylebox_override("normal", _button_style(normal_color, Color("#ffffff") if navigation else Color("#c4b5fd")) )
+	button.add_stylebox_override("hover", _button_style(hover_color, Color("#ffffff")))
+	button.add_stylebox_override("focus", _button_style(hover_color, Color("#ffffff")))
+	button.add_stylebox_override("pressed", _button_style(pressed_color, Color("#ffffff")))
 	button.add_stylebox_override("disabled", _button_style(Color("#1f2937"), Color("#374151")))
-	button.add_color_override("font_color", Color("#ffffff"))
+	button.add_color_override("font_color", Color("#111827") if navigation else Color("#ffffff"))
 	button.add_color_override("font_color_focus", Color("#ffffff"))
-	button.add_color_override("font_color_hover", Color("#ffffff"))
-	button.add_color_override("font_color_pressed", Color("#ecfeff"))
+	button.add_color_override("font_color_hover", Color("#111827") if navigation else Color("#ffffff"))
+	button.add_color_override("font_color_pressed", Color("#ffffff"))
 	button.add_color_override("font_color_disabled", Color("#64748b"))
 
 func _clear_content():
