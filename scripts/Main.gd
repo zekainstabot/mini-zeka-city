@@ -82,12 +82,12 @@ func _add_label(text, size=18):
 	content.add_child(label)
 	return label
 
-func _add_button(text, callback, args=[]):
+func _add_button(text, target, callback, args=[]):
 	var button = Button.new()
 	button.text = text
 	button.rect_min_size = Vector2(0, 46)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.connect("pressed", self, callback, args)
+	button.connect("pressed", target, callback, args)
 	content.add_child(button)
 	return button
 
