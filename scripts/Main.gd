@@ -136,8 +136,8 @@ func show_page(page):
 		"storage":
 			_add_label("📦 مدیریت انبار", 22)
 			_add_label("ظرفیت: %d | مصرف‌شده: %d | فضای خالی: %d" % [game.get_storage_capacity(),game.get_storage_used(),game.get_free_storage()])
-			for id in game.RESOURCES.keys():
-				_add_label("%s: %d" % [game.RESOURCES[id].name,s.resources.get(id,0)])
+			for id in game.get_resource_definitions().keys():
+				_add_label("%s: %d" % [game.get_resource_definitions()[id].name,s.resources.get(id,0)])
 		"report":
 			_add_label("📜 گزارش روزانه", 22)
 			_add_label(str(s.last_report), 18)
@@ -148,8 +148,8 @@ func show_page(page):
 
 func _resource_summary():
 	var parts = []
-	for id in game.RESOURCES.keys():
-		parts.append("%s: %d" % [game.RESOURCES[id].name,game.state.resources.get(id,0)])
+	for id in game.get_resource_definitions().keys():
+		parts.append("%s: %d" % [game.get_resource_definitions()[id].name,game.state.resources.get(id,0)])
 	return " | ".join(parts)
 
 func build_building(id):
