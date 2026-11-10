@@ -102,6 +102,7 @@ func new_game():
 		"resources": {"stone":0,"iron_ore":0,"wood":0,"lumber":0,"furniture":0},
 		"market_stock": {"stone":60,"iron_ore":60,"wood":60,"lumber":60,"furniture":60},
 		"trade_remaining": {"mehrabad":25,"navid":18,"golestan":30},
+		"trade_demand_remaining": {"mehrabad":{"stone":20,"iron_ore":10,"wood":25,"lumber":15,"furniture":8},"navid":{"stone":8,"iron_ore":25,"wood":10,"lumber":20,"furniture":18},"golestan":{"stone":15,"iron_ore":8,"wood":18,"lumber":12,"furniture":25}},
 		"last_trade_report": "هنوز معامله بین‌شهری انجام نشده است.",
 		"citizens": [],
 		"last_economy": {"tax_income":0,"business_income":0,"resource_income":0,"gross_income":0,"accepted_income":0,"wages_due":0,"wages_paid":0,"net_cashflow":0},
@@ -146,6 +147,8 @@ func _normalize_state():
 		state.market_stock = {}
 	if typeof(state.get("trade_remaining", null)) != TYPE_DICTIONARY:
 		state["trade_remaining"] = {}
+	if typeof(state.get("trade_demand_remaining", null)) != TYPE_DICTIONARY:
+		state["trade_demand_remaining"] = {}
 	if not state.has("central_bank_rebuild_days_left"):
 		state["central_bank_rebuild_days_left"] = 0
 	if not state.has("forest_trees"):
@@ -174,6 +177,11 @@ func _normalize_state():
 		state.market_stock[id] = int(clamp(int(state.market_stock.get(id, 60)), 0, 100))
 	for city_id in TRADE_CITIES.keys():
 		state.trade_remaining[city_id] = int(clamp(int(state.trade_remaining.get(city_id, TRADE_CITIES[city_id].daily_capacity)), 0, int(TRADE_CITIES[city_id].daily_capacity)))
+		if typeof(state.trade_demand_remaining.get(city_id, null)) != TYPE_DICTIONARY:
+			state.trade_demand_remaining[city_id] = TRADE_CITIES[city_id].demand.duplicate(true)
+		else:
+			for resource_id in RESOURCES.keys():
+				state.trade_demand_remaining[city_id][resource_id] = int(clamp(int(state.trade_demand_remaining[city_id].get(resource_id, TRADE_CITIES[city_id].demand.get(resource_id,0))),0,int(TRADE_CITIES[city_id].demand.get(resource_id,0))))
 	state["central_bank_rebuild_days_left"] = max(0, int(state.get("central_bank_rebuild_days_left", 0)))
 	state["forest_trees"] = int(clamp(int(state.get("forest_trees", 100)), 0, 100))
 	state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)), 0, 100))
@@ -640,7 +648,7 @@ func end_day():
 			if sell_amount > 0:
 				state.resources[id] -= sell_amount
 				state.market_stock[id] = int(state.market_stock.get(id, 0)) + sell_amount
-				var revenue = sell_amount * int(RESOURCES[id].sell)
+				var revenue = sell_amount * unit_price
 				income += revenue
 				resource_income_total += revenue
 				report.append(str(sell_amount)+" واحد "+RESOURCES[id].name+" فروخته شد؛ درآمد: "+str(revenue)+" سکه.")
@@ -791,7 +799,7 @@ func get_trade_export_price(city_id, resource_id):
 	if not TRADE_CITIES.has(city_id) or not RESOURCES.has(resource_id):
 		return 0
 	var city = TRADE_CITIES[city_id]
-	var demand = int(city.demand.get(resource_id, 0))
+	var demand = int(state.get("trade_demand_remaining", {}).get(city_id, city.demand).get(resource_id, 0))
 	if demand <= 0:
 		return 0
 	var local_price = get_market_price(resource_id, "sell")
@@ -802,24 +810,24 @@ func trade_with_city(city_id, resource_id, requested_amount):
 	if not TRADE_CITIES.has(city_id) or not RESOURCES.has(resource_id) or requested_amount <= 0:
 		return {"ok":false,"message":"درخواست تجارت نامعتبر است."}
 	var city = TRADE_CITIES[city_id]
-	var demand = int(city.demand.get(resource_id, 0))
+	var demand_by_resource = state.trade_demand_remaining.get(city_id, city.demand)
+	var demand = int(demand_by_resource.get(resource_id, 0))
 	if demand <= 0:
-		return {"ok":false,"message":city.name+" در حال حاضر خریدار این کالا نیست."}
+		return {"ok":false,"message":city.name+" سهمیه خرید این کالا را امروز تکمیل کرده است."}
 	var remaining = int(state.trade_remaining.get(city_id, city.daily_capacity))
 	var available = int(state.resources.get(resource_id, 0))
-	var amount = min(int(requested_amount), remaining, available, demand)
-	if amount <= 0:
-		return {"ok":false,"message":"موجودی کالا یا ظرفیت خرید روزانه این شهر کافی نیست."}
 	var unit_price = get_trade_export_price(city_id, resource_id)
-	var revenue = amount * unit_price
-	var accepted = _add_money(revenue)
-	var accepted_amount = int(floor(float(accepted) / float(unit_price)))
-	if accepted_amount <= 0:
-		return {"ok":false,"message":"ظرفیت خزانه برای دریافت درآمد تجارت کافی نیست."}
-	accepted_amount = min(amount, accepted_amount)
-	var final_revenue = accepted_amount * unit_price
-	state.resources[resource_id] = available - accepted_amount
-	state.trade_remaining[city_id] = remaining - accepted_amount
+	var treasury_room = max(0, get_treasury_capacity() - int(state.money))
+	var affordable_amount = int(floor(float(treasury_room) / float(unit_price)))
+	var amount = min(int(requested_amount), remaining, available, demand, affordable_amount)
+	if amount <= 0:
+		return {"ok":false,"message":"موجودی کالا، تقاضای شهر یا ظرفیت خزانه کافی نیست."}
+	var final_revenue = amount * unit_price
+	_add_money(final_revenue)
+	state.resources[resource_id] = available - amount
+	state.trade_remaining[city_id] = remaining - amount
+	demand_by_resource[resource_id] = demand - amount
+	state.trade_demand_remaining[city_id] = demand_by_resource
 	state.last_trade_report = "%d واحد %s به %s صادر شد؛ درآمد: %d سکه." % [accepted_amount,RESOURCES[resource_id].name,city.name,final_revenue]
 	save_game()
 	return {"ok":true,"message":state.last_trade_report,"amount":accepted_amount,"revenue":final_revenue}
@@ -827,6 +835,7 @@ func trade_with_city(city_id, resource_id, requested_amount):
 func _refresh_trade_capacity():
 	for city_id in TRADE_CITIES.keys():
 		state.trade_remaining[city_id] = int(TRADE_CITIES[city_id].daily_capacity)
+		state.trade_demand_remaining[city_id] = TRADE_CITIES[city_id].demand.duplicate(true)
 
 func buy_resource(id, amount):
 	if not RESOURCES.has(id) or amount <= 0:
