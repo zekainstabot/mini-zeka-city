@@ -49,9 +49,9 @@ const BUILDINGS = {
 	"stone_mine": {"name":"معدن سنگ","category":"معادن","cost":1200,"unlock":10,"jobs":4,"wage":38,"output":"stone","amount":2},
 	"iron_mine": {"name":"معدن آهن","category":"معادن","cost":2200,"unlock":30,"jobs":5,"wage":45,"output":"iron_ore","amount":1,"level_unlock":3},
 	"grocery_store": {"name":"فروشگاه مواد غذایی","category":"کسب‌وکارها","cost":300,"unlock":5,"jobs":3,"wage":30,"daily_revenue":120,"service_need":"food","service_capacity":12},
-	"bakery": {"name":"نانوایی","category":"کسب‌وکارها","cost":400,"unlock":10,"jobs":4,"wage":35,"daily_revenue":1600,"service_need":"food","service_capacity":16},
+	"bakery": {"name":"نانوایی","category":"کسب‌وکارها","cost":400,"unlock":10,"jobs":4,"wage":35,"daily_revenue":180,"service_need":"food","service_capacity":16},
 	"restaurant": {"name":"رستوران","category":"کسب‌وکارها","cost":1000,"unlock":25,"jobs":6,"wage":45,"daily_revenue":350,"service_need":"food","service_capacity":20},
-	"office": {"name":"ساختمان اداری","category":"کسب‌وکارها","cost":1800,"unlock":40,"jobs":20,"wage":60,"daily_revenue":180},
+	"office": {"name":"ساختمان اداری","category":"کسب‌وکارها","cost":1800,"unlock":40,"jobs":20,"wage":60,"daily_revenue":1800},
 	"factory": {"name":"کارخانه","category":"کسب‌وکارها","cost":6000,"unlock":100,"jobs":25,"wage":55,"daily_revenue":1800,"level_unlock":6},
 	"mineral_market": {"name":"بازار مواد معدنی","category":"کسب‌وکارها","cost":500,"unlock":0,"jobs":1,"wage":35},
 	"water_tower": {"name":"برج آب","category":"خدمات شهری","cost":500,"unlock":5,"jobs":2,"wage":30,"service_need":"water","service_capacity":35},
@@ -74,7 +74,7 @@ var state = {}
 
 func new_game():
 	state = {
-		"version": 1,
+		"version": 3,
 		"day": 1,
 		"money": 10000,
 		"population": 4,
@@ -96,6 +96,7 @@ func new_game():
 		"resources": {"stone":0,"iron_ore":0,"wood":0,"lumber":0,"furniture":0},
 		"market_stock": {"stone":100,"iron_ore":100,"wood":100,"lumber":100,"furniture":100},
 		"citizens": [],
+		"last_economy": {"tax_income":0,"business_income":0,"resource_income":0,"gross_income":0,"accepted_income":0,"wages_due":0,"wages_paid":0,"net_cashflow":0},
 		"last_report": "شهر جدید ساخته شد. به مینی زکا سیتی خوش آمدی."
 	}
 	_sync_population()
@@ -110,7 +111,7 @@ func load_game():
 		return false
 	var parsed = parse_json(file.get_as_text())
 	file.close()
-	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 2:
+	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 3:
 		return false
 	state = parsed
 	_normalize_state()
@@ -141,6 +142,8 @@ func _normalize_state():
 		state["forest_trees"] = 100
 	if not state.has("satisfaction"):
 		state["satisfaction"] = 50
+	if typeof(state.get("last_economy", null)) != TYPE_DICTIONARY:
+		state["last_economy"] = {"tax_income":0,"business_income":0,"resource_income":0,"gross_income":0,"accepted_income":0,"wages_due":0,"wages_paid":0,"net_cashflow":0}
 	if typeof(state.get("services", null)) != TYPE_DICTIONARY:
 		state["services"] = {}
 	if typeof(state.get("needs", null)) != TYPE_DICTIONARY:
@@ -151,8 +154,8 @@ func _normalize_state():
 		state["missions"] = []
 	if typeof(state.get("mines", null)) != TYPE_ARRAY:
 		state["mines"] = []
-	# Save schema migration: version 1 saves remain compatible with version 2.
-	state["version"] = 2
+	# Save schema migration: retain old saves and add the daily economy ledger.
+	state["version"] = 3
 	state["central_bank_rebuild_days_left"] = max(0, int(state.get("central_bank_rebuild_days_left", 0)))
 	state["forest_trees"] = int(clamp(int(state.get("forest_trees", 100)), 0, 100))
 	state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)), 0, 100))
@@ -545,18 +548,27 @@ func end_day():
 	_advance_mines(report)
 	# Forest regrowth is gradual and capped; logging consumes actual trees.
 	state.forest_trees = min(100, int(state.forest_trees) + 2)
-	var income = state.population * 2
-	if income > 0:
-		report.append("مالیات شهری دریافت شد: "+str(income)+" سکه.")
+	var tax_income = int(state.population) * 2
+	var business_income_total = 0
+	var resource_income_total = 0
+	var income = tax_income
+	if tax_income > 0:
+		report.append("مالیات شهری دریافت شد: "+str(tax_income)+" سکه.")
 	for building_index in range(state.buildings.size()):
 		var building = state.buildings[building_index]
 		var data = BUILDINGS.get(building.id, {})
 		var workers = _workers_for_building(building_index)
-		if int(data.get("jobs", 0)) > 0 and workers == 0:
+		var required_workers = int(data.get("jobs", 0))
+		if required_workers > 0 and workers == 0:
 			continue
+		# Business revenue scales with actual staffing, preventing a partly
+		# staffed large business from earning its full theoretical revenue.
 		var business_income = int(data.get("daily_revenue", 0))
+		if business_income > 0 and required_workers > 0:
+			business_income = int(round(float(business_income) * float(workers) / float(required_workers)))
 		if business_income > 0:
 			income += business_income
+			business_income_total += business_income
 			report.append(data.name+" درآمد داشت: "+str(business_income)+" سکه.")
 
 		var output = str(data.get("output", ""))
@@ -600,10 +612,22 @@ func end_day():
 				state.market_stock[id] = int(state.market_stock.get(id, 0)) + sell_amount
 				var revenue = sell_amount * int(RESOURCES[id].sell)
 				income += revenue
-				report.append(str(sell_amount)+" واحد "+RESOURCES[id].name+" فروخته شد.")
+				resource_income_total += revenue
+				report.append(str(sell_amount)+" واحد "+RESOURCES[id].name+" فروخته شد؛ درآمد: "+str(revenue)+" سکه.")
 	var accepted_income = _add_money(income)
 	if accepted_income < income:
 		report.append("ظرفیت خزانه پر است؛ %d سکه از درآمد امروز دریافت نشد." % (income - accepted_income))
+	state.last_economy = {
+		"tax_income": tax_income,
+		"business_income": business_income_total,
+		"resource_income": resource_income_total,
+		"gross_income": income,
+		"accepted_income": accepted_income,
+		"wages_due": total_wages,
+		"wages_paid": paid_wages,
+		"net_cashflow": accepted_income - paid_wages
+	}
+	report.append("خلاصه مالی: درآمد %d | حقوق %d | تغییر خالص خزانه %d سکه." % [accepted_income, paid_wages, accepted_income - paid_wages])
 	for restock_id in ["stone", "iron_ore"]:
 		state.market_stock[restock_id] = min(100, int(state.market_stock.get(restock_id, 0)) + 5)
 
