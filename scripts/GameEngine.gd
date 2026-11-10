@@ -919,6 +919,10 @@ func _next_shipment_id():
 func create_import_contract(city_id, resource_id, daily_amount, duration_days):
 	if not TRADE_CITIES.has(city_id) or not RESOURCES.has(resource_id):
 		return {"ok":false,"message":"شهر یا کالای قرارداد معتبر نیست."}
+	if get_transport_truck_count() <= 0:
+		return {"ok":false,"message":"برای قرارداد واردات ابتدا پایانه حمل‌ونقل بساز و حداقل ۲ کارمند به ناوگان اختصاص بده."}
+	if daily_amount > get_transport_daily_capacity():
+		return {"ok":false,"message":"مقدار روزانه قرارداد از ظرفیت ناوگان بیشتر است؛ کامیون یا سطح جاده را افزایش بده."}
 	if daily_amount < 1 or daily_amount > 10 or duration_days < 3 or duration_days > 30:
 		return {"ok":false,"message":"قرارداد باید روزانه ۱ تا ۱۰ واحد و بین ۳ تا ۳۰ روز باشد."}
 	for contract in state.import_contracts:
