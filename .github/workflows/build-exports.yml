@@ -73,7 +73,7 @@ jobs:
       - name: Launch the actual main scene for runtime validation
         run: |
           set -o pipefail
-          timeout 30s xvfb-run -a /tmp/godot/Godot_v3.6.3-stable_x11.64 --path . --audio-driver Dummy --quit-after 120 2>&1 | tee /tmp/godot-main-scene.log
+          timeout 15s xvfb-run -a /tmp/godot/Godot_v3.6.3-stable_x11.64 --path . --audio-driver Dummy --quit 2>&1 | tee /tmp/godot-main-scene.log
           if grep -E "SCRIPT ERROR|Parse Error" /tmp/godot-main-scene.log; then exit 1; fi
 
       - name: Configure Android debug signing
