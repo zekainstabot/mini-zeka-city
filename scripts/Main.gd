@@ -95,6 +95,8 @@ func show_page(page):
 			_add_label("💰 خزانه: %d / %d سکه   |   پول قفل‌شده: %d   |   👥 جمعیت: %d نفر" % [s.money,game.get_treasury_capacity(),game.get_locked_money(),s.population], 22)
 			_add_label("شاغلان: %d  |  بیکاران: %d  |  اعتبار شهر: %d" % [game.get_employed_count(),game.get_unemployed_count(),s.reputation])
 			_add_label("🏘️ ساختمان‌ها: %d  |  ظرفیت انبار: %d  |  بانک مرکزی: %s  |  بانک شهری: %d" % [s.buildings.size(),game.get_storage_capacity(),("فعال" if game.has_central_bank() else ("بازسازی تا %d روز دیگر" % int(s.get("central_bank_rebuild_days_left",0)) if int(s.get("central_bank_rebuild_days_left",0)) > 0 else "ندارد")),game.get_building_count("municipal_bank")])
+			_add_label("🌳 درختان جنگل: %d از ۱۰۰ | رشد روزانه: ۲ درخت" % game.get_forest_tree_count())
+			_add_label("⛏️ معادن فعال: %d" % _active_mine_count())
 			_add_label("منابع: "+_resource_summary())
 			_add_label("گزارش آخر:\n"+str(s.last_report), 16)
 			_add_button("🌅 پایان روز و اجرای اقتصاد", self, "advance_day")
@@ -114,6 +116,15 @@ func show_page(page):
 						label += " | 🔒 قفل"
 					var b = _add_button(label, self, "build_building", [id])
 					b.disabled = not unlocked or s.money < int(data.cost)
+			_add_label("مدیریت معادن:", 18)
+			for mine_index in range(game.get_mines().size()):
+				var mine = game.get_mines()[mine_index]
+				var mine_status = ("فعال" if bool(mine.get("active",false)) else "متوقف")
+				if str(mine.get("resource","")) == "iron_ore":
+					mine_status += " | ذخیره: %d" % int(mine.get("remaining",0))
+					if int(mine.get("remaining",0)) <= 0:
+						_add_button("🔋 شارژ معدن آهن — ۱۰۰۰ سکه", self, "refill_mine", [mine_index])
+				_add_label("%s — %s" % [game.get_resource_definitions()[str(mine.get("resource","stone"))].name,mine_status])
 			_add_label("ساختمان‌های فعلی:", 18)
 			for i in range(s.buildings.size()):
 				var id = s.buildings[i].id
@@ -136,6 +147,7 @@ func show_page(page):
 		"storage":
 			_add_label("📦 مدیریت انبار", 22)
 			_add_label("ظرفیت: %d | مصرف‌شده: %d | فضای خالی: %d" % [game.get_storage_capacity(),game.get_storage_used(),game.get_free_storage()])
+			_add_label("🌳 ذخیره درختان جنگل: %d / ۱۰۰" % game.get_forest_tree_count())
 			for id in game.get_resource_definitions().keys():
 				_add_label("%s: %d" % [game.get_resource_definitions()[id].name,s.resources.get(id,0)])
 		"report":
@@ -145,6 +157,18 @@ func show_page(page):
 		_:
 			_add_label("بخش پیدا نشد.")
 	header_label.text = "🏙️ مینی زکا سیتی  |  خزانه: %d  |  جمعیت: %d" % [s.money,s.population]
+
+func _active_mine_count():
+	var count = 0
+	for mine in game.get_mines():
+		if bool(mine.get("active", false)):
+			count += 1
+	return count
+
+func refill_mine(index):
+	var result = game.refill_iron_mine(index)
+	show_page("buildings")
+	_show_message(result.message)
 
 func _resource_summary():
 	var parts = []
