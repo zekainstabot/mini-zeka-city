@@ -21,6 +21,8 @@ const BUILDINGS = {
 	"residential_tower": {"name":"برج مسکونی","category":"خانه‌ها","cost":10000,"unlock":500,"capacity":22,"jobs":0,"wage":0},
 	"shopping_mall": {"name":"مرکز خرید","category":"کسب‌وکارها","cost":8000,"unlock":150,"jobs":30,"wage":65,"daily_revenue":420},
 	"small_warehouse": {"name":"انبار کوچک","category":"انبارها","cost":500,"unlock":0,"storage":100,"jobs":0,"wage":0},
+	"central_bank": {"name":"بانک مرکزی","category":"خدمات شهری","cost":5000,"unlock":100,"jobs":8,"wage":55},
+	"municipal_bank": {"name":"بانک شهری","category":"خدمات شهری","cost":1500,"unlock":40,"jobs":3,"wage":42},
 	"medium_warehouse": {"name":"انبار متوسط","category":"انبارها","cost":2000,"unlock":0,"storage":500,"jobs":0,"wage":0},
 	"large_warehouse": {"name":"انبار بزرگ","category":"انبارها","cost":6000,"unlock":0,"storage":2000,"jobs":0,"wage":0},
 	"huge_warehouse": {"name":"انبار عظیم","category":"انبارها","cost":20000,"unlock":0,"storage":10000,"jobs":0,"wage":0},
@@ -62,6 +64,7 @@ func new_game():
 		"level": 1,
 		"xp": 0,
 		"reputation": 50,
+		"central_bank_rebuild_days_left": 0,
 		"buildings": [
 			{"id":"small_house","workers":0,"balance":0},
 			{"id":"small_house","workers":0,"balance":0},
@@ -107,6 +110,8 @@ func _normalize_state():
 		state.resources = {}
 	if typeof(state.get("market_stock", null)) != TYPE_DICTIONARY:
 		state.market_stock = {}
+	if not state.has("central_bank_rebuild_days_left"):
+		state["central_bank_rebuild_days_left"] = 0
 	for key in ["day","money","population","level","xp","reputation"]:
 		if not state.has(key):
 			state[key] = {"day":1,"money":10000,"population":0,"level":1,"xp":0,"reputation":50}[key]
@@ -144,6 +149,37 @@ func get_building_definitions():
 
 func get_resource_definitions():
 	return RESOURCES
+
+func has_central_bank():
+	return get_building_count("central_bank") > 0
+
+func get_treasury_capacity():
+	var capacity = 10000
+	if has_central_bank():
+		capacity += 40000
+	capacity += get_building_count("municipal_bank") * 5000
+	return capacity
+
+func get_locked_money():
+	return max(0, int(state.money) - get_treasury_capacity())
+
+func get_available_money():
+	return max(0, int(state.money) - get_locked_money())
+
+func _spend_money(amount):
+	var value = int(amount)
+	if value < 0 or get_available_money() < value:
+		return false
+	state.money = int(state.money) - value
+	return true
+
+func _add_money(amount):
+	var value = int(amount)
+	if value <= 0:
+		return 0
+	var accepted = min(value, max(0, get_treasury_capacity() - int(state.money)))
+	state.money = int(state.money) + accepted
+	return accepted
 
 func get_storage_capacity():
 	var total = 0
@@ -189,9 +225,12 @@ func build(id):
 	var data = BUILDINGS[id]
 	if int(state.population) < int(data.get("unlock", 0)):
 		return {"ok":false,"message":"برای ساخت این ساختمان جمعیت کافی نیست."}
-	if int(state.money) < int(data.cost):
-		return {"ok":false,"message":"موجودی خزانه کافی نیست."}
-	state.money -= int(data.cost)
+	if id == "central_bank" and int(state.get("central_bank_rebuild_days_left", 0)) > 0:
+		return {"ok":false,"message":"برای ساخت دوباره بانک مرکزی باید %d روز صبر کنی." % int(state.central_bank_rebuild_days_left)}
+	if not _spend_money(int(data.cost)):
+		return {"ok":false,"message":"پول آزاد خزانه کافی نیست؛ ممکن است بخشی از پول به‌دلیل ظرفیت خزانه قفل شده باشد."}
+	if id == "central_bank":
+		state.central_bank_rebuild_days_left = 0
 	state.buildings.append({"id":id,"workers":0,"balance":0})
 	_sync_population()
 	assign_jobs()
@@ -204,6 +243,11 @@ func demolish(index):
 	if id == "small_house" and get_building_count(id) <= 1:
 		return {"ok":false,"message":"آخرین خانه شهر را نمی‌توان تخریب کرد."}
 	state.buildings.remove(index)
+	if id == "central_bank":
+		state.central_bank_rebuild_days_left = 7
+		var excess = max(0, int(state.money) - get_treasury_capacity())
+		if excess > 0:
+			state.last_report = "با تخریب بانک مرکزی، %d سکه تا پایان مهلت بازسازی قفل شد." % excess
 	_sync_population()
 	assign_jobs()
 	return {"ok":true,"message":"ساختمان تخریب شد. بازپرداختی انجام نشد."}
@@ -248,8 +292,8 @@ func end_day():
 		if citizen.job == "":
 			continue
 		total_wages += int(BUILDINGS.get(citizen.job, {}).get("wage", 0))
-	var paid_wages = min(int(state.money), total_wages)
-	state.money -= paid_wages
+	var paid_wages = min(get_available_money(), total_wages)
+	state.money = int(state.money) - paid_wages
 	if paid_wages < total_wages:
 		state.reputation = max(0, state.reputation - 3)
 		report.append("کسری بودجه؛ بخشی از حقوق پرداخت نشد.")
@@ -279,23 +323,30 @@ func end_day():
 			var input_amount = int(data.get("input_amount", 0))
 			if int(state.resources.get(input, 0)) < input_amount:
 				continue
-			state.resources[input] -= input_amount
 		if get_free_storage() < amount:
 			continue
+		# Consume inputs only after confirming output can fit in storage.
+		if input != "":
+			state.resources[input] = int(state.resources.get(input, 0)) - int(data.get("input_amount", 0))
 		state.resources[output] = int(state.resources.get(output, 0)) + amount
 		report.append(data.name+" تولید کرد: "+str(amount)+" "+RESOURCES[output].name+".")
 
-	for id in RESOURCES.keys():
-		var reserve = _get_reserve(id)
-		var surplus = max(0, int(state.resources.get(id, 0)) - reserve)
-		var sell_amount = min(surplus, int(state.market_stock.get(id, 0)), 10)
-		if sell_amount > 0:
-			state.resources[id] -= sell_amount
-			state.market_stock[id] -= sell_amount
-			var revenue = sell_amount * int(RESOURCES[id].sell)
-			income += revenue
-			report.append(str(sell_amount)+" واحد "+RESOURCES[id].name+" فروخته شد.")
-	state.money += income
+	var has_market = get_building_count("mineral_market") > 0
+	if has_market:
+		for id in RESOURCES.keys():
+			var reserve = _get_reserve(id)
+			var surplus = max(0, int(state.resources.get(id, 0)) - reserve)
+			var market_room = max(0, 100 - int(state.market_stock.get(id, 0)))
+		var sell_amount = min(surplus, market_room, 10)
+			if sell_amount > 0:
+				state.resources[id] -= sell_amount
+				state.market_stock[id] -= sell_amount
+				var revenue = sell_amount * int(RESOURCES[id].sell)
+				income += revenue
+				report.append(str(sell_amount)+" واحد "+RESOURCES[id].name+" فروخته شد.")
+		var accepted_income = _add_money(income)
+	if accepted_income < income:
+		report.append("ظرفیت خزانه پر است؛ %d سکه از درآمد امروز دریافت نشد." % (income - accepted_income))
 	for restock_id in ["stone", "iron_ore"]:
 		state.market_stock[restock_id] = min(100, int(state.market_stock.get(restock_id, 0)) + 5)
 
@@ -306,6 +357,16 @@ func end_day():
 		report.append("یک شهروند جدید به شهر مهاجرت کرد.")
 		assign_jobs()
 
+	if not has_central_bank() and int(state.central_bank_rebuild_days_left) > 0:
+		state.central_bank_rebuild_days_left -= 1
+		if int(state.central_bank_rebuild_days_left) == 0:
+			var before = int(state.money)
+			state.money = min(int(state.money), get_treasury_capacity())
+			var destroyed = before - int(state.money)
+			if destroyed > 0:
+				report.append("مهلت بازسازی بانک مرکزی تمام شد؛ %d سکه مازاد از خزانه حذف شد." % destroyed)
+			else:
+				report.append("مهلت بازسازی بانک مرکزی تمام شد؛ ظرفیت عادی خزانه فعال شد.")
 	state.day += 1
 	state.xp += 5 + state.population
 	if state.xp >= state.level * 100:
@@ -332,13 +393,13 @@ func buy_resource(id, amount):
 	if not RESOURCES.has(id) or amount <= 0:
 		return {"ok":false,"message":"درخواست خرید نامعتبر است."}
 	var cost = int(RESOURCES[id].buy) * amount
-	if int(state.money) < cost:
-		return {"ok":false,"message":"پول کافی نیست."}
+	if get_available_money() < cost:
+		return {"ok":false,"message":"پول آزاد کافی نیست."}
 	if int(state.market_stock.get(id, 0)) < amount:
 		return {"ok":false,"message":"موجودی بازار کافی نیست."}
 	if get_free_storage() < amount:
 		return {"ok":false,"message":"فضای خالی انبار کافی نیست."}
-	state.money -= cost
+	_spend_money(cost)
 	state.market_stock[id] -= amount
 	state.resources[id] = int(state.resources.get(id, 0)) + amount
 	return {"ok":true,"message":"خرید انجام شد: "+str(amount)+" واحد "+RESOURCES[id].name}
@@ -349,11 +410,11 @@ func sell_resource(id, amount):
 	if int(state.resources.get(id, 0)) < amount:
 		return {"ok":false,"message":"موجودی انبار کافی نیست."}
 	if int(state.market_stock.get(id, 0)) + amount > 100:
-		amount = 100 - int(state.market_stock.get(id, 0))
+		amount = max(0, 100 - int(state.market_stock.get(id, 0)))
 	if amount <= 0:
 		return {"ok":false,"message":"بازار ظرفیت خرید ندارد."}
 	state.resources[id] -= amount
 	state.market_stock[id] += amount
 	var revenue = amount * int(RESOURCES[id].sell)
-	state.money += revenue
-	return {"ok":true,"message":"فروش انجام شد؛ درآمد: "+str(revenue)+" سکه."}
+	var accepted = _add_money(revenue)
+	return {"ok":true,"message":"فروش انجام شد؛ درآمد دریافتی: "+str(accepted)+" سکه."}
