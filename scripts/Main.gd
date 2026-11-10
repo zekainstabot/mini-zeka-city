@@ -28,26 +28,29 @@ func _build_ui():
 	var root = VBoxContainer.new()
 	root.anchor_right = 1
 	root.anchor_bottom = 1
-	root.margin_left = 22
-	root.margin_top = 18
-	root.margin_right = -22
-	root.margin_bottom = -18
+	var screen_width = get_viewport_rect().size.x
+	var compact_layout = screen_width < 760
+	root.margin_left = 12 if compact_layout else 22
+	root.margin_top = 12 if compact_layout else 18
+	root.margin_right = -12 if compact_layout else -22
+	root.margin_bottom = -12 if compact_layout else -18
 	root.add_constant_override("separation", 12)
 	add_child(root)
 	header_label = Label.new()
 	header_label.text = "🏙️ مینی زکا سیتی"
 	header_label.align = Label.ALIGN_CENTER
 	header_label.add_color_override("font_color", Color("#f8fafc"))
-	header_label.add_font_size_override("font_size", 28)
+	header_label.add_font_size_override("font_size", 22 if compact_layout else 28)
 	root.add_child(header_label)
 	var nav = GridContainer.new()
-	nav.columns = 3
+	nav.columns = 2 if compact_layout else 3
 	nav.add_constant_override("hseparation", 8)
 	nav.add_constant_override("vseparation", 8)
 	root.add_child(nav)
 	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بازار","p":"market"},{"t":"تجارت شهرها","p":"trade"},{"t":"واردات و قراردادها","p":"imports"},{"t":"جاده و ناوگان","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش روز","p":"report"},{"t":"ماموریت‌ها","p":"missions"}]:
 		var b = Button.new()
 		b.text = item.t
+		b.rect_min_size = Vector2(0, 46)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.connect("pressed", self, "show_page", [item.p])
 		nav.add_child(b)
@@ -82,6 +85,7 @@ func _add_label(text, size=18):
 func _add_button(text, callback, args=[]):
 	var button = Button.new()
 	button.text = text
+	button.rect_min_size = Vector2(0, 46)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.connect("pressed", self, callback, args)
 	content.add_child(button)
@@ -110,6 +114,7 @@ func show_page(page):
 			_add_label("🌳 درختان جنگل: %d از ۱۰۰ | رشد روزانه: ۲ درخت" % game.get_forest_tree_count())
 			_add_label("⛏️ معادن فعال: %d" % _active_mine_count())
 			_add_label("منابع: "+_resource_summary())
+			_add_label("ذخیره غذای شهر: %d واحد" % int(s.resources.get("food",0)),16)
 			var home_economy = s.get("last_economy", {})
 			_add_label("آخرین تراز روزانه: %d سکه" % int(home_economy.get("net_cashflow",0)), 17)
 			_add_label("گزارش آخر:\n"+str(s.last_report), 16)
@@ -117,7 +122,7 @@ func show_page(page):
 			_add_button("💾 ذخیره شهر", self, "save_now")
 		"buildings":
 			_add_label("ساخت‌وساز شهر", 22)
-			var categories = ["خانه‌ها","کارخانه‌ها","معادن","کسب‌وکارها","خدمات شهری","تفریح و فرهنگ","انبارها"]
+			var categories = ["خانه‌ها","کشاورزی","کارخانه‌ها","معادن","کسب‌وکارها","خدمات شهری","تفریح و فرهنگ","انبارها","زیرساخت"]
 			for category in categories:
 				_add_label("【"+category+"】", 18)
 				for id in game.get_building_definitions().keys():
@@ -167,8 +172,10 @@ func show_page(page):
 				var buy_price = game.get_market_price(id,"buy")
 				var sell_price = game.get_market_price(id,"sell")
 				_add_label("%s | انبار: %d | موجودی بازار: %d/۱۰۰ | خرید: %d | فروش: %d" % [d.name,stock,market_stock,buy_price,sell_price])
-				_add_button("خرید ۵ واحد "+d.name, self, "buy_item", [id,5])
-				_add_button("فروش ۵ واحد "+d.name, self, "sell_item", [id,5])
+				var buy_button = _add_button("خرید ۵ واحد "+d.name, self, "buy_item", [id,5])
+				buy_button.disabled = int(s.market_stock.get(id,0)) < 5 or game.get_free_storage() < 5 or game.get_available_money() < buy_price * 5
+				var sell_button = _add_button("فروش ۵ واحد "+d.name, self, "sell_item", [id,5])
+				sell_button.disabled = stock < 5 or int(s.market_stock.get(id,0)) > 95 or game.get_available_money() >= game.get_treasury_capacity()
 		"trade":
 			_add_label("🚚 تجارت با شهرهای همسایه", 22)
 			_add_label("هر شهر تقاضا و ظرفیت خرید روزانه دارد. صادرات با قیمت توافقی انجام می‌شود و درآمد مستقیم به خزانه می‌رود.", 15)
@@ -249,6 +256,7 @@ func show_page(page):
 			var report_economy = s.get("last_economy", {})
 			_add_label("درآمد مالیات: %d سکه" % int(report_economy.get("tax_income",0)))
 			_add_label("خرید شهروندان: %d سکه از %d خریدار" % [int(report_economy.get("consumer_spending",0)),int(report_economy.get("consumer_buyers",0))])
+			_add_label("غذای مصرف‌شده شهروندان: %d واحد | ذخیره پایان روز: %d" % [int(report_economy.get("food_units_sold",0)),int(report_economy.get("food_stock",0))])
 			_add_label("واریزی حساب فروشگاه‌ها: %d سکه" % int(report_economy.get("consumer_business_revenue",0)))
 			_add_label("مالیات خرید شهروندان: %d سکه" % int(report_economy.get("consumer_tax_income",0)))
 			_add_label("درآمد کسب‌وکارها: %d سکه" % int(report_economy.get("business_income",0)))
