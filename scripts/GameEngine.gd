@@ -65,6 +65,8 @@ func new_game():
 		"xp": 0,
 		"reputation": 50,
 		"central_bank_rebuild_days_left": 0,
+		"forest_trees": 100,
+		"mines": [],
 		"buildings": [
 			{"id":"small_house","workers":0,"balance":0},
 			{"id":"small_house","workers":0,"balance":0},
@@ -112,6 +114,15 @@ func _normalize_state():
 		state.market_stock = {}
 	if not state.has("central_bank_rebuild_days_left"):
 		state["central_bank_rebuild_days_left"] = 0
+	if not state.has("forest_trees"):
+		state["forest_trees"] = 100
+	if typeof(state.get("mines", null)) != TYPE_ARRAY:
+		state["mines"] = []
+	# Migrate existing mine buildings into persistent mine records.
+	for i in range(state.buildings.size()):
+		var building_id = str(state.buildings[i].get("id", ""))
+		if building_id in ["stone_mine", "iron_mine"] and not _has_mine(i):
+			_register_mine(i, building_id)
 	for key in ["day","money","population","level","xp","reputation"]:
 		if not state.has(key):
 			state[key] = {"day":1,"money":10000,"population":0,"level":1,"xp":0,"reputation":50}[key]
@@ -181,6 +192,9 @@ func _add_money(amount):
 	state.money = int(state.money) + accepted
 	return accepted
 
+func get_forest_tree_count():
+	return int(state.get("forest_trees", 0))
+
 func get_storage_capacity():
 	var total = 0
 	for building in state.buildings:
@@ -232,6 +246,9 @@ func build(id):
 	if id == "central_bank":
 		state.central_bank_rebuild_days_left = 0
 	state.buildings.append({"id":id,"workers":0,"balance":0})
+	var new_index = state.buildings.size() - 1
+	if id in ["stone_mine", "iron_mine"]:
+		_register_mine(new_index, id)
 	_sync_population()
 	assign_jobs()
 	return {"ok":true,"message":data.name+" با موفقیت ساخته شد."}
@@ -243,6 +260,11 @@ func demolish(index):
 	if id == "small_house" and get_building_count(id) <= 1:
 		return {"ok":false,"message":"آخرین خانه شهر را نمی‌توان تخریب کرد."}
 	state.buildings.remove(index)
+	for mine_index in range(state.mines.size() - 1, -1, -1):
+		if int(state.mines[mine_index].get("building_index", -1)) == index:
+			state.mines.remove(mine_index)
+		elif int(state.mines[mine_index].get("building_index", -1)) > index:
+			state.mines[mine_index].building_index -= 1
 	if id == "central_bank":
 		state.central_bank_rebuild_days_left = 7
 		var excess = max(0, int(state.money) - get_treasury_capacity())
@@ -284,6 +306,68 @@ func _workers_for_building(building_index):
 			count += 1
 	return count
 
+func _has_mine(building_index):
+	for mine in state.mines:
+		if int(mine.get("building_index", -1)) == building_index:
+			return true
+	return false
+
+func _register_mine(building_index, building_id):
+	var is_iron = building_id == "iron_mine"
+	state.mines.append({
+		"building_index": building_index,
+		"resource": ("iron_ore" if is_iron else "stone"),
+		"active": true,
+		"remaining": (150 if is_iron else -1),
+		"initial_reserve": (150 if is_iron else -1),
+		"extracted": 0
+	})
+
+func get_mines():
+	return state.get("mines", [])
+
+func refill_iron_mine(mine_index):
+	if mine_index < 0 or mine_index >= state.mines.size():
+		return {"ok":false,"message":"معدن پیدا نشد."}
+	var mine = state.mines[mine_index]
+	if str(mine.get("resource", "")) != "iron_ore":
+		return {"ok":false,"message":"این معدن نیاز به شارژ سنگ‌آهن ندارد."}
+	if int(mine.get("remaining", 0)) > 0:
+		return {"ok":false,"message":"ذخیره سنگ‌آهن معدن هنوز تمام نشده است."}
+	if not _spend_money(1000):
+		return {"ok":false,"message":"برای شارژ معدن به ۱۰۰۰ سکه پول آزاد نیاز داری."}
+	mine.remaining = int(mine.get("initial_reserve", 150))
+	mine.active = int(mine.remaining) > 0
+	state.mines[mine_index] = mine
+	return {"ok":true,"message":"ذخیره معدن آهن دوباره شارژ شد."}
+
+func _advance_mines(report):
+	for i in range(state.mines.size()):
+		var mine = state.mines[i]
+		if not bool(mine.get("active", false)):
+			continue
+		var resource_id = str(mine.get("resource", ""))
+		var production = (5 if resource_id == "stone" else 3)
+		if resource_id == "iron_ore":
+			production = min(production, int(mine.get("remaining", 0)))
+		if production <= 0:
+			mine.active = false
+			state.mines[i] = mine
+			continue
+		if get_free_storage() < production:
+			report.append("استخراج معدن متوقف شد؛ فضای انبار کافی نیست.")
+			continue
+		state.resources[resource_id] = int(state.resources.get(resource_id, 0)) + production
+		mine.extracted = int(mine.get("extracted", 0)) + production
+		if resource_id == "iron_ore":
+			mine.remaining = int(mine.remaining) - production
+			if int(mine.remaining) <= 0:
+				mine.remaining = 0
+				mine.active = false
+				report.append("ذخیره معدن آهن تمام شد؛ برای ادامه استخراج آن را با ۱۰۰۰ سکه شارژ کن.")
+		report.append("معدن %s واحد %s استخراج کرد." % [production, RESOURCES[resource_id].name])
+		state.mines[i] = mine
+
 func end_day():
 	var report = []
 	assign_jobs()
@@ -300,6 +384,9 @@ func end_day():
 	else:
 		report.append("حقوق روزانه پرداخت شد: "+str(total_wages)+" سکه.")
 
+	_advance_mines(report)
+	# Forest regrowth is gradual and capped; logging consumes actual trees.
+	state.forest_trees = min(100, int(state.forest_trees) + 2)
 	var income = state.population * 2
 	if income > 0:
 		report.append("مالیات شهری دریافت شد: "+str(income)+" سکه.")
@@ -319,6 +406,9 @@ func end_day():
 			continue
 		var input = str(data.get("input", ""))
 		var amount = int(data.get("amount", 0))
+		if str(building.id) == "woodcutter" and int(state.forest_trees) <= 0:
+			report.append("چوب‌بری متوقف شد؛ جنگل برای رشد دوباره درخت‌ها به زمان نیاز دارد.")
+			continue
 		if input != "":
 			var input_amount = int(data.get("input_amount", 0))
 			if int(state.resources.get(input, 0)) < input_amount:
@@ -328,6 +418,12 @@ func end_day():
 		# Consume inputs only after confirming output can fit in storage.
 		if input != "":
 			state.resources[input] = int(state.resources.get(input, 0)) - int(data.get("input_amount", 0))
+		if str(building.id) == "woodcutter":
+			var felled = min(int(state.forest_trees), amount)
+			state.forest_trees -= felled
+			amount = felled
+			if amount <= 0:
+				continue
 		state.resources[output] = int(state.resources.get(output, 0)) + amount
 		report.append(data.name+" تولید کرد: "+str(amount)+" "+RESOURCES[output].name+".")
 
