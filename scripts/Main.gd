@@ -39,7 +39,7 @@ func _build_ui():
 	var nav = HBoxContainer.new()
 	nav.add_constant_override("separation", 8)
 	root.add_child(nav)
-	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بازار","p":"market"},{"t":"انبار","p":"storage"},{"t":"گزارش روز","p":"report"}]:
+	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بازار","p":"market"},{"t":"انبار","p":"storage"},{"t":"گزارش روز","p":"report"},{"t":"ماموریت‌ها","p":"missions"}]:
 		var b = Button.new()
 		b.text = item.t
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -93,7 +93,12 @@ func show_page(page):
 		"home":
 			_add_label("روز %d  |  سطح %d  |  امتیاز تجربه %d" % [s.day,s.level,s.xp], 20)
 			_add_label("💰 خزانه: %d / %d سکه   |   پول قفل‌شده: %d   |   👥 جمعیت: %d نفر" % [s.money,game.get_treasury_capacity(),game.get_locked_money(),s.population], 22)
-			_add_label("شاغلان: %d  |  بیکاران: %d  |  اعتبار شهر: %d" % [game.get_employed_count(),game.get_unemployed_count(),s.reputation])
+			_add_label("شاغلان: %d  |  بیکاران: %d  |  اعتبار شهر: %d  |  رضایت: %d/۱۰۰" % [game.get_employed_count(),game.get_unemployed_count(),s.reputation,int(s.get("satisfaction",50))])
+			var service_lines = []
+			for service_id in game.SERVICE_GROUPS.keys():
+				var service_name = game.SERVICE_GROUPS[service_id].name
+				service_lines.append(service_name + ": " + ("فعال" if bool(s.get("services",{}).get(service_id,false)) else "ندارد"))
+			_add_label("خدمات شهری: " + " | ".join(service_lines), 15)
 			_add_label("🏘️ ساختمان‌ها: %d  |  ظرفیت انبار: %d  |  بانک مرکزی: %s  |  بانک شهری: %d" % [s.buildings.size(),game.get_storage_capacity(),("فعال" if game.has_central_bank() else ("بازسازی تا %d روز دیگر" % int(s.get("central_bank_rebuild_days_left",0)) if int(s.get("central_bank_rebuild_days_left",0)) > 0 else "ندارد")),game.get_building_count("municipal_bank")])
 			_add_label("🌳 درختان جنگل: %d از ۱۰۰ | رشد روزانه: ۲ درخت" % game.get_forest_tree_count())
 			_add_label("⛏️ معادن فعال: %d" % _active_mine_count())
@@ -154,6 +159,23 @@ func show_page(page):
 			_add_label("📜 گزارش روزانه", 22)
 			_add_label(str(s.last_report), 18)
 			_add_button("رفتن به روز بعد", self, "advance_day")
+		"missions":
+			_add_label("🎯 ماموریت‌های شهر", 22)
+			_add_label("با تکمیل ماموریت‌ها پاداش سکه دریافت کن.")
+			for mission_index in range(game.get_missions().size()):
+				var mission = game.get_missions()[mission_index]
+				var definition = {}
+				for item in game.MISSION_DEFINITIONS:
+					if str(item.id) == str(mission.get("id","")):
+						definition = item
+						break
+				if definition.empty():
+					continue
+				var status = ("دریافت شده" if bool(mission.get("claimed",false)) else ("آماده دریافت" if bool(mission.get("completed",false)) else "در حال انجام"))
+				_add_label("%s — %s" % [definition.title,status],18)
+				_add_label("%s | پیشرفت: %d/%d | جایزه: %d سکه" % [definition.description,int(mission.get("progress",0)),int(definition.goal),int(definition.reward)],15)
+				if bool(mission.get("completed",false)) and not bool(mission.get("claimed",false)):
+					_add_button("🎁 دریافت پاداش: "+str(definition.reward), self, "claim_mission", [mission_index])
 		_:
 			_add_label("بخش پیدا نشد.")
 	header_label.text = "🏙️ مینی زکا سیتی  |  خزانه: %d  |  جمعیت: %d" % [s.money,s.population]
@@ -204,6 +226,11 @@ func buy_item(id, amount):
 func sell_item(id, amount):
 	var result = game.sell_resource(id, amount)
 	show_page("market")
+	_show_message(result.message)
+
+func claim_mission(index):
+	var result = game.claim_mission(index)
+	show_page("missions")
 	_show_message(result.message)
 
 func save_now():
