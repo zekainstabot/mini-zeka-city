@@ -14,7 +14,7 @@ Open `project.godot` in Godot 3.6.x and run the project.
 - Daily production and payroll
 - Resource storage limits and forestry reserves
 - Market buy/sell and treasury
-- Local save/load
+- Local save/load with versioned migration and save-on-exit
 - Single-player foundation; online multiplayer is planned as a separate authenticated service layer.
 
 
