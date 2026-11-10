@@ -1,6 +1,7 @@
 extends Control
 
 const EngineScript = preload("res://scripts/GameEngine.gd")
+const PersianText = preload("res://scripts/PersianText.gd")
 var game = null
 var current_page = "home"
 var message_label = null
@@ -48,7 +49,7 @@ func _build_ui():
 	root.add_child(nav)
 	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بازار","p":"market"},{"t":"تجارت شهرها","p":"trade"},{"t":"واردات و قراردادها","p":"imports"},{"t":"جاده و ناوگان","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش روز","p":"report"},{"t":"ماموریت‌ها","p":"missions"}]:
 		var b = Button.new()
-		b.text = item.t
+		b.text = PersianText.reshaper(item.t)
 		b.rect_min_size = Vector2(0, 56)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_style_button(b, true)
@@ -85,11 +86,13 @@ func _style_button(button, navigation=false):
 	var normal_color = Color("#164e63") if navigation else Color("#1e293b")
 	var hover_color = Color("#0e7490") if navigation else Color("#334155")
 	var pressed_color = Color("#155e75") if navigation else Color("#0f172a")
-	button.add_stylebox_override("normal", _button_style(normal_color, Color("#0e7490") if navigation else Color("#475569")))
-	button.add_stylebox_override("hover", _button_style(hover_color, Color("#67e8f9")))
+	button.add_stylebox_override("normal", _button_style(Color("#087f8c") if navigation else Color("#26364d"), Color("#5eead4") if navigation else Color("#94a3b8")))
+	button.add_stylebox_override("hover", _button_style(Color("#0e9f9a") if navigation else Color("#3b526f"), Color("#ccfbf1")))
+	button.add_stylebox_override("focus", _button_style(Color("#0e9f9a") if navigation else Color("#3b526f"), Color("#ffffff")))
 	button.add_stylebox_override("pressed", _button_style(pressed_color, Color("#22d3ee")))
 	button.add_stylebox_override("disabled", _button_style(Color("#1f2937"), Color("#374151")))
-	button.add_color_override("font_color", Color("#f8fafc"))
+	button.add_color_override("font_color", Color("#ffffff"))
+	button.add_color_override("font_color_focus", Color("#ffffff"))
 	button.add_color_override("font_color_hover", Color("#ffffff"))
 	button.add_color_override("font_color_pressed", Color("#ecfeff"))
 	button.add_color_override("font_color_disabled", Color("#64748b"))
@@ -100,15 +103,16 @@ func _clear_content():
 
 func _add_label(text, size=18):
 	var label = Label.new()
-	label.text = text
-	label.autowrap = true
+	label.text = PersianText.reshaper(text)
+	label.align = Label.ALIGN_RIGHT
+	label.autowrap = false
 	label.add_color_override("font_color", Color("#e2e8f0"))
 	content.add_child(label)
 	return label
 
 func _add_button(text, target, callback, args=[]):
 	var button = Button.new()
-	button.text = text
+	button.text = PersianText.reshaper(text)
 	button.rect_min_size = Vector2(0, 50)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_button(button, false)
@@ -117,7 +121,7 @@ func _add_button(text, target, callback, args=[]):
 	return button
 
 func _show_message(text):
-	message_label.text = text
+	message_label.text = PersianText.reshaper(text)
 
 func show_page(page):
 	current_page = page
@@ -311,7 +315,7 @@ func show_page(page):
 					_add_button("🎁 دریافت پاداش: "+str(definition.reward), self, "claim_mission", [mission_index])
 		_:
 			_add_label("بخش پیدا نشد.")
-	header_label.text = "🏙️ مینی زکا سیتی  |  خزانه: %d  |  جمعیت: %d" % [s.money,s.population]
+	header_label.text = PersianText.reshaper("🏙️ مینی زکا سیتی  |  خزانه: %d  |  جمعیت: %d" % [s.money,s.population])
 
 func _service_summary():
 	var parts = []
