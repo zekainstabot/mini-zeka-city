@@ -180,7 +180,8 @@ func show_page(page):
 					var export_price = game.get_trade_export_price(city_id,resource_id)
 					if export_price <= 0:
 						continue
-					_add_label("%s — %s | تقاضا: %d | قیمت صادرات: %d سکه" % [city.name,game.get_resource_definitions()[resource_id].name,int(city.demand.get(resource_id,0)),export_price],15)
+					var city_demand_left = int(s.trade_demand_remaining.get(city_id,city.demand).get(resource_id,0))
+					_add_label("%s — %s | تقاضای باقی‌مانده: %d | قیمت صادرات: %d سکه" % [city.name,game.get_resource_definitions()[resource_id].name,city_demand_left,export_price],15)
 					var export_button = _add_button("صادرات ۵ واحد "+game.get_resource_definitions()[resource_id].name+" به "+city.name,self,"export_to_city",[city_id,resource_id,5])
 					export_button.disabled = int(s.resources.get(resource_id,0)) <= 0 or int(s.trade_remaining.get(city_id,city.daily_capacity)) <= 0
 			_add_label("آخرین معامله: "+str(s.get("last_trade_report","هنوز معامله‌ای انجام نشده است.")),16)
