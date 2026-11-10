@@ -636,6 +636,7 @@ func end_day():
 		"tax_income": tax_income,
 		"consumer_tax_income": consumer_tax_income,
 		"consumer_spending": int(citizen_market.spending),
+		"consumer_business_revenue": int(citizen_market.business_revenue),
 		"consumer_buyers": int(citizen_market.buyers),
 		"business_income": business_income_total,
 		"resource_income": resource_income_total,
@@ -696,15 +697,16 @@ func _process_citizen_purchases(report):
 		shops.append({"index":i,"weight":weight})
 		total_weight += weight
 	if shops.empty() or total_weight <= 0:
-		return {"spending":0,"tax":0,"buyers":0}
+		return {"spending":0,"tax":0,"buyers":0,"business_revenue":0}
 	var spending = 0
 	var sales_tax = 0
 	var buyers = 0
+	var business_revenue_total = 0
 	var food_need = int(state.get("needs", {}).get("food", 60))
 	for citizen_index in range(state.citizens.size()):
 		var citizen = state.citizens[citizen_index]
 		var wallet = int(citizen.get("wallet", 0))
-		var demand = 2 + int(floor(float(100 - food_need) / 20.0))
+		var demand = 5 + int(floor(float(100 - food_need) / 10.0))
 		var purchase = min(wallet, demand)
 		if purchase <= 0:
 			continue
@@ -722,10 +724,11 @@ func _process_citizen_purchases(report):
 		state.citizens[citizen_index] = citizen
 		spending += purchase
 		sales_tax += tax
+		business_revenue_total += business_revenue
 		buyers += 1
 	if spending > 0:
 		report.append("شهروندان %d خرید خوراک انجام دادند؛ گردش خرید %d سکه و مالیات فروش %d سکه بود." % [buyers,spending,sales_tax])
-	return {"spending":spending,"tax":sales_tax,"buyers":buyers}
+	return {"spending":spending,"tax":sales_tax,"buyers":buyers,"business_revenue":business_revenue_total}
 
 func collect_business_profit(building_index):
 	if building_index < 0 or building_index >= state.buildings.size():
