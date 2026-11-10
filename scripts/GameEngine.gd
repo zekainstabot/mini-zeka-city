@@ -422,7 +422,7 @@ func assign_jobs():
 		if workplaces.empty():
 			break
 		var building_index = workplaces[0]
-		citizen = state.citizens[citizen_index]
+		var citizen = state.citizens[citizen_index]
 		citizen.job_building_index = building_index
 		citizen.job = str(state.buildings[building_index].id)
 		state.citizens[citizen_index] = citizen
