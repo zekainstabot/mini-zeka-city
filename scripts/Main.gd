@@ -110,6 +110,8 @@ func show_page(page):
 			_add_label("🌳 درختان جنگل: %d از ۱۰۰ | رشد روزانه: ۲ درخت" % game.get_forest_tree_count())
 			_add_label("⛏️ معادن فعال: %d" % _active_mine_count())
 			_add_label("منابع: "+_resource_summary())
+			var economy = s.get("last_economy", {})
+			_add_label("آخرین تراز روزانه: %d سکه" % int(economy.get("net_cashflow",0)), 17)
 			_add_label("گزارش آخر:\n"+str(s.last_report), 16)
 			_add_button("🌅 پایان روز و اجرای اقتصاد", self, "advance_day")
 			_add_button("💾 ذخیره شهر", self, "save_now")
@@ -169,6 +171,13 @@ func show_page(page):
 				_add_label("%s: %d" % [game.get_resource_definitions()[id].name,s.resources.get(id,0)])
 		"report":
 			_add_label("📜 گزارش روزانه", 22)
+			var economy = s.get("last_economy", {})
+			_add_label("درآمد مالیات: %d سکه" % int(economy.get("tax_income",0)))
+			_add_label("درآمد کسب‌وکارها: %d سکه" % int(economy.get("business_income",0)))
+			_add_label("درآمد فروش منابع: %d سکه" % int(economy.get("resource_income",0)))
+			_add_label("کل درآمد دریافت‌شده: %d سکه" % int(economy.get("accepted_income",0)))
+			_add_label("حقوق پرداختی: %d از %d سکه" % [int(economy.get("wages_paid",0)),int(economy.get("wages_due",0))])
+			_add_label("تغییر خالص خزانه: %d سکه" % int(economy.get("net_cashflow",0)), 20)
 			_add_label(str(s.last_report), 18)
 			_add_button("رفتن به روز بعد", self, "advance_day")
 		"missions":
