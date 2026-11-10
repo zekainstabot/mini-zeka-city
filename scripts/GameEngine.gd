@@ -42,6 +42,7 @@ const BUILDINGS = {
 	"low_apartment": {"name":"آپارتمان کم‌ارتفاع","category":"خانه‌ها","cost":800,"unlock":20,"capacity":8,"jobs":0,"wage":0,"level_unlock":3},
 	"high_apartment": {"name":"آپارتمان بلند","category":"خانه‌ها","cost":3000,"unlock":100,"capacity":14,"jobs":0,"wage":0,"level_unlock":5},
 	"residential_tower": {"name":"برج مسکونی","category":"خانه‌ها","cost":10000,"unlock":500,"capacity":22,"jobs":0,"wage":0,"level_unlock":8},
+	"transport_depot": {"name":"پایانه حمل‌ونقل","category":"زیرساخت","cost":1800,"unlock":15,"jobs":4,"wage":40,"level_unlock":2},
 	"shopping_mall": {"name":"مرکز خرید","category":"کسب‌وکارها","cost":8000,"unlock":150,"jobs":30,"wage":65,"daily_revenue":2600,"level_unlock":6},
 	"small_warehouse": {"name":"انبار کوچک","category":"انبارها","cost":500,"unlock":0,"storage":100,"jobs":0,"wage":0},
 	"central_bank": {"name":"بانک مرکزی","category":"خدمات شهری","cost":5000,"unlock":100,"jobs":8,"wage":55,"level_unlock":4},
@@ -80,7 +81,7 @@ var state = {}
 
 func new_game():
 	state = {
-		"version": 6,
+		"version": 7,
 		"day": 1,
 		"money": 10000,
 		"population": 4,
@@ -88,6 +89,8 @@ func new_game():
 		"xp": 0,
 		"reputation": 50,
 		"satisfaction": 50,
+		"road_level": 1,
+		"transport_used_today": 0,
 		"needs": {"food":65,"water":70,"power":70,"health":70,"education":50,"safety":70,"leisure":50,"sanitation":70},
 		"services": {},
 		"missions": [],
@@ -109,7 +112,7 @@ func new_game():
 		"import_contracts": [],
 		"last_import_report": "هنوز محموله‌ای سفارش داده نشده است.",
 		"citizens": [],
-		"last_economy": {"tax_income":0,"business_income":0,"resource_income":0,"gross_income":0,"accepted_income":0,"wages_due":0,"wages_paid":0,"net_cashflow":0},
+		"last_economy": {"tax_income":0,"business_income":0,"resource_income":0,"gross_income":0,"accepted_income":0,"wages_due":0,"wages_paid":0,"fleet_maintenance":0,"road_maintenance":0,"maintenance_paid":0,"net_cashflow":0},
 		"last_report": "شهر جدید ساخته شد. به مینی زکا سیتی خوش آمدی."
 	}
 	_sync_population()
@@ -124,7 +127,7 @@ func load_game():
 		return false
 	var parsed = parse_json(file.get_as_text())
 	file.close()
-	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 6:
+	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 7:
 		return false
 	state = parsed
 	_normalize_state()
@@ -161,6 +164,10 @@ func _normalize_state():
 		state["import_contracts"] = []
 	if not state.has("last_import_report"):
 		state["last_import_report"] = "هنوز محموله‌ای سفارش داده نشده است."
+	if not state.has("road_level"):
+		state["road_level"] = 1
+	if not state.has("transport_used_today"):
+		state["transport_used_today"] = 0
 	if not state.has("central_bank_rebuild_days_left"):
 		state["central_bank_rebuild_days_left"] = 0
 	if not state.has("forest_trees"):
@@ -168,7 +175,9 @@ func _normalize_state():
 	if not state.has("satisfaction"):
 		state["satisfaction"] = 50
 	if typeof(state.get("last_economy", null)) != TYPE_DICTIONARY:
-		state["last_economy"] = {"tax_income":0,"business_income":0,"resource_income":0,"gross_income":0,"accepted_income":0,"wages_due":0,"wages_paid":0,"net_cashflow":0}
+		state["last_economy"] = {"tax_income":0,"business_income":0,"resource_income":0,"gross_income":0,"accepted_income":0,"wages_due":0,"wages_paid":0,"fleet_maintenance":0,"road_maintenance":0,"maintenance_paid":0,"net_cashflow":0}
+	for ledger_key in ["fleet_maintenance","road_maintenance","maintenance_paid"]:
+		state.last_economy[ledger_key] = int(state.last_economy.get(ledger_key,0))
 	if typeof(state.get("services", null)) != TYPE_DICTIONARY:
 		state["services"] = {}
 	if typeof(state.get("needs", null)) != TYPE_DICTIONARY:
@@ -184,7 +193,7 @@ func _normalize_state():
 	if typeof(state.get("mines", null)) != TYPE_ARRAY:
 		state["mines"] = []
 	# Save schema migration: add dynamic market, trade and shipping state.
-	state["version"] = 6
+	state["version"] = 7
 	for id in RESOURCES.keys():
 		state.market_stock[id] = int(clamp(int(state.market_stock.get(id, 60)), 0, 100))
 	for city_id in TRADE_CITIES.keys():
@@ -275,6 +284,39 @@ func _add_money(amount):
 	var accepted = min(value, max(0, get_treasury_capacity() - int(state.money)))
 	state.money = int(state.money) + accepted
 	return accepted
+
+func get_transport_truck_count():
+	var staffed_workers = 0
+	for i in range(state.buildings.size()):
+		if str(state.buildings[i].get("id","")) == "transport_depot":
+			staffed_workers += _workers_for_building(i)
+	return min(get_building_count("transport_depot") * 2, int(floor(float(staffed_workers) / 2.0)))
+
+func get_transport_daily_capacity():
+	return get_transport_truck_count() * (8 + int(state.get("road_level",1)) * 2)
+
+func get_transport_capacity_remaining():
+	return max(0, get_transport_daily_capacity() - int(state.get("transport_used_today",0)))
+
+func get_fleet_maintenance():
+	return get_transport_truck_count() * 15
+
+func get_road_maintenance():
+	return int(state.get("road_level",1)) * 5
+
+func upgrade_roads():
+	var level = int(state.get("road_level",1))
+	if level >= 3:
+		return {"ok":false,"message":"شبکه جاده‌ای شهر در بالاترین سطح است."}
+	var next_level = level + 1
+	var cost = 1500 if next_level == 2 else 3500
+	if int(state.level) < next_level:
+		return {"ok":false,"message":"برای ارتقای جاده به سطح %d باید سطح شهر هم به %d برسد." % [next_level,next_level]}
+	if not _spend_money(cost):
+		return {"ok":false,"message":"پول آزاد خزانه برای ارتقای جاده کافی نیست."}
+	state.road_level = next_level
+	save_game()
+	return {"ok":true,"message":"شبکه جاده‌ای به سطح %d ارتقا یافت؛ ظرفیت هر کامیون افزایش پیدا کرد." % next_level}
 
 func get_forest_tree_count():
 	return int(state.get("forest_trees", 0))
@@ -592,6 +634,16 @@ func end_day():
 		treasury_for_payroll -= payment
 		paid_wages += payment
 	state.money = int(state.money) - paid_wages
+	var fleet_maintenance = get_fleet_maintenance()
+	var road_maintenance = get_road_maintenance()
+	var maintenance_due = fleet_maintenance + road_maintenance
+	var maintenance_paid = min(maintenance_due, get_available_money())
+	state.money = int(state.money) - maintenance_paid
+	if maintenance_paid < maintenance_due:
+		state.reputation = max(0, state.reputation - 1)
+		report.append("هزینه نگهداری ناوگان و جاده کامل پرداخت نشد: %d از %d سکه." % [maintenance_paid,maintenance_due])
+	else:
+		report.append("نگهداری ناوگان و جاده: %d سکه." % maintenance_paid)
 	if paid_wages < total_wages:
 		state.reputation = max(0, state.reputation - 3)
 		report.append("کسری حقوق: %d از %d سکه پرداخت شد." % [paid_wages,total_wages])
@@ -684,9 +736,12 @@ func end_day():
 		"accepted_income": accepted_income,
 		"wages_due": total_wages,
 		"wages_paid": paid_wages,
-		"net_cashflow": accepted_income - paid_wages
+		"fleet_maintenance": fleet_maintenance,
+		"road_maintenance": road_maintenance,
+		"maintenance_paid": maintenance_paid,
+		"net_cashflow": accepted_income - paid_wages - maintenance_paid
 	}
-	report.append("خلاصه مالی: درآمد %d | حقوق %d | تغییر خالص خزانه %d سکه." % [accepted_income, paid_wages, accepted_income - paid_wages])
+	report.append("خلاصه مالی: درآمد %d | حقوق %d | تغییر خالص خزانه %d سکه." % [accepted_income, paid_wages, accepted_income - paid_wages - maintenance_paid])
 	for restock_id in RESOURCES.keys():
 		state.market_stock[restock_id] = min(100, int(state.market_stock.get(restock_id, 0)) + 5)
 	_refresh_trade_capacity()
@@ -710,6 +765,7 @@ func end_day():
 				report.append("مهلت بازسازی بانک مرکزی تمام شد؛ ظرفیت عادی خزانه فعال شد.")
 	_update_city_services(report)
 	state.day += 1
+	state.transport_used_today = 0
 	_process_trade_arrivals(report)
 	_dispatch_import_contracts(report)
 	# Neighboring cities replenish their export inventories gradually.
@@ -834,9 +890,9 @@ func order_import(city_id, resource_id, requested_amount):
 	var city = TRADE_CITIES[city_id]
 	var city_stock = state.city_export_stock.get(city_id, city.supply)
 	var available = int(city_stock.get(resource_id, 0))
-	var amount = min(int(requested_amount), available)
+	var amount = min(int(requested_amount), available, get_transport_capacity_remaining())
 	if amount <= 0:
-		return {"ok":false,"message":"این کالا فعلاً در شهر مقصد موجود نیست."}
+		return {"ok":false,"message":"کالا یا ظرفیت کامیون‌های آزاد برای واردات کافی نیست؛ پایانه حمل‌ونقل و نیروی کار آن را بررسی کن."}
 	if get_free_storage() < amount:
 		return {"ok":false,"message":"برای محموله فضای کافی در انبار نداری."}
 	var unit_price = get_import_price(city_id, resource_id)
@@ -849,6 +905,7 @@ func order_import(city_id, resource_id, requested_amount):
 	state.city_export_stock[city_id] = city_stock
 	var shipment = {"id":_next_shipment_id(),"city_id":city_id,"resource_id":resource_id,"amount":amount,"arrival_day":int(state.day)+int(city.travel_days),"paid":total_cost}
 	state.trade_shipments.append(shipment)
+	state.transport_used_today = int(state.get("transport_used_today",0)) + amount
 	state.last_import_report = "%d واحد %s از %s سفارش داده شد؛ تحویل روز %d؛ هزینه با حمل: %d سکه." % [amount,RESOURCES[resource_id].name,city.name,int(shipment.arrival_day),total_cost]
 	save_game()
 	return {"ok":true,"message":state.last_import_report}
@@ -916,7 +973,7 @@ func _dispatch_import_contracts(report):
 			continue
 		var amount = int(contract.get("daily_amount",1))
 		var stock = state.city_export_stock.get(city_id,TRADE_CITIES[city_id].supply)
-		amount = min(amount,int(stock.get(resource_id,0)),get_free_storage())
+		amount = min(amount,int(stock.get(resource_id,0)),get_free_storage(),get_transport_capacity_remaining())
 		var price = get_import_price(city_id,resource_id)
 		var total = amount * price + max(1,int(ceil(float(amount * price)*0.10)))
 		if amount <= 0 or price <= 0 or get_available_money() < total:
@@ -926,6 +983,7 @@ func _dispatch_import_contracts(report):
 			stock[resource_id] = int(stock.get(resource_id,0)) - amount
 			state.city_export_stock[city_id] = stock
 			state.trade_shipments.append({"id":_next_shipment_id(),"city_id":city_id,"resource_id":resource_id,"amount":amount,"arrival_day":int(state.day)+int(TRADE_CITIES[city_id].travel_days),"paid":total})
+			state.transport_used_today = int(state.get("transport_used_today",0)) + amount
 			report.append("قرارداد واردات %s: محموله %d واحدی ارسال شد." % [RESOURCES[resource_id].name,amount])
 		contract["days_left"] = int(contract.get("days_left",0)) - 1
 		if int(contract.days_left) <= 0:
@@ -969,7 +1027,7 @@ func trade_with_city(city_id, resource_id, requested_amount):
 	var unit_price = get_trade_export_price(city_id, resource_id)
 	var treasury_room = max(0, get_treasury_capacity() - int(state.money))
 	var affordable_amount = int(floor(float(treasury_room) / float(unit_price)))
-	var amount = min(int(requested_amount), remaining, available, demand, affordable_amount)
+	var amount = min(int(requested_amount), remaining, available, demand, affordable_amount, get_transport_capacity_remaining())
 	if amount <= 0:
 		return {"ok":false,"message":"موجودی کالا، تقاضای شهر یا ظرفیت خزانه کافی نیست."}
 	var final_revenue = amount * unit_price
@@ -978,6 +1036,7 @@ func trade_with_city(city_id, resource_id, requested_amount):
 	state.trade_remaining[city_id] = remaining - amount
 	demand_by_resource[resource_id] = demand - amount
 	state.trade_demand_remaining[city_id] = demand_by_resource
+	state.transport_used_today = int(state.get("transport_used_today",0)) + amount
 	state.last_trade_report = "%d واحد %s به %s صادر شد؛ درآمد: %d سکه." % [amount,RESOURCES[resource_id].name,city.name,final_revenue]
 	save_game()
 	return {"ok":true,"message":state.last_trade_report,"amount":amount,"revenue":final_revenue}
