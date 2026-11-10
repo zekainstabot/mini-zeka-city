@@ -28,11 +28,11 @@ const BUILDINGS = {
 	"carpenter": {"name":"کارگاه مبلمان","category":"کارخانه‌ها","cost":2600,"unlock":35,"jobs":3,"wage":48,"input":"lumber","input_amount":2,"output":"furniture","amount":1},
 	"stone_mine": {"name":"معدن سنگ","category":"معادن","cost":1200,"unlock":10,"jobs":4,"wage":38,"output":"stone","amount":2},
 	"iron_mine": {"name":"معدن آهن","category":"معادن","cost":2200,"unlock":30,"jobs":5,"wage":45,"output":"iron_ore","amount":1},
-	"grocery_store": {"name":"فروشگاه مواد غذایی","category":"کسب‌وکارها","cost":300,"unlock":5,"jobs":3,"wage":30},
-	"bakery": {"name":"نانوایی","category":"کسب‌وکارها","cost":400,"unlock":10,"jobs":4,"wage":35},
-	"restaurant": {"name":"رستوران","category":"کسب‌وکارها","cost":1000,"unlock":25,"jobs":6,"wage":45},
-	"office": {"name":"ساختمان اداری","category":"کسب‌وکارها","cost":1800,"unlock":40,"jobs":20,"wage":60},
-	"factory": {"name":"کارخانه","category":"کسب‌وکارها","cost":6000,"unlock":100,"jobs":25,"wage":55},
+	"grocery_store": {"name":"فروشگاه مواد غذایی","category":"کسب‌وکارها","cost":300,"unlock":5,"jobs":3,"wage":30,"daily_revenue":24},
+	"bakery": {"name":"نانوایی","category":"کسب‌وکارها","cost":400,"unlock":10,"jobs":4,"wage":35,"daily_revenue":36},
+	"restaurant": {"name":"رستوران","category":"کسب‌وکارها","cost":1000,"unlock":25,"jobs":6,"wage":45,"daily_revenue":75},
+	"office": {"name":"ساختمان اداری","category":"کسب‌وکارها","cost":1800,"unlock":40,"jobs":20,"wage":60,"daily_revenue":180},
+	"factory": {"name":"کارخانه","category":"کسب‌وکارها","cost":6000,"unlock":100,"jobs":25,"wage":55,"daily_revenue":220},
 	"mineral_market": {"name":"بازار مواد معدنی","category":"کسب‌وکارها","cost":500,"unlock":0,"jobs":1,"wage":35},
 	"water_tower": {"name":"برج آب","category":"خدمات شهری","cost":500,"unlock":5,"jobs":2,"wage":30},
 	"power_station": {"name":"نیروگاه","category":"خدمات شهری","cost":1000,"unlock":10,"jobs":4,"wage":40},
@@ -113,9 +113,22 @@ func _sync_population():
 		var definition = BUILDINGS.get(building.id, {})
 		capacity += int(definition.get("capacity", 0))
 	state.population = min(max(0, int(state.population)), capacity)
-	while state.population < capacity:
-		state.population += 1
-		state.citizens.append({"id":state.citizens.size()+1,"job":"","wallet":100})
+	while state.citizens.size() > state.population:
+		state.citizens.pop_back()
+	while state.citizens.size() < state.population:
+		state.citizens.append({"id":_next_citizen_id(),"job":"","job_building_index":-1,"wallet":100})
+
+func _next_citizen_id():
+	var highest = 0
+	for citizen in state.citizens:
+		highest = max(highest, int(citizen.get("id", 0)))
+	return highest + 1
+
+func get_housing_capacity():
+	var total = 0
+	for building in state.buildings:
+		total += int(BUILDINGS.get(building.id, {}).get("capacity", 0))
+	return total
 
 func get_storage_capacity():
 	var total = 0
@@ -183,28 +196,34 @@ func demolish(index):
 func assign_jobs():
 	for citizen in state.citizens:
 		citizen.job = ""
+		citizen.job_building_index = -1
 	var workplaces = []
 	for i in range(state.buildings.size()):
-		var id = state.buildings[i].id
-		var data = BUILDINGS.get(id, {})
-		var slots = int(data.get("jobs", 0))
-		for slot in range(slots):
+		var data = BUILDINGS.get(state.buildings[i].id, {})
+		for slot in range(int(data.get("jobs", 0))):
 			workplaces.append(i)
 	for citizen in state.citizens:
 		if workplaces.empty():
 			break
-		var selected = -1
+		var selected = 0
 		var selected_distance = 999999
-		for i in range(workplaces.size()):
-			var building_index = workplaces[i]
+		for slot_index in range(workplaces.size()):
+			var building_index = workplaces[slot_index]
 			var distance = abs(building_index - int(citizen.id) % max(1, state.buildings.size()))
 			if distance < selected_distance:
 				selected_distance = distance
-				selected = i
-		if selected >= 0:
-			var building_index = workplaces[selected]
-			citizen.job = str(state.buildings[building_index].id)
-			workplaces.remove(selected)
+				selected = slot_index
+		var building_index = workplaces[selected]
+		citizen.job_building_index = building_index
+		citizen.job = str(state.buildings[building_index].id)
+		workplaces.remove(selected)
+
+func _workers_for_building(building_index):
+	var count = 0
+	for citizen in state.citizens:
+		if int(citizen.get("job_building_index", -1)) == building_index:
+			count += 1
+	return count
 
 func end_day():
 	var report = []
@@ -213,22 +232,31 @@ func end_day():
 	for citizen in state.citizens:
 		if citizen.job == "":
 			continue
-		var wage = int(BUILDINGS.get(citizen.job, {}).get("wage", 0))
-		total_wages += wage
-	state.money -= total_wages
-	if state.money < 0:
-		state.reputation = max(0, state.reputation - 2)
-		report.append("کسری بودجه؛ حقوق کامل پرداخت نشد.")
+		total_wages += int(BUILDINGS.get(citizen.job, {}).get("wage", 0))
+	var paid_wages = min(int(state.money), total_wages)
+	state.money -= paid_wages
+	if paid_wages < total_wages:
+		state.reputation = max(0, state.reputation - 3)
+		report.append("کسری بودجه؛ بخشی از حقوق پرداخت نشد.")
 	else:
 		report.append("حقوق روزانه پرداخت شد: "+str(total_wages)+" سکه.")
-	var produced = {}
-	for building in state.buildings:
+
+	var income = state.population * 2
+	if income > 0:
+		report.append("مالیات شهری دریافت شد: "+str(income)+" سکه.")
+	for building_index in range(state.buildings.size()):
+		var building = state.buildings[building_index]
 		var data = BUILDINGS.get(building.id, {})
-		var jobs_needed = int(data.get("jobs", 0))
-		if jobs_needed > 0 and _workers_for(building.id) <= 0:
+		var workers = _workers_for_building(building_index)
+		if int(data.get("jobs", 0)) > 0 and workers == 0:
 			continue
+		var business_income = int(data.get("daily_revenue", 0))
+		if business_income > 0:
+			income += business_income
+			report.append(data.name+" درآمد داشت: "+str(business_income)+" سکه.")
+
 		var output = str(data.get("output", ""))
-		if output == "":
+		if output == "" or workers == 0:
 			continue
 		var input = str(data.get("input", ""))
 		var amount = int(data.get("amount", 0))
@@ -240,11 +268,8 @@ func end_day():
 		if get_free_storage() < amount:
 			continue
 		state.resources[output] = int(state.resources.get(output, 0)) + amount
-		if not produced.has(output):
-			produced[output] = 0
-		produced[output] += amount
 		report.append(data.name+" تولید کرد: "+str(amount)+" "+RESOURCES[output].name+".")
-	var income = 0
+
 	for id in RESOURCES.keys():
 		var reserve = _get_reserve(id)
 		var surplus = max(0, int(state.resources.get(id, 0)) - reserve)
@@ -256,6 +281,14 @@ func end_day():
 			income += revenue
 			report.append(str(sell_amount)+" واحد "+RESOURCES[id].name+" فروخته شد.")
 	state.money += income
+
+	var housing = get_housing_capacity()
+	if state.population < housing and state.reputation >= 25:
+		state.population += 1
+		state.citizens.append({"id":_next_citizen_id(),"job":"","job_building_index":-1,"wallet":100})
+		report.append("یک شهروند جدید به شهر مهاجرت کرد.")
+		assign_jobs()
+
 	state.day += 1
 	state.xp += 5 + state.population
 	if state.xp >= state.level * 100:
