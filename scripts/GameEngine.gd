@@ -23,11 +23,17 @@ const MISSION_DEFINITIONS = [
 ]
 
 const RESOURCES = {
-	"stone": {"name": "سنگ", "buy": 10, "sell": 15},
-	"iron_ore": {"name": "سنگ‌آهن", "buy": 25, "sell": 35},
-	"wood": {"name": "چوب", "buy": 12, "sell": 18},
-	"lumber": {"name": "الوار", "buy": 30, "sell": 42},
-	"furniture": {"name": "مبلمان", "buy": 80, "sell": 112}
+	"stone": {"name": "سنگ", "buy": 18, "sell": 12},
+	"iron_ore": {"name": "سنگ‌آهن", "buy": 42, "sell": 30},
+	"wood": {"name": "چوب", "buy": 22, "sell": 15},
+	"lumber": {"name": "الوار", "buy": 50, "sell": 36},
+	"furniture": {"name": "مبلمان", "buy": 130, "sell": 95}
+}
+
+const TRADE_CITIES = {
+	"mehrabad": {"name":"مهرآباد","price_factor":1.20,"daily_capacity":25,"demand":{"stone":20,"iron_ore":10,"wood":25,"lumber":15,"furniture":8}},
+	"navid": {"name":"نویدشهر","price_factor":1.35,"daily_capacity":18,"demand":{"stone":8,"iron_ore":25,"wood":10,"lumber":20,"furniture":18}},
+	"golestan": {"name":"گلستان","price_factor":1.12,"daily_capacity":30,"demand":{"stone":15,"iron_ore":8,"wood":18,"lumber":12,"furniture":25}}
 }
 
 const BUILDINGS = {
@@ -74,7 +80,7 @@ var state = {}
 
 func new_game():
 	state = {
-		"version": 4,
+		"version": 5,
 		"day": 1,
 		"money": 10000,
 		"population": 4,
@@ -94,7 +100,9 @@ func new_game():
 			{"id":"small_warehouse","workers":0,"balance":0}
 		],
 		"resources": {"stone":0,"iron_ore":0,"wood":0,"lumber":0,"furniture":0},
-		"market_stock": {"stone":100,"iron_ore":100,"wood":100,"lumber":100,"furniture":100},
+		"market_stock": {"stone":60,"iron_ore":60,"wood":60,"lumber":60,"furniture":60},
+		"trade_remaining": {"mehrabad":25,"navid":18,"golestan":30},
+		"last_trade_report": "هنوز معامله بین‌شهری انجام نشده است.",
 		"citizens": [],
 		"last_economy": {"tax_income":0,"business_income":0,"resource_income":0,"gross_income":0,"accepted_income":0,"wages_due":0,"wages_paid":0,"net_cashflow":0},
 		"last_report": "شهر جدید ساخته شد. به مینی زکا سیتی خوش آمدی."
@@ -111,7 +119,7 @@ func load_game():
 		return false
 	var parsed = parse_json(file.get_as_text())
 	file.close()
-	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 4:
+	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 5:
 		return false
 	state = parsed
 	_normalize_state()
@@ -136,6 +144,8 @@ func _normalize_state():
 		state.resources = {}
 	if typeof(state.get("market_stock", null)) != TYPE_DICTIONARY:
 		state.market_stock = {}
+	if typeof(state.get("trade_remaining", null)) != TYPE_DICTIONARY:
+		state["trade_remaining"] = {}
 	if not state.has("central_bank_rebuild_days_left"):
 		state["central_bank_rebuild_days_left"] = 0
 	if not state.has("forest_trees"):
@@ -158,8 +168,12 @@ func _normalize_state():
 		state["missions"] = []
 	if typeof(state.get("mines", null)) != TYPE_ARRAY:
 		state["mines"] = []
-	# Save schema migration: retain old saves and add the daily economy ledger.
-	state["version"] = 4
+	# Save schema migration: add dynamic market and inter-city trade state.
+	state["version"] = 5
+	for id in RESOURCES.keys():
+		state.market_stock[id] = int(clamp(int(state.market_stock.get(id, 60)), 0, 100))
+	for city_id in TRADE_CITIES.keys():
+		state.trade_remaining[city_id] = int(clamp(int(state.trade_remaining.get(city_id, TRADE_CITIES[city_id].daily_capacity)), 0, int(TRADE_CITIES[city_id].daily_capacity)))
 	state["central_bank_rebuild_days_left"] = max(0, int(state.get("central_bank_rebuild_days_left", 0)))
 	state["forest_trees"] = int(clamp(int(state.get("forest_trees", 100)), 0, 100))
 	state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)), 0, 100))
@@ -619,7 +633,7 @@ func end_day():
 			var reserve = _get_reserve(id)
 			var surplus = max(0, int(state.resources.get(id, 0)) - reserve)
 			var market_room = max(0, 100 - int(state.market_stock.get(id, 0)))
-			var unit_price = int(RESOURCES[id].sell)
+			var unit_price = get_market_price(id, "sell")
 			var treasury_room_for_sales = max(0, get_treasury_capacity() - int(state.money) - income)
 			var affordable_sale = int(floor(float(treasury_room_for_sales) / float(unit_price)))
 			var sell_amount = min(surplus, market_room, 10, affordable_sale)
@@ -648,8 +662,9 @@ func end_day():
 		"net_cashflow": accepted_income - paid_wages
 	}
 	report.append("خلاصه مالی: درآمد %d | حقوق %d | تغییر خالص خزانه %d سکه." % [accepted_income, paid_wages, accepted_income - paid_wages])
-	for restock_id in ["stone", "iron_ore"]:
+	for restock_id in RESOURCES.keys():
 		state.market_stock[restock_id] = min(100, int(state.market_stock.get(restock_id, 0)) + 5)
+	_refresh_trade_capacity()
 
 	var housing = get_housing_capacity()
 	if state.population < housing and state.reputation >= 25:
@@ -758,10 +773,66 @@ func _get_reserve(id):
 		return STORAGE_RESERVE
 	return int(FORESTRY_RESERVES.get(id, 0))
 
+
+func get_market_price(id, action):
+	if not RESOURCES.has(id):
+		return 0
+	var stock = int(state.get("market_stock", {}).get(id, 60))
+	var target_stock = 60
+	var scarcity = float(target_stock - stock) / float(target_stock)
+	var multiplier = clamp(1.0 + scarcity * 0.55, 0.65, 1.55)
+	var base_price = int(RESOURCES[id].get("buy" if action == "buy" else "sell", 0))
+	return max(1, int(round(float(base_price) * multiplier)))
+
+func get_trade_cities():
+	return TRADE_CITIES
+
+func get_trade_export_price(city_id, resource_id):
+	if not TRADE_CITIES.has(city_id) or not RESOURCES.has(resource_id):
+		return 0
+	var city = TRADE_CITIES[city_id]
+	var demand = int(city.demand.get(resource_id, 0))
+	if demand <= 0:
+		return 0
+	var local_price = get_market_price(resource_id, "sell")
+	var demand_factor = 1.0 + min(0.25, float(demand) / 100.0)
+	return max(1, int(round(float(local_price) * float(city.price_factor) * demand_factor)))
+
+func trade_with_city(city_id, resource_id, requested_amount):
+	if not TRADE_CITIES.has(city_id) or not RESOURCES.has(resource_id) or requested_amount <= 0:
+		return {"ok":false,"message":"درخواست تجارت نامعتبر است."}
+	var city = TRADE_CITIES[city_id]
+	var demand = int(city.demand.get(resource_id, 0))
+	if demand <= 0:
+		return {"ok":false,"message":city.name+" در حال حاضر خریدار این کالا نیست."}
+	var remaining = int(state.trade_remaining.get(city_id, city.daily_capacity))
+	var available = int(state.resources.get(resource_id, 0))
+	var amount = min(int(requested_amount), remaining, available, demand)
+	if amount <= 0:
+		return {"ok":false,"message":"موجودی کالا یا ظرفیت خرید روزانه این شهر کافی نیست."}
+	var unit_price = get_trade_export_price(city_id, resource_id)
+	var revenue = amount * unit_price
+	var accepted = _add_money(revenue)
+	var accepted_amount = int(floor(float(accepted) / float(unit_price)))
+	if accepted_amount <= 0:
+		return {"ok":false,"message":"ظرفیت خزانه برای دریافت درآمد تجارت کافی نیست."}
+	accepted_amount = min(amount, accepted_amount)
+	var final_revenue = accepted_amount * unit_price
+	state.resources[resource_id] = available - accepted_amount
+	state.trade_remaining[city_id] = remaining - accepted_amount
+	state.last_trade_report = "%d واحد %s به %s صادر شد؛ درآمد: %d سکه." % [accepted_amount,RESOURCES[resource_id].name,city.name,final_revenue]
+	save_game()
+	return {"ok":true,"message":state.last_trade_report,"amount":accepted_amount,"revenue":final_revenue}
+
+func _refresh_trade_capacity():
+	for city_id in TRADE_CITIES.keys():
+		state.trade_remaining[city_id] = int(TRADE_CITIES[city_id].daily_capacity)
+
 func buy_resource(id, amount):
 	if not RESOURCES.has(id) or amount <= 0:
 		return {"ok":false,"message":"درخواست خرید نامعتبر است."}
-	var cost = int(RESOURCES[id].buy) * amount
+	var unit_price = get_market_price(id, "buy")
+	var cost = unit_price * amount
 	if get_available_money() < cost:
 		return {"ok":false,"message":"پول آزاد کافی نیست."}
 	if int(state.market_stock.get(id, 0)) < amount:
@@ -783,7 +854,7 @@ func sell_resource(id, amount):
 		amount = max(0, 100 - int(state.market_stock.get(id, 0)))
 	if amount <= 0:
 		return {"ok":false,"message":"بازار ظرفیت خرید ندارد."}
-	var unit_price = int(RESOURCES[id].sell)
+	var unit_price = get_market_price(id, "sell")
 	var treasury_room = max(0, get_treasury_capacity() - int(state.money))
 	var affordable_amount = int(floor(float(treasury_room) / float(unit_price)))
 	amount = min(amount, affordable_amount)
