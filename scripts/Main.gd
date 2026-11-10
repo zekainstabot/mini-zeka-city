@@ -122,9 +122,12 @@ func show_page(page):
 					var data = game.get_building_definitions()[id]
 					if data.category != category:
 						continue
-					var unlocked = s.population >= int(data.unlock)
-					var label = "%s | هزینه: %d | جمعیت لازم: %d" % [data.name,data.cost,data.unlock]
-					if not unlocked:
+					var population_unlocked = s.population >= int(data.unlock)
+					var required_level = int(data.get("level_unlock", 1))
+					var level_unlocked = int(s.level) >= required_level
+					var unlocked = population_unlocked and level_unlocked
+					var label = "%s | هزینه: %d | جمعیت: %d | سطح: %d" % [data.name,data.cost,data.unlock,required_level]
+					if not population_unlocked or not level_unlocked:
 						label += " | 🔒 قفل"
 					var b = _add_button(label, self, "build_building", [id])
 					b.disabled = not unlocked or game.get_available_money() < int(data.cost) or (id == "central_bank" and int(s.get("central_bank_rebuild_days_left",0)) > 0)
