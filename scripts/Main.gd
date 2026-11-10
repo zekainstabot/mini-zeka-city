@@ -21,7 +21,7 @@ func _ready():
 
 func _build_ui():
 	var background = ColorRect.new()
-	background.color = Color("#0b1220")
+	background.color = Color("#071426")
 	background.anchor_right = 1
 	background.anchor_bottom = 1
 	add_child(background)
@@ -39,7 +39,7 @@ func _build_ui():
 	header_label = Label.new()
 	header_label.text = "🏙️ مینی زکا سیتی"
 	header_label.align = Label.ALIGN_CENTER
-	header_label.add_color_override("font_color", Color("#67e8f9"))
+	header_label.add_color_override("font_color", Color("#ffffff"))
 	root.add_child(header_label)
 	var nav = GridContainer.new()
 	nav.columns = 2 if compact_layout else 3
@@ -49,8 +49,9 @@ func _build_ui():
 	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بازار","p":"market"},{"t":"تجارت شهرها","p":"trade"},{"t":"واردات و قراردادها","p":"imports"},{"t":"جاده و ناوگان","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش روز","p":"report"},{"t":"ماموریت‌ها","p":"missions"}]:
 		var b = Button.new()
 		b.text = item.t
-		b.rect_min_size = Vector2(0, 46)
+		b.rect_min_size = Vector2(0, 56)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_style_button(b, true)
 		b.connect("pressed", self, "show_page", [item.p])
 		nav.add_child(b)
 	var line = HSeparator.new()
