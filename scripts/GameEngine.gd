@@ -88,7 +88,7 @@ func load_game():
 		return false
 	var parsed = parse_json(file.get_as_text())
 	file.close()
-	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) != 1:
+	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 2:
 		return false
 	state = parsed
 	_normalize_state()
@@ -118,6 +118,10 @@ func _normalize_state():
 		state["forest_trees"] = 100
 	if typeof(state.get("mines", null)) != TYPE_ARRAY:
 		state["mines"] = []
+	# Save schema migration: version 1 saves remain compatible with version 2.
+	state["version"] = 2
+	state["central_bank_rebuild_days_left"] = max(0, int(state.get("central_bank_rebuild_days_left", 0)))
+	state["forest_trees"] = int(clamp(int(state.get("forest_trees", 100)), 0, 100))
 	# Migrate existing mine buildings into persistent mine records.
 	for i in range(state.buildings.size()):
 		var building_id = str(state.buildings[i].get("id", ""))
@@ -251,6 +255,7 @@ func build(id):
 		_register_mine(new_index, id)
 	_sync_population()
 	assign_jobs()
+	save_game()
 	return {"ok":true,"message":data.name+" با موفقیت ساخته شد."}
 
 func demolish(index):
@@ -272,6 +277,7 @@ func demolish(index):
 			state.last_report = "با تخریب بانک مرکزی، %d سکه تا پایان مهلت بازسازی قفل شد." % excess
 	_sync_population()
 	assign_jobs()
+	save_game()
 	return {"ok":true,"message":"ساختمان تخریب شد. بازپرداختی انجام نشد."}
 
 func assign_jobs():
@@ -283,21 +289,17 @@ func assign_jobs():
 		var data = BUILDINGS.get(state.buildings[i].id, {})
 		for slot in range(int(data.get("jobs", 0))):
 			workplaces.append(i)
-	for citizen in state.citizens:
+	# The menu-based game has no road coordinates. Assign open job
+	# slots in a stable, fair order instead of inventing fake distances.
+	for citizen_index in range(state.citizens.size()):
 		if workplaces.empty():
 			break
-		var selected = 0
-		var selected_distance = 999999
-		for slot_index in range(workplaces.size()):
-			var building_index = workplaces[slot_index]
-			var distance = abs(building_index - int(citizen.id) % max(1, state.buildings.size()))
-			if distance < selected_distance:
-				selected_distance = distance
-				selected = slot_index
-		var building_index = workplaces[selected]
+		var building_index = workplaces[0]
+		citizen = state.citizens[citizen_index]
 		citizen.job_building_index = building_index
 		citizen.job = str(state.buildings[building_index].id)
-		workplaces.remove(selected)
+		state.citizens[citizen_index] = citizen
+		workplaces.remove(0)
 
 func _workers_for_building(building_index):
 	var count = 0
@@ -339,6 +341,7 @@ func refill_iron_mine(mine_index):
 	mine.remaining = int(mine.get("initial_reserve", 150))
 	mine.active = int(mine.remaining) > 0
 	state.mines[mine_index] = mine
+	save_game()
 	return {"ok":true,"message":"ذخیره معدن آهن دوباره شارژ شد."}
 
 func _advance_mines(report):
@@ -355,11 +358,15 @@ func _advance_mines(report):
 		if resource_id == "iron_ore":
 			production = min(production, int(mine.get("remaining", 0)))
 		if production <= 0:
-			mine.active = false
+			# A full warehouse pauses extraction without disabling the mine.
+			# Production resumes automatically as soon as storage is freed.
+			if get_free_storage() <= 0:
+				report.append("استخراج معدن موقتاً متوقف شد؛ انبار پر است.")
+			else:
+				mine.active = false
+				if resource_id == "iron_ore":
+					report.append("ذخیره معدن آهن تمام شده است؛ برای ادامه آن را شارژ کن.")
 			state.mines[i] = mine
-			continue
-		if production <= 0:
-			report.append("استخراج معدن متوقف شد؛ فضای انبار کافی نیست.")
 			continue
 		state.resources[resource_id] = int(state.resources.get(resource_id, 0)) + production
 		mine.extracted = int(mine.get("extracted", 0)) + production
@@ -437,7 +444,10 @@ func end_day():
 			var reserve = _get_reserve(id)
 			var surplus = max(0, int(state.resources.get(id, 0)) - reserve)
 			var market_room = max(0, 100 - int(state.market_stock.get(id, 0)))
-			var sell_amount = min(surplus, market_room, 10)
+			var unit_price = int(RESOURCES[id].sell)
+			var treasury_room_for_sales = max(0, get_treasury_capacity() - int(state.money) - income)
+			var affordable_sale = int(floor(float(treasury_room_for_sales) / float(unit_price)))
+			var sell_amount = min(surplus, market_room, 10, affordable_sale)
 			if sell_amount > 0:
 				state.resources[id] -= sell_amount
 				state.market_stock[id] = int(state.market_stock.get(id, 0)) + sell_amount
@@ -502,6 +512,7 @@ func buy_resource(id, amount):
 	_spend_money(cost)
 	state.market_stock[id] -= amount
 	state.resources[id] = int(state.resources.get(id, 0)) + amount
+	save_game()
 	return {"ok":true,"message":"خرید انجام شد: "+str(amount)+" واحد "+RESOURCES[id].name}
 
 func sell_resource(id, amount):
@@ -515,6 +526,15 @@ func sell_resource(id, amount):
 		return {"ok":false,"message":"بازار ظرفیت خرید ندارد."}
 	state.resources[id] -= amount
 	state.market_stock[id] += amount
-	var revenue = amount * int(RESOURCES[id].sell)
+	var unit_price = int(RESOURCES[id].sell)
+	var treasury_room = max(0, get_treasury_capacity() - int(state.money))
+	var affordable_amount = int(floor(float(treasury_room) / float(unit_price)))
+	amount = min(amount, affordable_amount)
+	if amount <= 0:
+		return {"ok":false,"message":"ظرفیت خزانه پر است؛ فعلاً امکان دریافت درآمد فروش وجود ندارد."}
+	state.resources[id] -= amount
+	state.market_stock[id] += amount
+	var revenue = amount * unit_price
 	var accepted = _add_money(revenue)
-	return {"ok":true,"message":"فروش انجام شد؛ درآمد دریافتی: "+str(accepted)+" سکه."}
+	save_game()
+	return {"ok":true,"message":"فروش %d واحد انجام شد؛ درآمد دریافتی: %d سکه." % [amount, accepted]}
