@@ -735,7 +735,7 @@ func end_day():
 		"consumer_spending": int(citizen_market.spending),
 		"consumer_business_revenue": int(citizen_market.business_revenue),
 		"consumer_buyers": int(citizen_market.buyers),
-		"food_units_sold": int(citizen_market.food_units),
+		"food_units_consumed": int(citizen_market.food_units),
 		"food_stock": int(state.resources.get("food",0)),
 		"business_income": business_income_total,
 		"resource_income": resource_income_total,
