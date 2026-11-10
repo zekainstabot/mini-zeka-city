@@ -45,7 +45,7 @@ func _build_ui():
 	nav.add_constant_override("hseparation", 8)
 	nav.add_constant_override("vseparation", 8)
 	root.add_child(nav)
-	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بازار","p":"market"},{"t":"تجارت شهرها","p":"trade"},{"t":"واردات و قراردادها","p":"imports"},{"t":"انبار","p":"storage"},{"t":"گزارش روز","p":"report"},{"t":"ماموریت‌ها","p":"missions"}]:
+	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بازار","p":"market"},{"t":"تجارت شهرها","p":"trade"},{"t":"واردات و قراردادها","p":"imports"},{"t":"جاده و ناوگان","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش روز","p":"report"},{"t":"ماموریت‌ها","p":"missions"}]:
 		var b = Button.new()
 		b.text = item.t
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -183,8 +183,24 @@ func show_page(page):
 					var city_demand_left = int(s.trade_demand_remaining.get(city_id,city.demand).get(resource_id,0))
 					_add_label("%s — %s | تقاضای باقی‌مانده: %d | قیمت صادرات: %d سکه" % [city.name,game.get_resource_definitions()[resource_id].name,city_demand_left,export_price],15)
 					var export_button = _add_button("صادرات ۵ واحد "+game.get_resource_definitions()[resource_id].name+" به "+city.name,self,"export_to_city",[city_id,resource_id,5])
-					export_button.disabled = int(s.resources.get(resource_id,0)) <= 0 or int(s.trade_remaining.get(city_id,city.daily_capacity)) <= 0
+					export_button.disabled = int(s.resources.get(resource_id,0)) <= 0 or int(s.trade_remaining.get(city_id,city.daily_capacity)) <= 0 or game.get_transport_capacity_remaining() <= 0
 			_add_label("آخرین معامله: "+str(s.get("last_trade_report","هنوز معامله‌ای انجام نشده است.")),16)
+		"transport":
+			_add_label("🛣️ شبکه جاده‌ای و ناوگان کامیون‌ها",22)
+			_add_label("سطح جاده: %d از ۳ | کامیون فعال: %d | ظرفیت روزانه: %d واحد" % [int(s.get("road_level",1)),game.get_transport_truck_count(),game.get_transport_daily_capacity()],18)
+			_add_label("ظرفیت مصرف‌شده امروز: %d | ظرفیت باقی‌مانده: %d" % [int(s.get("transport_used_today",0)),game.get_transport_capacity_remaining()],16)
+			_add_label("هر پایانه با ۲ کارمند، یک کامیون را فعال می‌کند؛ هر پایانه حداکثر ۲ کامیون پشتیبانی می‌کند.",15)
+			_add_label("نگهداری روزانه ناوگان: %d سکه | نگهداری جاده: %d سکه" % [game.get_fleet_maintenance(),game.get_road_maintenance()],16)
+			var road_level = int(s.get("road_level",1))
+			if road_level < 3:
+				var next_road_cost = 1500 if road_level == 1 else 3500
+				var road_button = _add_button("ارتقای جاده به سطح %d — %d سکه" % [road_level+1,next_road_cost],self,"upgrade_road")
+				road_button.disabled = int(s.level) < road_level+1 or game.get_available_money() < next_road_cost
+			else:
+				_add_label("شبکه جاده‌ای در بالاترین سطح قرار دارد.")
+			if game.get_building_count("transport_depot") == 0:
+				_add_label("برای آغاز تجارت زمینی، از صفحه ساختمان‌ها یک پایانه حمل‌ونقل بساز و نیروی کار آن را تأمین کن.")
+			_add_label("ظرفیت کامیون‌ها بین واردات، قراردادهای تأمین و صادرات مشترک است.",15)
 		"imports":
 			_add_label("📦 واردات و حمل‌ونقل بین‌شهری", 22)
 			_add_label("هزینه کالا و ۱۰٪ کرایه حمل هنگام سفارش پرداخت می‌شود. محموله پس از ۱ یا ۲ روز می‌رسد.",15)
@@ -198,7 +214,7 @@ func show_page(page):
 						continue
 					_add_label("%s | موجودی: %d | قیمت: %d سکه/واحد" % [game.get_resource_definitions()[resource_id].name,stock,price],15)
 					var import_button = _add_button("سفارش ۵ واحد "+game.get_resource_definitions()[resource_id].name+" از "+city.name,self,"import_from_city",[city_id,resource_id,5])
-					import_button.disabled = game.get_free_storage() < 5 or game.get_available_money() < (5 * price + int(ceil(float(5 * price) * 0.10)))
+					import_button.disabled = game.get_free_storage() < 5 or game.get_transport_capacity_remaining() < 5 or game.get_available_money() < (5 * price + int(ceil(float(5 * price) * 0.10)))
 			_add_label("🚚 محموله‌های در راه:",18)
 			if s.trade_shipments.empty():
 				_add_label("محموله‌ای در راه نیست.")
@@ -238,6 +254,7 @@ func show_page(page):
 			_add_label("درآمد فروش منابع: %d سکه" % int(report_economy.get("resource_income",0)))
 			_add_label("کل درآمد دریافت‌شده: %d سکه" % int(report_economy.get("accepted_income",0)))
 			_add_label("حقوق پرداختی: %d از %d سکه" % [int(report_economy.get("wages_paid",0)),int(report_economy.get("wages_due",0))])
+			_add_label("نگهداری ناوگان و جاده: %d سکه" % int(report_economy.get("maintenance_paid",0)))
 			_add_label("تغییر خالص خزانه: %d سکه" % int(report_economy.get("net_cashflow",0)), 20)
 			_add_label(str(s.last_report), 18)
 			_add_button("رفتن به روز بعد", self, "advance_day")
@@ -314,6 +331,11 @@ func reassign_jobs():
 	game.save_game()
 	show_page("citizens")
 	_show_message("تخصیص شغل‌ها به‌روزرسانی شد.")
+
+func upgrade_road():
+	var result = game.upgrade_roads()
+	show_page("transport")
+	_show_message(result.message)
 
 func advance_day():
 	var report = game.end_day()
