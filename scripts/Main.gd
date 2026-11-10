@@ -92,9 +92,9 @@ func show_page(page):
 	match page:
 		"home":
 			_add_label("روز %d  |  سطح %d  |  امتیاز تجربه %d" % [s.day,s.level,s.xp], 20)
-			_add_label("💰 خزانه: %d سکه   |   👥 جمعیت: %d نفر" % [s.money,s.population], 22)
+			_add_label("💰 خزانه: %d / %d سکه   |   پول قفل‌شده: %d   |   👥 جمعیت: %d نفر" % [s.money,game.get_treasury_capacity(),game.get_locked_money(),s.population], 22)
 			_add_label("شاغلان: %d  |  بیکاران: %d  |  اعتبار شهر: %d" % [game.get_employed_count(),game.get_unemployed_count(),s.reputation])
-			_add_label("🏘️ ساختمان‌ها: %d  |  ظرفیت انبار: %d" % [s.buildings.size(),game.get_storage_capacity()])
+			_add_label("🏘️ ساختمان‌ها: %d  |  ظرفیت انبار: %d  |  بانک مرکزی: %s  |  بانک شهری: %d" % [s.buildings.size(),game.get_storage_capacity(),("فعال" if game.has_central_bank() else ("بازسازی تا %d روز دیگر" % int(s.get("central_bank_rebuild_days_left",0)) if int(s.get("central_bank_rebuild_days_left",0)) > 0 else "ندارد")),game.get_building_count("municipal_bank")])
 			_add_label("منابع: "+_resource_summary())
 			_add_label("گزارش آخر:\n"+str(s.last_report), 16)
 			_add_button("🌅 پایان روز و اجرای اقتصاد", self, "advance_day")
