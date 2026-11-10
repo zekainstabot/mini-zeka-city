@@ -5,6 +5,23 @@ const SAVE_PATH = "user://mini_zeka_city_save.json"
 const STORAGE_RESERVE = 50
 const FORESTRY_RESERVES = {"wood": 20, "lumber": 10, "furniture": 0}
 
+const SERVICE_GROUPS = {
+	"food": {"name":"خوراک","buildings":["grocery_store","bakery","restaurant"]},
+	"water": {"name":"آب‌رسانی","buildings":["water_tower"]},
+	"power": {"name":"برق","buildings":["power_station"]},
+	"health": {"name":"درمان","buildings":["clinic","hospital"]},
+	"education": {"name":"آموزش","buildings":["school","university"]},
+	"safety": {"name":"امنیت","buildings":["police_station","fire_station"]},
+	"leisure": {"name":"تفریح","buildings":["small_park","playground","sports_center","cultural_center"]},
+	"sanitation": {"name":"بهداشت محیط","buildings":["sewage_plant","waste_facility"]}
+}
+const MISSION_DEFINITIONS = [
+	{"id":"build_5","title":"گسترش شهر","description":"تعداد ساختمان‌های شهر را به ۵ برسان.","goal":5,"reward":500},
+	{"id":"population_8","title":"جذب شهروند","description":"جمعیت شهر را به ۸ نفر برسان.","goal":8,"reward":700},
+	{"id":"build_market","title":"تجارت شهری","description":"یک بازار مواد معدنی بساز.","goal":1,"reward":800},
+	{"id":"level_3","title":"شهردار باتجربه","description":"به سطح ۳ شهر برس.","goal":3,"reward":1200}
+]
+
 const RESOURCES = {
 	"stone": {"name": "سنگ", "buy": 10, "sell": 15},
 	"iron_ore": {"name": "سنگ‌آهن", "buy": 25, "sell": 35},
@@ -64,6 +81,9 @@ func new_game():
 		"level": 1,
 		"xp": 0,
 		"reputation": 50,
+		"satisfaction": 50,
+		"services": {},
+		"missions": [],
 		"central_bank_rebuild_days_left": 0,
 		"forest_trees": 100,
 		"mines": [],
@@ -78,6 +98,7 @@ func new_game():
 		"last_report": "شهر جدید ساخته شد. به مینی زکا سیتی خوش آمدی."
 	}
 	_sync_population()
+	_sync_missions()
 	return state
 
 func load_game():
@@ -93,6 +114,7 @@ func load_game():
 	state = parsed
 	_normalize_state()
 	_sync_population()
+	_sync_missions()
 	return true
 
 func save_game():
@@ -116,6 +138,12 @@ func _normalize_state():
 		state["central_bank_rebuild_days_left"] = 0
 	if not state.has("forest_trees"):
 		state["forest_trees"] = 100
+	if not state.has("satisfaction"):
+		state["satisfaction"] = 50
+	if typeof(state.get("services", null)) != TYPE_DICTIONARY:
+		state["services"] = {}
+	if typeof(state.get("missions", null)) != TYPE_ARRAY:
+		state["missions"] = []
 	if typeof(state.get("mines", null)) != TYPE_ARRAY:
 		state["mines"] = []
 	# Save schema migration: version 1 saves remain compatible with version 2.
@@ -255,6 +283,7 @@ func build(id):
 		_register_mine(new_index, id)
 	_sync_population()
 	assign_jobs()
+	_update_missions()
 	save_game()
 	return {"ok":true,"message":data.name+" با موفقیت ساخته شد."}
 
@@ -379,6 +408,102 @@ func _advance_mines(report):
 		report.append("معدن %s واحد %s استخراج کرد." % [production, RESOURCES[resource_id].name])
 		state.mines[i] = mine
 
+
+func _service_has_staffed_building(building_ids):
+	for i in range(state.buildings.size()):
+		var id = str(state.buildings[i].get("id", ""))
+		if id in building_ids:
+			var jobs = int(BUILDINGS.get(id, {}).get("jobs", 0))
+			if jobs == 0 or _workers_for_building(i) > 0:
+				return true
+	return false
+
+func _update_city_services(report):
+	var covered = 0
+	var service_state = {}
+	for key in SERVICE_GROUPS.keys():
+		var definition = SERVICE_GROUPS[key]
+		var active = _service_has_staffed_building(definition.buildings)
+		service_state[key] = active
+		if active:
+			covered += 1
+	state.services = service_state
+	var previous = int(state.get("satisfaction", 50))
+	var change = 0
+	if covered >= 6:
+		change = 1
+	elif covered <= 2:
+		change = -1
+	state.satisfaction = int(clamp(previous + change, 0, 100))
+	if state.satisfaction < 30:
+		state.reputation = max(0, int(state.reputation) - 1)
+	elif state.satisfaction >= 75:
+		state.reputation = min(100, int(state.reputation) + 1)
+	report.append("رضایت شهروندان: %d از ۱۰۰ | پوشش خدمات: %d از ۸" % [state.satisfaction, covered])
+
+func _sync_missions():
+	if typeof(state.get("missions", null)) != TYPE_ARRAY:
+		state["missions"] = []
+	for definition in MISSION_DEFINITIONS:
+		var found = false
+		for mission in state.missions:
+			if str(mission.get("id", "")) == str(definition.id):
+				found = true
+				break
+		if not found:
+			state.missions.append({"id":definition.id,"progress":0,"completed":false,"claimed":false})
+	_update_missions()
+
+func _get_mission_progress(mission_id):
+	match mission_id:
+		"build_5":
+			return state.buildings.size()
+		"population_8":
+			return int(state.population)
+		"build_market":
+			return get_building_count("mineral_market")
+		"level_3":
+			return int(state.level)
+	return 0
+
+func _update_missions():
+	for i in range(state.missions.size()):
+		var mission = state.missions[i]
+		var mission_id = str(mission.get("id", ""))
+		for definition in MISSION_DEFINITIONS:
+			if str(definition.id) != mission_id:
+				continue
+			var progress = min(int(definition.goal), _get_mission_progress(mission_id))
+			mission.progress = progress
+			mission.completed = progress >= int(definition.goal)
+			state.missions[i] = mission
+			break
+
+func get_missions():
+	_update_missions()
+	return state.get("missions", [])
+
+func claim_mission(mission_index):
+	if mission_index < 0 or mission_index >= state.missions.size():
+		return {"ok":false,"message":"ماموریت پیدا نشد."}
+	var mission = state.missions[mission_index]
+	if not bool(mission.get("completed", false)):
+		return {"ok":false,"message":"این ماموریت هنوز کامل نشده است."}
+	if bool(mission.get("claimed", false)):
+		return {"ok":false,"message":"پاداش این ماموریت قبلاً دریافت شده است."}
+	var reward = 0
+	for definition in MISSION_DEFINITIONS:
+		if str(definition.id) == str(mission.get("id", "")):
+			reward = int(definition.reward)
+			break
+	var accepted = _add_money(reward)
+	if accepted < reward:
+		return {"ok":false,"message":"ظرفیت خزانه برای دریافت کامل پاداش کافی نیست."}
+	mission.claimed = true
+	state.missions[mission_index] = mission
+	save_game()
+	return {"ok":true,"message":"پاداش ماموریت دریافت شد: %d سکه." % reward}
+
 func end_day():
 	var report = []
 	assign_jobs()
@@ -477,6 +602,7 @@ func end_day():
 				report.append("مهلت بازسازی بانک مرکزی تمام شد؛ %d سکه مازاد از خزانه حذف شد." % destroyed)
 			else:
 				report.append("مهلت بازسازی بانک مرکزی تمام شد؛ ظرفیت عادی خزانه فعال شد.")
+	_update_city_services(report)
 	state.day += 1
 	state.xp += 5 + state.population
 	if state.xp >= state.level * 100:
