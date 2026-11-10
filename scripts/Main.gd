@@ -7,12 +7,14 @@ var current_page = "home"
 var message_label = null
 var content = null
 var header_label = null
+var ui_font = null
 
 func _notification(what):
 	if what == MainLoop.NOTIFICATION_WM_QUIT_REQUEST and game != null:
 		game.save_game()
 
 func _ready():
+	_load_ui_font()
 	game = EngineScript.new()
 	if not game.load_game():
 		game.new_game()
@@ -40,6 +42,7 @@ func _build_ui():
 	header_label = Label.new()
 	header_label.text = PersianText.reshaper("🏙️ مینی زکا سیتی")
 	header_label.align = Label.ALIGN_CENTER
+	_apply_font(header_label, 26)
 	header_label.add_color_override("font_color", Color("#ffffff"))
 	root.add_child(header_label)
 	var nav = GridContainer.new()
@@ -51,6 +54,8 @@ func _build_ui():
 		var b = Button.new()
 		b.text = PersianText.reshaper(item.t)
 		b.rect_min_size = Vector2(0, 56)
+		b.flat = false
+		_apply_font(b, 18)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_style_button(b, true)
 		b.connect("pressed", self, "show_page", [item.p])
@@ -70,6 +75,21 @@ func _build_ui():
 	message_label.add_color_override("font_color", Color("#fbbf24"))
 	root.add_child(message_label)
 
+func _load_ui_font():
+	var font_data = DynamicFontData.new()
+	font_data.font_path = "res://assets/fonts/Vazirmatn.ttf"
+	ui_font = DynamicFont.new()
+	ui_font.font_data = font_data
+	ui_font.size = 18
+
+func _apply_font(control, size=18):
+	if ui_font == null:
+		return
+	var font = DynamicFont.new()
+	font.font_data = ui_font.font_data
+	font.size = size
+	control.add_font_override("font", font)
+
 func _button_style(bg_color, border_color):
 	var style = StyleBoxFlat.new()
 	style.bg_color = bg_color
@@ -83,6 +103,7 @@ func _button_style(bg_color, border_color):
 	return style
 
 func _style_button(button, navigation=false):
+	button.flat = false
 	var normal_color = Color("#fbbf24") if navigation else Color("#7c3aed")
 	var hover_color = Color("#fde68a") if navigation else Color("#8b5cf6")
 	var pressed_color = Color("#d97706") if navigation else Color("#5b21b6")
@@ -105,6 +126,7 @@ func _add_label(text, size=18):
 	var label = Label.new()
 	label.text = PersianText.reshaper(text)
 	label.align = Label.ALIGN_RIGHT
+	_apply_font(label, size)
 	label.autowrap = false
 	label.add_color_override("font_color", Color("#e2e8f0"))
 	content.add_child(label)
@@ -114,6 +136,7 @@ func _add_button(text, target, callback, args=[]):
 	var button = Button.new()
 	button.text = PersianText.reshaper(text)
 	button.rect_min_size = Vector2(0, 50)
+	_apply_font(button, 17)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_button(button, false)
 	button.connect("pressed", target, callback, args)
