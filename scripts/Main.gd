@@ -104,7 +104,8 @@ func show_page(page):
 			for service_id in game.SERVICE_GROUPS.keys():
 				var service_name = game.SERVICE_GROUPS[service_id].name
 				service_lines.append(service_name + ": " + ("فعال" if bool(s.get("services",{}).get(service_id,false)) else "ندارد"))
-			_add_label("خدمات شهری: " + " | ".join(service_lines), 15)
+			_add_label("پوشش خدمات: " + _service_summary(), 15)
+			_add_label("نیازهای شهروندان: " + _needs_summary(), 15)
 			_add_label("🏘️ ساختمان‌ها: %d  |  ظرفیت انبار: %d  |  بانک مرکزی: %s  |  بانک شهری: %d" % [s.buildings.size(),game.get_storage_capacity(),("فعال" if game.has_central_bank() else ("بازسازی تا %d روز دیگر" % int(s.get("central_bank_rebuild_days_left",0)) if int(s.get("central_bank_rebuild_days_left",0)) > 0 else "ندارد")),game.get_building_count("municipal_bank")])
 			_add_label("🌳 درختان جنگل: %d از ۱۰۰ | رشد روزانه: ۲ درخت" % game.get_forest_tree_count())
 			_add_label("⛏️ معادن فعال: %d" % _active_mine_count())
@@ -143,6 +144,8 @@ func show_page(page):
 		"citizens":
 			_add_label("👥 جمعیت: %d | شاغل: %d | بیکار: %d" % [s.population,game.get_employed_count(),game.get_unemployed_count()], 20)
 			_add_label("ظرفیت شغلی: %d" % game.get_job_capacity())
+			_add_label("رضایت شهروندان: %d/۱۰۰" % int(s.get("satisfaction",50)))
+			_add_label("نیازهای روزانه: " + _needs_summary(), 15)
 			for citizen in s.citizens:
 				_add_label("شهروند %s — %s" % [str(citizen.id),("بیکار" if citizen.job == "" else citizen.job)])
 			_add_button("🔄 تخصیص دوباره شغل‌ها", self, "reassign_jobs")
@@ -185,6 +188,20 @@ func show_page(page):
 		_:
 			_add_label("بخش پیدا نشد.")
 	header_label.text = "🏙️ مینی زکا سیتی  |  خزانه: %d  |  جمعیت: %d" % [s.money,s.population]
+
+func _service_summary():
+	var parts = []
+	for id in game.SERVICE_GROUPS.keys():
+		var label = str(game.SERVICE_GROUPS[id].name)
+		parts.append("%s %d%%" % [label, int(game.state.get("services",{}).get(id,0))])
+	return " | ".join(parts)
+
+func _needs_summary():
+	var labels = {"food":"خوراک","water":"آب","power":"برق","health":"سلامت","education":"آموزش","safety":"امنیت","leisure":"تفریح","sanitation":"بهداشت"}
+	var parts = []
+	for id in labels.keys():
+		parts.append("%s %d%%" % [labels[id], int(game.state.get("needs",{}).get(id,60))])
+	return " | ".join(parts)
 
 func _active_mine_count():
 	var count = 0
