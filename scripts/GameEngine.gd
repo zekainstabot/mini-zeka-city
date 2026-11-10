@@ -818,9 +818,10 @@ func _process_citizen_purchases(report):
 	var food_need = int(state.get("needs", {}).get("food", 60))
 	var food_stock = int(state.resources.get("food",0))
 	var citizen_count = state.citizens.size()
-	var start_index = int(state.day) % max(1,citizen_count)
+	var rotation_count = int(max(1, citizen_count))
+	var start_index = int(state.day) % rotation_count
 	for step in range(citizen_count):
-		var citizen_index = (start_index + step) % max(1,citizen_count)
+		var citizen_index = int((start_index + step) % rotation_count)
 		var citizen = state.citizens[citizen_index]
 		var wallet = int(citizen.get("wallet", 0))
 		var demand_units = 1 + int(floor(float(100 - food_need) / 50.0))
