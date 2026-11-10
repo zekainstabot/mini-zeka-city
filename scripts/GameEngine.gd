@@ -344,6 +344,9 @@ func refill_iron_mine(mine_index):
 func _advance_mines(report):
 	for i in range(state.mines.size()):
 		var mine = state.mines[i]
+		var building_index = int(mine.get("building_index", -1))
+		if building_index < 0 or building_index >= state.buildings.size() or _workers_for_building(building_index) <= 0:
+			continue
 		if not bool(mine.get("active", false)):
 			continue
 		var resource_id = str(mine.get("resource", ""))
