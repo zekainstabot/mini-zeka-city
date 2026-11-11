@@ -468,10 +468,10 @@ func show_page(page):
 			_add_label("درخواست‌های شهروندان برای بررسی شهرداری: %d" % int(civic.get("request_count",0)), 19)
 			if civic.get("requests", []).empty():
 				_add_label("درخواستی در انتظار بررسی نیست.", 16)
-			for request in civic.get("requests", []):
-				_add_label("%s | شهروند شماره %d | روز %d | مبلغ: %d سکه" % [str(request.get("title","درخواست شهروند")),int(request.get("citizen_id",0)),int(request.get("day",s.day)),int(request.get("amount",0))], 17)
-				_add_button("تأیید درخواست", self, "resolve_civic_request", [int(request.get("id",0)), true])
-				_add_button("رد درخواست", self, "resolve_civic_request", [int(request.get("id",0)), false])
+			for municipal_request in civic.get("requests", []):
+				_add_label("%s | شهروند شماره %d | روز %d | مبلغ: %d سکه" % [str(municipal_request.get("title","درخواست شهروند")),int(municipal_request.get("citizen_id",0)),int(municipal_request.get("day",s.day)),int(municipal_request.get("amount",0))], 17)
+				_add_button("تأیید درخواست", self, "resolve_civic_request", [int(municipal_request.get("id",0)), true])
+				_add_button("رد درخواست", self, "resolve_civic_request", [int(municipal_request.get("id",0)), false])
 			_add_label("املاک تجاری شهرداری:", 18)
 			for property_index in range(s.buildings.size()):
 				var property = s.buildings[property_index]
@@ -484,17 +484,17 @@ func show_page(page):
 				else:
 					_add_label("%s | متعلق به شهرداری | آماده اجاره با درخواست شهروند" % str(property_data.get("name","ملک")),15)
 			_add_label("پروژه‌های عمرانی در حال اجرا: %d" % int(civic.get("project_count",0)), 17)
-			for project in civic.get("projects", []):
-				_add_label("%s | تحویل روز %d | اعتبار مالیاتی: %d سکه" % [str(game.get_building_definitions().get(str(project.get("building_id","")),{}).get("name","پروژه")),int(project.get("finish_day",0)),int(project.get("tax_credit",0))], 15)
+			for civic_project in civic.get("projects", []):
+				_add_label("%s | تحویل روز %d | اعتبار مالیاتی: %d سکه" % [str(game.get_building_definitions().get(str(civic_project.get("building_id","")),{}).get("name","پروژه")),int(civic_project.get("finish_day",0)),int(civic_project.get("tax_credit",0))], 15)
 		"private_economy":
-			var civic = game.get_civic_overview()
+			var private_economy_data = game.get_civic_overview()
 			_add_label("🏪 اقتصاد مستقل شهروندان", 22)
-			_add_label("کسب‌وکار خصوصی: %d | فروش روزانه: %d سکه" % [int(civic.get("business_count",0)),int(civic.get("daily_revenue",0))], 18)
-			_add_label("سرمایه در گردش بخش خصوصی: %d سکه" % int(civic.get("private_balance",0)), 17)
-			_add_label("مالیات پرداختی امروز: %d سکه | نرخ مالیات: %d٪" % [int(civic.get("daily_tax",0)),int(civic.get("tax_rate",8))], 17)
-			if civic.get("private_businesses", []).empty():
+			_add_label("کسب‌وکار خصوصی: %d | فروش روزانه: %d سکه" % [int(private_economy_data.get("business_count",0)),int(private_economy_data.get("daily_revenue",0))], 18)
+			_add_label("سرمایه در گردش بخش خصوصی: %d سکه" % int(private_economy_data.get("private_balance",0)), 17)
+			_add_label("مالیات پرداختی امروز: %d سکه | نرخ مالیات: %d٪" % [int(private_economy_data.get("daily_tax",0)),int(private_economy_data.get("tax_rate",8))], 17)
+			if private_economy_data.get("private_businesses", []).empty():
 				_add_label("هنوز کسب‌وکار خصوصی تأسیس نشده است. شهروندان پس از جمع‌آوری سرمایه، برای خرید زمین و دریافت مجوز درخواست می‌دهند.", 16)
-			for business in civic.get("private_businesses", []):
+			for business in private_economy_data.get("private_businesses", []):
 				_add_label("%s | مالک: شهروند %d | کارمند: %d | فروش روزانه: %d سکه" % [str(business.get("name","کسب‌وکار")),int(business.get("owner_citizen_id",0)),business.get("employees",[]).size(),int(business.get("last_revenue",0))], 17)
 				_add_label("سرمایه کسب‌وکار: %d | مالیات امروز: %d | اعتبار مالیاتی پروژه‌ها: %d" % [int(business.get("balance",0)),int(business.get("last_tax",0)),int(business.get("tax_credit",0))], 15)
 				if bool(business.get("rented_municipal",false)):
