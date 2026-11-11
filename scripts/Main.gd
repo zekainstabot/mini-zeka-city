@@ -569,9 +569,9 @@ func demolish_selected_buildings():
 		if bool(result.get("ok",false)):
 			removed += 1
 			remaining_to_remove -= 1
-			else:
-				_show_message(result.message)
-				break
+		else:
+			_show_message(result.message)
+			break
 	if game.get_building_count(selected_home_building_id) <= 0:
 		selected_home_building_id = ""
 	selected_demolish_quantity = 1
