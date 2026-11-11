@@ -426,7 +426,7 @@ func get_building_count(id):
 func get_employed_count():
 	var count = 0
 	for citizen in state.citizens:
-		if str(citizen.get("job", "")) != "":
+		if str(citizen.get("job", "")) != "" or int(citizen.get("private_job_id", 0)) > 0:
 			count += 1
 	return count
 
@@ -437,6 +437,8 @@ func get_job_capacity():
 	var total = 0
 	for building in state.buildings:
 		total += int(BUILDINGS.get(building.id, {}).get("jobs", 0))
+	for business in state.get("private_businesses", []):
+		total += int(business.get("jobs", 0))
 	return total
 
 func get_land_size(id):
