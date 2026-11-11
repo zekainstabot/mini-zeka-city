@@ -100,7 +100,7 @@ func _build_ui():
 	root.add_child(nav)
 	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بازار","p":"market"},{"t":"تجارت شهرها","p":"trade"},{"t":"واردات و قراردادها","p":"imports"},{"t":"جاده و ناوگان","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش روز","p":"report"},{"t":"ماموریت‌ها","p":"missions"}]:
 		var b = Button.new()
-		b.text = PersianText.reshaper(item.t)
+		b.text = PersianText.reshaper(item.t + "  ")
 		b.rect_min_size = Vector2(0, 64 if compact_layout else 58)
 		b.flat = false
 		_apply_font(b, 21 if compact_layout else 18)
@@ -214,7 +214,7 @@ func _add_label(text, size=18):
 
 func _add_button(text, target, callback, args=[]):
 	var button = Button.new()
-	button.text = PersianText.reshaper(text)
+	button.text = PersianText.reshaper(text + "  ")
 	button.rect_min_size = Vector2(0, 58 if get_viewport_rect().size.x < 900 else 50)
 	_apply_font(button, 19 if get_viewport_rect().size.x < 900 else 17)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
