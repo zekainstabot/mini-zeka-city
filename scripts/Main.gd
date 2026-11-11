@@ -151,7 +151,7 @@ func _build_ui():
 	nav.add_constant_override("hseparation", 8)
 	nav.add_constant_override("vseparation", 8)
 	root.add_child(nav)
-	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بازار","p":"market"},{"t":"تجارت شهرها","p":"trade"},{"t":"واردات و قراردادها","p":"imports"},{"t":"جاده و ناوگان","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش روز","p":"report"},{"t":"ماموریت‌ها","p":"missions"}]:
+	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار","p":"market"},{"t":"تجارت شهرها","p":"trade"},{"t":"واردات و قراردادها","p":"imports"},{"t":"جاده و ناوگان","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش روز","p":"report"},{"t":"ماموریت‌ها","p":"missions"}]:
 		var b = Button.new()
 		b.text = PersianText.reshaper(item.t + "  ")
 		b.rect_min_size = Vector2(0, 64 if compact_layout else 58)
@@ -440,6 +440,39 @@ func show_page(page):
 			for citizen in s.citizens:
 				_add_label("شهروند %s — %s | کیف پول: %d سکه" % [str(citizen.id),("بیکار" if citizen.job == "" else citizen.job),int(citizen.get("wallet",0))])
 			_add_button(" تخصیص دوباره شغل‌ها", self, "reassign_jobs")
+		"municipality":
+			var civic = game.get_civic_overview()
+			_add_label("🏛️ شهرداری و مدیریت اقتصاد شهر", 22)
+			_add_label("زمین خصوصی آماده فروش: %d قطعه | قیمت هر قطعه: %d سکه" % [int(civic.get("private_land_available",0)),int(civic.get("private_land_price",300))], 17)
+			_add_label("نرخ مالیات کسب‌وکارهای خصوصی: %d درصد" % int(civic.get("tax_rate",8)), 18)
+			var tax_down = _add_button("کاهش مالیات خصوصی ۱٪", self, "adjust_business_tax", [-1])
+			var tax_up = _add_button("افزایش مالیات خصوصی ۱٪", self, "adjust_business_tax", [1])
+			tax_down.disabled = int(civic.get("tax_rate",8)) <= 0
+			tax_up.disabled = int(civic.get("tax_rate",8)) >= 30
+			_add_label("هزینه صدور مجوز: %d سکه | درآمد مالیات امروز: %d سکه" % [int(civic.get("permit_fee",50)),int(civic.get("daily_tax",0))], 16)
+			_add_label("درآمد فروش زمین و صدور مجوز جدا از مالیات محاسبه می‌شود.", 15)
+			_add_label("درخواست‌های شهروندان برای بررسی شهرداری: %d" % int(civic.get("request_count",0)), 19)
+			if civic.get("requests", []).empty():
+				_add_label("درخواستی در انتظار بررسی نیست.", 16)
+			for request in civic.get("requests", []):
+				_add_label("%s | شهروند شماره %d | روز %d | مبلغ: %d سکه" % [str(request.get("title","درخواست شهروند")),int(request.get("citizen_id",0)),int(request.get("day",s.day)),int(request.get("amount",0))], 17)
+				_add_button("تأیید درخواست", self, "resolve_civic_request", [int(request.get("id",0)), true])
+				_add_button("رد درخواست", self, "resolve_civic_request", [int(request.get("id",0)), false])
+			_add_label("پروژه‌های عمرانی در حال اجرا: %d" % int(civic.get("project_count",0)), 17)
+			for project in civic.get("projects", []):
+				_add_label("%s | تحویل روز %d | اعتبار مالیاتی: %d سکه" % [str(game.get_building_definitions().get(str(project.get("building_id","")),{}).get("name","پروژه")),int(project.get("finish_day",0)),int(project.get("tax_credit",0))], 15)
+		"private_economy":
+			var civic = game.get_civic_overview()
+			_add_label("🏪 اقتصاد مستقل شهروندان", 22)
+			_add_label("کسب‌وکار خصوصی: %d | فروش روزانه: %d سکه" % [int(civic.get("business_count",0)),int(civic.get("daily_revenue",0))], 18)
+			_add_label("سرمایه در گردش بخش خصوصی: %d سکه" % int(civic.get("private_balance",0)), 17)
+			_add_label("مالیات پرداختی امروز: %d سکه | نرخ مالیات: %d٪" % [int(civic.get("daily_tax",0)),int(civic.get("tax_rate",8))], 17)
+			if civic.get("private_businesses", []).empty():
+				_add_label("هنوز کسب‌وکار خصوصی تأسیس نشده است. شهروندان پس از جمع‌آوری سرمایه، برای خرید زمین و دریافت مجوز درخواست می‌دهند.", 16)
+			for business in civic.get("private_businesses", []):
+				_add_label("%s | مالک: شهروند %d | کارمند: %d | فروش روزانه: %d سکه" % [str(business.get("name","کسب‌وکار")),int(business.get("owner_citizen_id",0)),business.get("employees",[]).size(),int(business.get("last_revenue",0))], 17)
+				_add_label("سرمایه کسب‌وکار: %d | مالیات امروز: %d | اعتبار مالیاتی پروژه‌ها: %d" % [int(business.get("balance",0)),int(business.get("last_tax",0)),int(business.get("tax_credit",0))], 15)
+			_add_label("شهروندان بیکار درآمد آزاد کسب می‌کنند؛ کسب‌وکارها به‌تدریج نیروی کار استخدام می‌کنند و از فروش خود مالیات می‌پردازند.", 15)
 		"market":
 			_add_label("بازار شهر — قیمت‌ها بر اساس عرضه و تقاضا", 22)
 			_add_label("موجودی بازار کمتر باشد، قیمت بالاتر می‌رود؛ با افزایش موجودی، قیمت کاهش می‌یابد.", 15)
@@ -602,6 +635,17 @@ func _resource_summary():
 	for id in game.get_resource_definitions().keys():
 		parts.append("%s: %d" % [game.get_resource_definitions()[id].name,game.state.resources.get(id,0)])
 	return " | ".join(parts)
+
+
+func resolve_civic_request(request_id, approved):
+	var result = game.resolve_civic_request(request_id, approved)
+	show_page("municipality")
+	_show_message(result.message)
+
+func adjust_business_tax(delta):
+	var result = game.adjust_business_tax(delta)
+	show_page("municipality")
+	_show_message(result.message)
 
 func buy_land():
 	var result = game.buy_land(1)
