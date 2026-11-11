@@ -33,6 +33,8 @@ var touch_scroll_start = Vector2()
 var touch_scroll_last_y = 0.0
 var touch_scroll_dragging = false
 var restart_confirm_panel = null
+var municipality_section_expanded = {"land":false,"tax":false,"requests":false,"properties":false,"projects":false}
+var active_section_container = null
 
 func _input(event):
 	if game_scroll_container == null or not is_instance_valid(game_scroll_container):
@@ -445,7 +447,8 @@ func _add_label(text, size=18):
 	label.add_color_override("font_color", Color("#f8fafc"))
 	label.add_color_override("font_color_shadow", Color("#0b1220"))
 	label.modulate = Color("#ffffff")
-	content.add_child(label)
+	var target = active_section_container if active_section_container != null else content
+	target.add_child(label)
 	return label
 
 func _add_button(text, target, callback, args=[]):
@@ -456,7 +459,8 @@ func _add_button(text, target, callback, args=[]):
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_button(button, false)
 	button.connect("pressed", target, callback, args)
-	content.add_child(button)
+	var target = active_section_container if active_section_container != null else content
+	target.add_child(button)
 	return button
 
 func _show_message(text):
@@ -628,9 +632,12 @@ func show_page(page):
 		"municipality":
 			var civic = game.get_civic_overview()
 			_add_label("🏛️ شهرداری و مدیریت اقتصاد شهر", 22)
+			_municipality_section("🟨 زمین و قیمت‌گذاری", "land")
 			_add_label("زمین خصوصی آماده فروش: %d قطعه | قیمت هر قطعه: %d سکه" % [int(civic.get("private_land_available",0)),int(civic.get("private_land_price",300))], 17)
 			_add_button("کاهش قیمت زمین خصوصی ۵۰ سکه", self, "adjust_private_land_price", [-50])
 			_add_button("افزایش قیمت زمین خصوصی ۵۰ سکه", self, "adjust_private_land_price", [50])
+			_end_municipality_section()
+			_municipality_section("💰 مالیات و مجوزها", "tax")
 			_add_label("نرخ مالیات کسب‌وکارهای خصوصی: %d درصد" % int(civic.get("tax_rate",8)), 18)
 			var tax_down = _add_button("کاهش مالیات خصوصی ۱٪", self, "adjust_business_tax", [-1])
 			var tax_up = _add_button("افزایش مالیات خصوصی ۱٪", self, "adjust_business_tax", [1])
@@ -640,7 +647,8 @@ func show_page(page):
 			_add_button("کاهش هزینه مجوز ۱۰ سکه", self, "adjust_business_permit_fee", [-10])
 			_add_button("افزایش هزینه مجوز ۱۰ سکه", self, "adjust_business_permit_fee", [10])
 			_add_label("درآمد فروش زمین و صدور مجوز جدا از مالیات محاسبه می‌شود.", 15)
-			_add_label("مجموع درآمد اجاره املاک شهرداری (جدا از مالیات): %d سکه" % int(civic.get("rent_income",0)), 16)
+			_end_municipality_section()
+			_municipality_section("📨 درخواست‌های شهروندان", "requests")
 			_add_label("درخواست‌های شهروندان برای بررسی شهرداری: %d" % int(civic.get("request_count",0)), 19)
 			if civic.get("requests", []).empty():
 				_add_label("درخواستی در انتظار بررسی نیست.", 16)
@@ -648,20 +656,30 @@ func show_page(page):
 				_add_label("%s | شهروند شماره %d | روز %d | مبلغ: %d سکه" % [str(municipal_request.get("title","درخواست شهروند")),int(municipal_request.get("citizen_id",0)),int(municipal_request.get("day",s.day)),int(municipal_request.get("amount",0))], 17)
 				_add_button("تأیید درخواست", self, "resolve_civic_request", [int(municipal_request.get("id",0)), true])
 				_add_button("رد درخواست", self, "resolve_civic_request", [int(municipal_request.get("id",0)), false])
+			_end_municipality_section()
+			_municipality_section("🏢 املاک و درآمد اجاره", "properties")
+			_add_label("مجموع درآمد اجاره املاک شهرداری (جدا از مالیات): %d سکه" % int(civic.get("rent_income",0)), 16)
 			_add_label("املاک تجاری شهرداری:", 18)
+			var municipal_property_count = 0
 			for property_index in range(s.buildings.size()):
 				var property = s.buildings[property_index]
 				var property_data = game.get_building_definitions().get(str(property.get("id","")), {})
 				var property_category = str(property_data.get("category",""))
 				if property_category != "کسب‌وکارها" and property_category != "کارخانه‌ها":
 					continue
+				municipal_property_count += 1
 				if int(property.get("rented_to",0)) > 0:
 					_add_label("%s | اجاره‌داده‌شده به شهروند %d | تا روز %d" % [str(property_data.get("name","ملک")),int(property.get("rented_to",0)),int(property.get("rent_until_day",0))],15)
 				else:
 					_add_label("%s | متعلق به شهرداری | آماده اجاره با درخواست شهروند" % str(property_data.get("name","ملک")),15)
+			if municipal_property_count == 0:
+				_add_label("هنوز ملک تجاری متعلق به شهرداری ساخته نشده است.", 16)
+			_end_municipality_section()
+			_municipality_section("🏗️ پروژه‌های عمرانی", "projects")
 			_add_label("پروژه‌های عمرانی در حال اجرا: %d" % int(civic.get("project_count",0)), 17)
 			for civic_project in civic.get("projects", []):
 				_add_label("%s | تحویل روز %d | اعتبار مالیاتی: %d سکه" % [str(game.get_building_definitions().get(str(civic_project.get("building_id","")),{}).get("name","پروژه")),int(civic_project.get("finish_day",0)),int(civic_project.get("tax_credit",0))], 15)
+			_end_municipality_section()
 		"private_economy":
 			var private_economy_data = game.get_civic_overview()
 			_add_label("🏪 اقتصاد مستقل شهروندان", 22)
@@ -806,6 +824,22 @@ func show_page(page):
 	bottom_scroll_space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_child(bottom_scroll_space)
 	header_label.text = PersianText.reshaper("مینی زکا سیتی  |  خزانه: %d  |  جمعیت: %d" % [s.money,s.population])
+
+func _municipality_section(title, section_id):
+	var expanded = bool(municipality_section_expanded.get(section_id, false))
+	var header = _add_button(("▼ " if expanded else "▶ ") + title, self, "toggle_municipality_section", [section_id])
+	active_section_container = VBoxContainer.new()
+	active_section_container.add_constant_override("separation", 5)
+	active_section_container.visible = expanded
+	content.add_child(active_section_container)
+
+func _end_municipality_section():
+	active_section_container = null
+
+func toggle_municipality_section(section_id):
+	var key = str(section_id)
+	municipality_section_expanded[key] = not bool(municipality_section_expanded.get(key, false))
+	show_page("municipality")
 
 func _service_summary():
 	var parts = []
