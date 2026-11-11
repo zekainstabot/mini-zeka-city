@@ -745,6 +745,7 @@ func demolish(index):
 	if id == "small_house" and get_building_count(id) <= 1:
 		return {"ok":false,"message":"آخرین خانه شهر را نمی‌توان تخریب کرد."}
 	state.buildings.remove(index)
+	_ensure_building_locations()
 	for request_index in range(state.get("business_requests", []).size() - 1, -1, -1):
 		var civic_request = state.business_requests[request_index]
 		if str(civic_request.get("type", "")) != "rent":
