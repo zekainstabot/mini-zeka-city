@@ -1067,6 +1067,11 @@ func upgrade_road():
 	show_page("transport")
 	_show_message(result.message)
 
+func build_transport_facility(building_id):
+	var result = game.build(str(building_id))
+	show_page("transport")
+	_show_message(result.message)
+
 func advance_day():
 	var report = game.end_day()
 	game.state["clock_last_unix"] = OS.get_unix_time()
