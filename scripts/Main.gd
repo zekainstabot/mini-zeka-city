@@ -453,12 +453,16 @@ func show_page(page):
 			var civic = game.get_civic_overview()
 			_add_label("🏛️ شهرداری و مدیریت اقتصاد شهر", 22)
 			_add_label("زمین خصوصی آماده فروش: %d قطعه | قیمت هر قطعه: %d سکه" % [int(civic.get("private_land_available",0)),int(civic.get("private_land_price",300))], 17)
+			_add_button("کاهش قیمت زمین خصوصی ۵۰ سکه", self, "adjust_private_land_price", [-50])
+			_add_button("افزایش قیمت زمین خصوصی ۵۰ سکه", self, "adjust_private_land_price", [50])
 			_add_label("نرخ مالیات کسب‌وکارهای خصوصی: %d درصد" % int(civic.get("tax_rate",8)), 18)
 			var tax_down = _add_button("کاهش مالیات خصوصی ۱٪", self, "adjust_business_tax", [-1])
 			var tax_up = _add_button("افزایش مالیات خصوصی ۱٪", self, "adjust_business_tax", [1])
 			tax_down.disabled = int(civic.get("tax_rate",8)) <= 0
 			tax_up.disabled = int(civic.get("tax_rate",8)) >= 30
 			_add_label("هزینه صدور مجوز: %d سکه | درآمد مالیات امروز: %d سکه" % [int(civic.get("permit_fee",50)),int(civic.get("daily_tax",0))], 16)
+			_add_button("کاهش هزینه مجوز ۱۰ سکه", self, "adjust_business_permit_fee", [-10])
+			_add_button("افزایش هزینه مجوز ۱۰ سکه", self, "adjust_business_permit_fee", [10])
 			_add_label("درآمد فروش زمین و صدور مجوز جدا از مالیات محاسبه می‌شود.", 15)
 			_add_label("مجموع درآمد اجاره املاک شهرداری (جدا از مالیات): %d سکه" % int(civic.get("rent_income",0)), 16)
 			_add_label("درخواست‌های شهروندان برای بررسی شهرداری: %d" % int(civic.get("request_count",0)), 19)
@@ -667,6 +671,16 @@ func resolve_civic_request(request_id, approved):
 
 func adjust_business_tax(delta):
 	var result = game.adjust_business_tax(delta)
+	show_page("municipality")
+	_show_message(result.message)
+
+func adjust_business_permit_fee(delta):
+	var result = game.adjust_business_permit_fee(delta)
+	show_page("municipality")
+	_show_message(result.message)
+
+func adjust_private_land_price(delta):
+	var result = game.adjust_private_land_price(delta)
 	show_page("municipality")
 	_show_message(result.message)
 
