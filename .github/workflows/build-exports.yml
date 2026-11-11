@@ -102,7 +102,9 @@ jobs:
           page = Path("build/web/index.html")
           html = page.read_text(encoding="utf-8")
           html = html.replace("\t\tbody {", "\t\tbody {\n\t\t\toverflow: hidden;\n\t\t\twidth: 100vw;\n\t\t\theight: 100vh;")
-          html = html.replace("\t\t#canvas {", "\t\t#canvas {\n\t\t\twidth: 100vw !important;\n\t\t\theight: 100vh !important;\n\t\t\tmax-width: 100vw;\n\t\t\tmax-height: 100vh;")
+          # Keep Godot's own canvas sizing and device-pixel-ratio handling.
+          # Forcing CSS width/height here can rescale the rendered canvas and blur text.
+          html = html.replace("\t\t#canvas {", "\t\t#canvas {")
           page.write_text(html, encoding="utf-8")
           PY
 
