@@ -23,7 +23,35 @@ var construction_time_labels = []
 var game_paused = false
 var menu_panel = null
 var menu_pause_button = null
+var game_scroll_container = null
+var touch_scroll_active = false
+var touch_scroll_start = Vector2()
+var touch_scroll_last_y = 0.0
+var touch_scroll_dragging = false
 var restart_confirm_panel = null
+
+func _input(event):
+	if game_scroll_container == null or not is_instance_valid(game_scroll_container):
+		return
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			touch_scroll_active = game_scroll_container.get_global_rect().has_point(event.position)
+			touch_scroll_start = event.position
+			touch_scroll_last_y = event.position.y
+			touch_scroll_dragging = false
+		else:
+			touch_scroll_active = false
+			touch_scroll_dragging = false
+	elif event is InputEventScreenDrag and touch_scroll_active:
+		var distance = abs(event.position.y - touch_scroll_start.y)
+		if distance > 8.0:
+			touch_scroll_dragging = true
+		if touch_scroll_dragging:
+			var delta_y = event.position.y - touch_scroll_last_y
+			var bar = game_scroll_container.get_v_scrollbar()
+			var max_scroll = max(0.0, bar.max_value - bar.page)
+			game_scroll_container.scroll_vertical = int(clamp(float(game_scroll_container.scroll_vertical) - delta_y * 1.6, 0.0, max_scroll))
+		touch_scroll_last_y = event.position.y
 
 func _process(delta):
 	if game == null or game_paused:
@@ -231,6 +259,7 @@ func _build_ui():
 	var line = HSeparator.new()
 	root.add_child(line)
 	var scroll = ScrollContainer.new()
+	game_scroll_container = scroll
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.rect_clip_content = true
