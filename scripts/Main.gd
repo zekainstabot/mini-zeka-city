@@ -344,9 +344,24 @@ func show_page(page):
 				# Demolition is managed from the categorized city overview.
 		"citizens":
 			_add_label(" جمعیت: %d | شاغل: %d | بیکار: %d" % [s.population,game.get_employed_count(),game.get_unemployed_count()], 20)
-			_add_label("ظرفیت شغلی: %d" % game.get_job_capacity())
+			_add_label("ظرفیت مسکن: %d | ظرفیت شغلی: %d" % [game.get_housing_capacity(),game.get_job_capacity()])
 			_add_label("رضایت شهروندان: %d/۱۰۰" % int(s.get("satisfaction",50)))
 			_add_label("نیازهای روزانه: " + _needs_summary(), 15)
+			_add_label("روش جذب شهروند: " + ("خودکار" if str(s.get("citizen_recruitment_mode","auto")) == "auto" else "دستی"), 18)
+			var auto_recruit_button = _add_button("فعال‌کردن جذب خودکار", self, "set_recruitment_mode", ["auto"])
+			var manual_recruit_button = _add_button("فعال‌کردن جذب دستی", self, "set_recruitment_mode", ["manual"])
+			auto_recruit_button.disabled = str(s.get("citizen_recruitment_mode","auto")) == "auto"
+			manual_recruit_button.disabled = str(s.get("citizen_recruitment_mode","auto")) == "manual"
+			_add_label("درخواست‌های در انتظار: %d" % s.get("citizen_requests", []).size(), 18)
+			for request_index in range(s.get("citizen_requests", []).size()):
+				var request = s.citizen_requests[request_index]
+				_add_label("متقاضی شماره %d | درخواست در روز %d" % [int(request.get("id",0)),int(request.get("day",s.day))], 17)
+				_add_button("قبول درخواست شماره %d" % int(request.get("id",0)), self, "accept_citizen_request", [request_index])
+				_add_button("رد درخواست شماره %d" % int(request.get("id",0)), self, "reject_citizen_request", [request_index])
+			if int(s.population) >= game.get_housing_capacity():
+				_add_label("ظرفیت خانه‌ها پر است؛ برای جذب شهروند جدید خانه بساز.", 15)
+			elif int(s.reputation) < 25:
+				_add_label("اعتبار شهر باید حداقل ۲۵ باشد تا متقاضی جدید بیاید.", 15)
 			for citizen in s.citizens:
 				_add_label("شهروند %s — %s | کیف پول: %d سکه" % [str(citizen.id),("بیکار" if citizen.job == "" else citizen.job),int(citizen.get("wallet",0))])
 			_add_button(" تخصیص دوباره شغل‌ها", self, "reassign_jobs")
@@ -561,6 +576,21 @@ func demolish_selected_buildings():
 func demolish_building(index):
 	var result = game.demolish(index)
 	show_page("buildings")
+	_show_message(result.message)
+
+func set_recruitment_mode(mode):
+	var result = game.set_citizen_recruitment_mode(mode)
+	show_page("citizens")
+	_show_message(result.message)
+
+func accept_citizen_request(index):
+	var result = game.accept_citizen_request(index)
+	show_page("citizens")
+	_show_message(result.message)
+
+func reject_citizen_request(index):
+	var result = game.reject_citizen_request(index)
+	show_page("citizens")
 	_show_message(result.message)
 
 func reassign_jobs():
