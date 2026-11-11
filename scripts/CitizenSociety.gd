@@ -507,6 +507,9 @@ func resolve_request(engine, request_id, approved):
 			"tax_paid_total":0,
 			"tax_credit":0,
 			"rented_municipal":true,
+			"zone":str(municipal_property.get("zone", "district")),
+			"district_id":str(municipal_property.get("district_id", "")),
+			"district_name":str(municipal_property.get("district_name", "محله A1")),
 			"building_index":building_index,
 			"rent_until_day":int(state.day) + 7,
 			"created_day":int(state.day)
@@ -535,6 +538,7 @@ func resolve_request(engine, request_id, approved):
 		citizen["civic_request_pending"] = false
 		state.citizens[citizen_index] = citizen
 		var revenue_map = {"grocery_store":65,"bakery":85,"woodcutter":70,"restaurant":110,"sawmill":100,"carpenter":125,"office":115,"factory":150,"shopping_mall":220}
+		var business_location = engine._assign_building_location(building_id)
 		state.private_businesses.append({
 			"id":business_id,
 			"owner_citizen_id":int(citizen.id),
@@ -549,13 +553,16 @@ func resolve_request(engine, request_id, approved):
 			"last_tax":0,
 			"tax_paid_total":0,
 			"tax_credit":0,
+			"zone":business_location.zone,
+			"district_id":business_location.district_id,
+			"district_name":business_location.district_name,
 			"created_day":int(state.day)
 		})
 		engine._add_money(int(state.get("business_permit_fee", 50)))
 		state.business_requests.remove(request_index)
 		engine.state = state
 		engine.save_game()
-		return {"ok":true,"message":"مجوز %s صادر شد؛ کسب‌وکار خصوصی شهروند شماره %d آغاز به کار کرد." % [str(data.name), int(citizen.id)]}
+		return {"ok":true,"message":"مجوز %s صادر شد؛ کسب‌وکار خصوصی شهروند شماره %d در %s آغاز به کار کرد." % [str(data.name), int(citizen.id), str(business_location.district_name)]}
 	if request_type == "public_project":
 		var business_index = _find_business_index(state, int(request.get("business_id", 0)))
 		if business_index < 0:
