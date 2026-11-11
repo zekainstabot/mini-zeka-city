@@ -417,19 +417,20 @@ func _button_style(bg_color, border_color):
 
 func _style_button(button, navigation=false):
 	button.flat = false
-	var normal_color = Color("#fbbf24") if navigation else Color("#7c3aed")
-	var hover_color = Color("#fde68a") if navigation else Color("#8b5cf6")
-	var pressed_color = Color("#d97706") if navigation else Color("#5b21b6")
-	button.add_stylebox_override("normal", _button_style(normal_color, Color("#ffffff") if navigation else Color("#c4b5fd")) )
-	button.add_stylebox_override("hover", _button_style(hover_color, Color("#ffffff")))
-	button.add_stylebox_override("focus", _button_style(hover_color, Color("#ffffff")))
-	button.add_stylebox_override("pressed", _button_style(pressed_color, Color("#ffffff")))
-	button.add_stylebox_override("disabled", _button_style(Color("#475569"), Color("#94a3b8")))
-	button.add_color_override("font_color", Color("#111827") if navigation else Color("#ffffff"))
-	button.add_color_override("font_color_focus", Color("#ffffff"))
-	button.add_color_override("font_color_hover", Color("#111827") if navigation else Color("#ffffff"))
-	button.add_color_override("font_color_pressed", Color("#ffffff"))
-	button.add_color_override("font_color_disabled", Color("#f8fafc"))
+	# Use one high-contrast palette for every button across every page.
+	var normal_color = Color("#fbbf24")
+	var hover_color = Color("#fde68a")
+	var pressed_color = Color("#d97706")
+	button.add_stylebox_override("normal", _button_style(normal_color, Color("#92400e")))
+	button.add_stylebox_override("hover", _button_style(hover_color, Color("#78350f")))
+	button.add_stylebox_override("focus", _button_style(hover_color, Color("#78350f")))
+	button.add_stylebox_override("pressed", _button_style(pressed_color, Color("#78350f")))
+	button.add_stylebox_override("disabled", _button_style(Color("#64748b"), Color("#94a3b8")))
+	button.add_color_override("font_color", Color("#111827"))
+	button.add_color_override("font_color_focus", Color("#111827"))
+	button.add_color_override("font_color_hover", Color("#111827"))
+	button.add_color_override("font_color_pressed", Color("#111827"))
+	button.add_color_override("font_color_disabled", Color("#e2e8f0"))
 
 func _clear_content():
 	construction_time_labels.clear()
