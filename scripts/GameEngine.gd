@@ -427,7 +427,8 @@ func _assign_building_location(building_id):
 			chosen_index = i
 			break
 	if chosen_index < 0:
-		var district_id = _district_letter(state.districts.size()) + "1"
+		var district_number = state.districts.size()
+		var district_id = _district_letter(int(district_number / 50)) + str((district_number % 50) + 1)
 		state.districts.append({"id":district_id,"name":"محله "+district_id,"building_count":0})
 		chosen_index = state.districts.size() - 1
 	var district = state.districts[chosen_index]
