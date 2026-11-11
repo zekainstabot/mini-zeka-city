@@ -244,8 +244,8 @@ func save_game():
 func _normalize_state():
 	if typeof(state.get("report_events", null)) != TYPE_ARRAY:
 		state["report_events"] = []
-	if state.report_events.size() > 100:
-		state.report_events = state.report_events.slice(state.report_events.size() - 100, state.report_events.size())
+	while state.report_events.size() > 100:
+		state.report_events.pop_front()
 	if typeof(state.get("buildings", null)) != TYPE_ARRAY:
 		state.buildings = []
 	if typeof(state.get("citizens", null)) != TYPE_ARRAY:
