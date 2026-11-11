@@ -421,6 +421,11 @@ func show_page(page):
 					_add_button(" دریافت پاداش: "+str(definition.reward), self, "claim_mission", [mission_index])
 		_:
 			_add_label("بخش پیدا نشد.")
+	# Extra scrollable safe area so the last controls/text stay above Android browser navigation bars.
+	var bottom_scroll_space = Control.new()
+	bottom_scroll_space.rect_min_size = Vector2(0, 180 if get_viewport_rect().size.x < 900 else 90)
+	bottom_scroll_space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.add_child(bottom_scroll_space)
 	header_label.text = PersianText.reshaper("مینی زکا سیتی  |  خزانه: %d  |  جمعیت: %d" % [s.money,s.population])
 
 func _service_summary():
