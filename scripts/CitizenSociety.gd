@@ -119,6 +119,11 @@ func _expire_rentals(engine, report):
 		if not bool(business.get("rented_municipal", false)) or int(state.day) <= int(business.get("rent_until_day", 0)):
 			continue
 		var business_id = int(business.get("id", 0))
+		var owner_id = int(business.get("owner_citizen_id", 0))
+		for request_index in range(state.business_requests.size() - 1, -1, -1):
+			var pending_request = state.business_requests[request_index]
+			if int(pending_request.get("citizen_id", 0)) == owner_id:
+				state.business_requests.remove(request_index)
 		for citizen_index in range(state.citizens.size()):
 			var citizen = state.citizens[citizen_index]
 			if int(citizen.get("private_job_id", 0)) == business_id:
