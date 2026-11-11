@@ -221,7 +221,7 @@ func load_game():
 	_sync_missions()
 	return true
 
-func add_report_event(message):
+func add_report_event(message, persist=true):
 	var clean_message = str(message).strip_edges()
 	if clean_message == "":
 		return
@@ -230,7 +230,8 @@ func add_report_event(message):
 	state.report_events.append({"timestamp":OS.get_unix_time(),"day":int(state.get("day", 1)),"message":clean_message})
 	while state.report_events.size() > 100:
 		state.report_events.pop_front()
-	save_game()
+	if persist:
+		save_game()
 
 func save_game():
 	var file = File.new()
@@ -1373,7 +1374,7 @@ func end_day():
 			report.append("ساختمان‌های تازه در دسترس: " + "، ".join(newly_unlocked))
 	_update_missions()
 	for report_message in report:
-		add_report_event(str(report_message))
+		add_report_event(str(report_message), false)
 	state.last_report = "\n".join(report)
 	save_game()
 	return state.last_report
