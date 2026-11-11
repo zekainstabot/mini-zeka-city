@@ -252,7 +252,7 @@ func _build_ui():
 	nav.add_constant_override("hseparation", 8)
 	nav.add_constant_override("vseparation", 8)
 	root.add_child(nav)
-	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار و تجارت","p":"commerce"},{"t":"جاده و ناوگان","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش روز","p":"report"},{"t":"ماموریت‌ها","p":"missions"}]:
+	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار و تجارت","p":"commerce"},{"t":"جاده و ناوگان","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش","p":"report"},{"t":"ماموریت‌ها","p":"missions"}]:
 		var b = Button.new()
 		b.text = PersianText.reshaper(item.t + "  ")
 		b.rect_min_size = Vector2(0, 64 if compact_layout else 58)
@@ -465,6 +465,8 @@ func _add_button(text, button_target, callback, args=[]):
 
 func _show_message(text):
 	message_label.text = PersianText.reshaper(text)
+	if game != null and str(text).strip_edges() != "" and game.has_method("add_report_event"):
+		game.add_report_event(str(text))
 
 func show_page(page):
 	current_page = page
@@ -871,21 +873,17 @@ func show_page(page):
 			_add_label(" ",8)
 			_add_label("ذخیره درختان جنگل: %d / ۱۰۰" % game.get_forest_tree_count())
 		"report":
-			_add_label(" گزارش روزانه", 22)
-			var report_economy = s.get("last_economy", {})
-			_add_label("درآمد مالیات: %d سکه" % int(report_economy.get("tax_income",0)))
-			_add_label("خرید شهروندان: %d سکه از %d خریدار" % [int(report_economy.get("consumer_spending",0)),int(report_economy.get("consumer_buyers",0))])
-			_add_label("غذای مصرف‌شده شهروندان: %d واحد | ذخیره پایان روز: %d" % [int(report_economy.get("food_units_consumed",0)),int(report_economy.get("food_stock",0))])
-			_add_label("واریزی حساب فروشگاه‌ها: %d سکه" % int(report_economy.get("consumer_business_revenue",0)))
-			_add_label("مالیات خرید شهروندان: %d سکه" % int(report_economy.get("consumer_tax_income",0)))
-			_add_label("درآمد کسب‌وکارها: %d سکه" % int(report_economy.get("business_income",0)))
-			_add_label("درآمد فروش منابع: %d سکه" % int(report_economy.get("resource_income",0)))
-			_add_label("کل درآمد دریافت‌شده: %d سکه" % int(report_economy.get("accepted_income",0)))
-			_add_label("حقوق پرداختی: %d از %d سکه" % [int(report_economy.get("wages_paid",0)),int(report_economy.get("wages_due",0))])
-			_add_label("نگهداری ناوگان و جاده: %d سکه" % int(report_economy.get("maintenance_paid",0)))
-			_add_label("تغییر خالص خزانه: %d سکه" % int(report_economy.get("net_cashflow",0)), 20)
-			_add_label(str(s.last_report), 18)
-			_add_button("رفتن به روز بعد", self, "advance_day")
+			_add_label("گزارش وقایع شهر", 22)
+			var events = s.get("report_events", [])
+			_add_label("جدیدترین رویدادها بالا نمایش داده می‌شوند | سقف ذخیره: ۱۰۰ پیام | تعداد فعلی: %d" % events.size(), 15)
+			if events.empty():
+				_add_label("هنوز رویدادی ثبت نشده است.", 18)
+			else:
+				for event_index in range(events.size() - 1, -1, -1):
+					var event = events[event_index]
+					var stamp = OS.get_datetime_from_unix_time(int(event.get("timestamp", 0)))
+					var time_text = "%02d/%02d - %02d:%02d" % [int(stamp.get("day", 1)), int(stamp.get("month", 1)), int(stamp.get("hour", 0)), int(stamp.get("minute", 0))]
+					_add_label("[%s] روز %d | %s" % [time_text, int(event.get("day", 1)), str(event.get("message", ""))], 17)
 		"missions":
 			_add_label(" ماموریت‌های شهر", 22)
 			_add_label("با تکمیل ماموریت‌ها پاداش سکه دریافت کن.")
