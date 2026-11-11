@@ -1,7 +1,7 @@
 name: Build and publish Mini ZekaCity
 
 concurrency:
-  group: mini-zeka-city-export
+  group: mini-zeka-city-web-only-v2
   cancel-in-progress: true
 
 on:
