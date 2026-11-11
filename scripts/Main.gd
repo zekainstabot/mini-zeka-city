@@ -493,6 +493,8 @@ func show_page(page):
 			for business in civic.get("private_businesses", []):
 				_add_label("%s | مالک: شهروند %d | کارمند: %d | فروش روزانه: %d سکه" % [str(business.get("name","کسب‌وکار")),int(business.get("owner_citizen_id",0)),business.get("employees",[]).size(),int(business.get("last_revenue",0))], 17)
 				_add_label("سرمایه کسب‌وکار: %d | مالیات امروز: %d | اعتبار مالیاتی پروژه‌ها: %d" % [int(business.get("balance",0)),int(business.get("last_tax",0)),int(business.get("tax_credit",0))], 15)
+				if bool(business.get("rented_municipal",false)):
+					_add_label("ملک متعلق به شهرداری است؛ پایان قرارداد اجاره: روز %d" % int(business.get("rent_until_day",0)), 14)
 			_add_label("شهروندان بیکار درآمد آزاد کسب می‌کنند؛ کسب‌وکارها به‌تدریج نیروی کار استخدام می‌کنند و از فروش خود مالیات می‌پردازند.", 15)
 		"market":
 			_add_label("بازار شهر — قیمت‌ها بر اساس عرضه و تقاضا", 22)
