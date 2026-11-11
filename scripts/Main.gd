@@ -398,10 +398,9 @@ func _apply_font(control, size=18):
 	# Keep the rendered glyph edges crisp instead of smoothing the font texture.
 	font.use_filter = false
 	font.use_mipmaps = false
-	# Larger glyphs plus a dark outline improve readability on compact screens.
+	# Keep text crisp: use a clear font size without an outline that can soften glyph edges.
 	font.size = int(size) + (5 if get_viewport_rect().size.x < 900 else 4)
-	font.outline_size = 1
-	font.outline_color = Color("#05070b")
+	font.outline_size = 0
 	control.add_font_override("font", font)
 	return font
 
@@ -419,25 +418,25 @@ func _button_style(bg_color, border_color):
 
 func _style_button(button, navigation=false):
 	button.flat = false
-	# Primary navigation: muted deep blue with clear white lettering.
-	# Inner/action buttons: soft warm ivory with dark slate lettering.
-	var normal_color = Color("#294f68") if navigation else Color("#f3eadb")
-	var hover_color = Color("#35627f") if navigation else Color("#e9dcc7")
-	var pressed_color = Color("#1f4057") if navigation else Color("#ddcbb0")
-	var border_normal = Color("#52758b") if navigation else Color("#c5b69e")
-	var border_hover = Color("#7899ad") if navigation else Color("#a99576")
-	var border_pressed = Color("#17364a") if navigation else Color("#927b5b")
-	var text_color = Color("#ffffff") if navigation else Color("#26384a")
+	# Main navigation: deep blue with pure white text.
+	# Inner buttons: bright warm yellow with deep navy text for strong contrast.
+	var normal_color = Color("#174EA6") if navigation else Color("#FFD54A")
+	var hover_color = Color("#2366C5") if navigation else Color("#FFE27A")
+	var pressed_color = Color("#103B82") if navigation else Color("#F0B900")
+	var border_normal = Color("#0D3475") if navigation else Color("#9A6900")
+	var border_hover = Color("#0A2B63") if navigation else Color("#805700")
+	var border_pressed = Color("#08234F") if navigation else Color("#694700")
+	var text_color = Color("#FFFFFF") if navigation else Color("#172033")
 	button.add_stylebox_override("normal", _button_style(normal_color, border_normal))
 	button.add_stylebox_override("hover", _button_style(hover_color, border_hover))
 	button.add_stylebox_override("focus", _button_style(hover_color, border_hover))
 	button.add_stylebox_override("pressed", _button_style(pressed_color, border_pressed))
-	button.add_stylebox_override("disabled", _button_style(Color("#d8dce1"), Color("#aeb6bf")))
+	button.add_stylebox_override("disabled", _button_style(Color("#D1D5DB"), Color("#6B7280")))
 	button.add_color_override("font_color", text_color)
 	button.add_color_override("font_color_focus", text_color)
 	button.add_color_override("font_color_hover", text_color)
 	button.add_color_override("font_color_pressed", text_color)
-	button.add_color_override("font_color_disabled", Color("#687482"))
+	button.add_color_override("font_color_disabled", Color("#374151"))
 
 func _clear_content():
 	construction_time_labels.clear()
