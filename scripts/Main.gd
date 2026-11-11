@@ -762,20 +762,33 @@ func show_page(page):
 				var import_city = game.get_import_cities()[import_city_id]
 				_add_button("قرارداد ۷ روزه: ۲ واحد چوب از "+import_city.name,self,"make_import_contract",[import_city_id,"wood",2,7])
 		"transport":
-			_add_label("🛣️ شبکه جاده‌ای و ناوگان کامیون‌ها",22)
-			_add_label("سطح جاده: %d از ۳ | کامیون فعال: %d | ظرفیت روزانه: %d واحد" % [int(s.get("road_level",1)),game.get_transport_truck_count(),game.get_transport_daily_capacity()],18)
-			_add_label("ظرفیت مصرف‌شده امروز: %d | ظرفیت باقی‌مانده: %d" % [int(s.get("transport_used_today",0)),game.get_transport_capacity_remaining()],16)
-			_add_label("هر پایانه با ۲ کارمند، یک کامیون را فعال می‌کند؛ هر پایانه حداکثر ۲ کامیون پشتیبانی می‌کند.",15)
-			_add_label("نگهداری روزانه ناوگان: %d سکه | نگهداری جاده: %d سکه" % [game.get_fleet_maintenance(),game.get_road_maintenance()],16)
+			_add_label("🛣️ جاده‌ها و حمل‌ونقل شهری و بین‌شهری",22)
+			_add_label("جاده‌های اصلی شهر و مسیرهای بین‌شهری",19)
+			_add_label("سطح جاده‌های بین‌شهری: %d از ۳" % int(s.get("road_level",1)),17)
 			var road_level = int(s.get("road_level",1))
 			if road_level < 3:
 				var next_road_cost = 1500 if road_level == 1 else 3500
-				var road_button = _add_button("ارتقای جاده به سطح %d — %d سکه" % [road_level+1,next_road_cost],self,"upgrade_road")
+				var road_button = _add_button("احداث و ارتقای مسیر بین‌شهری به سطح %d — %d سکه" % [road_level+1,next_road_cost],self,"upgrade_road")
 				road_button.disabled = int(s.level) < road_level+1 or game.get_available_money() < next_road_cost
 			else:
-				_add_label("شبکه جاده‌ای در بالاترین سطح قرار دارد.")
-			if game.get_building_count("transport_depot") == 0:
-				_add_label("برای آغاز تجارت زمینی، از صفحه ساختمان‌ها یک پایانه حمل‌ونقل بساز و نیروی کار آن را تأمین کن.")
+				_add_label("مسیرهای بین‌شهری به بالاترین سطح رسیده‌اند.")
+			_add_label("🚏 ایستگاه‌های حمل‌ونقل شهری",19)
+			_add_label("ایستگاه اتوبوس: %d | ایستگاه تاکسی: %d" % [game.get_building_count("bus_station"),game.get_building_count("taxi_station")],16)
+			for facility_id in ["bus_station","taxi_station"]:
+				var facility = game.get_building_definitions().get(facility_id,{})
+				if facility.empty():
+					continue
+				var facility_button = _add_button("ساخت "+str(facility.get("name","ایستگاه"))+" — %d سکه | زمین: %d قطعه" % [int(facility.get("cost",0)),game.get_land_size(facility_id)],self,"build_transport_facility",[facility_id])
+				facility_button.disabled = int(s.population) < int(facility.get("unlock",0)) or int(s.level) < int(facility.get("level_unlock",1)) or game.get_available_money() < int(facility.get("cost",0)) or game.get_land_free() < game.get_land_size(facility_id)
+			_add_label("🚚 پایانه و ناوگان کامیون",19)
+			_add_label("پایانه حمل‌ونقل: %d | کامیون فعال: %d | ظرفیت روزانه: %d واحد" % [game.get_building_count("transport_depot"),game.get_transport_truck_count(),game.get_transport_daily_capacity()],17)
+			_add_label("ظرفیت مصرف‌شده امروز: %d | ظرفیت باقی‌مانده: %d" % [int(s.get("transport_used_today",0)),game.get_transport_capacity_remaining()],16)
+			_add_label("هر پایانه با ۲ کارمند، یک کامیون را فعال می‌کند؛ هر پایانه حداکثر ۲ کامیون پشتیبانی می‌کند.",15)
+			_add_label("نگهداری روزانه ناوگان: %d سکه | نگهداری جاده: %d سکه" % [game.get_fleet_maintenance(),game.get_road_maintenance()],16)
+			var depot = game.get_building_definitions().get("transport_depot",{})
+			if not depot.empty():
+				var depot_button = _add_button("ساخت پایانه حمل‌ونقل — %d سکه | زمین: %d قطعه" % [int(depot.get("cost",0)),game.get_land_size("transport_depot")],self,"build_transport_facility",["transport_depot"])
+				depot_button.disabled = int(s.population) < int(depot.get("unlock",0)) or int(s.level) < int(depot.get("level_unlock",1)) or game.get_available_money() < int(depot.get("cost",0)) or game.get_land_free() < game.get_land_size("transport_depot")
 			_add_label("ظرفیت کامیون‌ها بین واردات، قراردادهای تأمین و صادرات مشترک است.",15)
 		"imports":
 			_add_label(" واردات و حمل‌ونقل بین‌شهری", 22)
