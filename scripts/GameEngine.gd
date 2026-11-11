@@ -490,6 +490,9 @@ func get_districts_overview():
 	for construction in state.get("constructions", []):
 		if str(construction.get("zone", "")) == "industrial":
 			industrial_names.append(str(BUILDINGS.get(str(construction.get("id", "")), {}).get("name", "ساختمان"))+" (در حال ساخت)")
+	for business in state.get("private_businesses", []):
+		if str(business.get("zone", "")) == "industrial":
+			industrial_names.append(str(business.get("name", "کسب‌وکار خصوصی")))
 	return {"districts":result,"industrial_buildings":industrial_names,"district_count":result.size()}
 
 func get_building_definitions():
