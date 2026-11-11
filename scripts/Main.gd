@@ -371,6 +371,10 @@ func show_page(page):
 			_add_button(" ذخیره شهر", self, "save_now")
 		"buildings":
 			_add_label("ساخت‌وساز شهر", 22)
+			_add_label("زمین شهر: %d قطعه | اشغال‌شده: %d | آزاد: %d" % [int(s.get("land_owned",10)),game.get_land_used(),game.get_land_free()], 19)
+			_add_label("برای گسترش شهر باید زمین بخری؛ هر ساختمان چند قطعه از زمین را اشغال می‌کند.", 15)
+			var land_button = _add_button("خرید ۱ قطعه زمین | قیمت: %d سکه" % game.get_land_unit_price(), self, "buy_land")
+			land_button.disabled = game.get_available_money() < game.get_land_unit_price()
 			var categories = ["خانه‌ها","کشاورزی","کارخانه‌ها","کسب‌وکارها","خدمات شهری","تفریح و فرهنگ","انبارها","زیرساخت"]
 			for category in categories:
 				_add_label("【"+category+"】", 18)
@@ -382,21 +386,21 @@ func show_page(page):
 					var required_level = int(data.get("level_unlock", 1))
 					var level_unlocked = int(s.level) >= required_level
 					var unlocked = population_unlocked and level_unlocked
-					var label = "%s | هزینه: %d | جمعیت: %d | سطح: %d" % [data.name,data.cost,data.unlock,required_level]
+					var label = "%s | هزینه: %d | زمین: %d قطعه | جمعیت: %d | سطح: %d" % [data.name,data.cost,game.get_land_size(id),data.unlock,required_level]
 					if not population_unlocked or not level_unlocked:
 						label += " | 🔒 قفل"
 					var b = _add_button(label, self, "build_building", [id])
-					b.disabled = not unlocked or game.get_available_money() < int(data.cost) or (id == "central_bank" and int(s.get("central_bank_rebuild_days_left",0)) > 0)
+					b.disabled = not unlocked or game.get_available_money() < int(data.cost) or game.get_land_free() < game.get_land_size(id) or (id == "central_bank" and int(s.get("central_bank_rebuild_days_left",0)) > 0)
 			# Dedicated mining section to ensure extraction buildings are always listed clearly.
 			_add_label("⛏️ معادن و استخراج", 20)
 			for mine_building_id in ["stone_mine", "iron_mine"]:
 				var mine_data = game.get_building_definitions()[mine_building_id]
 				var mine_unlocked = int(s.population) >= int(mine_data.unlock) and int(s.level) >= int(mine_data.get("level_unlock", 1))
-				var mine_text = "%s | هزینه: %d | جمعیت لازم: %d | سطح لازم: %d" % [mine_data.name, int(mine_data.cost), int(mine_data.unlock), int(mine_data.get("level_unlock", 1))]
+				var mine_text = "%s | هزینه: %d | زمین: %d قطعه | جمعیت لازم: %d | سطح لازم: %d" % [mine_data.name, int(mine_data.cost), game.get_land_size(mine_building_id), int(mine_data.unlock), int(mine_data.get("level_unlock", 1))]
 				if not mine_unlocked:
 					mine_text += " | 🔒 قفل"
 				var mine_button = _add_button(mine_text, self, "build_building", [mine_building_id])
-				mine_button.disabled = not mine_unlocked or game.get_available_money() < int(mine_data.cost)
+				mine_button.disabled = not mine_unlocked or game.get_available_money() < int(mine_data.cost) or game.get_land_free() < game.get_land_size(mine_building_id)
 			_add_label("مدیریت معادن:", 18)
 			for mine_index in range(game.get_mines().size()):
 				var mine = game.get_mines()[mine_index]
@@ -598,6 +602,11 @@ func _resource_summary():
 	for id in game.get_resource_definitions().keys():
 		parts.append("%s: %d" % [game.get_resource_definitions()[id].name,game.state.resources.get(id,0)])
 	return " | ".join(parts)
+
+func buy_land():
+	var result = game.buy_land(1)
+	show_page("buildings")
+	_show_message(result.message)
 
 func build_building(id):
 	var result = game.build(id)
