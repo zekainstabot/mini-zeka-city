@@ -394,7 +394,10 @@ func _apply_font(control, size=18):
 	font.font_data = ui_font.font_data
 	font.use_filter = true
 	font.use_mipmaps = false
-	font.size = int(size) + (2 if get_viewport_rect().size.x < 900 else 0)
+	# Slightly larger glyphs and a subtle dark outline improve readability on mobile.
+	font.size = int(size) + (3 if get_viewport_rect().size.x < 900 else 2)
+	font.outline_size = 1
+	font.outline_color = Color("#0b1220")
 	control.add_font_override("font", font)
 	return font
 
@@ -438,8 +441,9 @@ func _add_label(text, size=18):
 	_apply_font(label, size)
 	label.autowrap = true
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.rect_min_size = Vector2(0, 38 if get_viewport_rect().size.x < 900 else 30)
-	label.add_color_override("font_color", Color("#ffffff"))
+	label.rect_min_size = Vector2(0, 44 if get_viewport_rect().size.x < 900 else 34)
+	label.add_color_override("font_color", Color("#f8fafc"))
+	label.add_color_override("font_color_shadow", Color("#0b1220"))
 	label.modulate = Color("#ffffff")
 	content.add_child(label)
 	return label
