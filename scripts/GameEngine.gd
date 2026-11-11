@@ -574,6 +574,20 @@ func demolish(index):
 	if id == "small_house" and get_building_count(id) <= 1:
 		return {"ok":false,"message":"آخرین خانه شهر را نمی‌توان تخریب کرد."}
 	state.buildings.remove(index)
+	for request_index in range(state.get("business_requests", []).size() - 1, -1, -1):
+		var civic_request = state.business_requests[request_index]
+		if str(civic_request.get("type", "")) != "rent":
+			continue
+		var requested_building_index = int(civic_request.get("building_index", -1))
+		if requested_building_index == index:
+			for citizen_index in range(state.citizens.size()):
+				if int(state.citizens[citizen_index].get("id", 0)) == int(civic_request.get("citizen_id", 0)):
+					state.citizens[citizen_index]["civic_request_pending"] = false
+					state.citizens[citizen_index]["next_civic_request_day"] = int(state.day) + 1
+			state.business_requests.remove(request_index)
+		elif requested_building_index > index:
+			civic_request["building_index"] = requested_building_index - 1
+			state.business_requests[request_index] = civic_request
 	for business_index in range(state.private_businesses.size()):
 		var private_business = state.private_businesses[business_index]
 		if bool(private_business.get("rented_municipal", false)):
