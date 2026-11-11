@@ -14,6 +14,44 @@ var level_status_label = null
 var xp_progress_label = null
 var selected_home_building_id = ""
 var selected_demolish_quantity = 1
+var clock_cycle_seconds = 0.0
+var clock_label = null
+var clock_save_accumulator = 0.0
+
+func _process(delta):
+	if game == null:
+		return
+	clock_cycle_seconds += delta
+	clock_save_accumulator += delta
+	if clock_cycle_seconds >= 600.0:
+		clock_cycle_seconds -= 600.0
+		game.end_day()
+		game.state["clock_last_unix"] = OS.get_unix_time()
+		game.state["clock_cycle_seconds"] = int(clock_cycle_seconds)
+		if current_page == "home":
+			show_page("home")
+			_show_message("یک روز جدید در شهر آغاز شد.")
+	if clock_label != null and is_instance_valid(clock_label):
+		var remaining = max(0, int(600.0 - clock_cycle_seconds))
+		var phase = "روز" if clock_cycle_seconds < 420.0 else "شب"
+		var phase_remaining = int(420.0 - clock_cycle_seconds) if phase == "روز" else int(600.0 - clock_cycle_seconds)
+		clock_label.text = PersianText.reshaper("%s | زمان باقی‌مانده: %02d:%02d" % [phase, int(phase_remaining / 60), phase_remaining % 60])
+	if clock_save_accumulator >= 15.0:
+		clock_save_accumulator = 0.0
+		game.state["clock_last_unix"] = OS.get_unix_time()
+		game.state["clock_cycle_seconds"] = int(clock_cycle_seconds)
+		game.save_game()
+
+func _apply_offline_progress():
+	var now = OS.get_unix_time()
+	var last = int(game.state.get("clock_last_unix", now))
+	var elapsed = max(0, now - last)
+	var offline_days = min(10, int(floor(float(elapsed) / 3600.0)))
+	for day_index in range(offline_days):
+		game.end_day()
+	game.state["clock_last_unix"] = now
+	game.state["clock_cycle_seconds"] = int(game.state.get("clock_cycle_seconds", 0))
+	game.save_game()
 
 func _notification(what):
 	if what == MainLoop.NOTIFICATION_WM_QUIT_REQUEST and game != null:
@@ -25,6 +63,9 @@ func _ready():
 	if not game.load_game():
 		game.new_game()
 		game.save_game()
+	_apply_offline_progress()
+	clock_cycle_seconds = float(game.state.get("clock_cycle_seconds", 0))
+	set_process(true)
 	_build_ui()
 	show_page("home")
 
@@ -250,6 +291,7 @@ func show_page(page):
 	match page:
 		"home":
 			_add_label("روز %d  |  سطح شهر %d" % [s.day,s.level], 20)
+			clock_label = _add_label("روز | زمان باقی‌مانده: 07:00", 18)
 			_add_label("درصد تجربه شهر: %d٪" % int(clamp(float(s.xp) * 100.0 / float(max(1, game.get_xp_required_for_next_level())), 0.0, 100.0)),18)
 			_add_label("تجربه‌ای که با پایان روز می‌گیری: %d امتیاز" % game.get_daily_xp_gain(),15)
 			_add_label(" خزانه: %d / %d سکه   |   پول قفل‌شده: %d   |    جمعیت: %d نفر" % [s.money,game.get_treasury_capacity(),game.get_locked_money(),s.population], 22)
@@ -309,7 +351,6 @@ func show_page(page):
 			var home_economy = s.get("last_economy", {})
 			_add_label("آخرین تراز روزانه: %d سکه" % int(home_economy.get("net_cashflow",0)), 17)
 			_add_label("گزارش آخر:\n"+str(s.last_report), 16)
-			_add_button(" پایان روز و اجرای اقتصاد", self, "advance_day")
 			_add_button(" ذخیره شهر", self, "save_now")
 		"buildings":
 			_add_label("ساخت‌وساز شهر", 22)
@@ -619,6 +660,9 @@ func upgrade_road():
 
 func advance_day():
 	var report = game.end_day()
+	game.state["clock_last_unix"] = OS.get_unix_time()
+	clock_cycle_seconds = 0.0
+	game.state["clock_cycle_seconds"] = 0
 	show_page("home")
 	_show_message(report)
 
