@@ -280,19 +280,23 @@ func reject_citizen_request(request_index):
 
 func _process_citizen_recruitment(report):
 	var housing = get_housing_capacity()
-	if int(state.population) >= housing or int(state.reputation) < 25:
+	var pending_requests = state.citizen_requests.size() if str(state.get("citizen_recruitment_mode", "auto")) == "manual" else 0
+	var available_slots = max(0, housing - int(state.population) - pending_requests)
+	# A city receives 5 to 10 potential residents per game day, limited by free housing.
+	if available_slots <= 0 or int(state.reputation) < 25:
 		return
-	# One potential resident arrives each game day while housing and reputation allow it.
+	var daily_target = 5 + int(randi() % 6)
+	var arrivals = min(daily_target, available_slots)
 	if str(state.get("citizen_recruitment_mode", "auto")) == "manual":
-		if state.citizen_requests.size() >= 5:
-			return
-		var request_id = _next_citizen_request_id()
-		state.citizen_requests.append({"id":request_id,"day":int(state.day)})
-		report.append("یک درخواست مهاجرت جدید ثبت شد؛ از بخش شهروندان بررسی‌اش کن.")
+		for request_number in range(arrivals):
+			var request_id = _next_citizen_request_id()
+			state.citizen_requests.append({"id":request_id,"day":int(state.day)})
+		report.append("%d درخواست جذب شهروند ثبت شد؛ از بخش شهروندان بررسی‌شان کن." % arrivals)
 		return
-	state.population += 1
-	state.citizens.append({"id":_next_citizen_id(),"job":"","job_building_index":-1,"wallet":100})
-	report.append("یک شهروند جدید به‌صورت خودکار به شهر مهاجرت کرد.")
+	for arrival_number in range(arrivals):
+		state.population += 1
+		state.citizens.append({"id":_next_citizen_id(),"job":"","job_building_index":-1,"wallet":100})
+	report.append("%d شهروند جدید به‌صورت خودکار به شهر مهاجرت کردند." % arrivals)
 	assign_jobs()
 
 func _next_citizen_id():
