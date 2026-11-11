@@ -296,7 +296,7 @@ func _queue_public_project_requests(engine):
 		if building_id == "":
 			continue
 		var cost = int(engine.BUILDINGS[building_id].get("cost", 0))
-		if int(business.get("balance", 0)) < cost:
+		if int(business.get("balance", 0)) < cost or int(business.get("tax_paid_total", 0)) <= 0:
 			continue
 		state.business_requests.append({
 			"id":_next_request_id(state),
