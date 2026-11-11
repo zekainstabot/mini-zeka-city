@@ -153,6 +153,11 @@ func _update_progress_hud():
 func _load_ui_font():
 	var font_data = DynamicFontData.new()
 	font_data.font_path = "res://assets/fonts/Vazirmatn.ttf"
+	# Render the UI font at higher resolution so newly-created labels stay sharp
+	# on high-DPI mobile screens and when the HTML5 canvas is scaled.
+	font_data.antialiased = true
+	font_data.hinting = DynamicFontData.HINTING_LIGHT
+	font_data.oversampling = 2.0
 	ui_font = DynamicFont.new()
 	ui_font.font_data = font_data
 	ui_font.size = 20
