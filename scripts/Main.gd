@@ -146,7 +146,7 @@ func _update_progress_hud():
 	var required = max(1, int(game.get_xp_required_for_next_level()))
 	var percent = clamp(float(xp) * 100.0 / float(required), 0.0, 100.0)
 	level_status_label.text = PersianText.reshaper("سطح شهر  %d" % level)
-	xp_progress_label.text = PersianText.reshaper("تجربه شهر: %d از %d  |  %d٪" % [xp, required, int(round(percent))])
+	xp_progress_label.text = PersianText.reshaper("تجربه شهر: %d٪" % int(round(percent)))
 	xp_progress_bar.max_value = required
 	xp_progress_bar.value = min(xp, required)
 	level_status_bar.value = 100
@@ -242,7 +242,7 @@ func show_page(page):
 	match page:
 		"home":
 			_add_label("روز %d  |  سطح شهر %d" % [s.day,s.level], 20)
-			_add_label("تجربه: %d / %d  |  باقی‌مانده تا سطح بعد: %d" % [int(s.xp),game.get_xp_required_for_next_level(),max(0,game.get_xp_required_for_next_level()-int(s.xp))],18)
+			_add_label("درصد تجربه شهر: %d٪" % int(clamp(float(s.xp) * 100.0 / float(max(1, game.get_xp_required_for_next_level())), 0.0, 100.0)),18)
 			_add_label("تجربه‌ای که با پایان روز می‌گیری: %d امتیاز" % game.get_daily_xp_gain(),15)
 			_add_label(" خزانه: %d / %d سکه   |   پول قفل‌شده: %d   |    جمعیت: %d نفر" % [s.money,game.get_treasury_capacity(),game.get_locked_money(),s.population], 22)
 			_add_label("شاغلان: %d  |  بیکاران: %d  |  اعتبار شهر: %d  |  رضایت: %d/۱۰۰" % [game.get_employed_count(),game.get_unemployed_count(),s.reputation,int(s.get("satisfaction",50))])
