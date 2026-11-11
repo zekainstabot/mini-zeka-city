@@ -405,7 +405,7 @@ func _district_letter(index):
 	var result = ""
 	while value > 0:
 		var remainder = (value - 1) % 26
-		result = char(65 + remainder) + result
+		result = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".substr(remainder, 1) + result
 		value = int((value - 1) / 26)
 	return result
 
