@@ -438,7 +438,14 @@ func show_page(page):
 			elif int(s.reputation) < 25:
 				_add_label("اعتبار شهر باید حداقل ۲۵ باشد تا متقاضی جدید بیاید.", 15)
 			for citizen in s.citizens:
-				_add_label("شهروند %s — %s | کیف پول: %d سکه" % [str(citizen.id),("بیکار" if citizen.job == "" else citizen.job),int(citizen.get("wallet",0))])
+				var citizen_role = "بیکار"
+				if str(citizen.get("job","")) != "":
+					citizen_role = "کارمند شهرداری: " + str(citizen.job)
+				elif int(citizen.get("private_business_id",0)) > 0:
+					citizen_role = "کارآفرین بخش خصوصی"
+				elif int(citizen.get("private_job_id",0)) > 0:
+					citizen_role = "کارمند بخش خصوصی"
+				_add_label("شهروند %s — %s | کیف پول: %d سکه | زمین خصوصی: %d قطعه" % [str(citizen.id),citizen_role,int(citizen.get("wallet",0)),int(citizen.get("private_land",0))])
 			_add_button(" تخصیص دوباره شغل‌ها", self, "reassign_jobs")
 		"municipality":
 			var civic = game.get_civic_overview()
