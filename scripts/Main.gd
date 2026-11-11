@@ -547,17 +547,18 @@ func show_page(page):
 					less_button.text = "−"
 					less_button.rect_min_size = Vector2(70,58)
 					_apply_font(less_button,24)
-					_style_button(less_button,false)
+					_style_button(less_button,true)
 					less_button.connect("pressed",self,"adjust_demolish_quantity",[-1])
 					quantity_row.add_child(less_button)
 					var more_button = Button.new()
 					more_button.text = "+"
 					more_button.rect_min_size = Vector2(70,58)
 					_apply_font(more_button,24)
-					_style_button(more_button,false)
+					_style_button(more_button,true)
 					more_button.connect("pressed",self,"adjust_demolish_quantity",[1])
 					quantity_row.add_child(more_button)
 					var demolish_button = _add_button("تخریب %d عدد از %s" % [selected_demolish_quantity,selected_definition.name],self,"demolish_selected_buildings")
+					_style_button(demolish_button, true)
 					if selected_home_building_id == "small_house" and selected_count <= 1:
 						demolish_button.disabled = true
 				else:
