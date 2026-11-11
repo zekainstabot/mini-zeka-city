@@ -32,17 +32,17 @@ func _build_ui():
 	root.anchor_right = 1
 	root.anchor_bottom = 1
 	var screen_width = get_viewport_rect().size.x
-	var compact_layout = screen_width < 760
-	root.margin_left = 12 if compact_layout else 22
-	root.margin_top = 12 if compact_layout else 18
-	root.margin_right = -12 if compact_layout else -22
-	root.margin_bottom = -12 if compact_layout else -18
-	root.add_constant_override("separation", 12)
+	var compact_layout = screen_width < 900
+	root.margin_left = 16 if compact_layout else 24
+	root.margin_top = 16 if compact_layout else 22
+	root.margin_right = -16 if compact_layout else -24
+	root.margin_bottom = -16 if compact_layout else -22
+	root.add_constant_override("separation", 14 if compact_layout else 12)
 	add_child(root)
 	header_label = Label.new()
-	header_label.text = PersianText.reshaper("🏙️ مینی زکا سیتی")
+	header_label.text = PersianText.reshaper("مینی زکا سیتی")
 	header_label.align = Label.ALIGN_CENTER
-	_apply_font(header_label, 26)
+	_apply_font(header_label, 28 if compact_layout else 26)
 	header_label.add_color_override("font_color", Color("#ffffff"))
 	root.add_child(header_label)
 	var nav = GridContainer.new()
@@ -53,9 +53,9 @@ func _build_ui():
 	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بازار","p":"market"},{"t":"تجارت شهرها","p":"trade"},{"t":"واردات و قراردادها","p":"imports"},{"t":"جاده و ناوگان","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش روز","p":"report"},{"t":"ماموریت‌ها","p":"missions"}]:
 		var b = Button.new()
 		b.text = PersianText.reshaper(item.t)
-		b.rect_min_size = Vector2(0, 56)
+		b.rect_min_size = Vector2(0, 64 if compact_layout else 58)
 		b.flat = false
-		_apply_font(b, 18)
+		_apply_font(b, 21 if compact_layout else 18)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_style_button(b, true)
 		b.connect("pressed", self, "show_page", [item.p])
@@ -68,7 +68,7 @@ func _build_ui():
 	root.add_child(scroll)
 	content = VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.add_constant_override("separation", 10)
+	content.add_constant_override("separation", 14 if compact_layout else 10)
 	scroll.add_child(content)
 	message_label = Label.new()
 	message_label.autowrap = true
@@ -80,14 +80,14 @@ func _load_ui_font():
 	font_data.font_path = "res://assets/fonts/Vazirmatn.ttf"
 	ui_font = DynamicFont.new()
 	ui_font.font_data = font_data
-	ui_font.size = 18
+	ui_font.size = 20
 
 func _apply_font(control, size=18):
 	if ui_font == null:
 		return
 	var font = DynamicFont.new()
 	font.font_data = ui_font.font_data
-	font.size = size
+	font.size = int(round(float(size) * (1.18 if get_viewport_rect().size.x < 900 else 1.0)))
 	control.add_font_override("font", font)
 
 func _button_style(bg_color, border_color):
@@ -127,7 +127,9 @@ func _add_label(text, size=18):
 	label.text = PersianText.reshaper(text)
 	label.align = Label.ALIGN_RIGHT
 	_apply_font(label, size)
-	label.autowrap = false
+	label.autowrap = true
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.rect_min_size = Vector2(0, 30)
 	label.add_color_override("font_color", Color("#e2e8f0"))
 	content.add_child(label)
 	return label
@@ -135,8 +137,8 @@ func _add_label(text, size=18):
 func _add_button(text, target, callback, args=[]):
 	var button = Button.new()
 	button.text = PersianText.reshaper(text)
-	button.rect_min_size = Vector2(0, 50)
-	_apply_font(button, 17)
+	button.rect_min_size = Vector2(0, 58 if get_viewport_rect().size.x < 900 else 50)
+	_apply_font(button, 19 if get_viewport_rect().size.x < 900 else 17)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_button(button, false)
 	button.connect("pressed", target, callback, args)
@@ -154,7 +156,7 @@ func show_page(page):
 	match page:
 		"home":
 			_add_label("روز %d  |  سطح %d  |  امتیاز تجربه %d" % [s.day,s.level,s.xp], 20)
-			_add_label("💰 خزانه: %d / %d سکه   |   پول قفل‌شده: %d   |   👥 جمعیت: %d نفر" % [s.money,game.get_treasury_capacity(),game.get_locked_money(),s.population], 22)
+			_add_label(" خزانه: %d / %d سکه   |   پول قفل‌شده: %d   |    جمعیت: %d نفر" % [s.money,game.get_treasury_capacity(),game.get_locked_money(),s.population], 22)
 			_add_label("شاغلان: %d  |  بیکاران: %d  |  اعتبار شهر: %d  |  رضایت: %d/۱۰۰" % [game.get_employed_count(),game.get_unemployed_count(),s.reputation,int(s.get("satisfaction",50))])
 			var service_lines = []
 			for service_id in game.SERVICE_GROUPS.keys():
@@ -162,16 +164,16 @@ func show_page(page):
 				service_lines.append(service_name + ": " + ("فعال" if bool(s.get("services",{}).get(service_id,false)) else "ندارد"))
 			_add_label("پوشش خدمات: " + _service_summary(), 15)
 			_add_label("نیازهای شهروندان: " + _needs_summary(), 15)
-			_add_label("🏘️ ساختمان‌ها: %d  |  ظرفیت انبار: %d  |  بانک مرکزی: %s  |  بانک شهری: %d" % [s.buildings.size(),game.get_storage_capacity(),("فعال" if game.has_central_bank() else ("بازسازی تا %d روز دیگر" % int(s.get("central_bank_rebuild_days_left",0)) if int(s.get("central_bank_rebuild_days_left",0)) > 0 else "ندارد")),game.get_building_count("municipal_bank")])
-			_add_label("🌳 درختان جنگل: %d از ۱۰۰ | رشد روزانه: ۲ درخت" % game.get_forest_tree_count())
-			_add_label("⛏️ معادن فعال: %d" % _active_mine_count())
+			_add_label(" ساختمان‌ها: %d  |  ظرفیت انبار: %d  |  بانک مرکزی: %s  |  بانک شهری: %d" % [s.buildings.size(),game.get_storage_capacity(),("فعال" if game.has_central_bank() else ("بازسازی تا %d روز دیگر" % int(s.get("central_bank_rebuild_days_left",0)) if int(s.get("central_bank_rebuild_days_left",0)) > 0 else "ندارد")),game.get_building_count("municipal_bank")])
+			_add_label(" درختان جنگل: %d از ۱۰۰ | رشد روزانه: ۲ درخت" % game.get_forest_tree_count())
+			_add_label(" معادن فعال: %d" % _active_mine_count())
 			_add_label("منابع: "+_resource_summary())
 			_add_label("ذخیره غذای شهر: %d واحد" % int(s.resources.get("food",0)),16)
 			var home_economy = s.get("last_economy", {})
 			_add_label("آخرین تراز روزانه: %d سکه" % int(home_economy.get("net_cashflow",0)), 17)
 			_add_label("گزارش آخر:\n"+str(s.last_report), 16)
-			_add_button("🌅 پایان روز و اجرای اقتصاد", self, "advance_day")
-			_add_button("💾 ذخیره شهر", self, "save_now")
+			_add_button(" پایان روز و اجرای اقتصاد", self, "advance_day")
+			_add_button(" ذخیره شهر", self, "save_now")
 		"buildings":
 			_add_label("ساخت‌وساز شهر", 22)
 			var categories = ["خانه‌ها","کشاورزی","کارخانه‌ها","معادن","کسب‌وکارها","خدمات شهری","تفریح و فرهنگ","انبارها","زیرساخت"]
@@ -197,23 +199,23 @@ func show_page(page):
 				if str(mine.get("resource","")) == "iron_ore":
 					mine_status += " | ذخیره: %d" % int(mine.get("remaining",0))
 					if int(mine.get("remaining",0)) <= 0:
-						_add_button("🔋 شارژ معدن آهن — ۱۰۰۰ سکه", self, "refill_mine", [mine_index])
+						_add_button(" شارژ معدن آهن — ۱۰۰۰ سکه", self, "refill_mine", [mine_index])
 				_add_label("%s — %s" % [game.get_resource_definitions()[str(mine.get("resource","stone"))].name,mine_status])
 			_add_label("ساختمان‌های فعلی:", 18)
 			for i in range(s.buildings.size()):
 				var id = s.buildings[i].id
 				if int(s.buildings[i].get("balance",0)) > 0:
 					_add_label("حساب %s: %d سکه" % [str(game.get_building_definitions()[id].name),int(s.buildings[i].get("balance",0))])
-					_add_button("💰 برداشت سود %s: %d سکه" % [str(game.get_building_definitions()[id].name),int(s.buildings[i].get("balance",0))], self, "collect_profit", [i])
+					_add_button(" برداشت سود %s: %d سکه" % [str(game.get_building_definitions()[id].name),int(s.buildings[i].get("balance",0))], self, "collect_profit", [i])
 				_add_button("تخریب: "+str(game.get_building_definitions()[id].name), self, "demolish_building", [i])
 		"citizens":
-			_add_label("👥 جمعیت: %d | شاغل: %d | بیکار: %d" % [s.population,game.get_employed_count(),game.get_unemployed_count()], 20)
+			_add_label(" جمعیت: %d | شاغل: %d | بیکار: %d" % [s.population,game.get_employed_count(),game.get_unemployed_count()], 20)
 			_add_label("ظرفیت شغلی: %d" % game.get_job_capacity())
 			_add_label("رضایت شهروندان: %d/۱۰۰" % int(s.get("satisfaction",50)))
 			_add_label("نیازهای روزانه: " + _needs_summary(), 15)
 			for citizen in s.citizens:
 				_add_label("شهروند %s — %s | کیف پول: %d سکه" % [str(citizen.id),("بیکار" if citizen.job == "" else citizen.job),int(citizen.get("wallet",0))])
-			_add_button("🔄 تخصیص دوباره شغل‌ها", self, "reassign_jobs")
+			_add_button(" تخصیص دوباره شغل‌ها", self, "reassign_jobs")
 		"market":
 			_add_label("بازار شهر — قیمت‌ها بر اساس عرضه و تقاضا", 22)
 			_add_label("موجودی بازار کمتر باشد، قیمت بالاتر می‌رود؛ با افزایش موجودی، قیمت کاهش می‌یابد.", 15)
@@ -229,7 +231,7 @@ func show_page(page):
 				var sell_button = _add_button("فروش ۵ واحد "+d.name, self, "sell_item", [id,5])
 				sell_button.disabled = stock < 5 or int(s.market_stock.get(id,0)) > 95 or game.get_available_money() >= game.get_treasury_capacity()
 		"trade":
-			_add_label("🚚 تجارت با شهرهای همسایه", 22)
+			_add_label(" تجارت با شهرهای همسایه", 22)
 			_add_label("هر شهر تقاضا و ظرفیت خرید روزانه دارد. صادرات با قیمت توافقی انجام می‌شود و درآمد مستقیم به خزانه می‌رود.", 15)
 			_add_label("ظرفیت باقی‌مانده امروز:", 18)
 			for city_id in game.get_trade_cities().keys():
@@ -261,7 +263,7 @@ func show_page(page):
 				_add_label("برای آغاز تجارت زمینی، از صفحه ساختمان‌ها یک پایانه حمل‌ونقل بساز و نیروی کار آن را تأمین کن.")
 			_add_label("ظرفیت کامیون‌ها بین واردات، قراردادهای تأمین و صادرات مشترک است.",15)
 		"imports":
-			_add_label("📦 واردات و حمل‌ونقل بین‌شهری", 22)
+			_add_label(" واردات و حمل‌ونقل بین‌شهری", 22)
 			_add_label("ظرفیت کامیون آزاد امروز: %d از %d واحد" % [game.get_transport_capacity_remaining(),game.get_transport_daily_capacity()],16)
 			_add_label("هزینه کالا و ۱۰٪ کرایه حمل هنگام سفارش پرداخت می‌شود. محموله پس از ۱ یا ۲ روز می‌رسد.",15)
 			for city_id in game.get_import_cities().keys():
@@ -275,7 +277,7 @@ func show_page(page):
 					_add_label("%s | موجودی: %d | قیمت: %d سکه/واحد" % [game.get_resource_definitions()[resource_id].name,stock,price],15)
 					var import_button = _add_button("سفارش ۵ واحد "+game.get_resource_definitions()[resource_id].name+" از "+city.name,self,"import_from_city",[city_id,resource_id,5])
 					import_button.disabled = game.get_free_storage() < 5 or game.get_transport_capacity_remaining() < 5 or game.get_available_money() < (5 * price + int(ceil(float(5 * price) * 0.10)))
-			_add_label("🚚 محموله‌های در راه:",18)
+			_add_label(" محموله‌های در راه:",18)
 			if s.trade_shipments.empty():
 				_add_label("محموله‌ای در راه نیست.")
 			for shipment in s.trade_shipments:
@@ -283,7 +285,7 @@ func show_page(page):
 				var shipment_resource = game.get_resource_definitions().get(str(shipment.get("resource_id","")),{"name":"کالای نامشخص"})
 				_add_label("#%d | %s | %d واحد %s | تحویل روز %d" % [int(shipment.get("id",0)),shipment_city.name,int(shipment.get("amount",0)),shipment_resource.name,int(shipment.get("arrival_day",0))],15)
 			_add_label("آخرین سفارش: "+str(s.get("last_import_report","")),15)
-			_add_label("📑 قراردادهای واردات:",18)
+			_add_label(" قراردادهای واردات:",18)
 			if s.import_contracts.empty():
 				_add_label("قرارداد فعالی ثبت نشده است.")
 			for contract_index in range(s.import_contracts.size()):
@@ -298,13 +300,13 @@ func show_page(page):
 				var city = game.get_import_cities()[city_id]
 				_add_button("قرارداد ۷ روزه: ۲ واحد چوب از "+city.name,self,"make_import_contract",[city_id,"wood",2,7])
 		"storage":
-			_add_label("📦 مدیریت انبار", 22)
+			_add_label(" مدیریت انبار", 22)
 			_add_label("ظرفیت: %d | مصرف‌شده: %d | فضای خالی: %d" % [game.get_storage_capacity(),game.get_storage_used(),game.get_free_storage()])
-			_add_label("🌳 ذخیره درختان جنگل: %d / ۱۰۰" % game.get_forest_tree_count())
+			_add_label(" ذخیره درختان جنگل: %d / ۱۰۰" % game.get_forest_tree_count())
 			for id in game.get_resource_definitions().keys():
 				_add_label("%s: %d" % [game.get_resource_definitions()[id].name,s.resources.get(id,0)])
 		"report":
-			_add_label("📜 گزارش روزانه", 22)
+			_add_label(" گزارش روزانه", 22)
 			var report_economy = s.get("last_economy", {})
 			_add_label("درآمد مالیات: %d سکه" % int(report_economy.get("tax_income",0)))
 			_add_label("خرید شهروندان: %d سکه از %d خریدار" % [int(report_economy.get("consumer_spending",0)),int(report_economy.get("consumer_buyers",0))])
@@ -320,7 +322,7 @@ func show_page(page):
 			_add_label(str(s.last_report), 18)
 			_add_button("رفتن به روز بعد", self, "advance_day")
 		"missions":
-			_add_label("🎯 ماموریت‌های شهر", 22)
+			_add_label(" ماموریت‌های شهر", 22)
 			_add_label("با تکمیل ماموریت‌ها پاداش سکه دریافت کن.")
 			for mission_index in range(game.get_missions().size()):
 				var mission = game.get_missions()[mission_index]
@@ -335,10 +337,10 @@ func show_page(page):
 				_add_label("%s — %s" % [definition.title,status],18)
 				_add_label("%s | پیشرفت: %d/%d | جایزه: %d سکه" % [definition.description,int(mission.get("progress",0)),int(definition.goal),int(definition.reward)],15)
 				if bool(mission.get("completed",false)) and not bool(mission.get("claimed",false)):
-					_add_button("🎁 دریافت پاداش: "+str(definition.reward), self, "claim_mission", [mission_index])
+					_add_button(" دریافت پاداش: "+str(definition.reward), self, "claim_mission", [mission_index])
 		_:
 			_add_label("بخش پیدا نشد.")
-	header_label.text = PersianText.reshaper("🏙️ مینی زکا سیتی  |  خزانه: %d  |  جمعیت: %d" % [s.money,s.population])
+	header_label.text = PersianText.reshaper("مینی زکا سیتی  |  خزانه: %d  |  جمعیت: %d" % [s.money,s.population])
 
 func _service_summary():
 	var parts = []
