@@ -460,7 +460,7 @@ func show_page(page):
 			tax_up.disabled = int(civic.get("tax_rate",8)) >= 30
 			_add_label("هزینه صدور مجوز: %d سکه | درآمد مالیات امروز: %d سکه" % [int(civic.get("permit_fee",50)),int(civic.get("daily_tax",0))], 16)
 			_add_label("درآمد فروش زمین و صدور مجوز جدا از مالیات محاسبه می‌شود.", 15)
-			_add_label("درآمد اجاره املاک شهرداری (مستقل از مالیات): %d سکه" % int(civic.get("rent_income",0)), 16)
+			_add_label("مجموع درآمد اجاره املاک شهرداری (جدا از مالیات): %d سکه" % int(civic.get("rent_income",0)), 16)
 			_add_label("درخواست‌های شهروندان برای بررسی شهرداری: %d" % int(civic.get("request_count",0)), 19)
 			if civic.get("requests", []).empty():
 				_add_label("درخواستی در انتظار بررسی نیست.", 16)
