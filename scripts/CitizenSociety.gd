@@ -64,6 +64,14 @@ func ensure_state(engine):
 			citizen["business_interest"] = interests[int(profile_id) % interests.size()]
 		if not citizen.has("saving_habit"):
 			citizen["saving_habit"] = 30 + int((profile_id * 13) % 71)
+		if not citizen.has("civic_mindedness"):
+			citizen["civic_mindedness"] = 25 + int((profile_id * 23) % 76)
+		if not citizen.has("education"):
+			citizen["education"] = 20 + int((profile_id * 19) % 81)
+		if not citizen.has("creativity"):
+			citizen["creativity"] = 25 + int((profile_id * 31) % 76)
+		if not citizen.has("initiative"):
+			citizen["initiative"] = 20 + int((profile_id * 11) % 81)
 		state.citizens[i] = citizen
 	engine.state = state
 
@@ -144,29 +152,48 @@ func _choose_business(engine, citizen):
 	var state = engine.state
 	var interest = str(citizen.get("business_interest", "food"))
 	var candidates = ["grocery_store", "bakery", "woodcutter", "restaurant", "sawmill", "carpenter", "office", "factory", "shopping_mall"]
-	if interest == "industry":
-		candidates = ["woodcutter", "sawmill", "carpenter", "factory", "grocery_store", "bakery", "restaurant", "office", "shopping_mall"]
-	elif interest == "services":
-		candidates = ["office", "shopping_mall", "grocery_store", "bakery", "restaurant", "woodcutter", "sawmill", "carpenter", "factory"]
-	var selected = ""
+	var best_id = ""
+	var best_score = -999999.0
+	var wallet = int(citizen.get("wallet", 0))
+	var entrepreneurship = int(citizen.get("entrepreneurship", 50))
+	var risk = int(citizen.get("risk_tolerance", 50))
+	var creativity = int(citizen.get("creativity", 50))
+	var saving = int(citizen.get("saving_habit", 50))
+	var satisfaction = int(state.get("satisfaction", 50))
 	for building_id in candidates:
 		if not engine.get_building_definitions().has(building_id):
 			continue
 		var data = engine.get_building_definitions()[building_id]
-		if int(state.population) < int(data.get("unlock", 0)):
-			continue
-		if int(state.level) < int(data.get("level_unlock", 1)):
+		if int(state.population) < int(data.get("unlock", 0)) or int(state.level) < int(data.get("level_unlock", 1)):
 			continue
 		if int(data.get("jobs", 0)) <= 0:
 			continue
-		var missing_plots = max(0, int(engine.get_land_size(building_id)) - int(citizen.get("private_land", 0)))
-		var extra_land_cost = missing_plots * int(state.get("private_land_price", 300))
-		var total_cost = int(data.get("cost", 0)) + int(state.get("business_permit_fee", 50)) + extra_land_cost
-		if int(citizen.get("wallet", 0)) < total_cost:
+		var plots = int(engine.get_land_size(building_id))
+		var missing_plots = max(0, plots - int(citizen.get("private_land", 0)))
+		var land_cost = missing_plots * int(state.get("private_land_price", 300))
+		var total_cost = int(data.get("cost", 0)) + int(state.get("business_permit_fee", 50)) + land_cost
+		if wallet < total_cost:
 			continue
-		selected = building_id
-		break
-	return selected
+		var score = float(entrepreneurship) * 0.35 + float(risk) * 0.12 + float(creativity) * 0.18 + float(saving) * 0.10
+		score += float(int(data.get("jobs", 0))) * 1.2
+		if interest == "industry" and building_id in ["woodcutter","sawmill","carpenter","factory"]:
+			score += 28
+		elif interest == "food" and building_id in ["grocery_store","bakery","restaurant"]:
+			score += 28
+		elif interest == "services" and building_id in ["office","shopping_mall"]:
+			score += 28
+		if building_id in ["grocery_store","bakery","restaurant"] and int(state.get("needs",{}).get("food",60)) < 65:
+			score += 15
+		if building_id in ["woodcutter","sawmill","carpenter"] and int(state.get("resources",{}).get("wood",0)) < 20:
+			score += 8
+		score += float(satisfaction - 50) * 0.12
+		score -= float(total_cost) / max(1.0, float(wallet)) * 18.0
+		if total_cost > wallet * 0.75 and risk < 65:
+			score -= 18
+		if score > best_score:
+			best_score = score
+			best_id = building_id
+	return best_id
 
 func _queue_land_or_permit_requests(engine):
 	var state = engine.state
@@ -287,16 +314,62 @@ func _queue_public_project_requests(engine):
 	var state = engine.state
 	if not state.civic_projects.empty():
 		return
-	for business_index in range(state.private_businesses.size()):
-		var business = state.private_businesses[business_index]
+	# Residents can initiate a public project even when no private company exists.
+	var candidates = []
+	for citizen in state.citizens:
+		var citizen_id = int(citizen.get("id", 0))
+		if bool(citizen.get("civic_request_pending", false)) or int(citizen.get("private_business_id", 0)) > 0:
+			continue
+		if int(state.day) - int(citizen.get("last_project_request_day", 0)) < 6:
+			continue
+		var civic_score = int(citizen.get("civic_mindedness", 50)) + int(citizen.get("education", 30)) / 2 + int(citizen.get("initiative", 40)) / 2
+		if civic_score < 85:
+			continue
+		var building_id = _choose_public_project(engine)
+		if building_id == "":
+			continue
+		var data = engine.get_building_definitions()[building_id]
+		var cost = int(data.get("cost", 0))
+		var contribution = int(clamp(int(cost * (0.18 + float(citizen.get("civic_mindedness",50)) / 500.0)), 50, 500))
+		contribution = min(contribution, int(citizen.get("wallet", 0)))
+		var municipal_share = cost - contribution
+		if contribution < max(40, int(cost * 0.12)) or engine.get_available_money() < municipal_share:
+			continue
+		candidates.append({"citizen":citizen,"building_id":building_id,"cost":cost,"contribution":contribution,"score":civic_score})
+	if candidates.size() > 0:
+		candidates.sort_custom(self, "_sort_civic_candidates")
+		var selected = candidates[0]
+		var citizen = selected.citizen
+		var building_id = str(selected.building_id)
+		var data = engine.get_building_definitions()[building_id]
+		state.business_requests.append({
+			"id":_next_request_id(state),
+			"type":"community_project",
+			"citizen_id":int(citizen.get("id",0)),
+			"day":int(state.day),
+			"building_id":building_id,
+			"building_name":str(data.name),
+			"amount":int(selected.cost),
+			"contribution":int(selected.contribution),
+			"municipal_amount":int(selected.cost) - int(selected.contribution),
+			"title":"پیشنهاد مشارکت مردمی برای ساخت %s" % str(data.name)
+		})
+		citizen["last_project_request_day"] = int(state.day)
+		citizen["civic_request_pending"] = true
+		for i in range(state.citizens.size()):
+			if int(state.citizens[i].get("id",0)) == int(citizen.get("id",0)):
+				state.citizens[i] = citizen
+				break
+		engine.state = state
+		return
+	# Established entrepreneurs may also fund a public project from company profits.
+	for business in state.private_businesses:
 		var owner_id = int(business.get("owner_citizen_id", 0))
 		var citizen_index = _find_citizen_index(state, owner_id)
 		if citizen_index < 0:
 			continue
 		var citizen = state.citizens[citizen_index]
-		if int(state.day) - int(citizen.get("last_project_request_day", 0)) < 12:
-			continue
-		if int(citizen.get("risk_tolerance", 50)) < 35:
+		if int(state.day) - int(citizen.get("last_project_request_day", 0)) < 12 or int(citizen.get("risk_tolerance", 50)) < 35:
 			continue
 		if _has_pending_request(state, owner_id, "public_project"):
 			continue
@@ -306,21 +379,14 @@ func _queue_public_project_requests(engine):
 		var cost = int(engine.get_building_definitions()[building_id].get("cost", 0))
 		if int(business.get("balance", 0)) < cost or int(business.get("tax_paid_total", 0)) <= 0:
 			continue
-		state.business_requests.append({
-			"id":_next_request_id(state),
-			"type":"public_project",
-			"citizen_id":owner_id,
-			"business_id":int(business.get("id", 0)),
-			"day":int(state.day),
-			"building_id":building_id,
-			"building_name":str(engine.get_building_definitions()[building_id].name),
-			"amount":cost,
-			"title":"پیشنهاد ساخت %s به‌جای بخشی از مالیات" % str(engine.get_building_definitions()[building_id].name)
-		})
+		state.business_requests.append({"id":_next_request_id(state),"type":"public_project","citizen_id":owner_id,"business_id":int(business.get("id",0)),"day":int(state.day),"building_id":building_id,"building_name":str(engine.get_building_definitions()[building_id].name),"amount":cost,"title":"پیشنهاد ساخت %s به‌جای بخشی از مالیات" % str(engine.get_building_definitions()[building_id].name)})
 		citizen["last_project_request_day"] = int(state.day)
 		citizen["civic_request_pending"] = true
 		state.citizens[citizen_index] = citizen
 		break
+
+func _sort_civic_candidates(a, b):
+	return int(a.get("score",0)) > int(b.get("score",0))
 
 func _process_private_businesses(engine, report):
 	var state = engine.state
@@ -563,6 +629,33 @@ func resolve_request(engine, request_id, approved):
 		engine.state = state
 		engine.save_game()
 		return {"ok":true,"message":"مجوز %s صادر شد؛ کسب‌وکار خصوصی شهروند شماره %d در %s آغاز به کار کرد." % [str(data.name), int(citizen.id), str(business_location.district_name)]}
+	if request_type == "community_project":
+		var building_id = str(request.get("building_id", ""))
+		var data = engine.get_building_definitions().get(building_id, {})
+		var contribution = int(request.get("contribution", 0))
+		var municipal_amount = int(request.get("municipal_amount", 0))
+		if data.empty() or int(citizen.get("wallet", 0)) < contribution or engine.get_available_money() < municipal_amount:
+			return {"ok":false,"message":"سرمایه شهروند یا بودجه شهرداری برای مشارکت در این پروژه کافی نیست."}
+		if engine.get_land_free() < int(engine.get_land_size(building_id)):
+			return {"ok":false,"message":"زمین آزاد برای اجرای این پروژه عمومی کافی نیست."}
+		citizen["wallet"] = int(citizen.get("wallet",0)) - contribution
+		citizen["civic_request_pending"] = false
+		state.citizens[citizen_index] = citizen
+		if not engine._spend_money(municipal_amount):
+			return {"ok":false,"message":"بودجه شهرداری دیگر در دسترس نیست."}
+		state.civic_projects.append({
+			"business_id":0,
+			"citizen_id":int(citizen.id),
+			"building_id":building_id,
+			"finish_day":int(state.day) + 2,
+			"citizen_contribution":contribution,
+			"municipal_contribution":municipal_amount,
+			"tax_credit":0
+		})
+		state.business_requests.remove(request_index)
+		engine.state = state
+		engine.save_game()
+		return {"ok":true,"message":"مشارکت شهروند شماره %d تأیید شد؛ %d سکه مردم و %d سکه شهرداری برای ساخت %s اختصاص یافت. تحویل ۲ روز دیگر." % [int(citizen.id),contribution,municipal_amount,str(data.name)]}
 	if request_type == "public_project":
 		var business_index = _find_business_index(state, int(request.get("business_id", 0)))
 		if business_index < 0:
