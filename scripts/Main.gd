@@ -29,7 +29,7 @@ func _process(delta):
 		construction_check_accumulator = 0.0
 		if game.process_constructions():
 			show_page(current_page)
-			_show_message(str(game.state.get("last_report", "ساخت‌وساز تکمیل شد."))
+			_show_message(str(game.state.get("last_report", "ساخت‌وساز تکمیل شد.")))
 	if clock_cycle_seconds >= 600.0:
 		clock_cycle_seconds -= 600.0
 		game.end_day()
