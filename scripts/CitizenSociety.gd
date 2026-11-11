@@ -273,6 +273,7 @@ func _process_private_businesses(engine, report):
 func _complete_civic_projects(engine, report):
 	var state = engine.state
 	var remaining = []
+	var completed_any = false
 	for project in state.civic_projects:
 		if int(project.get("finish_day", 0)) > int(state.day):
 			remaining.append(project)
@@ -280,12 +281,7 @@ func _complete_civic_projects(engine, report):
 		var building_id = str(project.get("building_id", ""))
 		if not engine.BUILDINGS.has(building_id):
 			continue
-		var footprint = int(engine.get_land_size(building_id))
-		if engine.get_land_free() < footprint:
-			project["finish_day"] = int(state.day) + 1
-			remaining.append(project)
-			report.append("پروژه عمرانی %s به‌دلیل کمبود زمین شهرداری یک روز تمدید شد." % str(engine.BUILDINGS[building_id].name))
-			continue
+		# Project land is already reserved by get_land_used().
 		state.buildings.append({"id":building_id,"workers":0,"balance":0,"municipal_owned":true,"civic_project":true})
 		var business_index = _find_business_index(state, int(project.get("business_id", 0)))
 		if business_index >= 0:
@@ -293,8 +289,9 @@ func _complete_civic_projects(engine, report):
 			business["tax_credit"] = int(business.get("tax_credit", 0)) + int(project.get("tax_credit", 0))
 			state.private_businesses[business_index] = business
 		report.append("شهروند شماره %d پروژه عمومی %s را تحویل داد؛ اعتبار مالیاتی %d سکه ثبت شد." % [int(project.get("citizen_id", 0)), str(engine.BUILDINGS[building_id].name), int(project.get("tax_credit", 0))])
+		completed_any = true
 	state.civic_projects = remaining
-	if remaining.size() != state.civic_projects.size():
+	if completed_any:
 		engine._sync_population()
 		engine.assign_jobs()
 
