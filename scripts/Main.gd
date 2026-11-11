@@ -18,9 +18,12 @@ var clock_cycle_seconds = 0.0
 var clock_label = null
 var clock_save_accumulator = 0.0
 var construction_check_accumulator = 0.0
+var game_paused = false
+var menu_popup = null
+var restart_dialog = null
 
 func _process(delta):
-	if game == null:
+	if game == null or game_paused:
 		return
 	clock_cycle_seconds += delta
 	clock_save_accumulator += delta
@@ -102,6 +105,30 @@ func _build_ui():
 	_apply_font(header_label, 28 if compact_layout else 26)
 	header_label.add_color_override("font_color", Color("#ffffff"))
 	root.add_child(header_label)
+	var menu_row = HBoxContainer.new()
+	menu_row.alignment = BoxContainer.ALIGN_CENTER
+	root.add_child(menu_row)
+	var menu_button = Button.new()
+	menu_button.text = PersianText.reshaper("☰ منو")
+	menu_button.rect_min_size = Vector2(180, 54 if compact_layout else 46)
+	_apply_font(menu_button, 20 if compact_layout else 18)
+	_style_button(menu_button, false)
+	menu_row.add_child(menu_button)
+	menu_popup = PopupMenu.new()
+	menu_popup.add_item("⏸ توقف بازی", 1)
+	menu_popup.add_item("💾 ذخیره بازی", 2)
+	menu_popup.add_separator()
+	menu_popup.add_item("🔄 شروع دوباره شهر", 3)
+	menu_popup.add_item("🏙️ بازگشت به شهر من", 4)
+	add_child(menu_popup)
+	menu_popup.connect("id_pressed", self, "_on_menu_item_selected")
+	menu_button.connect("pressed", self, "_open_game_menu", [menu_button])
+	restart_dialog = ConfirmationDialog.new()
+	restart_dialog.window_title = "شروع دوباره شهر"
+	restart_dialog.dialog_text = "همه پیشرفت فعلی این شهر پاک می‌شود و یک شهر جدید ساخته خواهد شد. ادامه می‌دهی؟"
+	_apply_font(restart_dialog, 18)
+	add_child(restart_dialog)
+	restart_dialog.connect("confirmed", self, "_restart_city")
 	# Persistent city progression panel: stays visible above navigation on every page.
 	var progress_panel = VBoxContainer.new()
 	progress_panel.add_constant_override("separation", 3)
@@ -195,6 +222,41 @@ func _build_ui():
 	message_label.add_color_override("font_color", Color("#ffffff"))
 	message_label.modulate = Color("#ffffff")
 	root.add_child(message_label)
+
+func _open_game_menu(button):
+	if menu_popup == null:
+		return
+	menu_popup.set_item_text(0, "▶ ادامه بازی" if game_paused else "⏸ توقف بازی")
+	menu_popup.set_item_text(1, "💾 ذخیره بازی")
+	menu_popup.popup(Rect2(button.get_global_position() + Vector2(0, button.rect_size.y), Vector2(260, 0)))
+
+func _on_menu_item_selected(id):
+	match int(id):
+		1:
+			game_paused = not game_paused
+			_show_message("بازی متوقف شد." if game_paused else "بازی ادامه پیدا کرد.")
+		2:
+			save_now()
+			_show_message("شهر ذخیره شد." if game.save_game() else "ذخیره‌سازی ناموفق بود.")
+		3:
+			restart_dialog.popup_centered()
+		4:
+			game_paused = false
+			show_page("home")
+
+func _restart_city():
+	game_paused = false
+	clock_cycle_seconds = 0.0
+	clock_save_accumulator = 0.0
+	construction_check_accumulator = 0.0
+	game.new_game()
+	game.state["clock_last_unix"] = OS.get_unix_time()
+	game.state["clock_cycle_seconds"] = 0
+	game.save_game()
+	selected_home_building_id = ""
+	selected_demolish_quantity = 1
+	show_page("home")
+	_show_message("شهر جدید با موفقیت آغاز شد.")
 
 func _update_progress_hud():
 	if game == null or level_status_label == null or xp_progress_bar == null:
