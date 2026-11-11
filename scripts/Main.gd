@@ -388,7 +388,7 @@ func _apply_font(control, size=18):
 		return
 	var font = DynamicFont.new()
 	font.font_data = ui_font.font_data
-	font.use_filter = false
+	font.use_filter = true
 	font.use_mipmaps = false
 	font.size = int(size) + (2 if get_viewport_rect().size.x < 900 else 0)
 	control.add_font_override("font", font)
