@@ -154,9 +154,8 @@ func _choose_business(engine, citizen):
 			continue
 		if int(data.get("jobs", 0)) <= 0:
 			continue
-		var footprint = int(engine.get_land_size(building_id))
 		var total_cost = int(data.get("cost", 0)) + int(state.get("business_permit_fee", 50))
-		if int(citizen.get("private_land", 0)) < footprint or int(citizen.get("wallet", 0)) < total_cost:
+		if int(citizen.get("wallet", 0)) < total_cost:
 			continue
 		if int(data.get("cost", 0)) < selected_cost:
 			selected = building_id
@@ -203,8 +202,6 @@ func _queue_land_or_permit_requests(engine):
 			if entrepreneurship < 45 or int(state.get("private_land_available", 0)) <= 0 or wallet < investment_threshold:
 				continue
 			var plots = 1
-			if wallet >= land_price * 2 + 500:
-				plots = 2
 			state.business_requests.append({
 				"id":_next_request_id(state),
 				"type":"land",
@@ -219,6 +216,25 @@ func _queue_land_or_permit_requests(engine):
 			continue
 		var building_id = _choose_business(engine, citizen)
 		if building_id == "":
+			continue
+		var required_plots = int(engine.get_land_size(building_id))
+		var owned_private_plots = int(citizen.get("private_land", 0))
+		if owned_private_plots < required_plots:
+			var extra_plots = required_plots - owned_private_plots
+			var extra_land_cost = int(state.get("private_land_price", 300)) * extra_plots
+			if int(state.get("private_land_available", 0)) < extra_plots or wallet < extra_land_cost:
+				continue
+			state.business_requests.append({
+				"id":_next_request_id(state),
+				"type":"land",
+				"citizen_id":citizen_id,
+				"day":int(state.day),
+				"plots":extra_plots,
+				"amount":extra_land_cost,
+				"title":"درخواست خرید %d قطعه زمین تکمیلی برای کسب‌وکار" % extra_plots
+			})
+			citizen["civic_request_pending"] = true
+			state.citizens[citizen_index] = citizen
 			continue
 		var data = engine.BUILDINGS[building_id]
 		var fee = int(state.get("business_permit_fee", 50))
