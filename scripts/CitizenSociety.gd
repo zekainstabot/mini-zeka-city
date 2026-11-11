@@ -60,6 +60,16 @@ func ensure_state(engine):
 			citizen["private_land"] = max(0, int(citizen.get("private_land", 0)))
 			citizen["private_business_id"] = int(citizen.get("private_business_id", 0))
 			citizen["private_job_id"] = int(citizen.get("private_job_id", 0))
+			var profile_id = int(citizen.get("id", i + 1))
+			if not citizen.has("entrepreneurship"):
+				citizen["entrepreneurship"] = 35 + int((profile_id * 17) % 66)
+			if not citizen.has("risk_tolerance"):
+				citizen["risk_tolerance"] = 20 + int((profile_id * 29) % 81)
+			if not citizen.has("business_interest"):
+				var interests = ["food", "industry", "services"]
+				citizen["business_interest"] = interests[int(profile_id) % interests.size()]
+			if not citizen.has("saving_habit"):
+				citizen["saving_habit"] = 30 + int((profile_id * 13) % 71)
 		state.citizens[i] = citizen
 	engine.state = state
 
