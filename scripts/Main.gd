@@ -160,7 +160,6 @@ func _load_ui_font():
 	ui_font = DynamicFont.new()
 	ui_font.font_data = font_data
 	ui_font.size = 20
-	ui_font.oversampling = 2.0
 	ui_font.use_filter = false
 	ui_font.use_mipmaps = false
 
@@ -172,7 +171,6 @@ func _apply_font(control, size=18):
 	font.use_filter = false
 	font.use_mipmaps = false
 	font.size = int(round(float(size) * (1.18 if get_viewport_rect().size.x < 900 else 1.0)))
-	font.oversampling = 2.0
 	control.add_font_override("font", font)
 
 func _button_style(bg_color, border_color):
