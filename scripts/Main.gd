@@ -20,7 +20,8 @@ var clock_label = null
 var clock_save_accumulator = 0.0
 var construction_check_accumulator = 0.0
 var game_paused = false
-var menu_popup = null
+var menu_panel = null
+var menu_pause_button = null
 var restart_dialog = null
 
 func _process(delta):
@@ -115,15 +116,16 @@ func _build_ui():
 	_apply_font(menu_button, 20 if compact_layout else 18)
 	_style_button(menu_button, false)
 	menu_row.add_child(menu_button)
-	menu_popup = PopupMenu.new()
-	menu_popup.add_item("⏸ توقف بازی", 1)
-	menu_popup.add_item("💾 ذخیره بازی", 2)
-	menu_popup.add_separator()
-	menu_popup.add_item("🔄 شروع دوباره شهر", 3)
-	menu_popup.add_item("🏙️ بازگشت به شهر من", 4)
-	add_child(menu_popup)
-	menu_popup.connect("id_pressed", self, "_on_menu_item_selected")
-	menu_button.connect("pressed", self, "_open_game_menu", [menu_button])
+	menu_panel = VBoxContainer.new()
+	menu_panel.visible = false
+	menu_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	menu_panel.add_constant_override("separation", 7)
+	root.add_child(menu_panel)
+	menu_pause_button = _create_menu_action("⏸ توقف بازی", "toggle_pause")
+	_create_menu_action("💾 ذخیره بازی", "save_from_menu")
+	_create_menu_action("🔄 شروع دوباره شهر", "confirm_restart_from_menu")
+	_create_menu_action("🏙️ بازگشت به شهر من", "return_home_from_menu")
+	menu_button.connect("pressed", self, "_toggle_game_menu")
 	restart_dialog = ConfirmationDialog.new()
 	restart_dialog.window_title = "شروع دوباره شهر"
 	restart_dialog.dialog_text = "همه پیشرفت فعلی این شهر پاک می‌شود و یک شهر جدید ساخته خواهد شد. ادامه می‌دهی؟"
@@ -224,26 +226,48 @@ func _build_ui():
 	message_label.modulate = Color("#ffffff")
 	root.add_child(message_label)
 
-func _open_game_menu(button):
-	if menu_popup == null:
-		return
-	menu_popup.set_item_text(0, "▶ ادامه بازی" if game_paused else "⏸ توقف بازی")
-	menu_popup.set_item_text(1, "💾 ذخیره بازی")
-	menu_popup.popup(Rect2(button.get_global_position() + Vector2(0, button.rect_size.y), Vector2(260, 0)))
+func _create_menu_action(title, callback):
+	var button = Button.new()
+	button.text = PersianText.reshaper(title)
+	button.rect_min_size = Vector2(0, 52 if get_viewport_rect().size.x < 900 else 44)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_font(button, 18 if get_viewport_rect().size.x < 900 else 16)
+	_style_button(button, false)
+	button.connect("pressed", self, callback)
+	menu_panel.add_child(button)
+	return button
 
-func _on_menu_item_selected(id):
-	match int(id):
-		1:
-			game_paused = not game_paused
-			_show_message("بازی متوقف شد." if game_paused else "بازی ادامه پیدا کرد.")
-		2:
-			var saved = game.save_game()
-			_show_message("شهر ذخیره شد." if saved else "ذخیره‌سازی ناموفق بود.")
-		3:
-			restart_dialog.popup_centered()
-		4:
-			game_paused = false
-			show_page("home")
+func _toggle_game_menu():
+	if menu_panel == null:
+		return
+	menu_panel.visible = not menu_panel.visible
+	_update_menu_pause_button()
+
+func _update_menu_pause_button():
+	if menu_pause_button != null:
+		menu_pause_button.text = PersianText.reshaper("▶ ادامه بازی" if game_paused else "⏸ توقف بازی")
+
+func toggle_pause():
+	game_paused = not game_paused
+	_update_menu_pause_button()
+	_show_message("بازی متوقف شد." if game_paused else "بازی ادامه پیدا کرد.")
+
+func save_from_menu():
+	var saved = game.save_game()
+	_show_message("شهر ذخیره شد." if saved else "ذخیره‌سازی ناموفق بود.")
+	if menu_panel != null:
+		menu_panel.visible = false
+
+func confirm_restart_from_menu():
+	if restart_dialog != null:
+		restart_dialog.popup_centered()
+
+func return_home_from_menu():
+	game_paused = false
+	_update_menu_pause_button()
+	if menu_panel != null:
+		menu_panel.visible = false
+	show_page("home")
 
 func _restart_city():
 	game_paused = false
