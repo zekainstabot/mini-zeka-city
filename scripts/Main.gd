@@ -1081,8 +1081,14 @@ func show_page(page):
 					_apply_font(hint_label, 16)
 					hint_label.add_color_override("font_color", Color("#cbd5e1"))
 					card_body.add_child(hint_label)
-				var go_button = _add_button("↗ رفتن به بخش مربوط", self, "go_to_mission_target", [str(mission.get("id", ""))])
+				var go_button = Button.new()
+				go_button.text = PersianText.reshaper("↗ رفتن به بخش مربوط")
+				go_button.rect_min_size = Vector2(0, 58 if get_viewport_rect().size.x < 900 else 50)
+				go_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				_apply_font(go_button, 19 if get_viewport_rect().size.x < 900 else 17)
 				_style_button(go_button, false)
+				go_button.connect("pressed", self, "go_to_mission_target", [str(mission.get("id", ""))])
+				card_body.add_child(go_button)
 				if is_completed and not is_claimed:
 					var claim_button = Button.new()
 					claim_button.text = PersianText.reshaper("🎁 دریافت جایزه و باز کردن مرحله بعد")
