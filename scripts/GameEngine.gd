@@ -436,6 +436,8 @@ func get_unemployed_count():
 func get_job_capacity():
 	var total = 0
 	for building in state.buildings:
+		if int(building.get("rented_to", 0)) > 0:
+			continue
 		total += int(BUILDINGS.get(building.id, {}).get("jobs", 0))
 	for business in state.get("private_businesses", []):
 		total += int(business.get("jobs", 0))
@@ -591,6 +593,8 @@ func assign_jobs():
 		citizen.job_building_index = -1
 	var workplaces = []
 	for i in range(state.buildings.size()):
+		if int(state.buildings[i].get("rented_to", 0)) > 0:
+			continue
 		var data = BUILDINGS.get(state.buildings[i].id, {})
 		for slot in range(int(data.get("jobs", 0))):
 			workplaces.append(i)
@@ -868,6 +872,8 @@ func end_day():
 		report.append("مالیات شهری دریافت شد: "+str(tax_income)+" سکه.")
 	for building_index in range(state.buildings.size()):
 		var building = state.buildings[building_index]
+		if int(building.get("rented_to", 0)) > 0:
+			continue
 		var data = BUILDINGS.get(building.id, {})
 		var workers = _workers_for_building(building_index)
 		var required_workers = int(data.get("jobs", 0))
