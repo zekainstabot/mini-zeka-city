@@ -85,6 +85,8 @@ func new_game():
 	state = {
 		"version": 10,
 		"day": 1,
+		"clock_last_unix": OS.get_unix_time(),
+		"clock_cycle_seconds": 0,
 		"money": 10000,
 		"population": 4,
 		"citizen_recruitment_mode": "auto",
@@ -172,6 +174,10 @@ func _normalize_state():
 		state["import_contracts"] = []
 	if not state.has("last_import_report"):
 		state["last_import_report"] = "هنوز محموله‌ای سفارش داده نشده است."
+	if not state.has("clock_last_unix"):
+		state["clock_last_unix"] = OS.get_unix_time()
+	if not state.has("clock_cycle_seconds"):
+		state["clock_cycle_seconds"] = 0
 	if not state.has("road_level"):
 		state["road_level"] = 1
 	if not state.has("transport_used_today"):
