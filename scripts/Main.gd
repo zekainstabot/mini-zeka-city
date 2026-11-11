@@ -944,30 +944,138 @@ func show_page(page):
 					var time_text = "%02d/%02d - %02d:%02d" % [int(stamp.get("day", 1)), int(stamp.get("month", 1)), int(stamp.get("hour", 0)), int(stamp.get("minute", 0))]
 					_add_label("[%s] روز %d | %s" % [time_text, int(event.get("day", 1)), str(event.get("message", ""))], 17)
 		"missions":
-			_add_label("آموزش مرحله‌ای شهر", 22)
-			_add_label("این بخش مثل راهنمای بازی عمل می‌کند. هر بار یک مأموریت فعال است؛ با انجام آن و گرفتن جایزه، مرحله بعد باز می‌شود.", 16)
+			var mission_list = game.get_missions()
+			var total_missions = game.MISSION_DEFINITIONS.size()
+			var claimed_count = 0
+			var active_count = 0
+			for saved_mission in mission_list:
+				if bool(saved_mission.get("claimed", false)):
+					claimed_count += 1
+				if bool(saved_mission.get("unlocked", false)) and not bool(saved_mission.get("claimed", false)):
+					active_count += 1
+			_add_label("🎯 مسیر پیشرفت شهر", 23)
+			_add_label("مرحله‌ها را به‌ترتیب انجام بده؛ با دریافت هر جایزه، مرحله بعدی باز می‌شود.", 16)
+			var summary_panel = PanelContainer.new()
+			var summary_style = StyleBoxFlat.new()
+			summary_style.bg_color = Color("#172b3f")
+			summary_style.border_color = Color("#38bdf8")
+			summary_style.set_border_width_all(2)
+			summary_style.set_corner_radius_all(12)
+			summary_style.content_margin_left = 14
+			summary_style.content_margin_right = 14
+			summary_style.content_margin_top = 10
+			summary_style.content_margin_bottom = 10
+			summary_panel.add_stylebox_override("panel", summary_style)
+			summary_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			content.add_child(summary_panel)
+			var summary_label = Label.new()
+			summary_label.text = PersianText.reshaper("پیشرفت آموزش: %d از %d مرحله" % [claimed_count, total_missions])
+			summary_label.align = Label.ALIGN_CENTER
+			summary_label.autowrap = true
+			summary_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			_apply_font(summary_label, 19)
+			summary_label.add_color_override("font_color", Color("#ffffff"))
+			summary_panel.add_child(summary_label)
 			var visible_missions = 0
-			for mission_index in range(game.get_missions().size()):
-				var mission = game.get_missions()[mission_index]
+			for mission_index in range(mission_list.size()):
+				var mission = mission_list[mission_index]
 				if not bool(mission.get("unlocked", false)):
 					continue
 				var definition = {}
 				for item in game.MISSION_DEFINITIONS:
-					if str(item.id) == str(mission.get("id","")):
+					if str(item.id) == str(mission.get("id", "")):
 						definition = item
 						break
 				if definition.empty():
 					continue
 				visible_missions += 1
-				var status = ("✓ انجام و دریافت شد" if bool(mission.get("claimed",false)) else ("🎁 کامل شد؛ جایزه آماده دریافت است" if bool(mission.get("completed",false)) else "● مأموریت فعال"))
-				_add_label("%s — %s" % [definition.title,status],18)
-				_add_label("%s | پیشرفت: %d/%d | جایزه: %d سکه" % [definition.description,int(mission.get("progress",0)),int(definition.goal),int(definition.reward)],15)
-				if not bool(mission.get("completed",false)):
-					_add_label("راهنما: "+str(definition.get("hint","هدف را از بخش‌های شهر دنبال کن.")),15)
-				if bool(mission.get("completed",false)) and not bool(mission.get("claimed",false)):
-					_add_button("دریافت جایزه و باز کردن مرحله بعد: "+str(definition.reward), self, "claim_mission", [mission_index])
+				var is_claimed = bool(mission.get("claimed", false))
+				var is_completed = bool(mission.get("completed", false))
+				var card = PanelContainer.new()
+				card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				var card_style = StyleBoxFlat.new()
+				card_style.bg_color = Color("#173b32") if is_claimed else (Color("#493719") if is_completed else Color("#202b3b"))
+				card_style.border_color = Color("#4ade80") if is_claimed else (Color("#fbbf24") if is_completed else Color("#64748b"))
+				card_style.set_border_width_all(2)
+				card_style.set_corner_radius_all(12)
+				card_style.content_margin_left = 0
+				card_style.content_margin_right = 0
+				card_style.content_margin_top = 0
+				card_style.content_margin_bottom = 0
+				card.add_stylebox_override("panel", card_style)
+				content.add_child(card)
+				var card_margin = MarginContainer.new()
+				card_margin.add_constant_override("margin_left", 14)
+				card_margin.add_constant_override("margin_right", 14)
+				card_margin.add_constant_override("margin_top", 12)
+				card_margin.add_constant_override("margin_bottom", 12)
+				card.add_child(card_margin)
+				var card_body = VBoxContainer.new()
+				card_body.add_constant_override("separation", 7)
+				card_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				card_margin.add_child(card_body)
+				var status_text = "✓ جایزه دریافت شده" if is_claimed else ("🎁 جایزه آماده دریافت" if is_completed else "● در حال انجام")
+				var title_label = Label.new()
+				title_label.text = PersianText.reshaper(str(definition.title) + "   |   " + status_text)
+				title_label.align = Label.ALIGN_RIGHT
+				title_label.autowrap = true
+				title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				_apply_font(title_label, 19)
+				title_label.add_color_override("font_color", Color("#86efac") if is_claimed else (Color("#fde68a") if is_completed else Color("#ffffff")))
+				card_body.add_child(title_label)
+				var description_label = Label.new()
+				description_label.text = PersianText.reshaper(str(definition.description))
+				description_label.align = Label.ALIGN_RIGHT
+				description_label.autowrap = true
+				description_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				_apply_font(description_label, 17)
+				description_label.add_color_override("font_color", Color("#f8fafc"))
+				card_body.add_child(description_label)
+				var current_progress = int(mission.get("progress", 0))
+				var target_progress = max(1, int(definition.goal))
+				var progress_label = Label.new()
+				progress_label.text = PersianText.reshaper("پیشرفت: %d از %d     |     جایزه: %d سکه" % [current_progress, target_progress, int(definition.reward)])
+				progress_label.align = Label.ALIGN_RIGHT
+				progress_label.autowrap = true
+				progress_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				_apply_font(progress_label, 16)
+				progress_label.add_color_override("font_color", Color("#bae6fd"))
+				card_body.add_child(progress_label)
+				var mission_progress = ProgressBar.new()
+				mission_progress.min_value = 0
+				mission_progress.max_value = target_progress
+				mission_progress.value = min(current_progress, target_progress)
+				mission_progress.percent_visible = false
+				mission_progress.rect_min_size = Vector2(0, 12)
+				var mission_fill = StyleBoxFlat.new()
+				mission_fill.bg_color = Color("#22c55e") if is_completed else Color("#38bdf8")
+				mission_fill.set_corner_radius_all(6)
+				mission_progress.add_stylebox_override("fg", mission_fill)
+				var mission_bg = StyleBoxFlat.new()
+				mission_bg.bg_color = Color("#334155")
+				mission_bg.set_corner_radius_all(6)
+				mission_progress.add_stylebox_override("bg", mission_bg)
+				card_body.add_child(mission_progress)
+				if not is_claimed:
+					var hint_label = Label.new()
+					hint_label.text = PersianText.reshaper("راهنما: " + str(definition.get("hint", "از بخش‌های شهر هدف را دنبال کن.")))
+					hint_label.align = Label.ALIGN_RIGHT
+					hint_label.autowrap = true
+					hint_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+					_apply_font(hint_label, 16)
+					hint_label.add_color_override("font_color", Color("#cbd5e1"))
+					card_body.add_child(hint_label)
+				if is_completed and not is_claimed:
+					var claim_button = Button.new()
+					claim_button.text = PersianText.reshaper("🎁 دریافت جایزه و باز کردن مرحله بعد")
+					claim_button.rect_min_size = Vector2(0, 58 if get_viewport_rect().size.x < 900 else 50)
+					claim_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+					_apply_font(claim_button, 18)
+					_style_button(claim_button, false)
+					claim_button.connect("pressed", self, "claim_mission", [mission_index])
+					card_body.add_child(claim_button)
 			if visible_missions == 0:
-				_add_label("آموزش هنوز شروع نشده است؛ بازی را ادامه بده.",16)
+				_add_label("آموزش هنوز شروع نشده است؛ بازی را ادامه بده.", 17)
 		_:
 			_add_label("بخش پیدا نشد.")
 	# Extra scrollable safe area so the last controls/text stay above Android browser navigation bars.
