@@ -451,16 +451,16 @@ func _add_label(text, size=18):
 	target.add_child(label)
 	return label
 
-func _add_button(text, target, callback, args=[]):
+func _add_button(text, button_target, callback, args=[]):
 	var button = Button.new()
 	button.text = PersianText.reshaper(text + "  ")
 	button.rect_min_size = Vector2(0, 58 if get_viewport_rect().size.x < 900 else 50)
 	_apply_font(button, 19 if get_viewport_rect().size.x < 900 else 17)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_button(button, false)
-	button.connect("pressed", target, callback, args)
-	var target = active_section_container if active_section_container != null else content
-	target.add_child(button)
+	button.connect("pressed", button_target, callback, args)
+	var parent = active_section_container if active_section_container != null else content
+	parent.add_child(button)
 	return button
 
 func _show_message(text):
@@ -828,11 +828,48 @@ func show_page(page):
 				var city = game.get_import_cities()[city_id]
 				_add_button("قرارداد ۷ روزه: ۲ واحد چوب از "+city.name,self,"make_import_contract",[city_id,"wood",2,7])
 		"storage":
-			_add_label(" مدیریت انبار", 22)
+			_add_label("مدیریت و تنظیم خودکار انبار", 22)
 			_add_label("ظرفیت: %d | مصرف‌شده: %d | فضای خالی: %d" % [game.get_storage_capacity(),game.get_storage_used(),game.get_free_storage()])
-			_add_label(" ذخیره درختان جنگل: %d / ۱۰۰" % game.get_forest_tree_count())
+			_add_label("برای هر ماده حداقل و حداکثر موجودی تعیین کن. تنظیمات در پایان هر روز اجرا می‌شوند.",15)
+			_add_label("اگر موجودی از حداقل کمتر شود، می‌توانی خرید از بازار یا افزایش تولید کارخانه را انتخاب کنی؛ اگر از حداکثر بیشتر شود، فروش خودکار انجام می‌شود.",15)
 			for id in game.get_resource_definitions().keys():
-				_add_label("%s: %d" % [game.get_resource_definitions()[id].name,s.resources.get(id,0)])
+				var rule = game.get_storage_rule(id)
+				_add_label("📦 "+str(game.get_resource_definitions()[id].name)+" | موجودی: %d | بازار: %d" % [int(s.resources.get(id,0)),int(s.market_stock.get(id,0))],18)
+				_add_label("حداقل موجودی: %d | حداکثر موجودی: %d" % [int(rule.get("minimum",10)),int(rule.get("maximum",40))],16)
+				var controls = HBoxContainer.new()
+				controls.add_constant_override("separation",6)
+				content.add_child(controls)
+				var low_down = Button.new()
+				low_down.text = "حداقل −"
+				_style_button(low_down,false)
+				_apply_font(low_down,16)
+				low_down.connect("pressed",self,"adjust_storage_rule",[id,"minimum",-5])
+				controls.add_child(low_down)
+				var low_up = Button.new()
+				low_up.text = "حداقل +"
+				_style_button(low_up,false)
+				_apply_font(low_up,16)
+				low_up.connect("pressed",self,"adjust_storage_rule",[id,"minimum",5])
+				controls.add_child(low_up)
+				var high_down = Button.new()
+				high_down.text = "حداکثر −"
+				_style_button(high_down,false)
+				_apply_font(high_down,16)
+				high_down.connect("pressed",self,"adjust_storage_rule",[id,"maximum",-5])
+				controls.add_child(high_down)
+				var high_up = Button.new()
+				high_up.text = "حداکثر +"
+				_style_button(high_up,false)
+				_apply_font(high_up,16)
+				high_up.connect("pressed",self,"adjust_storage_rule",[id,"maximum",5])
+				controls.add_child(high_up)
+				_add_label("وقتی کم شد: "+("خرید از بازار" if str(rule.get("low_action","market")) == "market" else "افزایش تولید کارخانه"),15)
+				_add_button("تغییر روش تأمین",self,"toggle_storage_low_action",[id])
+				_add_label("وقتی زیاد شد: "+("فروش به بازار" if str(rule.get("high_action","market")) == "market" else "فروش از فروشگاه‌ها"),15)
+				_add_button("تغییر روش فروش",self,"toggle_storage_high_action",[id])
+				_add_button("اجرای تنظیمات همین ماده",self,"run_storage_rule",[id])
+			_add_label(" ",8)
+			_add_label("ذخیره درختان جنگل: %d / ۱۰۰" % game.get_forest_tree_count())
 		"report":
 			_add_label(" گزارش روزانه", 22)
 			var report_economy = s.get("last_economy", {})
@@ -1109,6 +1146,30 @@ func sell_item(id, amount):
 	var result = game.sell_resource(id, amount)
 	show_page("market")
 	_show_message(result.message)
+
+
+func adjust_storage_rule(resource_id, field, delta):
+	var rule = game.get_storage_rule(str(resource_id))
+	var value = max(0, int(rule.get(str(field), 0)) + int(delta))
+	var result = game.set_storage_rule(str(resource_id), str(field), value)
+	show_page("storage")
+	_show_message(result.message)
+
+func toggle_storage_low_action(resource_id):
+	var result = game.toggle_storage_action(str(resource_id), "low")
+	show_page("storage")
+	_show_message(result.message)
+
+func toggle_storage_high_action(resource_id):
+	var result = game.toggle_storage_action(str(resource_id), "high")
+	show_page("storage")
+	_show_message(result.message)
+
+func run_storage_rule(resource_id):
+	var result = game.apply_storage_rule(str(resource_id), true)
+	show_page("storage")
+	_show_message(result.message)
+
 
 func claim_mission(index):
 	var result = game.claim_mission(index)
