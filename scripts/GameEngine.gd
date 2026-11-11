@@ -846,6 +846,12 @@ func resolve_civic_request(request_id, approved):
 func adjust_business_tax(delta):
 	return CitizenSociety.new().adjust_tax_rate(self, int(delta))
 
+func adjust_business_permit_fee(delta):
+	return CitizenSociety.new().adjust_permit_fee(self, int(delta))
+
+func adjust_private_land_price(delta):
+	return CitizenSociety.new().adjust_private_land_price(self, int(delta))
+
 func get_xp_required_for_next_level():
 	return max(100, int(state.get("level", 1)) * 100)
 
