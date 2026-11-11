@@ -30,6 +30,14 @@ func ensure_state(engine):
 	state["private_land_price"] = max(100, int(state.get("private_land_price", 300)))
 	state["business_tax_rate"] = int(clamp(int(state.get("business_tax_rate", 8)), 0, 30))
 	state["business_permit_fee"] = max(0, int(state.get("business_permit_fee", 50)))
+	for building_index in range(state.buildings.size()):
+		var building = state.buildings[building_index]
+		var building_data = engine.BUILDINGS.get(str(building.get("id", "")), {})
+		if not building.has("municipal_owned"):
+			building["municipal_owned"] = str(building_data.get("category", "")) != "خانه‌ها"
+		if not building.has("rented_to"):
+			building["rented_to"] = 0
+		state.buildings[building_index] = building
 	for i in range(state.citizens.size()):
 		var citizen = state.citizens[i]
 		if not bool(citizen.get("civic_profile_initialized", false)):
@@ -73,6 +81,42 @@ func _has_pending_request(state, citizen_id, request_type=""):
 				return true
 	return false
 
+func _find_rentable_building(engine):
+	var state = engine.state
+	for i in range(state.buildings.size()):
+		var building = state.buildings[i]
+		var data = engine.BUILDINGS.get(str(building.get("id", "")), {})
+		var category = str(data.get("category", ""))
+		if data.empty() or int(data.get("jobs", 0)) <= 0:
+			continue
+		if category != "کسب‌وکارها" and category != "کارخانه‌ها":
+			continue
+		if bool(building.get("municipal_owned", false)) and int(building.get("rented_to", 0)) <= 0:
+			return i
+	return -1
+
+func _expire_rentals(engine, report):
+	var state = engine.state
+	for business_index in range(state.private_businesses.size() - 1, -1, -1):
+		var business = state.private_businesses[business_index]
+		if not bool(business.get("rented_municipal", false)) or int(state.day) <= int(business.get("rent_until_day", 0)):
+			continue
+		var business_id = int(business.get("id", 0))
+		for citizen_index in range(state.citizens.size()):
+			var citizen = state.citizens[citizen_index]
+			if int(citizen.get("private_job_id", 0)) == business_id:
+				citizen["private_job_id"] = 0
+			if int(citizen.get("private_business_id", 0)) == business_id:
+				citizen["private_business_id"] = 0
+				citizen["next_civic_request_day"] = int(state.day) + 1
+			state.citizens[citizen_index] = citizen
+		var building_index = int(business.get("building_index", -1))
+		if building_index >= 0 and building_index < state.buildings.size():
+			state.buildings[building_index]["rented_to"] = 0
+			state.buildings[building_index]["rent_until_day"] = 0
+		state.private_businesses.remove(business_index)
+		report.append("قرارداد اجاره ملک شهرداری پایان یافت؛ ملک برای درخواست‌های جدید آزاد شد.")
+
 func _choose_business(engine, citizen):
 	var state = engine.state
 	var candidates = ["grocery_store", "bakery", "woodcutter", "restaurant", "sawmill", "carpenter", "office", "factory", "shopping_mall"]
@@ -110,6 +154,27 @@ func _queue_land_or_permit_requests(engine):
 			continue
 		var wallet = int(citizen.get("wallet", 0))
 		if int(citizen.get("private_land", 0)) <= 0:
+			var rentable_index = _find_rentable_building(engine)
+			if rentable_index >= 0:
+				var rentable = state.buildings[rentable_index]
+				var rentable_data = engine.BUILDINGS.get(str(rentable.get("id", "")), {})
+				var daily_rent = max(15, int(int(rentable_data.get("cost", 500)) * 0.02))
+				var lease_cost = daily_rent * 7
+				if wallet >= lease_cost:
+					state.business_requests.append({
+						"id":_next_request_id(state),
+						"type":"rent",
+						"citizen_id":citizen_id,
+						"day":int(state.day),
+						"building_index":rentable_index,
+						"building_id":str(rentable.get("id", "")),
+						"daily_rent":daily_rent,
+						"amount":lease_cost,
+						"title":"درخواست اجاره %s برای ۷ روز" % str(rentable_data.get("name", "ملک شهرداری"))
+					})
+					citizen["civic_request_pending"] = true
+					state.citizens[citizen_index] = citizen
+					continue
 			var land_price = int(state.get("private_land_price", 300))
 			if int(state.get("private_land_available", 0)) <= 0 or wallet < land_price:
 				continue
@@ -298,6 +363,7 @@ func _complete_civic_projects(engine, report):
 func process_day(engine, report):
 	ensure_state(engine)
 	var state = engine.state
+	_expire_rentals(engine, report)
 	_complete_civic_projects(engine, report)
 	for citizen_index in range(state.citizens.size()):
 		var citizen = state.citizens[citizen_index]
@@ -351,6 +417,53 @@ func resolve_request(engine, request_id, approved):
 		engine.state = state
 		engine.save_game()
 		return {"ok":true,"message":"فروش %d قطعه زمین به شهروند شماره %d تأیید شد؛ درآمد فروش زمین جدا از مالیات ثبت شد." % [plots, int(citizen.id)]}
+	if request_type == "rent":
+		var building_index = int(request.get("building_index", -1))
+		var daily_rent = int(request.get("daily_rent", 0))
+		var lease_cost = int(request.get("amount", 0))
+		if building_index < 0 or building_index >= state.buildings.size() or int(citizen.get("wallet", 0)) < lease_cost:
+			return {"ok":false,"message":"ملک یا سرمایه لازم برای اجاره دیگر در دسترس نیست."}
+		var municipal_property = state.buildings[building_index]
+		if int(municipal_property.get("rented_to", 0)) > 0 or not bool(municipal_property.get("municipal_owned", false)):
+			return {"ok":false,"message":"این ملک دیگر برای اجاره آزاد نیست."}
+		var rented_id = int(state.get("next_private_business_id", 1))
+		state["next_private_business_id"] = rented_id + 1
+		citizen["wallet"] = int(citizen.get("wallet", 0)) - lease_cost
+		citizen["private_business_id"] = rented_id
+		citizen["civic_request_pending"] = false
+		state.citizens[citizen_index] = citizen
+		municipal_property["rented_to"] = int(citizen.id)
+		municipal_property["rent_until_day"] = int(state.day) + 7
+		municipal_property["rent_per_day"] = daily_rent
+		state.buildings[building_index] = municipal_property
+		var rented_id_name = str(request.get("building_id", ""))
+		var rented_data = engine.BUILDINGS.get(rented_id_name, {})
+		var rent_revenue = max(30, int(int(rented_data.get("daily_revenue", 0)) / max(1, int(rented_data.get("jobs", 1))))
+		state.private_businesses.append({
+			"id":rented_id,
+			"owner_citizen_id":int(citizen.id),
+			"building_id":rented_id_name,
+			"name":str(rented_data.get("name", "کسب‌وکار"))+" (اجاره‌ای)",
+			"balance":0,
+			"employees":[],
+			"jobs":int(rented_data.get("jobs", 1)),
+			"wage":max(12,int(int(rented_data.get("wage", 30)) / 2)),
+			"revenue_per_worker":rent_revenue,
+			"last_revenue":0,
+			"last_tax":0,
+			"tax_paid_total":0,
+			"tax_credit":0,
+			"rented_municipal":true,
+			"building_index":building_index,
+			"rent_until_day":int(state.day) + 7,
+			"created_day":int(state.day)
+		})
+		state["municipal_rent_income_total"] = int(state.get("municipal_rent_income_total", 0)) + lease_cost
+		engine._add_money(lease_cost)
+		state.business_requests.remove(request_index)
+		engine.state = state
+		engine.save_game()
+		return {"ok":true,"message":"اجاره ملک شهرداری برای ۷ روز تأیید شد؛ مبلغ %d سکه جدا از مالیات دریافت شد." % lease_cost}
 	if request_type == "permit":
 		var building_id = str(request.get("building_id", ""))
 		var data = engine.BUILDINGS.get(building_id, {})
