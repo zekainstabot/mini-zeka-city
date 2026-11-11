@@ -13,7 +13,7 @@ var xp_progress_bar = null
 var level_status_label = null
 var xp_progress_label = null
 var selected_home_building_id = ""
-var selected_building_category = "همه"
+var selected_building_category = ""
 var selected_demolish_quantity = 1
 var clock_cycle_seconds = 0.0
 var clock_label = null
@@ -539,27 +539,12 @@ func show_page(page):
 			var land_button = _add_button("خرید ۱ قطعه زمین | قیمت: %d سکه" % game.get_land_unit_price(), self, "buy_land")
 			land_button.disabled = game.get_available_money() < game.get_land_unit_price()
 			var categories = ["همه","خانه‌ها","کشاورزی","معادن","کارخانه‌ها","کسب‌وکارها","خدمات شهری","تفریح و فرهنگ","انبارها","زیرساخت"]
-			_add_label("دسته‌بندی ساختمان‌ها — یک بخش را انتخاب کن:", 18)
+			_add_label("برای دیدن ساختمان‌ها، دسته موردنظر را باز کن:", 18)
 			for category in categories:
-				var category_button = _add_button(("✓ " if selected_building_category == category else "") + category, self, "select_building_category", [category])
-				category_button.disabled = selected_building_category == category
-			var visible_buildings = 0
-			for id in game.get_building_definitions().keys():
-				var data = game.get_building_definitions()[id]
-				if selected_building_category != "همه" and str(data.get("category","")) != selected_building_category:
-					continue
-				visible_buildings += 1
-				var population_unlocked = s.population >= int(data.unlock)
-				var required_level = int(data.get("level_unlock", 1))
-				var level_unlocked = int(s.level) >= required_level
-				var unlocked = population_unlocked and level_unlocked
-				var label = "%s | هزینه: %d | زمین: %d قطعه | جمعیت: %d | سطح: %d" % [data.name,data.cost,game.get_land_size(id),data.unlock,required_level]
-				if not population_unlocked or not level_unlocked:
-					label += " | 🔒 قفل"
-				var b = _add_button(label, self, "build_building", [id])
-				b.disabled = not unlocked or game.get_available_money() < int(data.cost) or game.get_land_free() < game.get_land_size(id) or (id == "central_bank" and int(s.get("central_bank_rebuild_days_left",0)) > 0)
-			if visible_buildings == 0:
-				_add_label("در این دسته ساختمانی تعریف نشده است.", 16)
+				var is_expanded = selected_building_category == category
+				var category_button = _add_button(("▼ " if is_expanded else "▶ ") + category, self, "select_building_category", [category])
+				if is_expanded:
+					_add_building_category_items(category)
 			if selected_building_category == "همه" or selected_building_category == "معادن":
 				_add_label("مدیریت معادن:", 18)
 				for mine_index in range(game.get_mines().size()):
@@ -570,15 +555,6 @@ func show_page(page):
 						if int(mine.get("remaining",0)) <= 0:
 							_add_button("شارژ معدن آهن — ۱۰۰۰ سکه", self, "refill_mine", [mine_index])
 					_add_label("%s — %s" % [game.get_resource_definitions()[str(mine.get("resource","stone"))].name,mine_status])
-			_add_label("مدیریت معادن:", 18)
-			for mine_index in range(game.get_mines().size()):
-				var mine = game.get_mines()[mine_index]
-				var mine_status = ("فعال" if bool(mine.get("active",false)) else "متوقف")
-				if str(mine.get("resource","")) == "iron_ore":
-					mine_status += " | ذخیره: %d" % int(mine.get("remaining",0))
-					if int(mine.get("remaining",0)) <= 0:
-						_add_button(" شارژ معدن آهن — ۱۰۰۰ سکه", self, "refill_mine", [mine_index])
-				_add_label("%s — %s" % [game.get_resource_definitions()[str(mine.get("resource","stone"))].name,mine_status])
 			_add_label("ساختمان‌های فعلی:", 18)
 			for i in range(s.buildings.size()):
 				var id = s.buildings[i].id
@@ -821,8 +797,29 @@ func _active_mine_count():
 			count += 1
 	return count
 
+func _add_building_category_items(category):
+	var visible_buildings = 0
+	for id in game.get_building_definitions().keys():
+		var data = game.get_building_definitions()[id]
+		if category != "همه" and str(data.get("category","")) != category:
+			continue
+		visible_buildings += 1
+		var s = game.state
+		var population_unlocked = s.population >= int(data.unlock)
+		var required_level = int(data.get("level_unlock", 1))
+		var level_unlocked = int(s.level) >= required_level
+		var unlocked = population_unlocked and level_unlocked
+		var label = "%s | هزینه: %d | زمین: %d قطعه | جمعیت: %d | سطح: %d" % [data.name,data.cost,game.get_land_size(id),data.unlock,required_level]
+		if not population_unlocked or not level_unlocked:
+			label += " | 🔒 قفل"
+		var building_button = _add_button(label, self, "build_building", [id])
+		building_button.disabled = not unlocked or game.get_available_money() < int(data.cost) or game.get_land_free() < game.get_land_size(id) or (id == "central_bank" and int(s.get("central_bank_rebuild_days_left",0)) > 0)
+	if visible_buildings == 0:
+		_add_label("در این دسته ساختمانی تعریف نشده است.", 16)
+
 func select_building_category(category):
-	selected_building_category = str(category)
+	var requested = str(category)
+	selected_building_category = "" if selected_building_category == requested else requested
 	show_page("buildings")
 
 func refill_mine(index):
