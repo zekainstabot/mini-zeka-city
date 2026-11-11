@@ -5,7 +5,10 @@ const CitizenSociety = preload("res://scripts/CitizenSociety.gd")
 
 const SAVE_PATH = "user://mini_zeka_city_save.json"
 const STORAGE_RESERVE = 50
-const DISTRICT_BUILDING_LIMIT = 10
+const DISTRICT_HOUSE_LIMIT = 20
+const DISTRICT_OTHER_LIMIT = 20
+const DISTRICT_EXPANSION_STEP = 10
+const DISTRICT_BUILDING_TYPE_LIMIT = 2
 const OUTSIDE_CITY_BUILDINGS = ["woodcutter","sawmill","carpenter","stone_mine","iron_mine","factory","power_station","sewage_plant","waste_facility"]
 const FORESTRY_RESERVES = {"wood": 20, "lumber": 10, "furniture": 0}
 
@@ -415,6 +418,20 @@ func _find_district_index(district_id):
 			return i
 	return -1
 
+func _is_house_building(building_id):
+	return int(BUILDINGS.get(str(building_id), {}).get("capacity", 0)) > 0
+
+func _district_can_accept(district, building_id):
+	var is_house = _is_house_building(building_id)
+	var house_count = int(district.get("house_count", 0))
+	var other_count = int(district.get("other_count", 0))
+	var type_counts = district.get("building_type_counts", {})
+	if is_house:
+		return house_count < DISTRICT_HOUSE_LIMIT
+	var type_count = int(type_counts.get(str(building_id), 0))
+	var other_limit = DISTRICT_OTHER_LIMIT + int(district.get("extra_capacity", 0))
+	return other_count < other_limit and type_count < DISTRICT_BUILDING_TYPE_LIMIT
+
 func _assign_building_location(building_id):
 	var id = str(building_id)
 	if id in OUTSIDE_CITY_BUILDINGS:
@@ -423,26 +440,40 @@ func _assign_building_location(building_id):
 		state["districts"] = []
 	var chosen_index = -1
 	for i in range(state.districts.size()):
-		if int(state.districts[i].get("building_count", 0)) < DISTRICT_BUILDING_LIMIT:
+		if _district_can_accept(state.districts[i], id):
 			chosen_index = i
 			break
+	if chosen_index < 0 and state.districts.size() > 0:
+		# When all existing neighborhoods reach their normal capacity,
+		# expand the newest one in blocks of ten if its building-type limit allows it.
+		var last_index = state.districts.size() - 1
+		var last_district = state.districts[last_index]
+		if not _is_house_building(id) and int(last_district.get("building_type_counts", {}).get(id, 0)) < DISTRICT_BUILDING_TYPE_LIMIT:
+			last_district["extra_capacity"] = int(last_district.get("extra_capacity", 0)) + DISTRICT_EXPANSION_STEP
+			state.districts[last_index] = last_district
+			if _district_can_accept(last_district, id):
+				chosen_index = last_index
 	if chosen_index < 0:
 		var district_number = state.districts.size()
 		var district_id = _district_letter(int(district_number / 50)) + str((district_number % 50) + 1)
-		state.districts.append({"id":district_id,"name":"محله "+district_id,"building_count":0})
+		state.districts.append({"id":district_id,"name":"محله "+district_id,"building_count":0,"house_count":0,"other_count":0,"extra_capacity":0,"building_type_counts":{}})
 		chosen_index = state.districts.size() - 1
 	var district = state.districts[chosen_index]
-	district["building_count"] = int(district.get("building_count", 0)) + 1
+	if _is_house_building(id):
+		district["house_count"] = int(district.get("house_count", 0)) + 1
+	else:
+		district["other_count"] = int(district.get("other_count", 0)) + 1
+		var type_counts = district.get("building_type_counts", {})
+		type_counts[id] = int(type_counts.get(id, 0)) + 1
+		district["building_type_counts"] = type_counts
+	district["building_count"] = int(district.get("house_count", 0)) + int(district.get("other_count", 0))
 	state.districts[chosen_index] = district
 	return {"zone":"district","district_id":str(district.id),"district_name":str(district.name)}
 
 func _ensure_building_locations():
-	if typeof(state.get("districts", null)) != TYPE_ARRAY:
-		state["districts"] = []
-	for i in range(state.districts.size()):
-		var district = state.districts[i]
-		district["building_count"] = 0
-		state.districts[i] = district
+	# Rebuild neighborhood assignments from actual saved buildings so older
+	# saves also adopt the new 20-house / 20-other-building rules.
+	state["districts"] = []
 	for collection_name in ["buildings", "constructions", "private_businesses"]:
 		var collection = state.get(collection_name, [])
 		for i in range(collection.size()):
@@ -450,20 +481,9 @@ func _ensure_building_locations():
 			if collection_name == "private_businesses" and bool(item.get("rented_municipal", false)):
 				continue
 			var building_id = str(item.get("id", item.get("building_id", "")))
-			if str(item.get("zone", "")) == "":
-				var location = _assign_building_location(building_id)
-				for key in location.keys():
-					item[key] = location[key]
-			else:
-				if str(item.get("zone", "")) == "district":
-					var district_id = str(item.get("district_id", ""))
-					var district_index = _find_district_index(district_id)
-					if district_index < 0:
-						state.districts.append({"id":district_id,"name":str(item.get("district_name", "محله "+district_id)),"building_count":0})
-						district_index = state.districts.size() - 1
-					var district = state.districts[district_index]
-					district["building_count"] = int(district.get("building_count", 0)) + 1
-					state.districts[district_index] = district
+			var location = _assign_building_location(building_id)
+			for key in location.keys():
+				item[key] = location[key]
 			collection[i] = item
 		state[collection_name] = collection
 
