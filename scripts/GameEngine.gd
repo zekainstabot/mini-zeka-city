@@ -568,10 +568,19 @@ func get_construction_status():
 func demolish(index):
 	if index < 0 or index >= state.buildings.size():
 		return {"ok":false,"message":"ساختمان پیدا نشد."}
+	if int(state.buildings[index].get("rented_to", 0)) > 0:
+		return {"ok":false,"message":"این ملک شهرداری در قرارداد اجاره است و تا پایان قرارداد قابل تخریب نیست."}
 	var id = state.buildings[index].id
 	if id == "small_house" and get_building_count(id) <= 1:
 		return {"ok":false,"message":"آخرین خانه شهر را نمی‌توان تخریب کرد."}
 	state.buildings.remove(index)
+	for business_index in range(state.private_businesses.size()):
+		var private_business = state.private_businesses[business_index]
+		if bool(private_business.get("rented_municipal", false)):
+			var rented_index = int(private_business.get("building_index", -1))
+			if rented_index > index:
+				private_business["building_index"] = rented_index - 1
+				state.private_businesses[business_index] = private_business
 	for mine_index in range(state.mines.size() - 1, -1, -1):
 		if int(state.mines[mine_index].get("building_index", -1)) == index:
 			state.mines.remove(mine_index)
