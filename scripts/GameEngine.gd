@@ -595,10 +595,12 @@ func assign_jobs():
 	# The menu-based game has no road coordinates. Assign open job
 	# slots in a stable, fair order instead of inventing fake distances.
 	for citizen_index in range(state.citizens.size()):
+		var citizen = state.citizens[citizen_index]
+		if int(citizen.get("private_job_id", 0)) > 0:
+			continue
 		if workplaces.empty():
 			break
 		var building_index = workplaces[0]
-		var citizen = state.citizens[citizen_index]
 		citizen.job_building_index = building_index
 		citizen.job = str(state.buildings[building_index].id)
 		state.citizens[citizen_index] = citizen
