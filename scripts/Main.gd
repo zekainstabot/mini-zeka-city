@@ -19,6 +19,7 @@ var clock_cycle_seconds = 0.0
 var clock_label = null
 var clock_save_accumulator = 0.0
 var construction_check_accumulator = 0.0
+var construction_time_labels = []
 var game_paused = false
 var menu_panel = null
 var menu_pause_button = null
@@ -32,6 +33,7 @@ func _process(delta):
 	construction_check_accumulator += delta
 	if construction_check_accumulator >= 1.0:
 		construction_check_accumulator = 0.0
+		_update_construction_time_labels()
 		if game.process_constructions():
 			show_page(current_page)
 			_show_message(str(game.state.get("last_report", "ساخت‌وساز تکمیل شد.")))
@@ -54,6 +56,18 @@ func _process(delta):
 		game.state["clock_last_unix"] = OS.get_unix_time()
 		game.state["clock_cycle_seconds"] = int(clock_cycle_seconds)
 		game.save_game()
+
+func _update_construction_time_labels():
+	if construction_time_labels.size() == 0 or game == null:
+		return
+	var active = game.get_construction_status()
+	var count = min(active.size(), construction_time_labels.size())
+	for i in range(count):
+		var project = active[i]
+		var seconds_left = int(project.remaining)
+		var label = construction_time_labels[i].get("label", null)
+		if label != null and is_instance_valid(label):
+			label.text = PersianText.reshaper("%s | زمان باقی‌مانده: %02d:%02d" % [str(project.name), int(seconds_left / 60), seconds_left % 60])
 
 func _apply_offline_progress():
 	var now = OS.get_unix_time()
@@ -380,6 +394,7 @@ func _style_button(button, navigation=false):
 	button.add_color_override("font_color_disabled", Color("#f8fafc"))
 
 func _clear_content():
+	construction_time_labels.clear()
 	for child in content.get_children():
 		child.queue_free()
 
@@ -422,7 +437,8 @@ func show_page(page):
 			_add_label("🏗️ پروژه‌های در حال ساخت", 19)
 			for project in active_constructions:
 				var seconds_left = int(project.remaining)
-				_add_label("%s | زمان باقی‌مانده: %02d:%02d" % [str(project.name), int(seconds_left / 60), seconds_left % 60], 16)
+				var time_label = _add_label("%s | زمان باقی‌مانده: %02d:%02d" % [str(project.name), int(seconds_left / 60), seconds_left % 60], 16)
+				construction_time_labels.append({"label":time_label,"name":str(project.name)})
 	match page:
 		"home":
 			_add_label("روز %d  |  سطح شهر %d" % [s.day,s.level], 20)
