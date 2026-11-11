@@ -132,6 +132,7 @@ func _build_ui():
 	content.add_constant_override("separation", 16 if compact_layout else 10)
 	scroll.add_child(content)
 	message_label = Label.new()
+	_apply_font(message_label, 18 if get_viewport_rect().size.x < 900 else 16)
 	message_label.autowrap = true
 	message_label.add_color_override("font_color", Color("#ffffff"))
 	message_label.modulate = Color("#ffffff")
