@@ -22,7 +22,7 @@ var construction_check_accumulator = 0.0
 var game_paused = false
 var menu_panel = null
 var menu_pause_button = null
-var restart_dialog = null
+var restart_confirm_panel = null
 
 func _process(delta):
 	if game == null or game_paused:
@@ -126,12 +126,35 @@ func _build_ui():
 	_create_menu_action("🔄 شروع دوباره شهر", "confirm_restart_from_menu")
 	_create_menu_action("🏙️ بازگشت به شهر من", "return_home_from_menu")
 	menu_button.connect("pressed", self, "_toggle_game_menu")
-	restart_dialog = ConfirmationDialog.new()
-	restart_dialog.window_title = "شروع دوباره شهر"
-	restart_dialog.dialog_text = "همه پیشرفت فعلی این شهر پاک می‌شود و یک شهر جدید ساخته خواهد شد. ادامه می‌دهی؟"
-	_apply_font(restart_dialog, 18)
-	add_child(restart_dialog)
-	restart_dialog.connect("confirmed", self, "_restart_city")
+	restart_confirm_panel = VBoxContainer.new()
+	restart_confirm_panel.visible = false
+	restart_confirm_panel.add_constant_override("separation", 8)
+	menu_panel.add_child(restart_confirm_panel)
+	var restart_confirm_text = Label.new()
+	restart_confirm_text.text = PersianText.reshaper("⚠️ شروع دوباره شهر؟\nتمام پیشرفت فعلی این شهر پاک می‌شود و یک شهر تازه ساخته خواهد شد.")
+	restart_confirm_text.align = Label.ALIGN_CENTER
+	restart_confirm_text.autowrap = true
+	restart_confirm_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	restart_confirm_text.rect_min_size = Vector2(0, 100 if compact_layout else 76)
+	_apply_font(restart_confirm_text, 19 if compact_layout else 17)
+	restart_confirm_text.add_color_override("font_color", Color("#fde68a"))
+	restart_confirm_panel.add_child(restart_confirm_text)
+	var restart_yes_button = Button.new()
+	restart_yes_button.text = PersianText.reshaper("بله، شروع دوباره")
+	restart_yes_button.rect_min_size = Vector2(0, 54 if compact_layout else 46)
+	restart_yes_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_font(restart_yes_button, 19 if compact_layout else 17)
+	_style_button(restart_yes_button, false)
+	restart_yes_button.connect("pressed", self, "_restart_city")
+	restart_confirm_panel.add_child(restart_yes_button)
+	var restart_no_button = Button.new()
+	restart_no_button.text = PersianText.reshaper("انصراف")
+	restart_no_button.rect_min_size = Vector2(0, 54 if compact_layout else 46)
+	restart_no_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_font(restart_no_button, 19 if compact_layout else 17)
+	_style_button(restart_no_button, true)
+	restart_no_button.connect("pressed", self, "_cancel_restart")
+	restart_confirm_panel.add_child(restart_no_button)
 	# Persistent city progression panel: stays visible above navigation on every page.
 	var progress_panel = VBoxContainer.new()
 	progress_panel.add_constant_override("separation", 3)
@@ -259,8 +282,12 @@ func save_from_menu():
 		menu_panel.visible = false
 
 func confirm_restart_from_menu():
-	if restart_dialog != null:
-		restart_dialog.popup_centered()
+	if restart_confirm_panel != null:
+		restart_confirm_panel.visible = true
+
+func _cancel_restart():
+	if restart_confirm_panel != null:
+		restart_confirm_panel.visible = false
 
 func return_home_from_menu():
 	game_paused = false
@@ -270,6 +297,10 @@ func return_home_from_menu():
 	show_page("home")
 
 func _restart_city():
+	if restart_confirm_panel != null:
+		restart_confirm_panel.visible = false
+	if menu_panel != null:
+		menu_panel.visible = false
 	game_paused = false
 	clock_cycle_seconds = 0.0
 	clock_save_accumulator = 0.0
