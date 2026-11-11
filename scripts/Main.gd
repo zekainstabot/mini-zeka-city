@@ -12,6 +12,8 @@ var level_status_bar = null
 var xp_progress_bar = null
 var level_status_label = null
 var xp_progress_label = null
+var selected_home_building_id = ""
+var selected_demolish_quantity = 1
 
 func _notification(what):
 	if what == MainLoop.NOTIFICATION_WM_QUIT_REQUEST and game != null:
@@ -248,6 +250,47 @@ func show_page(page):
 			_add_label(" ساختمان‌ها: %d  |  ظرفیت انبار: %d  |  بانک مرکزی: %s  |  بانک شهری: %d" % [s.buildings.size(),game.get_storage_capacity(),("فعال" if game.has_central_bank() else ("بازسازی تا %d روز دیگر" % int(s.get("central_bank_rebuild_days_left",0)) if int(s.get("central_bank_rebuild_days_left",0)) > 0 else "ندارد")),game.get_building_count("municipal_bank")])
 			_add_label(" درختان جنگل: %d از ۱۰۰ | رشد روزانه: ۲ درخت" % game.get_forest_tree_count())
 			_add_label(" معادن فعال: %d" % _active_mine_count())
+			_add_label("ساختمان‌های شهر بر اساس دسته‌بندی:", 20)
+			var home_categories = ["خانه‌ها","کشاورزی","معادن","کارخانه‌ها","کسب‌وکارها","خدمات شهری","تفریح و فرهنگ","انبارها","زیرساخت"]
+			for home_category in home_categories:
+				var category_rows = []
+				for home_id in game.get_building_definitions().keys():
+					var home_data = game.get_building_definitions()[home_id]
+					if str(home_data.get("category","")) == home_category:
+						var home_count = game.get_building_count(home_id)
+						if home_count > 0:
+							category_rows.append({"id":home_id,"name":str(home_data.name),"count":home_count})
+				if not category_rows.empty():
+					_add_label("【"+home_category+"】", 17)
+					for home_row in category_rows:
+						var home_button = _add_button("%s  |  تعداد ساخته‌شده: %d" % [home_row.name,home_row.count], self, "select_home_building", [home_row.id])
+						if selected_home_building_id == str(home_row.id):
+							home_button.add_color_override("font_color", Color("#fde68a"))
+			if selected_home_building_id != "" and game.get_building_count(selected_home_building_id) > 0:
+				var selected_definition = game.get_building_definitions()[selected_home_building_id]
+				var selected_count = game.get_building_count(selected_home_building_id)
+				_add_label("مدیریت تخریب: %s | موجود: %d" % [selected_definition.name,selected_count], 18)
+				_add_label("تعداد موردنظر برای تخریب: %d" % selected_demolish_quantity, 16)
+				var quantity_row = HBoxContainer.new()
+				quantity_row.add_constant_override("separation", 8)
+				content.add_child(quantity_row)
+				var less_button = Button.new()
+				less_button.text = "−"
+				less_button.rect_min_size = Vector2(70,58)
+				_apply_font(less_button,24)
+				_style_button(less_button,false)
+				less_button.connect("pressed",self,"adjust_demolish_quantity",[-1])
+				quantity_row.add_child(less_button)
+				var more_button = Button.new()
+				more_button.text = "+"
+				more_button.rect_min_size = Vector2(70,58)
+				_apply_font(more_button,24)
+				_style_button(more_button,false)
+				more_button.connect("pressed",self,"adjust_demolish_quantity",[1])
+				quantity_row.add_child(more_button)
+				var demolish_button = _add_button("تخریب %d عدد از %s" % [selected_demolish_quantity,selected_definition.name],self,"demolish_selected_buildings")
+				if selected_home_building_id == "small_house" and selected_count <= 1:
+					demolish_button.disabled = true
 			_add_label("منابع: "+_resource_summary())
 			_add_label("ذخیره غذای شهر: %d واحد" % int(s.resources.get("food",0)),16)
 			var home_economy = s.get("last_economy", {})
@@ -298,7 +341,7 @@ func show_page(page):
 				if int(s.buildings[i].get("balance",0)) > 0:
 					_add_label("حساب %s: %d سکه" % [str(game.get_building_definitions()[id].name),int(s.buildings[i].get("balance",0))])
 					_add_button(" برداشت سود %s: %d سکه" % [str(game.get_building_definitions()[id].name),int(s.buildings[i].get("balance",0))], self, "collect_profit", [i])
-				_add_button("تخریب: "+str(game.get_building_definitions()[id].name), self, "demolish_building", [i])
+				# Demolition is managed from the categorized city overview.
 		"citizens":
 			_add_label(" جمعیت: %d | شاغل: %d | بیکار: %d" % [s.population,game.get_employed_count(),game.get_unemployed_count()], 20)
 			_add_label("ظرفیت شغلی: %d" % game.get_job_capacity())
@@ -479,6 +522,41 @@ func collect_profit(index):
 	var result = game.collect_business_profit(index)
 	show_page("buildings")
 	_show_message(result.message)
+
+func select_home_building(id):
+	selected_home_building_id = str(id)
+	selected_demolish_quantity = 1
+	show_page("home")
+
+func adjust_demolish_quantity(delta):
+	if selected_home_building_id == "":
+		return
+	var available = game.get_building_count(selected_home_building_id)
+	selected_demolish_quantity = int(clamp(selected_demolish_quantity + int(delta), 1, max(1,available)))
+	show_page("home")
+
+func demolish_selected_buildings():
+	if selected_home_building_id == "":
+		return
+	var remaining_to_remove = min(selected_demolish_quantity, game.get_building_count(selected_home_building_id))
+	var removed = 0
+	for i in range(game.state.buildings.size() - 1, -1, -1):
+		if remaining_to_remove <= 0:
+			break
+		if str(game.state.buildings[i].get("id","")) != selected_home_building_id:
+			continue
+		var result = game.demolish(i)
+		if bool(result.get("ok",false)):
+			removed += 1
+			remaining_to_remove -= 1
+			else:
+				_show_message(result.message)
+				break
+	if game.get_building_count(selected_home_building_id) <= 0:
+		selected_home_building_id = ""
+	selected_demolish_quantity = 1
+	show_page("home")
+	_show_message("%d ساختمان تخریب شد." % removed if removed > 0 else "ساختمانی تخریب نشد.")
 
 func demolish_building(index):
 	var result = game.demolish(index)
