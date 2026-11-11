@@ -204,7 +204,9 @@ func _queue_land_or_permit_requests(engine):
 					state.citizens[citizen_index] = citizen
 					continue
 			var land_price = int(state.get("private_land_price", 300))
-			if int(state.get("private_land_available", 0)) <= 0 or wallet < land_price:
+			var entrepreneurship = int(citizen.get("entrepreneurship", 50))
+			var investment_threshold = land_price + max(0, 60 - entrepreneurship) * 3
+			if entrepreneurship < 45 or int(state.get("private_land_available", 0)) <= 0 or wallet < investment_threshold:
 				continue
 			var plots = 1
 			if wallet >= land_price * 2 + 500:
@@ -398,7 +400,8 @@ func process_day(engine, report):
 	for citizen_index in range(state.citizens.size()):
 		var citizen = state.citizens[citizen_index]
 		if str(citizen.get("job", "")) == "" and int(citizen.get("private_job_id", 0)) <= 0:
-			citizen["wallet"] = int(clamp(int(citizen.get("wallet", 0)) + 20, 0, 2000))
+			var saving_income = 10 + int(int(citizen.get("saving_habit", 50)) / 5)
+			citizen["wallet"] = int(clamp(int(citizen.get("wallet", 0)) + saving_income, 0, 2000))
 			state.citizens[citizen_index] = citizen
 	_process_private_businesses(engine, report)
 	_queue_land_or_permit_requests(engine)
