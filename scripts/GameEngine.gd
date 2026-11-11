@@ -244,6 +244,15 @@ func _normalize_state():
 		state["citizen_recruitment_mode"] = "auto"
 	if typeof(state.get("resources", null)) != TYPE_DICTIONARY:
 		state.resources = {}
+	if typeof(state.get("storage_rules", null)) != TYPE_DICTIONARY:
+		state["storage_rules"] = {}
+	for resource_id in RESOURCES.keys():
+		var saved_rule = state.storage_rules.get(resource_id, {})
+		if typeof(saved_rule) != TYPE_DICTIONARY:
+			saved_rule = {}
+		state.storage_rules[resource_id] = {"minimum":max(0,int(saved_rule.get("minimum",10))),"maximum":max(10,int(saved_rule.get("maximum",40))),"low_action":str(saved_rule.get("low_action","market")),"high_action":str(saved_rule.get("high_action","market"))}
+		if int(state.storage_rules[resource_id].maximum) <= int(state.storage_rules[resource_id].minimum):
+			state.storage_rules[resource_id].maximum = int(state.storage_rules[resource_id].minimum) + 5
 	if typeof(state.get("market_stock", null)) != TYPE_DICTIONARY:
 		state.market_stock = {}
 	if typeof(state.get("trade_remaining", null)) != TYPE_DICTIONARY:
@@ -593,6 +602,76 @@ func upgrade_roads():
 
 func get_forest_tree_count():
 	return int(state.get("forest_trees", 0))
+
+
+func get_storage_rule(resource_id):
+	if not RESOURCES.has(str(resource_id)):
+		return {}
+	if typeof(state.get("storage_rules", null)) != TYPE_DICTIONARY:
+		state["storage_rules"] = {}
+	if not state.storage_rules.has(str(resource_id)):
+		state.storage_rules[str(resource_id)] = {"minimum":10,"maximum":40,"low_action":"market","high_action":"market"}
+	return state.storage_rules[str(resource_id)]
+
+func set_storage_rule(resource_id, field, value):
+	if not RESOURCES.has(str(resource_id)) or not str(field) in ["minimum","maximum"]:
+		return {"ok":false,"message":"تنظیم انبار نامعتبر است."}
+	var rule = get_storage_rule(str(resource_id))
+	var amount = max(0,int(value))
+	if str(field) == "minimum":
+		rule.minimum = min(amount,max(0,int(rule.maximum)-5))
+	else:
+		rule.maximum = max(amount,int(rule.minimum)+5)
+	state.storage_rules[str(resource_id)] = rule
+	save_game()
+	return {"ok":true,"message":"حد موجودی "+RESOURCES[str(resource_id)].name+" ذخیره شد."}
+
+func toggle_storage_action(resource_id, level):
+	var rule = get_storage_rule(str(resource_id))
+	if str(level) == "low":
+		rule.low_action = "factory" if str(rule.get("low_action","market")) == "market" else "market"
+	else:
+		rule.high_action = "shop" if str(rule.get("high_action","market")) == "market" else "market"
+	state.storage_rules[str(resource_id)] = rule
+	save_game()
+	return {"ok":true,"message":"روش مدیریت موجودی "+RESOURCES[str(resource_id)].name+" تغییر کرد."}
+
+func apply_storage_rule(resource_id, manual=false):
+	if not RESOURCES.has(str(resource_id)):
+		return {"ok":false,"message":"ماده پیدا نشد."}
+	var id = str(resource_id)
+	var rule = get_storage_rule(id)
+	var current = int(state.resources.get(id,0))
+	var minimum = int(rule.get("minimum",10))
+	var maximum = int(rule.get("maximum",40))
+	if current < minimum:
+		if str(rule.get("low_action","market")) == "market":
+			var amount = min(minimum-current,min(int(state.market_stock.get(id,0)),get_free_storage()))
+			var price = get_market_price(id,"buy")
+			amount = min(amount,int(floor(float(get_available_money())/float(max(1,price)))))
+			if amount > 0:
+				_spend_money(amount*price)
+				state.market_stock[id] = int(state.market_stock.get(id,0))-amount
+				state.resources[id] = current+amount
+				return {"ok":true,"message":"برای انبار %d واحد %s از بازار خریداری شد." % [amount,RESOURCES[id].name]}
+			return {"ok":false,"message":"برای تأمین "+RESOURCES[id].name+" موجودی بازار، فضای انبار یا پول کافی نیست."}
+		return {"ok":true,"message":"تولید "+RESOURCES[id].name+" در کارخانه‌ها در اولویت قرار گرفت؛ تولید اضافه فقط با مواد اولیه و نیروی کار ممکن است."}
+	if current > maximum:
+		var surplus = current-maximum
+		if str(rule.get("high_action","market")) == "shop":
+			if id != "food" or get_building_count("grocery_store") <= 0:
+				return {"ok":false,"message":"برای فروش این ماده از فروشگاه، فروشگاه مواد غذایی لازم است؛ فعلاً از بازار استفاده کن."}
+		# Market route uses the same stock and treasury limits as manual market sales.
+		var sold = min(surplus,min(max(0,100-int(state.market_stock.get(id,0))),int(floor(float(max(0,get_treasury_capacity()-int(state.money)))/float(max(1,get_market_price(id,"sell)))))))
+		if sold > 0:
+			var revenue = sold*get_market_price(id,"sell")
+			state.resources[id] = current-sold
+			state.market_stock[id] = int(state.market_stock.get(id,0))+sold
+			_add_money(revenue)
+			return {"ok":true,"message":"%d واحد %s به فروش رسید و %d سکه درآمد ایجاد کرد." % [sold,RESOURCES[id].name,revenue]}
+		return {"ok":false,"message":"بازار یا خزانه ظرفیت فروش "+RESOURCES[id].name+" را ندارد."}
+	return {"ok":true,"message":"موجودی "+RESOURCES[id].name+" در محدوده تنظیم‌شده است."}
+
 
 func get_storage_capacity():
 	var total = 0
@@ -1157,6 +1236,9 @@ func end_day():
 			continue
 		var input = str(data.get("input", ""))
 		var amount = int(data.get("amount", 0))
+		var output_rule = get_storage_rule(output)
+		if int(state.resources.get(output,0)) < int(output_rule.get("minimum",10)) and str(output_rule.get("low_action","market")) == "factory":
+			amount = int(ceil(float(amount) * 1.5))
 		if str(building.id) == "woodcutter" and int(state.forest_trees) <= 0:
 			report.append("چوب‌بری متوقف شد؛ جنگل برای رشد دوباره درخت‌ها به زمان نیاز دارد.")
 			continue
@@ -1177,6 +1259,12 @@ func end_day():
 				continue
 		state.resources[output] = int(state.resources.get(output, 0)) + amount
 		report.append(data.name+" تولید کرد: "+str(amount)+" "+RESOURCES[output].name+".")
+
+	# Apply each warehouse threshold after today's production.
+	for storage_resource_id in RESOURCES.keys():
+		var storage_result = apply_storage_rule(str(storage_resource_id), false)
+		if bool(storage_result.get("ok",false)) and str(storage_result.get("message","")).find("خریداری شد") >= 0:
+			report.append(str(storage_result.message))
 
 	var has_market = get_building_count("mineral_market") > 0
 	if has_market:
