@@ -458,12 +458,15 @@ func get_land_used():
 func get_land_free():
 	return max(0, int(state.get("land_owned", 10)) - get_land_used())
 
+func get_land_unit_price():
+	return 300 + max(0, int(state.get("land_owned", 10)) - 10) * 40
+
 func buy_land(plots=1):
 	var amount = int(plots)
 	if amount < 1 or amount > 10:
 		return {"ok":false,"message":"هر بار می‌توانی بین ۱ تا ۱۰ قطعه زمین بخری."}
 	var owned = int(state.get("land_owned", 10))
-	var unit_price = 300 + max(0, owned - 10) * 40
+	var unit_price = get_land_unit_price()
 	var total = unit_price * amount
 	if not _spend_money(total):
 		return {"ok":false,"message":"پول آزاد خزانه برای خرید زمین کافی نیست؛ هزینه هر قطعه %d سکه است." % unit_price}
