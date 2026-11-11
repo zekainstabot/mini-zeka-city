@@ -993,6 +993,8 @@ func show_page(page):
 				var is_completed = bool(mission.get("completed", false))
 				var card = PanelContainer.new()
 				card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				card.rect_min_size = Vector2(max(220, game_scroll_container.rect_size.x - 24), 0)
+				card.rect_clip_content = true
 				var card_style = StyleBoxFlat.new()
 				card_style.bg_color = Color("#173b32") if is_claimed else (Color("#493719") if is_completed else Color("#202b3b"))
 				card_style.border_color = Color("#4ade80") if is_claimed else (Color("#fbbf24") if is_completed else Color("#64748b"))
@@ -1013,20 +1015,32 @@ func show_page(page):
 				var card_body = VBoxContainer.new()
 				card_body.add_constant_override("separation", 7)
 				card_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				card_body.rect_clip_content = true
 				card_margin.add_child(card_body)
 				var status_text = "✓ جایزه دریافت شده" if is_claimed else ("🎁 جایزه آماده دریافت" if is_completed else "● در حال انجام")
 				var title_label = Label.new()
-				title_label.text = PersianText.reshaper(str(definition.title) + "   |   " + status_text)
+				title_label.text = PersianText.reshaper(str(definition.title))
 				title_label.align = Label.ALIGN_RIGHT
+				title_label.clip_text = true
 				title_label.autowrap = true
 				title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				_apply_font(title_label, 19)
 				title_label.add_color_override("font_color", Color("#86efac") if is_claimed else (Color("#fde68a") if is_completed else Color("#ffffff")))
 				card_body.add_child(title_label)
+				var status_label = Label.new()
+				status_label.text = PersianText.reshaper(status_text)
+				status_label.align = Label.ALIGN_RIGHT
+				status_label.autowrap = true
+				status_label.clip_text = true
+				status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				_apply_font(status_label, 16)
+				status_label.add_color_override("font_color", Color("#86efac") if is_claimed else (Color("#fde68a") if is_completed else Color("#cbd5e1")))
+				card_body.add_child(status_label)
 				var description_label = Label.new()
 				description_label.text = PersianText.reshaper(str(definition.description))
 				description_label.align = Label.ALIGN_RIGHT
 				description_label.autowrap = true
+				description_label.clip_text = true
 				description_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				_apply_font(description_label, 17)
 				description_label.add_color_override("font_color", Color("#f8fafc"))
@@ -1037,6 +1051,7 @@ func show_page(page):
 				progress_label.text = PersianText.reshaper("پیشرفت: %d از %d     |     جایزه: %d سکه" % [current_progress, target_progress, int(definition.reward)])
 				progress_label.align = Label.ALIGN_RIGHT
 				progress_label.autowrap = true
+				progress_label.clip_text = true
 				progress_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				_apply_font(progress_label, 16)
 				progress_label.add_color_override("font_color", Color("#bae6fd"))
@@ -1061,6 +1076,7 @@ func show_page(page):
 					hint_label.text = PersianText.reshaper("راهنما: " + str(definition.get("hint", "از بخش‌های شهر هدف را دنبال کن.")))
 					hint_label.align = Label.ALIGN_RIGHT
 					hint_label.autowrap = true
+					hint_label.clip_text = true
 					hint_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 					_apply_font(hint_label, 16)
 					hint_label.add_color_override("font_color", Color("#cbd5e1"))
