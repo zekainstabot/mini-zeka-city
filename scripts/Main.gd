@@ -386,7 +386,8 @@ func _load_ui_font():
 	ui_font = DynamicFont.new()
 	ui_font.font_data = font_data
 	ui_font.size = 20
-	ui_font.use_filter = true
+	# Avoid texture filtering: it softens glyph edges and makes small UI text look blurry.
+	ui_font.use_filter = false
 	ui_font.use_mipmaps = false
 
 func _apply_font(control, size=18):
@@ -394,12 +395,13 @@ func _apply_font(control, size=18):
 		return
 	var font = DynamicFont.new()
 	font.font_data = ui_font.font_data
-	font.use_filter = true
+	# Keep the rendered glyph edges crisp instead of smoothing the font texture.
+	font.use_filter = false
 	font.use_mipmaps = false
-	# Slightly larger glyphs and a subtle dark outline improve readability on mobile.
-	font.size = int(size) + (3 if get_viewport_rect().size.x < 900 else 2)
+	# Larger glyphs plus a dark outline improve readability on compact screens.
+	font.size = int(size) + (5 if get_viewport_rect().size.x < 900 else 4)
 	font.outline_size = 1
-	font.outline_color = Color("#0b1220")
+	font.outline_color = Color("#05070b")
 	control.add_font_override("font", font)
 	return font
 
@@ -426,10 +428,11 @@ func _style_button(button, navigation=false):
 	button.add_stylebox_override("focus", _button_style(hover_color, Color("#78350f")))
 	button.add_stylebox_override("pressed", _button_style(pressed_color, Color("#78350f")))
 	button.add_stylebox_override("disabled", _button_style(Color("#64748b"), Color("#94a3b8")))
-	button.add_color_override("font_color", Color("#111827"))
-	button.add_color_override("font_color_focus", Color("#111827"))
-	button.add_color_override("font_color_hover", Color("#111827"))
-	button.add_color_override("font_color_pressed", Color("#111827"))
+	# Use near-black text in every interactive state so labels stay readable.
+	button.add_color_override("font_color", Color("#05070b"))
+	button.add_color_override("font_color_focus", Color("#05070b"))
+	button.add_color_override("font_color_hover", Color("#05070b"))
+	button.add_color_override("font_color_pressed", Color("#05070b"))
 	button.add_color_override("font_color_disabled", Color("#e2e8f0"))
 
 func _clear_content():
