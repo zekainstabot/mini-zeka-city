@@ -492,6 +492,7 @@ func show_page(page):
 			_add_label("اعتبار شهر: %d  |  رضایت: %d/۱۰۰" % [s.reputation,int(s.get("satisfaction",50))], 18)
 
 			var details_toggle = _add_button(("▼ " if home_city_details_expanded else "▶ ") + "خدمات و زیرساخت شهر", self, "toggle_home_city_details")
+			_style_button(details_toggle, true)
 			if home_city_details_expanded:
 				_add_label("پوشش خدمات: " + _service_summary(), 15)
 				_add_label("نیازهای شهروندان: " + _needs_summary(), 15)
@@ -501,6 +502,7 @@ func show_page(page):
 				_add_label("درختان جنگل: %d از ۱۰۰  |  معادن فعال: %d" % [game.get_forest_tree_count(),_active_mine_count()], 16)
 
 			var buildings_toggle = _add_button(("▼ " if home_buildings_expanded else "▶ ") + "ساختمان‌های ساخته‌شده", self, "toggle_home_buildings")
+			_style_button(buildings_toggle, true)
 			if home_buildings_expanded:
 				var home_categories = ["خانه‌ها","کشاورزی","معادن","کارخانه‌ها","کسب‌وکارها","خدمات شهری","تفریح و فرهنگ","انبارها"]
 				var any_home_building = false
@@ -521,6 +523,7 @@ func show_page(page):
 					_add_label("هنوز ساختمانی در شهر ساخته نشده است.", 16)
 
 			var demolish_toggle = _add_button(("▼ " if demolish_panel_expanded else "▶ ") + "مدیریت تخریب ساختمان‌ها", self, "toggle_demolish_panel")
+			_style_button(demolish_toggle, true)
 			if demolish_panel_expanded:
 				_add_label("ساختمان موردنظر را انتخاب کن:", 16)
 				for home_id in game.get_building_definitions().keys():
@@ -529,6 +532,7 @@ func show_page(page):
 						continue
 					var home_data = game.get_building_definitions()[home_id]
 					var home_button = _add_button("%s  |  تعداد: %d" % [str(home_data.name),home_count], self, "select_home_building", [home_id])
+					_style_button(home_button, true)
 					if selected_home_building_id == str(home_id):
 						home_button.add_color_override("font_color", Color("#fde68a"))
 				if selected_home_building_id != "" and game.get_building_count(selected_home_building_id) > 0:
@@ -560,12 +564,14 @@ func show_page(page):
 					_add_label("برای تخریب، ابتدا یک ساختمان را انتخاب کن.", 15)
 
 			var economy_toggle = _add_button(("▼ " if home_economy_expanded else "▶ ") + "منابع و گزارش مالی", self, "toggle_home_economy")
+			_style_button(economy_toggle, true)
 			if home_economy_expanded:
 				_add_label("منابع: " + _resource_summary(), 16)
 				_add_label("ذخیره غذای شهر: %d واحد" % int(s.resources.get("food",0)), 16)
 				var home_economy = s.get("last_economy", {})
 				_add_label("آخرین تراز روزانه: %d سکه" % int(home_economy.get("net_cashflow",0)), 17)
-			_add_button("💾 ذخیره شهر", self, "save_now")
+			var save_city_button = _add_button("💾 ذخیره شهر", self, "save_now")
+			_style_button(save_city_button, true)
 		"buildings":
 			_add_label("ساخت‌وساز شهر", 22)
 			_add_label("زمین شهر: %d قطعه | اشغال‌شده: %d | آزاد: %d" % [int(s.get("land_owned",10)),game.get_land_used(),game.get_land_free()], 19)
