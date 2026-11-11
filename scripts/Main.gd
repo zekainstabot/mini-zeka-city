@@ -1081,6 +1081,8 @@ func show_page(page):
 					_apply_font(hint_label, 16)
 					hint_label.add_color_override("font_color", Color("#cbd5e1"))
 					card_body.add_child(hint_label)
+				var go_button = _add_button("↗ رفتن به بخش مربوط", self, "go_to_mission_target", [str(mission.get("id", ""))])
+				_style_button(go_button, false)
 				if is_completed and not is_claimed:
 					var claim_button = Button.new()
 					claim_button.text = PersianText.reshaper("🎁 دریافت جایزه و باز کردن مرحله بعد")
@@ -1366,6 +1368,37 @@ func run_storage_rule(resource_id):
 	show_page("storage")
 	_show_message(result.message)
 
+
+func go_to_mission_target(mission_id):
+	var target_page = "home"
+	selected_building_category = ""
+	match str(mission_id):
+		"buy_land_tutorial":
+			target_page = "buildings"
+			selected_building_category = ""
+		"build_house_tutorial":
+			target_page = "buildings"
+			selected_building_category = "خانه‌ها"
+		"build_farm_tutorial":
+			target_page = "buildings"
+			selected_building_category = "کشاورزی"
+		"hire_worker_tutorial":
+			target_page = "citizens"
+		"population_tutorial":
+			target_page = "citizens"
+		"market_tutorial":
+			target_page = "buildings"
+			selected_building_category = "کسب‌وکارها"
+		"transport_tutorial":
+			target_page = "transport"
+		"level_tutorial":
+			target_page = "home"
+		_:
+			target_page = "home"
+	show_page(target_page)
+	if game_scroll_container != null and is_instance_valid(game_scroll_container):
+		game_scroll_container.scroll_vertical = 0
+	_show_message("به بخش مربوط به این مأموریت رفتی.")
 
 func claim_mission(index):
 	var result = game.claim_mission(index)
