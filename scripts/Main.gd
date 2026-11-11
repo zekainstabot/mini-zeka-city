@@ -67,6 +67,8 @@ func _build_ui():
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.rect_clip_content = true
 	root.add_child(scroll)
+	# Hide horizontal scrolling so it cannot cover text at the screen edge.
+	scroll.get_h_scrollbar().visible = false
 	content = VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.rect_min_size = Vector2(0, 0)
@@ -113,12 +115,12 @@ func _style_button(button, navigation=false):
 	button.add_stylebox_override("hover", _button_style(hover_color, Color("#ffffff")))
 	button.add_stylebox_override("focus", _button_style(hover_color, Color("#ffffff")))
 	button.add_stylebox_override("pressed", _button_style(pressed_color, Color("#ffffff")))
-	button.add_stylebox_override("disabled", _button_style(Color("#1f2937"), Color("#374151")))
+	button.add_stylebox_override("disabled", _button_style(Color("#475569"), Color("#94a3b8")))
 	button.add_color_override("font_color", Color("#111827") if navigation else Color("#ffffff"))
 	button.add_color_override("font_color_focus", Color("#ffffff"))
 	button.add_color_override("font_color_hover", Color("#111827") if navigation else Color("#ffffff"))
 	button.add_color_override("font_color_pressed", Color("#ffffff"))
-	button.add_color_override("font_color_disabled", Color("#64748b"))
+	button.add_color_override("font_color_disabled", Color("#f8fafc"))
 
 func _clear_content():
 	for child in content.get_children():
