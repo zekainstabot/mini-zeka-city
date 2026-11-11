@@ -130,6 +130,7 @@ func _expire_rentals(engine, report):
 				citizen["private_job_id"] = 0
 			if int(citizen.get("private_business_id", 0)) == business_id:
 				citizen["private_business_id"] = 0
+				citizen["civic_request_pending"] = false
 				citizen["next_civic_request_day"] = int(state.day) + 1
 			state.citizens[citizen_index] = citizen
 		var building_index = int(business.get("building_index", -1))
