@@ -1,6 +1,8 @@
 extends Reference
 class_name MiniZekaCityEngine
 
+const CitizenSociety = preload("res://scripts/CitizenSociety.gd")
+
 const SAVE_PATH = "user://mini_zeka_city_save.json"
 const STORAGE_RESERVE = 50
 const FORESTRY_RESERVES = {"wood": 20, "lumber": 10, "furniture": 0}
@@ -83,7 +85,7 @@ var state = {}
 
 func new_game():
 	state = {
-		"version": 10,
+		"version": 11,
 		"day": 1,
 		"clock_last_unix": OS.get_unix_time(),
 		"clock_cycle_seconds": 0,
@@ -124,6 +126,7 @@ func new_game():
 		"last_report": "شهر جدید ساخته شد. به مینی زکا سیتی خوش آمدی."
 	}
 	_sync_population()
+	CitizenSociety.new().ensure_state(self)
 	_sync_missions()
 	return state
 
@@ -135,11 +138,12 @@ func load_game():
 		return false
 	var parsed = parse_json(file.get_as_text())
 	file.close()
-	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 10:
+	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 11:
 		return false
 	state = parsed
 	_normalize_state()
 	_sync_population()
+	CitizenSociety.new().ensure_state(self)
 	_sync_missions()
 	return true
 
@@ -206,7 +210,7 @@ func _normalize_state():
 	for need_id in ["food","water","power","health","education","safety","leisure","sanitation"]:
 		state.needs[need_id] = int(clamp(int(state.needs.get(need_id, 60)), 0, 100))
 	for citizen in state.citizens:
-		citizen["wallet"] = int(clamp(int(citizen.get("wallet", 100)), 0, 500))
+		citizen["wallet"] = int(clamp(int(citizen.get("wallet", 100)), 0, 2000))
 	for building in state.buildings:
 		building["balance"] = max(0, int(building.get("balance", 0)))
 	if typeof(state.get("missions", null)) != TYPE_ARRAY:
@@ -214,7 +218,7 @@ func _normalize_state():
 	if typeof(state.get("mines", null)) != TYPE_ARRAY:
 		state["mines"] = []
 	# Save schema migration: add dynamic market, trade and shipping state.
-	state["version"] = 10
+	state["version"] = 11
 	for id in RESOURCES.keys():
 		state.market_stock[id] = int(clamp(int(state.market_stock.get(id, 60)), 0, 100))
 	for city_id in TRADE_CITIES.keys():
@@ -453,6 +457,8 @@ func get_land_used():
 		used += get_land_size(str(building.get("id", "")))
 	for project in state.get("constructions", []):
 		used += get_land_size(str(project.get("id", "")))
+	for project in state.get("civic_projects", []):
+		used += get_land_size(str(project.get("building_id", "")))
 	return used
 
 func get_land_free():
@@ -789,6 +795,16 @@ func claim_mission(mission_index):
 	save_game()
 	return {"ok":true,"message":"پاداش ماموریت دریافت شد: %d سکه." % reward}
 
+
+func get_civic_overview():
+	return CitizenSociety.new().get_overview(self)
+
+func resolve_civic_request(request_id, approved):
+	return CitizenSociety.new().resolve_request(self, int(request_id), bool(approved))
+
+func adjust_business_tax(delta):
+	return CitizenSociety.new().adjust_tax_rate(self, int(delta))
+
 func get_xp_required_for_next_level():
 	return max(100, int(state.get("level", 1)) * 100)
 
@@ -934,6 +950,7 @@ func end_day():
 	_refresh_trade_capacity()
 
 	_process_citizen_recruitment(report)
+	CitizenSociety.new().process_day(self, report)
 
 	if not has_central_bank() and int(state.central_bank_rebuild_days_left) > 0:
 		state.central_bank_rebuild_days_left -= 1
