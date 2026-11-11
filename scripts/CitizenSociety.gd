@@ -222,7 +222,8 @@ func _queue_land_or_permit_requests(engine):
 		if owned_private_plots < required_plots:
 			var extra_plots = required_plots - owned_private_plots
 			var extra_land_cost = int(state.get("private_land_price", 300)) * extra_plots
-			if int(state.get("private_land_available", 0)) < extra_plots or wallet < extra_land_cost:
+			var required_business_cost = int(engine.BUILDINGS[building_id].get("cost", 0)) + int(state.get("business_permit_fee", 50))
+			if int(state.get("private_land_available", 0)) < extra_plots or wallet < extra_land_cost + required_business_cost:
 				continue
 			state.business_requests.append({
 				"id":_next_request_id(state),
