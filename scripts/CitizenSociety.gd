@@ -447,8 +447,9 @@ func resolve_request(engine, request_id, approved):
 	if request_type == "land":
 		var plots = int(request.get("plots", 1))
 		var cost = int(request.get("amount", 0))
-		if int(state.get("private_land_available", 0)) < plots or int(citizen.get("wallet", 0)) < cost:
-			return {"ok":false,"message":"زمین یا سرمایه شهروند برای این معامله کافی نیست."}
+		var land_treasury_room = max(0, engine.get_treasury_capacity() - int(state.money))
+		if int(state.get("private_land_available", 0)) < plots or int(citizen.get("wallet", 0)) < cost or land_treasury_room < cost:
+			return {"ok":false,"message":"زمین، سرمایه شهروند یا ظرفیت خزانه برای این معامله کافی نیست."}
 		state["private_land_available"] = int(state.private_land_available) - plots
 		citizen["private_land"] = int(citizen.get("private_land", 0)) + plots
 		citizen["wallet"] = int(citizen.get("wallet", 0)) - cost
@@ -464,8 +465,9 @@ func resolve_request(engine, request_id, approved):
 		var building_index = int(request.get("building_index", -1))
 		var daily_rent = int(request.get("daily_rent", 0))
 		var lease_cost = int(request.get("amount", 0))
-		if building_index < 0 or building_index >= state.buildings.size() or int(citizen.get("wallet", 0)) < lease_cost:
-			return {"ok":false,"message":"ملک یا سرمایه لازم برای اجاره دیگر در دسترس نیست."}
+		var rent_treasury_room = max(0, engine.get_treasury_capacity() - int(state.money))
+		if building_index < 0 or building_index >= state.buildings.size() or int(citizen.get("wallet", 0)) < lease_cost or rent_treasury_room < lease_cost:
+			return {"ok":false,"message":"ملک، سرمایه مستأجر یا ظرفیت خزانه برای دریافت کامل اجاره کافی نیست."}
 		var municipal_property = state.buildings[building_index]
 		if int(municipal_property.get("rented_to", 0)) > 0 or not bool(municipal_property.get("municipal_owned", false)):
 			return {"ok":false,"message":"این ملک دیگر برای اجاره آزاد نیست."}
@@ -513,7 +515,9 @@ func resolve_request(engine, request_id, approved):
 		var data = engine.BUILDINGS.get(building_id, {})
 		var cost = int(request.get("amount", 0))
 		var footprint = int(request.get("footprint", 1))
-		if data.empty() or int(citizen.get("private_land", 0)) < footprint or int(citizen.get("wallet", 0)) < cost:
+		var permit_fee = int(state.get("business_permit_fee", 50))
+		var permit_treasury_room = max(0, engine.get_treasury_capacity() - int(state.money))
+		if data.empty() or int(citizen.get("private_land", 0)) < footprint or int(citizen.get("wallet", 0)) < cost or permit_treasury_room < permit_fee:
 			return {"ok":false,"message":"شرایط زمین یا سرمایه برای صدور مجوز دیگر برقرار نیست."}
 		var business_id = int(state.get("next_private_business_id", 1))
 		state["next_private_business_id"] = business_id + 1
