@@ -465,7 +465,7 @@ func resolve_request(engine, request_id, approved):
 		state.buildings[building_index] = municipal_property
 		var rented_id_name = str(request.get("building_id", ""))
 		var rented_data = engine.BUILDINGS.get(rented_id_name, {})
-		var rent_revenue = max(30, int(int(rented_data.get("daily_revenue", 0)) / max(1, int(rented_data.get("jobs", 1))))
+		var rent_revenue = max(30, int(int(rented_data.get("daily_revenue", 0)) / max(1, int(rented_data.get("jobs", 1)))))
 		state.private_businesses.append({
 			"id":rented_id,
 			"owner_citizen_id":int(citizen.id),
