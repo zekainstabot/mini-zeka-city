@@ -426,6 +426,7 @@ func resolve_request(engine, request_id, approved):
 		citizen["next_civic_request_day"] = int(state.day) + 3
 		state.citizens[citizen_index] = citizen
 		engine.state = state
+		engine.save_game()
 		return {"ok":true,"message":"درخواست شهروند شماره %d رد شد." % int(citizen.get("id", 0))}
 	var request_type = str(request.get("type", ""))
 	if request_type == "land":
@@ -489,6 +490,7 @@ func resolve_request(engine, request_id, approved):
 		engine._add_money(lease_cost)
 		state.business_requests.remove(request_index)
 		engine.state = state
+		engine.assign_jobs()
 		engine.save_game()
 		return {"ok":true,"message":"اجاره ملک شهرداری برای ۷ روز تأیید شد؛ مبلغ %d سکه جدا از مالیات دریافت شد." % lease_cost}
 	if request_type == "permit":
