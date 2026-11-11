@@ -159,7 +159,9 @@ func _choose_business(engine, citizen):
 			continue
 		if int(data.get("jobs", 0)) <= 0:
 			continue
-		var total_cost = int(data.get("cost", 0)) + int(state.get("business_permit_fee", 50))
+		var missing_plots = max(0, int(engine.get_land_size(building_id)) - int(citizen.get("private_land", 0)))
+		var extra_land_cost = missing_plots * int(state.get("private_land_price", 300))
+		var total_cost = int(data.get("cost", 0)) + int(state.get("business_permit_fee", 50)) + extra_land_cost
 		if int(citizen.get("wallet", 0)) < total_cost:
 			continue
 		selected = building_id
