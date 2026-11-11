@@ -251,7 +251,7 @@ func _next_citizen_request_id():
 	return highest + 1
 
 func set_citizen_recruitment_mode(mode):
-	if not (str(mode) in ["auto", "manual"]):
+	if str(mode) != "auto" and str(mode) != "manual":
 		return {"ok":false,"message":"حالت جذب نامعتبر است."}
 	state["citizen_recruitment_mode"] = str(mode)
 	save_game()
