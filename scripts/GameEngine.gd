@@ -83,10 +83,12 @@ var state = {}
 
 func new_game():
 	state = {
-		"version": 9,
+		"version": 10,
 		"day": 1,
 		"money": 10000,
 		"population": 4,
+		"citizen_recruitment_mode": "auto",
+		"citizen_requests": [],
 		"level": 1,
 		"xp": 0,
 		"reputation": 50,
@@ -129,7 +131,7 @@ func load_game():
 		return false
 	var parsed = parse_json(file.get_as_text())
 	file.close()
-	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 9:
+	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 10:
 		return false
 	state = parsed
 	_normalize_state()
@@ -150,6 +152,10 @@ func _normalize_state():
 		state.buildings = []
 	if typeof(state.get("citizens", null)) != TYPE_ARRAY:
 		state.citizens = []
+	if typeof(state.get("citizen_requests", null)) != TYPE_ARRAY:
+		state["citizen_requests"] = []
+	if str(state.get("citizen_recruitment_mode", "auto")) not in ["auto", "manual"]:
+		state["citizen_recruitment_mode"] = "auto"
 	if typeof(state.get("resources", null)) != TYPE_DICTIONARY:
 		state.resources = {}
 	if typeof(state.get("market_stock", null)) != TYPE_DICTIONARY:
@@ -195,7 +201,7 @@ func _normalize_state():
 	if typeof(state.get("mines", null)) != TYPE_ARRAY:
 		state["mines"] = []
 	# Save schema migration: add dynamic market, trade and shipping state.
-	state["version"] = 9
+	state["version"] = 10
 	for id in RESOURCES.keys():
 		state.market_stock[id] = int(clamp(int(state.market_stock.get(id, 60)), 0, 100))
 	for city_id in TRADE_CITIES.keys():
@@ -237,6 +243,57 @@ func _sync_population():
 		state.citizens.pop_back()
 	while state.citizens.size() < state.population:
 		state.citizens.append({"id":_next_citizen_id(),"job":"","job_building_index":-1,"wallet":100})
+
+func _next_citizen_request_id():
+	var highest = 0
+	for request in state.get("citizen_requests", []):
+		highest = max(highest, int(request.get("id", 0)))
+	return highest + 1
+
+func set_citizen_recruitment_mode(mode):
+	if str(mode) not in ["auto", "manual"]:
+		return {"ok":false,"message":"حالت جذب نامعتبر است."}
+	state["citizen_recruitment_mode"] = str(mode)
+	save_game()
+	return {"ok":true,"message":"حالت جذب شهروندان: "+("خودکار" if str(mode) == "auto" else "دستی")}
+
+func accept_citizen_request(request_index):
+	if request_index < 0 or request_index >= state.citizen_requests.size():
+		return {"ok":false,"message":"درخواست پیدا نشد."}
+	if int(state.population) >= get_housing_capacity():
+		return {"ok":false,"message":"ظرفیت خانه‌ها پر است؛ ابتدا خانه بیشتری بساز."}
+	var request = state.citizen_requests[request_index]
+	state.citizen_requests.remove(request_index)
+	state.population += 1
+	state.citizens.append({"id":_next_citizen_id(),"job":"","job_building_index":-1,"wallet":100})
+	assign_jobs()
+	save_game()
+	return {"ok":true,"message":"متقاضی شماره %d پذیرفته شد و به شهر اضافه شد." % int(request.get("id",0))}
+
+func reject_citizen_request(request_index):
+	if request_index < 0 or request_index >= state.citizen_requests.size():
+		return {"ok":false,"message":"درخواست پیدا نشد."}
+	var request = state.citizen_requests[request_index]
+	state.citizen_requests.remove(request_index)
+	save_game()
+	return {"ok":true,"message":"درخواست متقاضی شماره %d رد شد." % int(request.get("id",0))}
+
+func _process_citizen_recruitment(report):
+	var housing = get_housing_capacity()
+	if int(state.population) >= housing or int(state.reputation) < 25:
+		return
+	# One potential resident arrives each game day while housing and reputation allow it.
+	if str(state.get("citizen_recruitment_mode", "auto")) == "manual":
+		if state.citizen_requests.size() >= 5:
+			return
+		var request_id = _next_citizen_request_id()
+		state.citizen_requests.append({"id":request_id,"day":int(state.day)})
+		report.append("یک درخواست مهاجرت جدید ثبت شد؛ از بخش شهروندان بررسی‌اش کن.")
+		return
+	state.population += 1
+	state.citizens.append({"id":_next_citizen_id(),"job":"","job_building_index":-1,"wallet":100})
+	report.append("یک شهروند جدید به‌صورت خودکار به شهر مهاجرت کرد.")
+	assign_jobs()
 
 func _next_citizen_id():
 	var highest = 0
@@ -763,12 +820,7 @@ func end_day():
 		state.market_stock[restock_id] = min(100, int(state.market_stock.get(restock_id, 0)) + 5)
 	_refresh_trade_capacity()
 
-	var housing = get_housing_capacity()
-	if state.population < housing and state.reputation >= 25:
-		state.population += 1
-		state.citizens.append({"id":_next_citizen_id(),"job":"","job_building_index":-1,"wallet":100})
-		report.append("یک شهروند جدید به شهر مهاجرت کرد.")
-		assign_jobs()
+	_process_citizen_recruitment(report)
 
 	if not has_central_bank() and int(state.central_bank_rebuild_days_left) > 0:
 		state.central_bank_rebuild_days_left -= 1
