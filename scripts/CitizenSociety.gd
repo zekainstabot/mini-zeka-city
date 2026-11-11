@@ -590,6 +590,22 @@ func adjust_tax_rate(engine, delta):
 	engine.save_game()
 	return {"ok":true,"message":"نرخ مالیات کسب‌وکارهای خصوصی به %d درصد تغییر کرد." % int(state.business_tax_rate)}
 
+func adjust_permit_fee(engine, delta):
+	ensure_state(engine)
+	var state = engine.state
+	state["business_permit_fee"] = int(clamp(int(state.get("business_permit_fee", 50)) + int(delta), 0, 1000))
+	engine.state = state
+	engine.save_game()
+	return {"ok":true,"message":"هزینه صدور مجوز به %d سکه تغییر کرد." % int(state.business_permit_fee)}
+
+func adjust_private_land_price(engine, delta):
+	ensure_state(engine)
+	var state = engine.state
+	state["private_land_price"] = int(clamp(int(state.get("private_land_price", 300)) + int(delta), 100, 5000))
+	engine.state = state
+	engine.save_game()
+	return {"ok":true,"message":"قیمت فروش زمین خصوصی به %d سکه تغییر کرد." % int(state.private_land_price)}
+
 func get_overview(engine):
 	ensure_state(engine)
 	var state = engine.state
