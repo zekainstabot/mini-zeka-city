@@ -236,8 +236,8 @@ func _on_menu_item_selected(id):
 			game_paused = not game_paused
 			_show_message("بازی متوقف شد." if game_paused else "بازی ادامه پیدا کرد.")
 		2:
-			save_now()
-			_show_message("شهر ذخیره شد." if game.save_game() else "ذخیره‌سازی ناموفق بود.")
+			var saved = game.save_game()
+			_show_message("شهر ذخیره شد." if saved else "ذخیره‌سازی ناموفق بود.")
 		3:
 			restart_dialog.popup_centered()
 		4:
