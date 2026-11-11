@@ -447,6 +447,8 @@ func _ensure_building_locations():
 		var collection = state.get(collection_name, [])
 		for i in range(collection.size()):
 			var item = collection[i]
+			if collection_name == "private_businesses" and bool(item.get("rented_municipal", false)):
+				continue
 			var building_id = str(item.get("id", item.get("building_id", "")))
 			if str(item.get("zone", "")) == "":
 				var location = _assign_building_location(building_id)
@@ -477,6 +479,8 @@ func get_districts_overview():
 			if str(construction.get("district_id", "")) == str(district.get("id", "")):
 				names.append(str(BUILDINGS.get(str(construction.get("id", "")), {}).get("name", "پروژه در حال ساخت"))+" (در حال ساخت)")
 		for business in state.get("private_businesses", []):
+			if bool(business.get("rented_municipal", false)):
+				continue
 			if str(business.get("district_id", "")) == str(district.get("id", "")):
 				names.append(str(business.get("name", BUILDINGS.get(str(business.get("building_id", "")), {}).get("name", "کسب‌وکار"))))
 		var row = district.duplicate(true)
@@ -491,6 +495,8 @@ func get_districts_overview():
 		if str(construction.get("zone", "")) == "industrial":
 			industrial_names.append(str(BUILDINGS.get(str(construction.get("id", "")), {}).get("name", "ساختمان"))+" (در حال ساخت)")
 	for business in state.get("private_businesses", []):
+		if bool(business.get("rented_municipal", false)):
+			continue
 		if str(business.get("zone", "")) == "industrial":
 			industrial_names.append(str(business.get("name", "کسب‌وکار خصوصی")))
 	return {"districts":result,"industrial_buildings":industrial_names,"district_count":result.size()}
