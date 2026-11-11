@@ -83,7 +83,7 @@ var state = {}
 
 func new_game():
 	state = {
-		"version": 8,
+		"version": 9,
 		"day": 1,
 		"money": 10000,
 		"population": 4,
@@ -129,7 +129,7 @@ func load_game():
 		return false
 	var parsed = parse_json(file.get_as_text())
 	file.close()
-	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 8:
+	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 9:
 		return false
 	state = parsed
 	_normalize_state()
@@ -195,7 +195,7 @@ func _normalize_state():
 	if typeof(state.get("mines", null)) != TYPE_ARRAY:
 		state["mines"] = []
 	# Save schema migration: add dynamic market, trade and shipping state.
-	state["version"] = 8
+	state["version"] = 9
 	for id in RESOURCES.keys():
 		state.market_stock[id] = int(clamp(int(state.market_stock.get(id, 60)), 0, 100))
 	for city_id in TRADE_CITIES.keys():
@@ -619,6 +619,16 @@ func claim_mission(mission_index):
 	save_game()
 	return {"ok":true,"message":"پاداش ماموریت دریافت شد: %d سکه." % reward}
 
+func get_xp_required_for_next_level():
+	return max(100, int(state.get("level", 1)) * 100)
+
+func get_daily_xp_gain():
+	# XP grows with city size, but is deliberately capped so a large city
+	# cannot skip many levels in a single day.
+	var population_bonus = int(sqrt(float(max(0, int(state.get("population", 0))))) * 2.0)
+	var building_bonus = min(10, state.get("buildings", []).size())
+	return int(clamp(5 + population_bonus + building_bonus, 5, 60))
+
 func end_day():
 	var report = []
 	assign_jobs()
@@ -781,14 +791,26 @@ func end_day():
 			var city_stock = state.city_export_stock.get(city_id, TRADE_CITIES[city_id].supply)
 			city_stock[resource_id] = min(int(TRADE_CITIES[city_id].supply.get(resource_id,0)), int(city_stock.get(resource_id,0)) + max(1,int(TRADE_CITIES[city_id].supply.get(resource_id,0) / 5)))
 			state.city_export_stock[city_id] = city_stock
-	state.xp += 5 + state.population
+	var xp_earned = get_daily_xp_gain()
+	var previous_level = int(state.level)
+	state.xp += xp_earned
 	var levels_gained = 0
-	while state.xp >= state.level * 100:
-		state.xp -= state.level * 100
+	while state.xp >= get_xp_required_for_next_level():
+		state.xp -= get_xp_required_for_next_level()
 		state.level += 1
 		levels_gained += 1
+	report.append("امتیاز تجربه امروز: %d | پیشرفت سطح: %d از %d." % [xp_earned, int(state.xp), get_xp_required_for_next_level()])
 	if levels_gained > 0:
-		report.append("سطح شهر %d مرحله ارتقا یافت؛ سطح فعلی: %d." % [levels_gained, state.level])
+		report.append("تبریک! شهر %d سطح ارتقا یافت؛ سطح فعلی: %d." % [levels_gained, state.level])
+		var newly_unlocked = []
+		for building_id in BUILDINGS.keys():
+			var definition = BUILDINGS[building_id]
+			var required_level = int(definition.get("level_unlock", 1))
+			if required_level > previous_level and required_level <= int(state.level) and int(state.population) >= int(definition.get("unlock", 0)):
+				newly_unlocked.append(str(definition.name))
+		if newly_unlocked.size() > 0:
+			report.append("ساختمان‌های تازه در دسترس: " + "، ".join(newly_unlocked))
+	_update_missions()
 	state.last_report = "\n".join(report)
 	save_game()
 	return state.last_report
