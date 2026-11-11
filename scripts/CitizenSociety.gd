@@ -40,6 +40,8 @@ func ensure_state(engine):
 		state.buildings[building_index] = building
 	for i in range(state.citizens.size()):
 		var citizen = state.citizens[i]
+		var profile_id = int(citizen.get("id", i + 1))
+		var interests = ["food", "industry", "services"]
 		if not bool(citizen.get("civic_profile_initialized", false)):
 			citizen["wallet"] = max(250, int(citizen.get("wallet", 100)))
 			citizen["private_land"] = 0
@@ -48,28 +50,20 @@ func ensure_state(engine):
 			citizen["next_civic_request_day"] = int(state.day)
 			citizen["civic_request_pending"] = false
 			citizen["last_project_request_day"] = 0
-			var profile_id = int(citizen.get("id", i + 1))
-			citizen["entrepreneurship"] = 35 + int((profile_id * 17) % 66)
-			citizen["risk_tolerance"] = 20 + int((profile_id * 29) % 81)
-			var interests = ["food", "industry", "services"]
-			citizen["business_interest"] = interests[int(profile_id) % interests.size()]
-			citizen["saving_habit"] = 30 + int((profile_id * 13) % 71)
 			citizen["civic_profile_initialized"] = true
 		else:
 			citizen["wallet"] = int(clamp(int(citizen.get("wallet", 0)), 0, 2000))
 			citizen["private_land"] = max(0, int(citizen.get("private_land", 0)))
 			citizen["private_business_id"] = int(citizen.get("private_business_id", 0))
 			citizen["private_job_id"] = int(citizen.get("private_job_id", 0))
-			var profile_id = int(citizen.get("id", i + 1))
-			if not citizen.has("entrepreneurship"):
-				citizen["entrepreneurship"] = 35 + int((profile_id * 17) % 66)
-			if not citizen.has("risk_tolerance"):
-				citizen["risk_tolerance"] = 20 + int((profile_id * 29) % 81)
-			if not citizen.has("business_interest"):
-				var interests = ["food", "industry", "services"]
-				citizen["business_interest"] = interests[int(profile_id) % interests.size()]
-			if not citizen.has("saving_habit"):
-				citizen["saving_habit"] = 30 + int((profile_id * 13) % 71)
+		if not citizen.has("entrepreneurship"):
+			citizen["entrepreneurship"] = 35 + int((profile_id * 17) % 66)
+		if not citizen.has("risk_tolerance"):
+			citizen["risk_tolerance"] = 20 + int((profile_id * 29) % 81)
+		if not citizen.has("business_interest"):
+			citizen["business_interest"] = interests[int(profile_id) % interests.size()]
+		if not citizen.has("saving_habit"):
+			citizen["saving_habit"] = 30 + int((profile_id * 13) % 71)
 		state.citizens[i] = citizen
 	engine.state = state
 
