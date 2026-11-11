@@ -194,7 +194,8 @@ func new_game():
 		"last_import_report": "هنوز محموله‌ای سفارش داده نشده است.",
 		"citizens": [],
 		"last_economy": {"tax_income":0,"business_income":0,"resource_income":0,"gross_income":0,"accepted_income":0,"wages_due":0,"wages_paid":0,"fleet_maintenance":0,"road_maintenance":0,"maintenance_paid":0,"net_cashflow":0},
-		"last_report": "شهر جدید ساخته شد. به مینی زکا سیتی خوش آمدی."
+		"last_report": "شهر جدید ساخته شد. به مینی زکا سیتی خوش آمدی.",
+		"report_events": [{"timestamp":OS.get_unix_time(),"day":1,"message":"شهر جدید ساخته شد. به مینی زکا سیتی خوش آمدی."}]
 	}
 	_sync_population()
 	CitizenSociety.new().ensure_state(self)
@@ -220,6 +221,17 @@ func load_game():
 	_sync_missions()
 	return true
 
+func add_report_event(message):
+	var clean_message = str(message).strip_edges()
+	if clean_message == "":
+		return
+	if typeof(state.get("report_events", null)) != TYPE_ARRAY:
+		state["report_events"] = []
+	state.report_events.append({"timestamp":OS.get_unix_time(),"day":int(state.get("day", 1)),"message":clean_message})
+	while state.report_events.size() > 100:
+		state.report_events.pop_front()
+	save_game()
+
 func save_game():
 	var file = File.new()
 	if file.open(SAVE_PATH, File.WRITE) != OK:
@@ -229,6 +241,10 @@ func save_game():
 	return true
 
 func _normalize_state():
+	if typeof(state.get("report_events", null)) != TYPE_ARRAY:
+		state["report_events"] = []
+	if state.report_events.size() > 100:
+		state.report_events = state.report_events.slice(state.report_events.size() - 100, state.report_events.size())
 	if typeof(state.get("buildings", null)) != TYPE_ARRAY:
 		state.buildings = []
 	if typeof(state.get("citizens", null)) != TYPE_ARRAY:
@@ -1356,6 +1372,8 @@ func end_day():
 		if newly_unlocked.size() > 0:
 			report.append("ساختمان‌های تازه در دسترس: " + "، ".join(newly_unlocked))
 	_update_missions()
+	for report_message in report:
+		add_report_event(str(report_message))
 	state.last_report = "\n".join(report)
 	save_game()
 	return state.last_report
