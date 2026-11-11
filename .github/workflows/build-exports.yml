@@ -10,6 +10,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/**'
+      - 'assets/**'
       - 'tests/**'
       - '*.godot'
       - '*.tscn'
@@ -18,7 +19,7 @@ on:
 
 permissions:
   actions: write
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -133,6 +134,15 @@ jobs:
                 });
               }
             }
+
+      - name: Publish browser build for Render Static Site
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: render-web
+          publish_dir: build/web
+          force_orphan: true
+          commit_message: "Deploy Mini ZekaCity web build: ${{ github.sha }}"
 
       - name: Upload browser build to Pages
         uses: actions/upload-pages-artifact@v3
