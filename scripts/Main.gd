@@ -33,11 +33,11 @@ func _build_ui():
 	root.anchor_bottom = 1
 	var screen_width = get_viewport_rect().size.x
 	var compact_layout = screen_width < 900
-	root.margin_left = 16 if compact_layout else 24
+	root.margin_left = 28 if compact_layout else 24
 	root.margin_top = 16 if compact_layout else 22
-	root.margin_right = -16 if compact_layout else -24
+	root.margin_right = -32 if compact_layout else -24
 	root.margin_bottom = -16 if compact_layout else -22
-	root.add_constant_override("separation", 14 if compact_layout else 12)
+	root.add_constant_override("separation", 16 if compact_layout else 12)
 	add_child(root)
 	header_label = Label.new()
 	header_label.text = PersianText.reshaper("مینی زکا سیتی")
@@ -65,10 +65,12 @@ func _build_ui():
 	var scroll = ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.rect_clip_content = true
 	root.add_child(scroll)
 	content = VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.add_constant_override("separation", 14 if compact_layout else 10)
+	content.rect_min_size = Vector2(0, 0)
+	content.add_constant_override("separation", 16 if compact_layout else 10)
 	scroll.add_child(content)
 	message_label = Label.new()
 	message_label.autowrap = true
@@ -129,7 +131,7 @@ func _add_label(text, size=18):
 	_apply_font(label, size)
 	label.autowrap = true
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.rect_min_size = Vector2(0, 30)
+	label.rect_min_size = Vector2(0, 38 if get_viewport_rect().size.x < 900 else 30)
 	label.add_color_override("font_color", Color("#e2e8f0"))
 	content.add_child(label)
 	return label
