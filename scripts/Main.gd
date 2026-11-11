@@ -376,11 +376,11 @@ func _load_ui_font():
 	# Render the UI font at higher resolution so newly-created labels stay sharp
 	# on high-DPI mobile screens and when the HTML5 canvas is scaled.
 	font_data.antialiased = true
-	font_data.hinting = DynamicFontData.HINTING_LIGHT
+	font_data.hinting = DynamicFontData.HINTING_NORMAL
 	ui_font = DynamicFont.new()
 	ui_font.font_data = font_data
 	ui_font.size = 20
-	ui_font.use_filter = false
+	ui_font.use_filter = true
 	ui_font.use_mipmaps = false
 
 func _apply_font(control, size=18):
@@ -390,7 +390,7 @@ func _apply_font(control, size=18):
 	font.font_data = ui_font.font_data
 	font.use_filter = false
 	font.use_mipmaps = false
-	font.size = int(round(float(size) * (1.18 if get_viewport_rect().size.x < 900 else 1.0)))
+	font.size = int(size) + (2 if get_viewport_rect().size.x < 900 else 0)
 	control.add_font_override("font", font)
 	return font
 
