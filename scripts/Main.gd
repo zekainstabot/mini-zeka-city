@@ -246,7 +246,7 @@ func _build_ui():
 	nav.add_constant_override("hseparation", 8)
 	nav.add_constant_override("vseparation", 8)
 	root.add_child(nav)
-	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار","p":"market"},{"t":"تجارت شهرها","p":"trade"},{"t":"واردات و قراردادها","p":"imports"},{"t":"جاده و ناوگان","p":"transport"},{"t":"انبار","p":"storage"},{"t":"محله‌ها","p":"districts"},{"t":"گزارش روز","p":"report"},{"t":"ماموریت‌ها","p":"missions"}]:
+	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار","p":"market"},{"t":"تجارت شهرها","p":"trade"},{"t":"واردات و قراردادها","p":"imports"},{"t":"جاده و ناوگان","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش روز","p":"report"},{"t":"ماموریت‌ها","p":"missions"}]:
 		var b = Button.new()
 		b.text = PersianText.reshaper(item.t + "  ")
 		b.rect_min_size = Vector2(0, 64 if compact_layout else 58)
@@ -647,28 +647,6 @@ func show_page(page):
 				if bool(business.get("rented_municipal",false)):
 					_add_label("ملک متعلق به شهرداری است؛ پایان قرارداد اجاره: روز %d" % int(business.get("rent_until_day",0)), 14)
 			_add_label("شهروندان بیکار درآمد آزاد کسب می‌کنند؛ کسب‌وکارها به‌تدریج نیروی کار استخدام می‌کنند و از فروش خود مالیات می‌پردازند.", 15)
-		"districts":
-			var district_data = game.get_districts_overview()
-			_add_label("🏘️ محله‌های شهر", 22)
-			_add_label("هر محله تا ۱۰ ساختمان شهری را در خود جای می‌دهد. محله‌ها به‌ترتیب A1 تا A50، سپس B1 تا B50 و بعد C1 و ... ایجاد می‌شوند.", 16)
-			_add_label("تعداد محله‌های ایجادشده: %d" % int(district_data.get("district_count", 0)), 18)
-			if district_data.get("districts", []).empty():
-				_add_label("هنوز محله‌ای ایجاد نشده است؛ با ساخت اولین ساختمان شهری، محله A1 به‌صورت خودکار ایجاد می‌شود.", 16)
-			for district in district_data.get("districts", []):
-				_add_label("📍 %s | ساختمان‌ها: %d از ۱۰" % [str(district.get("name", "محله")), int(district.get("building_count", 0))], 19)
-				var district_names = district.get("building_names", [])
-				if district_names.empty():
-					_add_label("این محله هنوز ساختمان ندارد.", 15)
-				else:
-					_add_label("، ".join(district_names), 16)
-			_add_label("🏭 منطقه صنعتی خارج شهر", 20)
-			_add_label("کارخانه‌ها، معادن و ساختمان‌های آلاینده خارج از محله‌های شهری قرار می‌گیرند.", 15)
-			var industrial_names = district_data.get("industrial_buildings", [])
-			if industrial_names.empty():
-				_add_label("هنوز ساختمانی در منطقه صنعتی ساخته نشده است.", 16)
-			else:
-				_add_label("، ".join(industrial_names), 16)
-			_add_label("امکاناتی مثل مدرسه، مغازه، ایستگاه تاکسی و ایستگاه اتوبوس اختیاری هستند و می‌توانند در محله‌ها ساخته شوند.", 15)
 		"market":
 			_add_label("بازار شهر — قیمت‌ها بر اساس عرضه و تقاضا", 22)
 			_add_label("موجودی بازار کمتر باشد، قیمت بالاتر می‌رود؛ با افزایش موجودی، قیمت کاهش می‌یابد.", 15)
