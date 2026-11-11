@@ -66,10 +66,10 @@ jobs:
 
       - name: Run game logic smoke tests
         continue-on-error: true
-        timeout-minutes: 2
+        timeout-minutes: 1
         run: |
           set -o pipefail
-          timeout 90s xvfb-run -a /tmp/godot/Godot_v3.6.3-stable_x11.64 --path . --script res://tests/logic_smoke_test.gd 2>&1 | tee /tmp/godot-tests.log
+          timeout 25s xvfb-run -a /tmp/godot/Godot_v3.6.3-stable_x11.64 --audio-driver Dummy --path . --script res://tests/logic_smoke_test.gd 2>&1 | tee /tmp/godot-tests.log
           grep -q "Mini ZekaCity logic smoke tests passed." /tmp/godot-tests.log
           if grep -E "SCRIPT ERROR|Parse Error" /tmp/godot-tests.log; then exit 1; fi
 
