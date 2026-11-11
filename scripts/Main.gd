@@ -132,8 +132,15 @@ func _build_ui():
 	content.add_constant_override("separation", 16 if compact_layout else 10)
 	scroll.add_child(content)
 	message_label = Label.new()
-	_apply_font(message_label, 18 if get_viewport_rect().size.x < 900 else 16)
+	message_label.align = Label.ALIGN_CENTER
+	message_label.valign = Label.VALIGN_CENTER
 	message_label.autowrap = true
+	message_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	message_label.rect_min_size = Vector2(0, 76 if compact_layout else 58)
+	var message_font = _apply_font(message_label, 27 if compact_layout else 23)
+	if message_font != null:
+		message_font.outline_size = 1
+		message_font.outline_color = Color("#101827")
 	message_label.add_color_override("font_color", Color("#ffffff"))
 	message_label.modulate = Color("#ffffff")
 	root.add_child(message_label)
@@ -157,7 +164,7 @@ func _load_ui_font():
 	# Render the UI font at higher resolution so newly-created labels stay sharp
 	# on high-DPI mobile screens and when the HTML5 canvas is scaled.
 	font_data.antialiased = true
-	font_data.hinting = DynamicFontData.HINTING_LIGHT
+	font_data.hinting = DynamicFontData.HINTING_NONE
 	ui_font = DynamicFont.new()
 	ui_font.font_data = font_data
 	ui_font.size = 20
@@ -173,6 +180,7 @@ func _apply_font(control, size=18):
 	font.use_mipmaps = false
 	font.size = int(round(float(size) * (1.18 if get_viewport_rect().size.x < 900 else 1.0)))
 	control.add_font_override("font", font)
+	return font
 
 func _button_style(bg_color, border_color):
 	var style = StyleBoxFlat.new()
