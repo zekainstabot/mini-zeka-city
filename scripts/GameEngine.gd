@@ -211,9 +211,9 @@ func load_game():
 		return false
 	state = parsed
 	_normalize_state()
-	_ensure_building_locations()
 	_sync_population()
 	CitizenSociety.new().ensure_state(self)
+	_ensure_building_locations()
 	_sync_missions()
 	return true
 
@@ -447,7 +447,7 @@ func _ensure_building_locations():
 		var collection = state.get(collection_name, [])
 		for i in range(collection.size()):
 			var item = collection[i]
-			var building_id = str(item.get("id", ""))
+			var building_id = str(item.get("id", item.get("building_id", "")))
 			if str(item.get("zone", "")) == "":
 				var location = _assign_building_location(building_id)
 				for key in location.keys():
