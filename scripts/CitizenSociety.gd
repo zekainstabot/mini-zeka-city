@@ -91,7 +91,14 @@ func _find_rentable_building(engine):
 			continue
 		if category != "کسب‌وکارها" and category != "کارخانه‌ها":
 			continue
-		if bool(building.get("municipal_owned", false)) and int(building.get("rented_to", 0)) <= 0:
+		if not bool(building.get("municipal_owned", false)) or int(building.get("rented_to", 0)) > 0:
+			continue
+		var already_requested = false
+		for request in state.business_requests:
+			if str(request.get("type", "")) == "rent" and int(request.get("building_index", -1)) == i:
+				already_requested = true
+				break
+		if not already_requested:
 			return i
 	return -1
 
