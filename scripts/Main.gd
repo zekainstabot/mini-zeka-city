@@ -67,8 +67,13 @@ func _build_ui():
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.rect_clip_content = true
 	root.add_child(scroll)
-	# Hide horizontal scrolling so it cannot cover text at the screen edge.
-	scroll.get_h_scrollbar().visible = false
+	# Hide both scrollbars completely; scrolling remains available by touch/drag.
+	var horizontal_bar = scroll.get_h_scrollbar()
+	var vertical_bar = scroll.get_v_scrollbar()
+	horizontal_bar.visible = false
+	vertical_bar.visible = false
+	horizontal_bar.rect_min_size = Vector2(0, 0)
+	vertical_bar.rect_min_size = Vector2(0, 0)
 	content = VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.rect_min_size = Vector2(0, 0)
@@ -76,7 +81,8 @@ func _build_ui():
 	scroll.add_child(content)
 	message_label = Label.new()
 	message_label.autowrap = true
-	message_label.add_color_override("font_color", Color("#fbbf24"))
+	message_label.add_color_override("font_color", Color("#ffffff"))
+	message_label.modulate = Color("#ffffff")
 	root.add_child(message_label)
 
 func _load_ui_font():
@@ -134,7 +140,8 @@ func _add_label(text, size=18):
 	label.autowrap = true
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.rect_min_size = Vector2(0, 38 if get_viewport_rect().size.x < 900 else 30)
-	label.add_color_override("font_color", Color("#e2e8f0"))
+	label.add_color_override("font_color", Color("#ffffff"))
+	label.modulate = Color("#ffffff")
 	content.add_child(label)
 	return label
 
