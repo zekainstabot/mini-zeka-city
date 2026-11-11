@@ -685,7 +685,11 @@ func apply_storage_rule(resource_id, manual=false):
 			# Keep surplus food for the normal citizen-purchase process at staffed grocery stores.
 			return {"ok":true,"message":"مازاد خوراک در انبار ماند تا فروشگاه‌ها آن را به شهروندان بفروشند."}
 		# Market route uses the same stock and treasury limits as manual market sales.
-		var sold = min(surplus,min(max(0,100-int(state.market_stock.get(id,0))),int(floor(float(max(0,get_treasury_capacity()-int(state.money)))/float(max(1,get_market_price(id,"sell)))))))
+		var sell_mode = "sell"
+		var unit_sell_price = max(1, get_market_price(id, sell_mode))
+		var market_room = max(0, 100 - int(state.market_stock.get(id, 0)))
+		var treasury_room = max(0, get_treasury_capacity() - int(state.money))
+		var sold = min(surplus, min(market_room, int(floor(float(treasury_room) / float(unit_sell_price)))))
 		if sold > 0:
 			var revenue = sold*get_market_price(id,"sell")
 			state.resources[id] = current-sold
