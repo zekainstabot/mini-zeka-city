@@ -5,6 +5,8 @@ const CitizenSociety = preload("res://scripts/CitizenSociety.gd")
 
 const SAVE_PATH = "user://mini_zeka_city_save.json"
 const STORAGE_RESERVE = 50
+const DISTRICT_BUILDING_LIMIT = 10
+const OUTSIDE_CITY_BUILDINGS = ["woodcutter","sawmill","carpenter","stone_mine","iron_mine","factory","power_station","sewage_plant","waste_facility"]
 const FORESTRY_RESERVES = {"wood": 20, "lumber": 10, "furniture": 0}
 
 const SERVICE_GROUPS = {
@@ -109,6 +111,8 @@ const BUILDINGS = {
 	"high_apartment": {"name":"آپارتمان بلند","category":"خانه‌ها","cost":3000,"unlock":100,"capacity":14,"jobs":0,"wage":0,"level_unlock":5},
 	"residential_tower": {"name":"برج مسکونی","category":"خانه‌ها","cost":10000,"unlock":500,"capacity":22,"jobs":0,"wage":0,"level_unlock":8},
 	"transport_depot": {"name":"پایانه حمل‌ونقل","category":"زیرساخت","cost":1800,"unlock":15,"jobs":4,"wage":40,"level_unlock":2},
+	"taxi_station": {"name":"ایستگاه تاکسی","category":"زیرساخت","cost":650,"unlock":5,"jobs":2,"wage":28},
+	"bus_station": {"name":"ایستگاه اتوبوس","category":"زیرساخت","cost":900,"unlock":10,"jobs":3,"wage":32},
 	"farm": {"name":"مزرعه","category":"کشاورزی","cost":1200,"unlock":8,"jobs":4,"wage":35,"output":"food","amount":8,"level_unlock":2},
 	"shopping_mall": {"name":"مرکز خرید","category":"کسب‌وکارها","cost":8000,"unlock":150,"jobs":30,"wage":65,"daily_revenue":2600,"level_unlock":6},
 	"small_warehouse": {"name":"انبار کوچک","category":"انبارها","cost":500,"unlock":0,"storage":100,"jobs":0,"wage":0},
@@ -148,7 +152,8 @@ var state = {}
 
 func new_game():
 	state = {
-		"version": 11,
+		"version": 12,
+		"districts": [],
 		"day": 1,
 		"clock_last_unix": OS.get_unix_time(),
 		"clock_cycle_seconds": 0,
@@ -189,6 +194,7 @@ func new_game():
 		"last_report": "شهر جدید ساخته شد. به مینی زکا سیتی خوش آمدی."
 	}
 	_sync_population()
+	_ensure_building_locations()
 	CitizenSociety.new().ensure_state(self)
 	_sync_missions()
 	return state
@@ -201,10 +207,11 @@ func load_game():
 		return false
 	var parsed = parse_json(file.get_as_text())
 	file.close()
-	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 11:
+	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 12:
 		return false
 	state = parsed
 	_normalize_state()
+	_ensure_building_locations()
 	_sync_population()
 	CitizenSociety.new().ensure_state(self)
 	_sync_missions()
@@ -281,7 +288,9 @@ func _normalize_state():
 	if typeof(state.get("mines", null)) != TYPE_ARRAY:
 		state["mines"] = []
 	# Save schema migration: add dynamic market, trade and shipping state.
-	state["version"] = 11
+	state["version"] = 12
+	if typeof(state.get("districts", null)) != TYPE_ARRAY:
+		state["districts"] = []
 	for id in RESOURCES.keys():
 		state.market_stock[id] = int(clamp(int(state.market_stock.get(id, 60)), 0, 100))
 	for city_id in TRADE_CITIES.keys():
@@ -390,6 +399,94 @@ func get_housing_capacity():
 	for building in state.buildings:
 		total += int(BUILDINGS.get(building.id, {}).get("capacity", 0))
 	return total
+
+func _district_letter(index):
+	var value = int(index) + 1
+	var result = ""
+	while value > 0:
+		var remainder = (value - 1) % 26
+		result = char(65 + remainder) + result
+		value = int((value - 1) / 26)
+	return result
+
+func _find_district_index(district_id):
+	for i in range(state.get("districts", []).size()):
+		if str(state.districts[i].get("id", "")) == str(district_id):
+			return i
+	return -1
+
+func _assign_building_location(building_id):
+	var id = str(building_id)
+	if id in OUTSIDE_CITY_BUILDINGS:
+		return {"zone":"industrial","district_id":"","district_name":"منطقه صنعتی خارج شهر"}
+	if typeof(state.get("districts", null)) != TYPE_ARRAY:
+		state["districts"] = []
+	var chosen_index = -1
+	for i in range(state.districts.size()):
+		if int(state.districts[i].get("building_count", 0)) < DISTRICT_BUILDING_LIMIT:
+			chosen_index = i
+			break
+	if chosen_index < 0:
+		var district_id = _district_letter(state.districts.size()) + "1"
+		state.districts.append({"id":district_id,"name":"محله "+district_id,"building_count":0})
+		chosen_index = state.districts.size() - 1
+	var district = state.districts[chosen_index]
+	district["building_count"] = int(district.get("building_count", 0)) + 1
+	state.districts[chosen_index] = district
+	return {"zone":"district","district_id":str(district.id),"district_name":str(district.name)}
+
+func _ensure_building_locations():
+	if typeof(state.get("districts", null)) != TYPE_ARRAY:
+		state["districts"] = []
+	for i in range(state.districts.size()):
+		var district = state.districts[i]
+		district["building_count"] = 0
+		state.districts[i] = district
+	for collection_name in ["buildings", "constructions"]:
+		var collection = state.get(collection_name, [])
+		for i in range(collection.size()):
+			var item = collection[i]
+			var building_id = str(item.get("id", ""))
+			if str(item.get("zone", "")) == "":
+				var location = _assign_building_location(building_id)
+				for key in location.keys():
+					item[key] = location[key]
+			else:
+				if str(item.get("zone", "")) == "district":
+					var district_id = str(item.get("district_id", ""))
+					var district_index = _find_district_index(district_id)
+					if district_index < 0:
+						state.districts.append({"id":district_id,"name":str(item.get("district_name", "محله "+district_id)),"building_count":0})
+						district_index = state.districts.size() - 1
+					var district = state.districts[district_index]
+					district["building_count"] = int(district.get("building_count", 0)) + 1
+					state.districts[district_index] = district
+			collection[i] = item
+		state[collection_name] = collection
+
+func get_districts_overview():
+	_ensure_building_locations()
+	var result = []
+	for district in state.get("districts", []):
+		var names = []
+		for building in state.get("buildings", []):
+			if str(building.get("district_id", "")) == str(district.get("id", "")):
+				names.append(str(BUILDINGS.get(str(building.get("id", "")), {}).get("name", "ساختمان")))
+		for construction in state.get("constructions", []):
+			if str(construction.get("district_id", "")) == str(district.get("id", "")):
+				names.append(str(BUILDINGS.get(str(construction.get("id", "")), {}).get("name", "پروژه در حال ساخت"))+" (در حال ساخت)")
+		var row = district.duplicate(true)
+		row["building_names"] = names
+		row["building_count"] = names.size()
+		result.append(row)
+	var industrial_names = []
+	for building in state.get("buildings", []):
+		if str(building.get("zone", "")) == "industrial":
+			industrial_names.append(str(BUILDINGS.get(str(building.get("id", "")), {}).get("name", "ساختمان")))
+	for construction in state.get("constructions", []):
+		if str(construction.get("zone", "")) == "industrial":
+			industrial_names.append(str(BUILDINGS.get(str(construction.get("id", "")), {}).get("name", "ساختمان"))+" (در حال ساخت)")
+	return {"districts":result,"industrial_buildings":industrial_names,"district_count":result.size()}
 
 func get_building_definitions():
 	return BUILDINGS
@@ -514,7 +611,7 @@ func get_land_size(id):
 		"farm":2,"woodcutter":2,"stone_mine":2,"transport_depot":2,"restaurant":2,"office":2,
 		"municipal_bank":2,"power_station":2,"sawmill":2,"sewage_plant":2,"waste_facility":2,
 		"school":3,"clinic":3,"iron_mine":3,"carpenter":3,"sports_center":3,"fire_station":3,"police_station":3,
-		"central_bank":4,"factory":4,"hospital":4,"university":5,"shopping_mall":5,"cultural_center":4
+		"central_bank":4,"factory":4,"hospital":4,"university":5,"shopping_mall":5,"cultural_center":4,"taxi_station":1,"bus_station":2
 	}
 	return int(sizes.get(str(id), 1))
 
@@ -564,7 +661,7 @@ func build(id):
 		return {"ok":false,"message":"پول آزاد خزانه کافی نیست؛ ممکن است بخشی از پول به‌دلیل ظرفیت خزانه قفل شده باشد."}
 	var construction_times = {
 		"small_house":60,"normal_house":120,"low_apartment":180,"high_apartment":240,"residential_tower":300,
-		"small_warehouse":60,"mineral_market":60,"small_park":60,"playground":60,
+		"small_warehouse":60,"mineral_market":60,"small_park":60,"playground":60,"taxi_station":60,"bus_station":60,
 		"grocery_store":60,"bakery":60,"water_tower":60,
 		"farm":120,"woodcutter":120,"stone_mine":120,"transport_depot":120,
 		"restaurant":120,"office":120,"municipal_bank":120,"power_station":120,
@@ -574,16 +671,18 @@ func build(id):
 		"central_bank":240,"factory":240,"hospital":240,"university":300,
 		"huge_warehouse":300,"shopping_mall":300,"cultural_center":300
 	}
+	var location = _assign_building_location(id)
+	var location_label = str(location.get("district_name", "منطقه صنعتی خارج شهر"))
 	var earned_xp = _building_xp_reward(data)
 	var xp_message = _award_xp(earned_xp)
 	if construction_times.has(id):
 		var seconds = int(construction_times[id])
-		state.constructions.append({"id":id,"finish_at":OS.get_unix_time()+seconds})
+		state.constructions.append({"id":id,"finish_at":OS.get_unix_time()+seconds,"zone":location.zone,"district_id":location.district_id,"district_name":location.district_name})
 		save_game()
-		return {"ok":true,"message":data.name+" شروع شد؛ زمان ساخت: %d دقیقه. هزینه پرداخت شد. +%d تجربه. %s" % [int(ceil(float(seconds)/60.0)),earned_xp,xp_message]}
+		return {"ok":true,"message":data.name+" شروع شد؛ زمان ساخت: %d دقیقه. محل ساخت: %s. هزینه پرداخت شد. +%d تجربه. %s" % [int(ceil(float(seconds)/60.0)),location_label,earned_xp,xp_message]}
 	if id == "central_bank":
 		state.central_bank_rebuild_days_left = 0
-	state.buildings.append({"id":id,"workers":0,"balance":0})
+	state.buildings.append({"id":id,"workers":0,"balance":0,"zone":location.zone,"district_id":location.district_id,"district_name":location.district_name})
 	var new_index = state.buildings.size() - 1
 	if id in ["stone_mine", "iron_mine"]:
 		_register_mine(new_index, id)
@@ -591,7 +690,7 @@ func build(id):
 	assign_jobs()
 	_update_missions()
 	save_game()
-	return {"ok":true,"message":data.name+" با موفقیت ساخته شد. +%d تجربه. %s" % [earned_xp,xp_message]}
+	return {"ok":true,"message":data.name+" با موفقیت در %s ساخته شد. +%d تجربه. %s" % [location_label,earned_xp,xp_message]}
 
 func process_constructions():
 	var now = OS.get_unix_time()
@@ -603,13 +702,13 @@ func process_constructions():
 			continue
 		var id = str(construction.get("id", ""))
 		if BUILDINGS.has(id):
-			state.buildings.append({"id":id,"workers":0,"balance":0})
+			state.buildings.append({"id":id,"workers":0,"balance":0,"zone":str(construction.get("zone","district")),"district_id":str(construction.get("district_id","")),"district_name":str(construction.get("district_name",""))})
 			var new_index = state.buildings.size() - 1
 			if id in ["stone_mine", "iron_mine"]:
 				_register_mine(new_index, id)
 			if id == "central_bank":
 				state.central_bank_rebuild_days_left = 0
-			completed.append(str(BUILDINGS[id].name))
+			completed.append(str(BUILDINGS[id].name)+" ("+str(construction.get("district_name","منطقه صنعتی خارج شهر"))+")")
 	state["constructions"] = remaining
 	if completed.size() > 0:
 		_sync_population()
