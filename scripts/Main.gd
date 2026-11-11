@@ -257,7 +257,7 @@ func show_page(page):
 			_add_button(" ذخیره شهر", self, "save_now")
 		"buildings":
 			_add_label("ساخت‌وساز شهر", 22)
-			var categories = ["خانه‌ها","کشاورزی","کارخانه‌ها","معادن","کسب‌وکارها","خدمات شهری","تفریح و فرهنگ","انبارها","زیرساخت"]
+			var categories = ["خانه‌ها","کشاورزی","کارخانه‌ها","کسب‌وکارها","خدمات شهری","تفریح و فرهنگ","انبارها","زیرساخت"]
 			for category in categories:
 				_add_label("【"+category+"】", 18)
 				for id in game.get_building_definitions().keys():
@@ -273,6 +273,16 @@ func show_page(page):
 						label += " | 🔒 قفل"
 					var b = _add_button(label, self, "build_building", [id])
 					b.disabled = not unlocked or game.get_available_money() < int(data.cost) or (id == "central_bank" and int(s.get("central_bank_rebuild_days_left",0)) > 0)
+			# Dedicated mining section to ensure extraction buildings are always listed clearly.
+			_add_label("⛏️ معادن و استخراج", 20)
+			for mine_building_id in ["stone_mine", "iron_mine"]:
+				var mine_data = game.get_building_definitions()[mine_building_id]
+				var mine_unlocked = int(s.population) >= int(mine_data.unlock) and int(s.level) >= int(mine_data.get("level_unlock", 1))
+				var mine_text = "%s | هزینه: %d | جمعیت لازم: %d | سطح لازم: %d" % [mine_data.name, int(mine_data.cost), int(mine_data.unlock), int(mine_data.get("level_unlock", 1))]
+				if not mine_unlocked:
+					mine_text += " | 🔒 قفل"
+				var mine_button = _add_button(mine_text, self, "build_building", [mine_building_id])
+				mine_button.disabled = not mine_unlocked or game.get_available_money() < int(mine_data.cost)
 			_add_label("مدیریت معادن:", 18)
 			for mine_index in range(game.get_mines().size()):
 				var mine = game.get_mines()[mine_index]
