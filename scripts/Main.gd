@@ -418,15 +418,15 @@ func _button_style(bg_color, border_color):
 
 func _style_button(button, navigation=false):
 	button.flat = false
-	# Main navigation: deep blue with pure white text.
-	# Inner buttons: bright warm yellow with deep navy text for strong contrast.
-	var normal_color = Color("#174EA6") if navigation else Color("#FFD54A")
-	var hover_color = Color("#2366C5") if navigation else Color("#FFE27A")
-	var pressed_color = Color("#103B82") if navigation else Color("#F0B900")
-	var border_normal = Color("#0D3475") if navigation else Color("#9A6900")
-	var border_hover = Color("#0A2B63") if navigation else Color("#805700")
-	var border_pressed = Color("#08234F") if navigation else Color("#694700")
-	var text_color = Color("#FFFFFF") if navigation else Color("#172033")
+	# Main buttons: near-black with white text.
+	# Inner buttons: clean white with near-black text.
+	var normal_color = Color("#202124") if navigation else Color("#FFFFFF")
+	var hover_color = Color("#34363A") if navigation else Color("#E8EAED")
+	var pressed_color = Color("#111214") if navigation else Color("#DADCE0")
+	var border_normal = Color("#050505") if navigation else Color("#73777D")
+	var border_hover = Color("#000000") if navigation else Color("#4B5057")
+	var border_pressed = Color("#000000") if navigation else Color("#30343A")
+	var text_color = Color("#FFFFFF") if navigation else Color("#111111")
 	button.add_stylebox_override("normal", _button_style(normal_color, border_normal))
 	button.add_stylebox_override("hover", _button_style(hover_color, border_hover))
 	button.add_stylebox_override("focus", _button_style(hover_color, border_hover))
@@ -436,7 +436,7 @@ func _style_button(button, navigation=false):
 	button.add_color_override("font_color_focus", text_color)
 	button.add_color_override("font_color_hover", text_color)
 	button.add_color_override("font_color_pressed", text_color)
-	button.add_color_override("font_color_disabled", Color("#374151"))
+	button.add_color_override("font_color_disabled", Color("#4B5563"))
 
 func _clear_content():
 	construction_time_labels.clear()
