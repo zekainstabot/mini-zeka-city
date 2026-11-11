@@ -704,6 +704,8 @@ func _get_service_capacity(need_id):
 	var capacity = 0
 	for i in range(state.buildings.size()):
 		var building_id = str(state.buildings[i].get("id", ""))
+		if int(state.buildings[i].get("rented_to", 0)) > 0:
+			continue
 		var data = BUILDINGS.get(building_id, {})
 		if str(data.get("service_need", "")) != need_id:
 			continue
@@ -711,6 +713,14 @@ func _get_service_capacity(need_id):
 		if jobs > 0 and _workers_for_building(i) <= 0:
 			continue
 		capacity += int(data.get("service_capacity", 0))
+	for business in state.get("private_businesses", []):
+		var private_data = BUILDINGS.get(str(business.get("building_id", "")), {})
+		if str(private_data.get("service_need", "")) != need_id:
+			continue
+		var private_jobs = max(1, int(private_data.get("jobs", 1)))
+		var private_workers = business.get("employees", []).size()
+		if private_workers > 0:
+			capacity += int(round(float(private_data.get("service_capacity", 0)) * float(private_workers) / float(private_jobs)))
 	return capacity
 
 func _update_city_services(report):
