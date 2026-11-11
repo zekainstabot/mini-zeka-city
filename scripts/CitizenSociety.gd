@@ -48,6 +48,12 @@ func ensure_state(engine):
 			citizen["next_civic_request_day"] = int(state.day)
 			citizen["civic_request_pending"] = false
 			citizen["last_project_request_day"] = 0
+			var profile_id = int(citizen.get("id", i + 1))
+			citizen["entrepreneurship"] = 35 + int((profile_id * 17) % 66)
+			citizen["risk_tolerance"] = 20 + int((profile_id * 29) % 81)
+			var interests = ["food", "industry", "services"]
+			citizen["business_interest"] = interests[int(profile_id) % interests.size()]
+			citizen["saving_habit"] = 30 + int((profile_id * 13) % 71)
 			citizen["civic_profile_initialized"] = true
 		else:
 			citizen["wallet"] = int(clamp(int(citizen.get("wallet", 0)), 0, 2000))
@@ -126,7 +132,12 @@ func _expire_rentals(engine, report):
 
 func _choose_business(engine, citizen):
 	var state = engine.state
+	var interest = str(citizen.get("business_interest", "food"))
 	var candidates = ["grocery_store", "bakery", "woodcutter", "restaurant", "sawmill", "carpenter", "office", "factory", "shopping_mall"]
+	if interest == "industry":
+		candidates = ["woodcutter", "sawmill", "carpenter", "factory", "grocery_store", "bakery", "restaurant", "office", "shopping_mall"]
+	elif interest == "services":
+		candidates = ["office", "shopping_mall", "grocery_store", "bakery", "restaurant", "woodcutter", "sawmill", "carpenter", "factory"]
 	var selected = ""
 	var selected_cost = 999999999
 	for building_id in candidates:
@@ -255,6 +266,8 @@ func _queue_public_project_requests(engine):
 			continue
 		var citizen = state.citizens[citizen_index]
 		if int(state.day) - int(citizen.get("last_project_request_day", 0)) < 12:
+			continue
+		if int(citizen.get("risk_tolerance", 50)) < 35:
 			continue
 		if _has_pending_request(state, owner_id, "public_project"):
 			continue
