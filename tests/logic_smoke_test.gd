@@ -5,7 +5,7 @@ const EngineScript = preload("res://scripts/GameEngine.gd")
 func _init():
 	var game = EngineScript.new()
 	game.new_game()
-	assert(int(game.state.version) == 8)
+	assert(int(game.state.version) == 10)
 	assert(game.state.resources.has("food"))
 	assert(game.get_resource_definitions().has("food"))
 
@@ -50,9 +50,9 @@ func _init():
 	assert(int(fleet_game.get_transport_daily_capacity()) == 20)
 
 	var migration_game = EngineScript.new()
-	migration_game.state = {"version":7,"buildings":[],"citizens":[],"resources":{},"market_stock":{}}
+	migration_game.state = {"version":9,"buildings":[],"citizens":[],"resources":{},"market_stock":{}}
 	migration_game._normalize_state()
-	assert(int(migration_game.state.version) == 8)
+	assert(int(migration_game.state.version) == 10)
 	assert(migration_game.state.resources.has("food"))
 	assert(int(migration_game.state.road_level) == 1)
 
