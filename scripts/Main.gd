@@ -28,6 +28,7 @@ func _process(delta):
 		game.end_day()
 		game.state["clock_last_unix"] = OS.get_unix_time()
 		game.state["clock_cycle_seconds"] = int(clock_cycle_seconds)
+		game.save_game()
 		if current_page == "home":
 			show_page("home")
 			_show_message("یک روز جدید در شهر آغاز شد.")
@@ -55,6 +56,8 @@ func _apply_offline_progress():
 
 func _notification(what):
 	if what == MainLoop.NOTIFICATION_WM_QUIT_REQUEST and game != null:
+		game.state["clock_last_unix"] = OS.get_unix_time()
+		game.state["clock_cycle_seconds"] = int(clock_cycle_seconds)
 		game.save_game()
 
 func _ready():
