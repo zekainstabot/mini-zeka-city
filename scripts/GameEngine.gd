@@ -91,6 +91,7 @@ func new_game():
 		"population": 4,
 		"citizen_recruitment_mode": "auto",
 		"citizen_requests": [],
+		"constructions": [],
 		"level": 1,
 		"xp": 0,
 		"reputation": 50,
@@ -156,6 +157,8 @@ func _normalize_state():
 		state.citizens = []
 	if typeof(state.get("citizen_requests", null)) != TYPE_ARRAY:
 		state["citizen_requests"] = []
+	if typeof(state.get("constructions", null)) != TYPE_ARRAY:
+		state["constructions"] = []
 	if not (str(state.get("citizen_recruitment_mode", "auto")) in ["auto", "manual"]):
 		state["citizen_recruitment_mode"] = "auto"
 	if typeof(state.get("resources", null)) != TYPE_DICTIONARY:
@@ -440,6 +443,12 @@ func build(id):
 		return {"ok":false,"message":"برای ساخت دوباره بانک مرکزی باید %d روز صبر کنی." % int(state.central_bank_rebuild_days_left)}
 	if not _spend_money(int(data.cost)):
 		return {"ok":false,"message":"پول آزاد خزانه کافی نیست؛ ممکن است بخشی از پول به‌دلیل ظرفیت خزانه قفل شده باشد."}
+	var construction_times = {"small_house":60,"normal_house":120,"low_apartment":180,"high_apartment":240,"residential_tower":300}
+	if construction_times.has(id):
+		var seconds = int(construction_times[id])
+		state.constructions.append({"id":id,"finish_at":OS.get_unix_time()+seconds})
+		save_game()
+		return {"ok":true,"message":data.name+" شروع شد؛ زمان ساخت: %d دقیقه. هزینه پرداخت شد." % int(ceil(float(seconds)/60.0))}
 	if id == "central_bank":
 		state.central_bank_rebuild_days_left = 0
 	state.buildings.append({"id":id,"workers":0,"balance":0})
@@ -451,6 +460,38 @@ func build(id):
 	_update_missions()
 	save_game()
 	return {"ok":true,"message":data.name+" با موفقیت ساخته شد."}
+
+func process_constructions():
+	var now = OS.get_unix_time()
+	var remaining = []
+	var completed = []
+	for construction in state.get("constructions", []):
+		if int(construction.get("finish_at", 0)) > now:
+			remaining.append(construction)
+			continue
+		var id = str(construction.get("id", ""))
+		if BUILDINGS.has(id):
+			state.buildings.append({"id":id,"workers":0,"balance":0})
+			completed.append(str(BUILDINGS[id].name))
+	state["constructions"] = remaining
+	if completed.size() > 0:
+		_sync_population()
+		assign_jobs()
+		_update_missions()
+		state["last_report"] = "ساخت‌وساز تکمیل شد: " + "، ".join(completed)
+		save_game()
+		return true
+	return false
+
+func get_construction_status():
+	var result = []
+	var now = OS.get_unix_time()
+	for construction in state.get("constructions", []):
+		var id = str(construction.get("id", ""))
+		if not BUILDINGS.has(id):
+			continue
+		result.append({"name":str(BUILDINGS[id].name),"remaining":max(0,int(construction.get("finish_at",0))-now)})
+	return result
 
 func demolish(index):
 	if index < 0 or index >= state.buildings.size():
