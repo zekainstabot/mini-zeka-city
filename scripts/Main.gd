@@ -72,6 +72,8 @@ func _build_ui():
 	var vertical_bar = scroll.get_v_scrollbar()
 	horizontal_bar.visible = false
 	vertical_bar.visible = false
+	horizontal_bar.modulate = Color(1, 1, 1, 0)
+	vertical_bar.modulate = Color(1, 1, 1, 0)
 	horizontal_bar.rect_min_size = Vector2(0, 0)
 	vertical_bar.rect_min_size = Vector2(0, 0)
 	content = VBoxContainer.new()
@@ -91,12 +93,16 @@ func _load_ui_font():
 	ui_font = DynamicFont.new()
 	ui_font.font_data = font_data
 	ui_font.size = 20
+	ui_font.use_filter = false
+	ui_font.use_mipmaps = false
 
 func _apply_font(control, size=18):
 	if ui_font == null:
 		return
 	var font = DynamicFont.new()
 	font.font_data = ui_font.font_data
+	font.use_filter = false
+	font.use_mipmaps = false
 	font.size = int(round(float(size) * (1.18 if get_viewport_rect().size.x < 900 else 1.0)))
 	control.add_font_override("font", font)
 
