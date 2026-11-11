@@ -565,7 +565,6 @@ func show_page(page):
 				_add_label("ذخیره غذای شهر: %d واحد" % int(s.resources.get("food",0)), 16)
 				var home_economy = s.get("last_economy", {})
 				_add_label("آخرین تراز روزانه: %d سکه" % int(home_economy.get("net_cashflow",0)), 17)
-				_add_label("گزارش آخر:\\n"+str(s.last_report), 16)
 			_add_button("💾 ذخیره شهر", self, "save_now")
 		"buildings":
 			_add_label("ساخت‌وساز شهر", 22)
@@ -885,10 +884,13 @@ func show_page(page):
 					var time_text = "%02d/%02d - %02d:%02d" % [int(stamp.get("day", 1)), int(stamp.get("month", 1)), int(stamp.get("hour", 0)), int(stamp.get("minute", 0))]
 					_add_label("[%s] روز %d | %s" % [time_text, int(event.get("day", 1)), str(event.get("message", ""))], 17)
 		"missions":
-			_add_label(" ماموریت‌های شهر", 22)
-			_add_label("با تکمیل ماموریت‌ها پاداش سکه دریافت کن.")
+			_add_label("آموزش مرحله‌ای شهر", 22)
+			_add_label("این بخش مثل راهنمای بازی عمل می‌کند. هر بار یک مأموریت فعال است؛ با انجام آن و گرفتن جایزه، مرحله بعد باز می‌شود.", 16)
+			var visible_missions = 0
 			for mission_index in range(game.get_missions().size()):
 				var mission = game.get_missions()[mission_index]
+				if not bool(mission.get("unlocked", false)):
+					continue
 				var definition = {}
 				for item in game.MISSION_DEFINITIONS:
 					if str(item.id) == str(mission.get("id","")):
@@ -896,11 +898,16 @@ func show_page(page):
 						break
 				if definition.empty():
 					continue
-				var status = ("دریافت شده" if bool(mission.get("claimed",false)) else ("آماده دریافت" if bool(mission.get("completed",false)) else "در حال انجام"))
+				visible_missions += 1
+				var status = ("✓ انجام و دریافت شد" if bool(mission.get("claimed",false)) else ("🎁 کامل شد؛ جایزه آماده دریافت است" if bool(mission.get("completed",false)) else "● مأموریت فعال"))
 				_add_label("%s — %s" % [definition.title,status],18)
 				_add_label("%s | پیشرفت: %d/%d | جایزه: %d سکه" % [definition.description,int(mission.get("progress",0)),int(definition.goal),int(definition.reward)],15)
+				if not bool(mission.get("completed",false)):
+					_add_label("راهنما: "+str(definition.get("hint","هدف را از بخش‌های شهر دنبال کن.")),15)
 				if bool(mission.get("completed",false)) and not bool(mission.get("claimed",false)):
-					_add_button(" دریافت پاداش: "+str(definition.reward), self, "claim_mission", [mission_index])
+					_add_button("دریافت جایزه و باز کردن مرحله بعد: "+str(definition.reward), self, "claim_mission", [mission_index])
+			if visible_missions == 0:
+				_add_label("آموزش هنوز شروع نشده است؛ بازی را ادامه بده.",16)
 		_:
 			_add_label("بخش پیدا نشد.")
 	# Extra scrollable safe area so the last controls/text stay above Android browser navigation bars.
