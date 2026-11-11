@@ -458,6 +458,7 @@ func show_page(page):
 			tax_up.disabled = int(civic.get("tax_rate",8)) >= 30
 			_add_label("هزینه صدور مجوز: %d سکه | درآمد مالیات امروز: %d سکه" % [int(civic.get("permit_fee",50)),int(civic.get("daily_tax",0))], 16)
 			_add_label("درآمد فروش زمین و صدور مجوز جدا از مالیات محاسبه می‌شود.", 15)
+			_add_label("درآمد اجاره املاک شهرداری (مستقل از مالیات): %d سکه" % int(civic.get("rent_income",0)), 16)
 			_add_label("درخواست‌های شهروندان برای بررسی شهرداری: %d" % int(civic.get("request_count",0)), 19)
 			if civic.get("requests", []).empty():
 				_add_label("درخواستی در انتظار بررسی نیست.", 16)
@@ -465,6 +466,17 @@ func show_page(page):
 				_add_label("%s | شهروند شماره %d | روز %d | مبلغ: %d سکه" % [str(request.get("title","درخواست شهروند")),int(request.get("citizen_id",0)),int(request.get("day",s.day)),int(request.get("amount",0))], 17)
 				_add_button("تأیید درخواست", self, "resolve_civic_request", [int(request.get("id",0)), true])
 				_add_button("رد درخواست", self, "resolve_civic_request", [int(request.get("id",0)), false])
+			_add_label("املاک تجاری شهرداری:", 18)
+			for property_index in range(s.buildings.size()):
+				var property = s.buildings[property_index]
+				var property_data = game.get_building_definitions().get(str(property.get("id","")), {})
+				var property_category = str(property_data.get("category",""))
+				if property_category != "کسب‌وکارها" and property_category != "کارخانه‌ها":
+					continue
+				if int(property.get("rented_to",0)) > 0:
+					_add_label("%s | اجاره‌داده‌شده به شهروند %d | تا روز %d" % [str(property_data.get("name","ملک")),int(property.get("rented_to",0)),int(property.get("rent_until_day",0))],15)
+				else:
+					_add_label("%s | متعلق به شهرداری | آماده اجاره با درخواست شهروند" % str(property_data.get("name","ملک")),15)
 			_add_label("پروژه‌های عمرانی در حال اجرا: %d" % int(civic.get("project_count",0)), 17)
 			for project in civic.get("projects", []):
 				_add_label("%s | تحویل روز %d | اعتبار مالیاتی: %d سکه" % [str(game.get_building_definitions().get(str(project.get("building_id","")),{}).get("name","پروژه")),int(project.get("finish_day",0)),int(project.get("tax_credit",0))], 15)
