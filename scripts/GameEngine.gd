@@ -511,11 +511,13 @@ func build(id):
 		"central_bank":240,"factory":240,"hospital":240,"university":300,
 		"huge_warehouse":300,"shopping_mall":300,"cultural_center":300
 	}
+	var earned_xp = _building_xp_reward(data)
+	var xp_message = _award_xp(earned_xp)
 	if construction_times.has(id):
 		var seconds = int(construction_times[id])
 		state.constructions.append({"id":id,"finish_at":OS.get_unix_time()+seconds})
 		save_game()
-		return {"ok":true,"message":data.name+" شروع شد؛ زمان ساخت: %d دقیقه. هزینه پرداخت شد." % int(ceil(float(seconds)/60.0))}
+		return {"ok":true,"message":data.name+" شروع شد؛ زمان ساخت: %d دقیقه. هزینه پرداخت شد. +%d تجربه. %s" % [int(ceil(float(seconds)/60.0)),earned_xp,xp_message]}
 	if id == "central_bank":
 		state.central_bank_rebuild_days_left = 0
 	state.buildings.append({"id":id,"workers":0,"balance":0})
@@ -526,7 +528,7 @@ func build(id):
 	assign_jobs()
 	_update_missions()
 	save_game()
-	return {"ok":true,"message":data.name+" با موفقیت ساخته شد."}
+	return {"ok":true,"message":data.name+" با موفقیت ساخته شد. +%d تجربه. %s" % [earned_xp,xp_message]}
 
 func process_constructions():
 	var now = OS.get_unix_time()
@@ -851,6 +853,32 @@ func adjust_business_permit_fee(delta):
 
 func adjust_private_land_price(delta):
 	return CitizenSociety.new().adjust_private_land_price(self, int(delta))
+
+func _building_xp_reward(data):
+	# Bigger and more expensive projects grant more experience, with a sensible cap.
+	return int(clamp(5 + int(int(data.get("cost", 0)) / 500), 5, 25))
+
+func _award_xp(amount):
+	var previous_level = int(state.get("level", 1))
+	state.xp = int(state.get("xp", 0)) + max(0, int(amount))
+	var levels_gained = 0
+	while state.xp >= get_xp_required_for_next_level():
+		state.xp -= get_xp_required_for_next_level()
+		state.level += 1
+		levels_gained += 1
+	_update_missions()
+	if levels_gained > 0:
+		var newly_unlocked = []
+		for building_id in BUILDINGS.keys():
+			var definition = BUILDINGS[building_id]
+			var required_level = int(definition.get("level_unlock", 1))
+			if required_level > previous_level and required_level <= int(state.level) and int(state.population) >= int(definition.get("unlock", 0)):
+				newly_unlocked.append(str(definition.name))
+		var message = "سطح شهر به %d رسید!" % int(state.level)
+		if newly_unlocked.size() > 0:
+			message += " ساختمان‌های تازه: " + "، ".join(newly_unlocked)
+		return message
+	return "پیشرفت سطح: %d از %d" % [int(state.xp), get_xp_required_for_next_level()]
 
 func get_xp_required_for_next_level():
 	return max(100, int(state.get("level", 1)) * 100)
