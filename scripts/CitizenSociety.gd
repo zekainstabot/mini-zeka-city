@@ -289,15 +289,18 @@ func _queue_land_or_permit_requests(engine):
 func _choose_public_project(engine):
 	var state = engine.state
 	var candidates = [
-		{"need":"leisure","id":"small_park"},
-		{"need":"water","id":"water_tower"},
-		{"need":"education","id":"school"},
-		{"need":"health","id":"clinic"},
-		{"need":"safety","id":"fire_station"},
-		{"need":"sanitation","id":"waste_facility"}
+		{"need":"leisure","id":"small_park","impact":5},
+		{"need":"water","id":"water_tower","impact":10},
+		{"need":"education","id":"school","impact":8},
+		{"need":"health","id":"clinic","impact":9},
+		{"need":"safety","id":"fire_station","impact":7},
+		{"need":"sanitation","id":"waste_facility","impact":8}
 	]
+	var best_id = ""
+	var best_score = -1.0
 	for candidate in candidates:
-		if int(state.get("needs", {}).get(candidate.need, 100)) >= 65:
+		var need_value = int(state.get("needs", {}).get(candidate.need, 100))
+		if need_value >= 65:
 			continue
 		var building_id = str(candidate.id)
 		var data = engine.get_building_definitions().get(building_id, {})
@@ -307,8 +310,14 @@ func _choose_public_project(engine):
 			continue
 		if engine.get_land_free() < int(engine.get_land_size(building_id)):
 			continue
-		return building_id
-	return ""
+		var score = float(65 - need_value) * 2.0 + float(candidate.impact)
+		score += float(int(data.get("service_capacity", 0))) / 8.0
+		if building_id == "small_park" and int(state.get("population",0)) >= 20:
+			score -= 4
+		if score > best_score:
+			best_score = score
+			best_id = building_id
+	return best_id
 
 func _queue_public_project_requests(engine):
 	var state = engine.state
