@@ -17,12 +17,19 @@ var selected_demolish_quantity = 1
 var clock_cycle_seconds = 0.0
 var clock_label = null
 var clock_save_accumulator = 0.0
+var construction_check_accumulator = 0.0
 
 func _process(delta):
 	if game == null:
 		return
 	clock_cycle_seconds += delta
 	clock_save_accumulator += delta
+	construction_check_accumulator += delta
+	if construction_check_accumulator >= 1.0:
+		construction_check_accumulator = 0.0
+		if game.process_constructions():
+			show_page(current_page)
+			_show_message(str(game.state.get("last_report", "ساخت‌وساز تکمیل شد."))
 	if clock_cycle_seconds >= 600.0:
 		clock_cycle_seconds -= 600.0
 		game.end_day()
@@ -291,6 +298,13 @@ func show_page(page):
 	_show_message("")
 	var s = game.state
 	_update_progress_hud()
+	if page == "home" or page == "buildings":
+		var active_constructions = game.get_construction_status()
+		if active_constructions.size() > 0:
+			_add_label("🏗️ پروژه‌های در حال ساخت", 19)
+			for project in active_constructions:
+				var seconds_left = int(project.remaining)
+				_add_label("%s | زمان باقی‌مانده: %02d:%02d" % [str(project.name), int(seconds_left / 60), seconds_left % 60], 16)
 	match page:
 		"home":
 			_add_label("روز %d  |  سطح شهر %d" % [s.day,s.level], 20)
