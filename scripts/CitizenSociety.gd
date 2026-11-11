@@ -143,7 +143,6 @@ func _choose_business(engine, citizen):
 	elif interest == "services":
 		candidates = ["office", "shopping_mall", "grocery_store", "bakery", "restaurant", "woodcutter", "sawmill", "carpenter", "factory"]
 	var selected = ""
-	var selected_cost = 999999999
 	for building_id in candidates:
 		if not engine.BUILDINGS.has(building_id):
 			continue
@@ -157,9 +156,8 @@ func _choose_business(engine, citizen):
 		var total_cost = int(data.get("cost", 0)) + int(state.get("business_permit_fee", 50))
 		if int(citizen.get("wallet", 0)) < total_cost:
 			continue
-		if int(data.get("cost", 0)) < selected_cost:
-			selected = building_id
-			selected_cost = int(data.get("cost", 0))
+		selected = building_id
+		break
 	return selected
 
 func _queue_land_or_permit_requests(engine):
