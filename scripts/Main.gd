@@ -8,6 +8,10 @@ var message_label = null
 var content = null
 var header_label = null
 var ui_font = null
+var level_status_bar = null
+var xp_progress_bar = null
+var level_status_label = null
+var xp_progress_label = null
 
 func _notification(what):
 	if what == MainLoop.NOTIFICATION_WM_QUIT_REQUEST and game != null:
@@ -45,6 +49,50 @@ func _build_ui():
 	_apply_font(header_label, 28 if compact_layout else 26)
 	header_label.add_color_override("font_color", Color("#ffffff"))
 	root.add_child(header_label)
+	# Persistent city progression panel: stays visible above navigation on every page.
+	var progress_panel = VBoxContainer.new()
+	progress_panel.add_constant_override("separation", 3)
+	root.add_child(progress_panel)
+	level_status_label = Label.new()
+	level_status_label.align = Label.ALIGN_CENTER
+	level_status_label.add_color_override("font_color", Color("#fbbf24"))
+	_apply_font(level_status_label, 17 if compact_layout else 15)
+	progress_panel.add_child(level_status_label)
+	level_status_bar = ProgressBar.new()
+	level_status_bar.min_value = 0
+	level_status_bar.max_value = 100
+	level_status_bar.value = 100
+	level_status_bar.percent_visible = false
+	level_status_bar.rect_min_size = Vector2(0, 10 if compact_layout else 8)
+	var level_fill = StyleBoxFlat.new()
+	level_fill.bg_color = Color("#d97706")
+	level_fill.set_corner_radius_all(5)
+	level_status_bar.add_stylebox_override("fg", level_fill)
+	var level_bg = StyleBoxFlat.new()
+	level_bg.bg_color = Color("#334155")
+	level_bg.set_corner_radius_all(5)
+	level_status_bar.add_stylebox_override("bg", level_bg)
+	progress_panel.add_child(level_status_bar)
+	xp_progress_label = Label.new()
+	xp_progress_label.align = Label.ALIGN_CENTER
+	xp_progress_label.add_color_override("font_color", Color("#a5f3fc"))
+	_apply_font(xp_progress_label, 15 if compact_layout else 13)
+	progress_panel.add_child(xp_progress_label)
+	xp_progress_bar = ProgressBar.new()
+	xp_progress_bar.min_value = 0
+	xp_progress_bar.max_value = 100
+	xp_progress_bar.percent_visible = false
+	xp_progress_bar.rect_min_size = Vector2(0, 12 if compact_layout else 10)
+	var xp_fill = StyleBoxFlat.new()
+	xp_fill.bg_color = Color("#06b6d4")
+	xp_fill.set_corner_radius_all(5)
+	xp_progress_bar.add_stylebox_override("fg", xp_fill)
+	var xp_bg = StyleBoxFlat.new()
+	xp_bg.bg_color = Color("#334155")
+	xp_bg.set_corner_radius_all(5)
+	xp_progress_bar.add_stylebox_override("bg", xp_bg)
+	progress_panel.add_child(xp_progress_bar)
+	_update_progress_hud()
 	var nav = GridContainer.new()
 	nav.columns = 2 if compact_layout else 3
 	nav.add_constant_override("hseparation", 8)
@@ -86,6 +134,19 @@ func _build_ui():
 	message_label.add_color_override("font_color", Color("#ffffff"))
 	message_label.modulate = Color("#ffffff")
 	root.add_child(message_label)
+
+func _update_progress_hud():
+	if game == null or level_status_label == null or xp_progress_bar == null:
+		return
+	var level = max(1, int(game.state.get("level", 1)))
+	var xp = max(0, int(game.state.get("xp", 0)))
+	var required = max(1, int(game.get_xp_required_for_next_level()))
+	var percent = clamp(float(xp) * 100.0 / float(required), 0.0, 100.0)
+	level_status_label.text = PersianText.reshaper("سطح شهر  %d" % level)
+	xp_progress_label.text = PersianText.reshaper("تجربه شهر: %d از %d  |  %d٪" % [xp, required, int(round(percent))])
+	xp_progress_bar.max_value = required
+	xp_progress_bar.value = min(xp, required)
+	level_status_bar.value = 100
 
 func _load_ui_font():
 	var font_data = DynamicFontData.new()
@@ -170,6 +231,7 @@ func show_page(page):
 	_clear_content()
 	_show_message("")
 	var s = game.state
+	_update_progress_hud()
 	match page:
 		"home":
 			_add_label("روز %d  |  سطح شهر %d" % [s.day,s.level], 20)
