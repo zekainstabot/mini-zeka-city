@@ -154,7 +154,7 @@ func _normalize_state():
 		state.citizens = []
 	if typeof(state.get("citizen_requests", null)) != TYPE_ARRAY:
 		state["citizen_requests"] = []
-	if str(state.get("citizen_recruitment_mode", "auto")) not in ["auto", "manual"]:
+	if not (str(state.get("citizen_recruitment_mode", "auto")) in ["auto", "manual"]):
 		state["citizen_recruitment_mode"] = "auto"
 	if typeof(state.get("resources", null)) != TYPE_DICTIONARY:
 		state.resources = {}
