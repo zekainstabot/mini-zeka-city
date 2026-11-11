@@ -164,7 +164,7 @@ func _load_ui_font():
 	# Render the UI font at higher resolution so newly-created labels stay sharp
 	# on high-DPI mobile screens and when the HTML5 canvas is scaled.
 	font_data.antialiased = true
-	font_data.hinting = DynamicFontData.HINTING_NONE
+	font_data.hinting = DynamicFontData.HINTING_LIGHT
 	ui_font = DynamicFont.new()
 	ui_font.font_data = font_data
 	ui_font.size = 20
