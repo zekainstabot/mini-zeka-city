@@ -33,11 +33,74 @@ const RESOURCES = {
 	"food": {"name": "مواد غذایی", "buy": 10, "sell": 6}
 }
 
-const TRADE_CITIES = {
+var TRADE_CITIES = {
 	"mehrabad": {"name":"مهرآباد","price_factor":1.20,"daily_capacity":25,"travel_days":1,"demand":{"stone":20,"iron_ore":10,"wood":25,"lumber":15,"furniture":8},"supply":{"stone":35,"iron_ore":12,"wood":8,"lumber":10,"furniture":5}},
 	"navid": {"name":"نویدشهر","price_factor":1.35,"daily_capacity":18,"travel_days":2,"demand":{"stone":8,"iron_ore":25,"wood":10,"lumber":20,"furniture":18},"supply":{"stone":8,"iron_ore":40,"wood":10,"lumber":25,"furniture":22}},
 	"golestan": {"name":"گلستان","price_factor":1.12,"daily_capacity":30,"travel_days":1,"demand":{"stone":15,"iron_ore":8,"wood":18,"lumber":12,"furniture":25},"supply":{"stone":18,"iron_ore":8,"wood":30,"lumber":18,"furniture":35}}
 }
+
+func _init():
+	_add_iran_provincial_capitals()
+
+func _add_iran_provincial_capitals():
+	var capitals = [
+		{"id":"tabriz","name":"تبریز — آذربایجان شرقی"},
+		{"id":"urmia","name":"ارومیه — آذربایجان غربی"},
+		{"id":"ardabil","name":"اردبیل — اردبیل"},
+		{"id":"isfahan","name":"اصفهان — اصفهان"},
+		{"id":"karaj","name":"کرج — البرز"},
+		{"id":"ilam","name":"ایلام — ایلام"},
+		{"id":"bushehr","name":"بوشهر — بوشهر"},
+		{"id":"tehran","name":"تهران — تهران"},
+		{"id":"shahrekord","name":"شهرکرد — چهارمحال و بختیاری"},
+		{"id":"birjand","name":"بیرجند — خراسان جنوبی"},
+		{"id":"mashhad","name":"مشهد — خراسان رضوی"},
+		{"id":"bojnord","name":"بجنورد — خراسان شمالی"},
+		{"id":"ahvaz","name":"اهواز — خوزستان"},
+		{"id":"zanjan","name":"زنجان — زنجان"},
+		{"id":"semnan","name":"سمنان — سمنان"},
+		{"id":"zahedan","name":"زاهدان — سیستان و بلوچستان"},
+		{"id":"shiraz","name":"شیراز — فارس"},
+		{"id":"qazvin","name":"قزوین — قزوین"},
+		{"id":"qom","name":"قم — قم"},
+		{"id":"sanandaj","name":"سنندج — کردستان"},
+		{"id":"kerman","name":"کرمان — کرمان"},
+		{"id":"kermanshah","name":"کرمانشاه — کرمانشاه"},
+		{"id":"yasuj","name":"یاسوج — کهگیلویه و بویراحمد"},
+		{"id":"gorgan","name":"گرگان — گلستان"},
+		{"id":"rasht","name":"رشت — گیلان"},
+		{"id":"khorramabad","name":"خرم‌آباد — لرستان"},
+		{"id":"sari","name":"ساری — مازندران"},
+		{"id":"arak","name":"اراک — مرکزی"},
+		{"id":"bandar_abbas","name":"بندرعباس — هرمزگان"},
+		{"id":"hamedan","name":"همدان — همدان"},
+		{"id":" yazd","name":"یزد — یزد"}
+	]
+	for i in range(capitals.size()):
+		var city = capitals[i]
+		var city_id = str(city["id"]).strip_edges()
+		var demand = {
+			"stone": 10 + ((i * 7) % 16),
+			"iron_ore": 8 + ((i * 5) % 18),
+			"wood": 12 + ((i * 3) % 20),
+			"lumber": 8 + ((i * 11) % 17),
+			"furniture": 6 + ((i * 13) % 20)
+		}
+		var supply = {
+			"stone": 8 + ((i * 11) % 28),
+			"iron_ore": 5 + ((i * 13) % 35),
+			"wood": 8 + ((i * 17) % 32),
+			"lumber": 5 + ((i * 7) % 24),
+			"furniture": 4 + ((i * 19) % 25)
+		}
+		TRADE_CITIES[city_id] = {
+			"name": city["name"],
+			"price_factor": 1.05 + float((i * 3) % 9) * 0.04,
+			"daily_capacity": 18 + ((i * 7) % 23),
+			"travel_days": 1 + int(i / 10),
+			"demand": demand,
+			"supply": supply
+		}
 
 const BUILDINGS = {
 	"small_house": {"name":"خانه کوچک","category":"خانه‌ها","cost":100,"unlock":0,"capacity":2,"jobs":0,"wage":0},
