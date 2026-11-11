@@ -32,7 +32,7 @@ func ensure_state(engine):
 	state["business_permit_fee"] = max(0, int(state.get("business_permit_fee", 50)))
 	for building_index in range(state.buildings.size()):
 		var building = state.buildings[building_index]
-		var building_data = engine.BUILDINGS.get(str(building.get("id", "")), {})
+		var building_data = engine.get_building_definitions().get(str(building.get("id", "")), {})
 		if not building.has("municipal_owned"):
 			building["municipal_owned"] = str(building_data.get("category", "")) != "خانه‌ها"
 		if not building.has("rented_to"):
@@ -95,7 +95,7 @@ func _find_rentable_building(engine):
 	var state = engine.state
 	for i in range(state.buildings.size()):
 		var building = state.buildings[i]
-		var data = engine.BUILDINGS.get(str(building.get("id", "")), {})
+		var data = engine.get_building_definitions().get(str(building.get("id", "")), {})
 		var category = str(data.get("category", ""))
 		if data.empty() or int(data.get("jobs", 0)) <= 0:
 			continue
@@ -150,9 +150,9 @@ func _choose_business(engine, citizen):
 		candidates = ["office", "shopping_mall", "grocery_store", "bakery", "restaurant", "woodcutter", "sawmill", "carpenter", "factory"]
 	var selected = ""
 	for building_id in candidates:
-		if not engine.BUILDINGS.has(building_id):
+		if not engine.get_building_definitions().has(building_id):
 			continue
-		var data = engine.BUILDINGS[building_id]
+		var data = engine.get_building_definitions()[building_id]
 		if int(state.population) < int(data.get("unlock", 0)):
 			continue
 		if int(state.level) < int(data.get("level_unlock", 1)):
@@ -184,7 +184,7 @@ func _queue_land_or_permit_requests(engine):
 			var rentable_index = _find_rentable_building(engine)
 			if rentable_index >= 0:
 				var rentable = state.buildings[rentable_index]
-				var rentable_data = engine.BUILDINGS.get(str(rentable.get("id", "")), {})
+				var rentable_data = engine.get_building_definitions().get(str(rentable.get("id", "")), {})
 				var daily_rent = max(15, int(int(rentable_data.get("cost", 500)) * 0.02))
 				var lease_cost = daily_rent * 7
 				if wallet >= lease_cost:
@@ -228,7 +228,7 @@ func _queue_land_or_permit_requests(engine):
 		if owned_private_plots < required_plots:
 			var extra_plots = required_plots - owned_private_plots
 			var extra_land_cost = int(state.get("private_land_price", 300)) * extra_plots
-			var required_business_cost = int(engine.BUILDINGS[building_id].get("cost", 0)) + int(state.get("business_permit_fee", 50))
+			var required_business_cost = int(engine.get_building_definitions()[building_id].get("cost", 0)) + int(state.get("business_permit_fee", 50))
 			if int(state.get("private_land_available", 0)) < extra_plots or wallet < extra_land_cost + required_business_cost:
 				continue
 			state.business_requests.append({
@@ -243,7 +243,7 @@ func _queue_land_or_permit_requests(engine):
 			citizen["civic_request_pending"] = true
 			state.citizens[citizen_index] = citizen
 			continue
-		var data = engine.BUILDINGS[building_id]
+		var data = engine.get_building_definitions()[building_id]
 		var fee = int(state.get("business_permit_fee", 50))
 		state.business_requests.append({
 			"id":_next_request_id(state),
@@ -273,7 +273,7 @@ func _choose_public_project(engine):
 		if int(state.get("needs", {}).get(candidate.need, 100)) >= 65:
 			continue
 		var building_id = str(candidate.id)
-		var data = engine.BUILDINGS.get(building_id, {})
+		var data = engine.get_building_definitions().get(building_id, {})
 		if data.empty():
 			continue
 		if int(state.population) < int(data.get("unlock", 0)) or int(state.level) < int(data.get("level_unlock", 1)):
@@ -303,7 +303,7 @@ func _queue_public_project_requests(engine):
 		var building_id = _choose_public_project(engine)
 		if building_id == "":
 			continue
-		var cost = int(engine.BUILDINGS[building_id].get("cost", 0))
+		var cost = int(engine.get_building_definitions()[building_id].get("cost", 0))
 		if int(business.get("balance", 0)) < cost or int(business.get("tax_paid_total", 0)) <= 0:
 			continue
 		state.business_requests.append({
@@ -313,9 +313,9 @@ func _queue_public_project_requests(engine):
 			"business_id":int(business.get("id", 0)),
 			"day":int(state.day),
 			"building_id":building_id,
-			"building_name":str(engine.BUILDINGS[building_id].name),
+			"building_name":str(engine.get_building_definitions()[building_id].name),
 			"amount":cost,
-			"title":"پیشنهاد ساخت %s به‌جای بخشی از مالیات" % str(engine.BUILDINGS[building_id].name)
+			"title":"پیشنهاد ساخت %s به‌جای بخشی از مالیات" % str(engine.get_building_definitions()[building_id].name)
 		})
 		citizen["last_project_request_day"] = int(state.day)
 		citizen["civic_request_pending"] = true
@@ -327,7 +327,7 @@ func _process_private_businesses(engine, report):
 	var tax_total = 0
 	for business_index in range(state.private_businesses.size()):
 		var business = state.private_businesses[business_index]
-		var data = engine.BUILDINGS.get(str(business.get("building_id", "")), {})
+		var data = engine.get_building_definitions().get(str(business.get("building_id", "")), {})
 		if data.empty():
 			continue
 		var employee_ids = []
@@ -393,7 +393,7 @@ func _complete_civic_projects(engine, report):
 			remaining.append(project)
 			continue
 		var building_id = str(project.get("building_id", ""))
-		if not engine.BUILDINGS.has(building_id):
+		if not engine.get_building_definitions().has(building_id):
 			continue
 		# Project land is already reserved by get_land_used().
 		state.buildings.append({"id":building_id,"workers":0,"balance":0,"municipal_owned":true,"civic_project":true})
@@ -402,7 +402,7 @@ func _complete_civic_projects(engine, report):
 			var business = state.private_businesses[business_index]
 			business["tax_credit"] = int(business.get("tax_credit", 0)) + int(project.get("tax_credit", 0))
 			state.private_businesses[business_index] = business
-		report.append("شهروند شماره %d پروژه عمومی %s را تحویل داد؛ اعتبار مالیاتی %d سکه ثبت شد." % [int(project.get("citizen_id", 0)), str(engine.BUILDINGS[building_id].name), int(project.get("tax_credit", 0))])
+		report.append("شهروند شماره %d پروژه عمومی %s را تحویل داد؛ اعتبار مالیاتی %d سکه ثبت شد." % [int(project.get("citizen_id", 0)), str(engine.get_building_definitions()[building_id].name), int(project.get("tax_credit", 0))])
 		completed_any = true
 	state.civic_projects = remaining
 	if completed_any:
@@ -490,7 +490,7 @@ func resolve_request(engine, request_id, approved):
 		municipal_property["rent_per_day"] = daily_rent
 		state.buildings[building_index] = municipal_property
 		var rented_id_name = str(request.get("building_id", ""))
-		var rented_data = engine.BUILDINGS.get(rented_id_name, {})
+		var rented_data = engine.get_building_definitions().get(rented_id_name, {})
 		var rent_revenue = max(30, int(int(rented_data.get("daily_revenue", 0)) / max(1, int(rented_data.get("jobs", 1)))))
 		state.private_businesses.append({
 			"id":rented_id,
@@ -520,7 +520,7 @@ func resolve_request(engine, request_id, approved):
 		return {"ok":true,"message":"اجاره ملک شهرداری برای ۷ روز تأیید شد؛ مبلغ %d سکه جدا از مالیات دریافت شد." % lease_cost}
 	if request_type == "permit":
 		var building_id = str(request.get("building_id", ""))
-		var data = engine.BUILDINGS.get(building_id, {})
+		var data = engine.get_building_definitions().get(building_id, {})
 		var cost = int(request.get("amount", 0))
 		var footprint = int(request.get("footprint", 1))
 		var permit_fee = int(state.get("business_permit_fee", 50))
@@ -563,7 +563,7 @@ func resolve_request(engine, request_id, approved):
 		var business = state.private_businesses[business_index]
 		var building_id = str(request.get("building_id", ""))
 		var cost = int(request.get("amount", 0))
-		if not engine.BUILDINGS.has(building_id) or int(business.get("balance", 0)) < cost:
+		if not engine.get_building_definitions().has(building_id) or int(business.get("balance", 0)) < cost:
 			return {"ok":false,"message":"سرمایه کسب‌وکار برای اجرای پروژه کافی نیست."}
 		business["balance"] = int(business.balance) - cost
 		state.private_businesses[business_index] = business
@@ -579,7 +579,7 @@ func resolve_request(engine, request_id, approved):
 		state.business_requests.remove(request_index)
 		engine.state = state
 		engine.save_game()
-		return {"ok":true,"message":"پروژه %s تأیید شد؛ پس از تحویل، %d سکه اعتبار مالیاتی به کسب‌وکار تعلق می‌گیرد." % [str(engine.BUILDINGS[building_id].name), cost]}
+		return {"ok":true,"message":"پروژه %s تأیید شد؛ پس از تحویل، %d سکه اعتبار مالیاتی به کسب‌وکار تعلق می‌گیرد." % [str(engine.get_building_definitions()[building_id].name), cost]}
 	return {"ok":false,"message":"نوع درخواست پشتیبانی نمی‌شود."}
 
 func adjust_tax_rate(engine, delta):
