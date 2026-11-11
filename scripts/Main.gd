@@ -252,7 +252,7 @@ func _build_ui():
 	nav.add_constant_override("hseparation", 8)
 	nav.add_constant_override("vseparation", 8)
 	root.add_child(nav)
-	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار","p":"market"},{"t":"تجارت شهرها","p":"trade"},{"t":"واردات و قراردادها","p":"imports"},{"t":"جاده و ناوگان","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش روز","p":"report"},{"t":"ماموریت‌ها","p":"missions"}]:
+	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار و تجارت","p":"commerce"},{"t":"جاده و ناوگان","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش روز","p":"report"},{"t":"ماموریت‌ها","p":"missions"}]:
 		var b = Button.new()
 		b.text = PersianText.reshaper(item.t + "  ")
 		b.rect_min_size = Vector2(0, 64 if compact_layout else 58)
@@ -694,8 +694,10 @@ func show_page(page):
 				if bool(business.get("rented_municipal",false)):
 					_add_label("ملک متعلق به شهرداری است؛ پایان قرارداد اجاره: روز %d" % int(business.get("rent_until_day",0)), 14)
 			_add_label("شهروندان بیکار درآمد آزاد کسب می‌کنند؛ کسب‌وکارها به‌تدریج نیروی کار استخدام می‌کنند و از فروش خود مالیات می‌پردازند.", 15)
-		"market":
-			_add_label("بازار شهر — قیمت‌ها بر اساس عرضه و تقاضا", 22)
+		"commerce":
+			_add_label("🛒 بازار، تجارت و واردات", 22)
+			_add_label("خریدوفروش داخل شهر، صادرات به شهرهای دیگر و واردات کالا از شهرهای همسایه در یک بخش.", 15)
+			_add_label("بازار داخلی — قیمت‌ها بر اساس عرضه و تقاضا", 20)
 			_add_label("موجودی بازار کمتر باشد، قیمت بالاتر می‌رود؛ با افزایش موجودی، قیمت کاهش می‌یابد.", 15)
 			for id in game.get_resource_definitions().keys():
 				var d = game.get_resource_definitions()[id]
@@ -708,8 +710,7 @@ func show_page(page):
 				buy_button.disabled = int(s.market_stock.get(id,0)) < 5 or game.get_free_storage() < 5 or game.get_available_money() < buy_price * 5
 				var sell_button = _add_button("فروش ۵ واحد "+d.name, self, "sell_item", [id,5])
 				sell_button.disabled = stock < 5 or int(s.market_stock.get(id,0)) > 95 or game.get_available_money() >= game.get_treasury_capacity()
-		"trade":
-			_add_label(" تجارت با شهرهای همسایه", 22)
+			_add_label("🌐 صادرات و تجارت با شهرهای دیگر", 20)
 			_add_label("هر شهر تقاضا و ظرفیت خرید روزانه دارد. صادرات با قیمت توافقی انجام می‌شود و درآمد مستقیم به خزانه می‌رود.", 15)
 			_add_label("ظرفیت باقی‌مانده امروز:", 18)
 			for city_id in game.get_trade_cities().keys():
@@ -724,6 +725,42 @@ func show_page(page):
 					var export_button = _add_button("صادرات ۵ واحد "+game.get_resource_definitions()[resource_id].name+" به "+city.name,self,"export_to_city",[city_id,resource_id,5])
 					export_button.disabled = int(s.resources.get(resource_id,0)) <= 0 or int(s.trade_remaining.get(city_id,city.daily_capacity)) <= 0 or game.get_transport_capacity_remaining() <= 0
 			_add_label("آخرین معامله: "+str(s.get("last_trade_report","هنوز معامله‌ای انجام نشده است.")),16)
+			_add_label("📦 واردات از شهرهای دیگر", 20)
+			_add_label("ظرفیت کامیون آزاد امروز: %d از %d واحد" % [game.get_transport_capacity_remaining(),game.get_transport_daily_capacity()],16)
+			_add_label("هزینه کالا و ۱۰٪ کرایه حمل هنگام سفارش پرداخت می‌شود. محموله پس از ۱ یا ۲ روز می‌رسد.",15)
+			for city_id in game.get_import_cities().keys():
+				var city = game.get_import_cities()[city_id]
+				_add_label("%s | زمان حمل: %d روز" % [city.name,int(city.travel_days)],18)
+				for resource_id in game.get_resource_definitions().keys():
+					var import_stock = int(s.city_export_stock.get(city_id,city.supply).get(resource_id,0))
+					var price = game.get_import_price(city_id,resource_id)
+					if import_stock <= 0:
+						continue
+					_add_label("%s | موجودی: %d | قیمت: %d سکه/واحد" % [game.get_resource_definitions()[resource_id].name,import_stock,price],15)
+					var import_button = _add_button("سفارش ۵ واحد "+game.get_resource_definitions()[resource_id].name+" از "+city.name,self,"import_from_city",[city_id,resource_id,5])
+					import_button.disabled = game.get_free_storage() < 5 or game.get_transport_capacity_remaining() < 5 or game.get_available_money() < (5 * price + int(ceil(float(5 * price) * 0.10)))
+			_add_label("محموله‌های در راه:",18)
+			if s.trade_shipments.empty():
+				_add_label("محموله‌ای در راه نیست.")
+			for shipment in s.trade_shipments:
+				var shipment_city = game.get_import_cities().get(str(shipment.get("city_id","")) ,{"name":"نامشخص"})
+				var shipment_resource = game.get_resource_definitions().get(str(shipment.get("resource_id","")) ,{"name":"کالای نامشخص"})
+				_add_label("#%d | %s | %d واحد %s | تحویل روز %d" % [int(shipment.get("id",0)),shipment_city.name,int(shipment.get("amount",0)),shipment_resource.name,int(shipment.get("arrival_day",0))],15)
+			_add_label("آخرین سفارش: "+str(s.get("last_import_report","")),15)
+			_add_label("قراردادهای واردات:",18)
+			if s.import_contracts.empty():
+				_add_label("قرارداد فعالی ثبت نشده است.")
+			for contract_index in range(s.import_contracts.size()):
+				var contract = s.import_contracts[contract_index]
+				var contract_city = game.get_import_cities().get(str(contract.get("city_id","")) ,{"name":"نامشخص"})
+				var contract_resource = game.get_resource_definitions().get(str(contract.get("resource_id","")) ,{"name":"نامشخص"})
+				var active_label = "فعال" if bool(contract.get("active",false)) else "پایان‌یافته/لغوشده"
+				_add_label("%s | %s | روزانه %d واحد | %d روز باقی‌مانده | %s" % [contract_city.name,contract_resource.name,int(contract.get("daily_amount",0)),int(contract.get("days_left",0)),active_label],15)
+				if bool(contract.get("active",false)):
+					_add_button("لغو قرارداد "+contract_resource.name,self,"cancel_import",[contract_index])
+			for import_city_id in game.get_import_cities().keys():
+				var import_city = game.get_import_cities()[import_city_id]
+				_add_button("قرارداد ۷ روزه: ۲ واحد چوب از "+import_city.name,self,"make_import_contract",[import_city_id,"wood",2,7])
 		"transport":
 			_add_label("🛣️ شبکه جاده‌ای و ناوگان کامیون‌ها",22)
 			_add_label("سطح جاده: %d از ۳ | کامیون فعال: %d | ظرفیت روزانه: %d واحد" % [int(s.get("road_level",1)),game.get_transport_truck_count(),game.get_transport_daily_capacity()],18)
@@ -1027,7 +1064,7 @@ func advance_day():
 
 func import_from_city(city_id, resource_id, amount):
 	var result = game.order_import(city_id, resource_id, amount)
-	show_page("imports")
+	show_page("commerce")
 	_show_message(result.message)
 
 func make_import_contract(city_id, resource_id, amount, days):
@@ -1042,12 +1079,12 @@ func cancel_import(index):
 
 func export_to_city(city_id, resource_id, amount):
 	var result = game.trade_with_city(city_id, resource_id, amount)
-	show_page("trade")
+	show_page("commerce")
 	_show_message(result.message)
 
 func buy_item(id, amount):
 	var result = game.buy_resource(id, amount)
-	show_page("market")
+	show_page("commerce")
 	_show_message(result.message)
 
 func sell_item(id, amount):
