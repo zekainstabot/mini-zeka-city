@@ -23,10 +23,14 @@ const SERVICE_GROUPS = {
 	"sanitation": {"name":"بهداشت محیط","buildings":["sewage_plant","waste_facility"]}
 }
 const MISSION_DEFINITIONS = [
-	{"id":"build_5","title":"گسترش شهر","description":"تعداد ساختمان‌های شهر را به ۵ برسان.","goal":5,"reward":500},
-	{"id":"population_8","title":"جذب شهروند","description":"جمعیت شهر را به ۸ نفر برسان.","goal":8,"reward":700},
-	{"id":"build_market","title":"تجارت شهری","description":"یک بازار مواد معدنی بساز.","goal":1,"reward":800},
-	{"id":"level_3","title":"شهردار باتجربه","description":"به سطح ۳ شهر برس.","goal":3,"reward":1200}
+	{"id":"buy_land_tutorial","title":"۱. اولین قدم شهرداری","description":"برای توسعه شهر، یک قطعه زمین جدید بخر.","goal":1,"reward":300,"hint":"از بخش ساختمان‌ها دکمه خرید زمین را بزن."},
+	{"id":"build_house_tutorial","title":"۲. خانه‌سازی","description":"یک خانه کوچک دیگر به شهر اضافه کن.","goal":1,"reward":400,"hint":"از ساختمان‌ها، دسته خانه‌ها را باز کن."},
+	{"id":"build_farm_tutorial","title":"۳. تأمین خوراک","description":"یک مزرعه برای تولید مواد غذایی بساز.","goal":1,"reward":500,"hint":"مزرعه در دسته کشاورزی قرار دارد."},
+	{"id":"hire_worker_tutorial","title":"۴. اولین استخدام","description":"حداقل یک شهروند را در یک شغل مشغول کن.","goal":1,"reward":600,"hint":"در بخش شهروندان، وضعیت شغل‌ها را بررسی کن."},
+	{"id":"population_tutorial","title":"۵. گسترش جمعیت","description":"جمعیت شهر را به ۸ نفر برسان.","goal":8,"reward":700,"hint":"با ساخت خانه و جذب شهروند ظرفیت جمعیت را بالا ببر."},
+	{"id":"market_tutorial","title":"۶. ورود به اقتصاد","description":"یک بازار مواد معدنی بساز.","goal":1,"reward":800,"hint":"بازار در دسته کسب‌وکارها قرار دارد."},
+	{"id":"transport_tutorial","title":"۷. راه تجارت","description":"یک پایانه حمل‌ونقل بساز.","goal":1,"reward":1000,"hint":"پایانه برای تجارت و واردات بین‌شهری لازم است."},
+	{"id":"level_tutorial","title":"۸. شهردار باتجربه","description":"شهر را به سطح ۳ برسان.","goal":3,"reward":1200,"hint":"با ساخت‌وساز و پیشرفت روزانه تجربه کسب کن."}
 ]
 
 const RESOURCES = {
@@ -1072,6 +1076,15 @@ func _update_city_services(report):
 func _sync_missions():
 	if typeof(state.get("missions", null)) != TYPE_ARRAY:
 		state["missions"] = []
+	# Remove obsolete missions from older tutorial versions.
+	var valid_ids = []
+	for definition in MISSION_DEFINITIONS:
+		valid_ids.append(str(definition.id))
+	var retained = []
+	for saved_mission in state.missions:
+		if str(saved_mission.get("id", "")) in valid_ids:
+			retained.append(saved_mission)
+	state["missions"] = retained
 	for definition in MISSION_DEFINITIONS:
 		var found = false
 		for mission in state.missions:
@@ -1079,32 +1092,43 @@ func _sync_missions():
 				found = true
 				break
 		if not found:
-			state.missions.append({"id":definition.id,"progress":0,"completed":false,"claimed":false})
+			state.missions.append({"id":definition.id,"progress":0,"completed":false,"claimed":false,"unlocked":false})
 	_update_missions()
 
 func _get_mission_progress(mission_id):
 	match mission_id:
-		"build_5":
-			return state.buildings.size()
-		"population_8":
+		"buy_land_tutorial":
+			return max(0, int(state.get("land_owned", 10)) - 10)
+		"build_house_tutorial":
+			return max(0, get_building_count("small_house") - 1)
+		"build_farm_tutorial":
+			return get_building_count("farm")
+		"hire_worker_tutorial":
+			return get_employed_count()
+		"population_tutorial":
 			return int(state.population)
-		"build_market":
+		"market_tutorial":
 			return get_building_count("mineral_market")
-		"level_3":
+		"transport_tutorial":
+			return get_building_count("transport_depot")
+		"level_tutorial":
 			return int(state.level)
 	return 0
 
 func _update_missions():
+	var previous_claimed = true
 	for i in range(state.missions.size()):
 		var mission = state.missions[i]
 		var mission_id = str(mission.get("id", ""))
+		mission["unlocked"] = previous_claimed
 		for definition in MISSION_DEFINITIONS:
 			if str(definition.id) != mission_id:
 				continue
 			var progress = min(int(definition.goal), _get_mission_progress(mission_id))
-			mission.progress = progress
-			mission.completed = progress >= int(definition.goal)
+			mission["progress"] = progress
+			mission["completed"] = progress >= int(definition.goal)
 			state.missions[i] = mission
+			previous_claimed = bool(mission.get("claimed", false))
 			break
 
 func get_missions():
@@ -1115,6 +1139,8 @@ func claim_mission(mission_index):
 	if mission_index < 0 or mission_index >= state.missions.size():
 		return {"ok":false,"message":"ماموریت پیدا نشد."}
 	var mission = state.missions[mission_index]
+	if not bool(mission.get("unlocked", false)):
+		return {"ok":false,"message":"ابتدا مرحله قبلی آموزش را کامل کن."}
 	if not bool(mission.get("completed", false)):
 		return {"ok":false,"message":"این ماموریت هنوز کامل نشده است."}
 	if bool(mission.get("claimed", false)):
