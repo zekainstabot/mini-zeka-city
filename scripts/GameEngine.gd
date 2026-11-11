@@ -92,6 +92,7 @@ func new_game():
 		"citizen_recruitment_mode": "auto",
 		"citizen_requests": [],
 		"constructions": [],
+		"land_owned": 10,
 		"level": 1,
 		"xp": 0,
 		"reputation": 50,
@@ -159,6 +160,9 @@ func _normalize_state():
 		state["citizen_requests"] = []
 	if typeof(state.get("constructions", null)) != TYPE_ARRAY:
 		state["constructions"] = []
+	if not state.has("land_owned"):
+		state["land_owned"] = 10
+	state["land_owned"] = max(3, int(state.get("land_owned", 10)))
 	if not (str(state.get("citizen_recruitment_mode", "auto")) in ["auto", "manual"]):
 		state["citizen_recruitment_mode"] = "auto"
 	if typeof(state.get("resources", null)) != TYPE_DICTIONARY:
@@ -431,6 +435,42 @@ func get_job_capacity():
 		total += int(BUILDINGS.get(building.id, {}).get("jobs", 0))
 	return total
 
+func get_land_size(id):
+	var sizes = {
+		"small_house":1,"normal_house":2,"low_apartment":3,"high_apartment":4,"residential_tower":5,
+		"small_warehouse":1,"medium_warehouse":2,"large_warehouse":3,"huge_warehouse":5,
+		"mineral_market":1,"small_park":1,"playground":1,"grocery_store":1,"bakery":1,"water_tower":1,
+		"farm":2,"woodcutter":2,"stone_mine":2,"transport_depot":2,"restaurant":2,"office":2,
+		"municipal_bank":2,"power_station":2,"sawmill":2,"sewage_plant":2,"waste_facility":2,
+		"school":3,"clinic":3,"iron_mine":3,"carpenter":3,"sports_center":3,"fire_station":3,"police_station":3,
+		"central_bank":4,"factory":4,"hospital":4,"university":5,"shopping_mall":5,"cultural_center":4
+	}
+	return int(sizes.get(str(id), 1))
+
+func get_land_used():
+	var used = 0
+	for building in state.get("buildings", []):
+		used += get_land_size(str(building.get("id", "")))
+	for project in state.get("constructions", []):
+		used += get_land_size(str(project.get("id", "")))
+	return used
+
+func get_land_free():
+	return max(0, int(state.get("land_owned", 10)) - get_land_used())
+
+func buy_land(plots=1):
+	var amount = int(plots)
+	if amount < 1 or amount > 10:
+		return {"ok":false,"message":"هر بار می‌توانی بین ۱ تا ۱۰ قطعه زمین بخری."}
+	var owned = int(state.get("land_owned", 10))
+	var unit_price = 300 + max(0, owned - 10) * 40
+	var total = unit_price * amount
+	if not _spend_money(total):
+		return {"ok":false,"message":"پول آزاد خزانه برای خرید زمین کافی نیست؛ هزینه هر قطعه %d سکه است." % unit_price}
+	state["land_owned"] = owned + amount
+	save_game()
+	return {"ok":true,"message":"%d قطعه زمین به قیمت %d سکه خریداری شد. زمین آزاد: %d قطعه." % [amount,total,get_land_free()]}
+
 func build(id):
 	if not BUILDINGS.has(id):
 		return {"ok":false,"message":"این ساختمان تعریف نشده است."}
@@ -441,6 +481,9 @@ func build(id):
 		return {"ok":false,"message":"برای ساخت این ساختمان باید به سطح %d برسی." % int(data.get("level_unlock", 1))}
 	if id == "central_bank" and int(state.get("central_bank_rebuild_days_left", 0)) > 0:
 		return {"ok":false,"message":"برای ساخت دوباره بانک مرکزی باید %d روز صبر کنی." % int(state.central_bank_rebuild_days_left)}
+	var required_land = get_land_size(id)
+	if get_land_free() < required_land:
+		return {"ok":false,"message":"زمین کافی نداری؛ این ساختمان %d قطعه زمین می‌خواهد و فقط %d قطعه آزاد داری. ابتدا زمین بخر." % [required_land,get_land_free()]}
 	if not _spend_money(int(data.cost)):
 		return {"ok":false,"message":"پول آزاد خزانه کافی نیست؛ ممکن است بخشی از پول به‌دلیل ظرفیت خزانه قفل شده باشد."}
 	var construction_times = {
