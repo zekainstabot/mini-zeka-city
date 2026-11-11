@@ -443,7 +443,18 @@ func build(id):
 		return {"ok":false,"message":"برای ساخت دوباره بانک مرکزی باید %d روز صبر کنی." % int(state.central_bank_rebuild_days_left)}
 	if not _spend_money(int(data.cost)):
 		return {"ok":false,"message":"پول آزاد خزانه کافی نیست؛ ممکن است بخشی از پول به‌دلیل ظرفیت خزانه قفل شده باشد."}
-	var construction_times = {"small_house":60,"normal_house":120,"low_apartment":180,"high_apartment":240,"residential_tower":300}
+	var construction_times = {
+		"small_house":60,"normal_house":120,"low_apartment":180,"high_apartment":240,"residential_tower":300,
+		"small_warehouse":60,"mineral_market":60,"small_park":60,"playground":60,
+		"grocery_store":60,"bakery":60,"water_tower":60,
+		"farm":120,"woodcutter":120,"stone_mine":120,"transport_depot":120,
+		"restaurant":120,"office":120,"municipal_bank":120,"power_station":120,
+		"medium_warehouse":120,"sawmill":120,"sewage_plant":120,"waste_facility":120,
+		"school":180,"clinic":180,"iron_mine":180,"carpenter":180,"sports_center":180,
+		"large_warehouse":180,"fire_station":180,"police_station":180,
+		"central_bank":240,"factory":240,"hospital":240,"university":300,
+		"huge_warehouse":300,"shopping_mall":300,"cultural_center":300
+	}
 	if construction_times.has(id):
 		var seconds = int(construction_times[id])
 		state.constructions.append({"id":id,"finish_at":OS.get_unix_time()+seconds})
@@ -472,6 +483,11 @@ func process_constructions():
 		var id = str(construction.get("id", ""))
 		if BUILDINGS.has(id):
 			state.buildings.append({"id":id,"workers":0,"balance":0})
+			var new_index = state.buildings.size() - 1
+			if id in ["stone_mine", "iron_mine"]:
+				_register_mine(new_index, id)
+			if id == "central_bank":
+				state.central_bank_rebuild_days_left = 0
 			completed.append(str(BUILDINGS[id].name))
 	state["constructions"] = remaining
 	if completed.size() > 0:
