@@ -194,8 +194,8 @@ func new_game():
 		"last_report": "شهر جدید ساخته شد. به مینی زکا سیتی خوش آمدی."
 	}
 	_sync_population()
-	_ensure_building_locations()
 	CitizenSociety.new().ensure_state(self)
+	_ensure_building_locations()
 	_sync_missions()
 	return state
 
@@ -443,7 +443,7 @@ func _ensure_building_locations():
 		var district = state.districts[i]
 		district["building_count"] = 0
 		state.districts[i] = district
-	for collection_name in ["buildings", "constructions"]:
+	for collection_name in ["buildings", "constructions", "private_businesses"]:
 		var collection = state.get(collection_name, [])
 		for i in range(collection.size()):
 			var item = collection[i]
@@ -476,6 +476,9 @@ func get_districts_overview():
 		for construction in state.get("constructions", []):
 			if str(construction.get("district_id", "")) == str(district.get("id", "")):
 				names.append(str(BUILDINGS.get(str(construction.get("id", "")), {}).get("name", "پروژه در حال ساخت"))+" (در حال ساخت)")
+		for business in state.get("private_businesses", []):
+			if str(business.get("district_id", "")) == str(district.get("id", "")):
+				names.append(str(business.get("name", BUILDINGS.get(str(business.get("building_id", "")), {}).get("name", "کسب‌وکار"))))
 		var row = district.duplicate(true)
 		row["building_names"] = names
 		row["building_count"] = names.size()
