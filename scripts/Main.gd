@@ -472,8 +472,6 @@ func show_page(page):
 		"home":
 			_add_label("روز %d  |  سطح شهر %d" % [s.day,s.level], 20)
 			clock_label = _add_label("روز | زمان باقی‌مانده: 07:00", 18)
-			_add_label("درصد تجربه شهر: %d٪" % int(clamp(float(s.xp) * 100.0 / float(max(1, game.get_xp_required_for_next_level())), 0.0, 100.0)),18)
-			_add_label("تجربه‌ای که با پایان روز می‌گیری: %d امتیاز" % game.get_daily_xp_gain(),15)
 			_add_label(" خزانه: %d / %d سکه   |   پول قفل‌شده: %d   |    جمعیت: %d نفر" % [s.money,game.get_treasury_capacity(),game.get_locked_money(),s.population], 22)
 			_add_label("شاغلان: %d  |  بیکاران: %d  |  اعتبار شهر: %d  |  رضایت: %d/۱۰۰" % [game.get_employed_count(),game.get_unemployed_count(),s.reputation,int(s.get("satisfaction",50))])
 			var service_lines = []
