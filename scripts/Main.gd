@@ -446,6 +446,8 @@ func show_page(page):
 				elif int(citizen.get("private_job_id",0)) > 0:
 					citizen_role = "کارمند بخش خصوصی"
 				_add_label("شهروند %s — %s | کیف پول: %d سکه | زمین خصوصی: %d قطعه" % [str(citizen.id),citizen_role,int(citizen.get("wallet",0)),int(citizen.get("private_land",0))])
+				var interest_names = {"food":"خوراک","industry":"صنعت","services":"خدمات"}
+				_add_label("استعداد کارآفرینی: %d | ریسک‌پذیری: %d | علاقه: %s | پس‌انداز: %d" % [int(citizen.get("entrepreneurship",0)),int(citizen.get("risk_tolerance",0)),str(interest_names.get(str(citizen.get("business_interest","")),"نامشخص")),int(citizen.get("saving_habit",0))], 14)
 			_add_button(" تخصیص دوباره شغل‌ها", self, "reassign_jobs")
 		"municipality":
 			var civic = game.get_civic_overview()
