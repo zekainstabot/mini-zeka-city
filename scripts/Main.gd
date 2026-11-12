@@ -766,7 +766,7 @@ func _add_button(text, button_target, callback, args=[]):
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_button(button, false)
 	button.connect("pressed", button_target, callback, args)
-	if audio_manager != null:
+	if audio_manager != null and button_target != audio_manager:
 		button.connect("pressed", audio_manager, "play_sfx", ["click"])
 	var parent = active_section_container if active_section_container != null else content
 	parent.add_child(button)
