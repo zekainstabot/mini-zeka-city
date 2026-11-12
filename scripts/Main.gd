@@ -37,6 +37,7 @@ var municipality_section_expanded = {"land":false,"tax":false,"requests":false,"
 var commerce_section_expanded = {"domestic":false,"export":false,"import":false,"shipments":false,"contracts":false}
 var storage_section_expanded = {}
 var active_section_container = null
+var mission_reward_badge = null
 
 func _input(event):
 	if game_scroll_container == null or not is_instance_valid(game_scroll_container):
@@ -294,6 +295,17 @@ func _build_ui():
 	nav.add_constant_override("vseparation", 8)
 	root.add_child(nav)
 	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار و تجارت","p":"commerce"},{"t":"جاده و ناوگان","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش","p":"report"},{"t":"ماموریت‌ها","p":"missions"}]:
+		var nav_item = VBoxContainer.new()
+		nav_item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		nav_item.add_constant_override("separation", 2)
+		if item.p == "missions":
+			mission_reward_badge = Label.new()
+			mission_reward_badge.text = ""
+			mission_reward_badge.align = Label.ALIGN_CENTER
+			mission_reward_badge.rect_min_size = Vector2(0, 24)
+			mission_reward_badge.add_color_override("font_color", Color("#facc15"))
+			_apply_font(mission_reward_badge, 15)
+			nav_item.add_child(mission_reward_badge)
 		var b = Button.new()
 		b.text = PersianText.reshaper(item.t + "  ")
 		b.rect_min_size = Vector2(0, 64 if compact_layout else 58)
@@ -302,7 +314,8 @@ func _build_ui():
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_style_button(b, true)
 		b.connect("pressed", self, "show_page", [item.p])
-		nav.add_child(b)
+		nav_item.add_child(b)
+		nav.add_child(nav_item)
 	var line = HSeparator.new()
 	root.add_child(line)
 	var scroll = ScrollContainer.new()
@@ -338,6 +351,16 @@ func _build_ui():
 	message_label.add_color_override("font_color", Color("#ffffff"))
 	message_label.modulate = Color("#ffffff")
 	root.add_child(message_label)
+
+func _update_mission_reward_badge():
+	if mission_reward_badge == null or not is_instance_valid(mission_reward_badge) or game == null:
+		return
+	var ready_to_claim = false
+	for mission in game.get_missions():
+		if bool(mission.get("completed", false)) and not bool(mission.get("claimed", false)) and bool(mission.get("unlocked", false)):
+			ready_to_claim = true
+			break
+	mission_reward_badge.text = PersianText.reshaper("🎁 جایزه آماده دریافت" if ready_to_claim else "")
 
 func _create_menu_action(title, callback):
 	var button = Button.new()
@@ -533,6 +556,7 @@ func show_page(page):
 	_show_message("")
 	var s = game.state
 	_update_progress_hud()
+	_update_mission_reward_badge()
 	if page == "home" or page == "buildings":
 		var active_constructions = game.get_construction_status()
 		if active_constructions.size() > 0:
