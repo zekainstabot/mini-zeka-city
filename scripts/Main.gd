@@ -2512,6 +2512,9 @@ func toggle_demolish_panel():
 func select_home_building(id):
 	selected_home_building_id = str(id)
 	demolish_panel_expanded = true
+	home_city_details_expanded = false
+	home_buildings_expanded = false
+	home_economy_expanded = false
 	selected_demolish_quantity = 1
 	show_page("home")
 
