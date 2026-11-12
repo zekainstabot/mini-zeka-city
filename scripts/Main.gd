@@ -1348,7 +1348,14 @@ func show_page(page):
 				if definition.empty():
 					continue
 				var is_legacy_mission = bool(definition.get("legacy", false))
-				if is_legacy_mission and (bool(mission.get("claimed", false)) or not bool(mission.get("completed", false))):
+				var mission_is_claimed = bool(mission.get("claimed", false))
+				var mission_is_unlocked = bool(mission.get("unlocked", false))
+				# Claimed missions disappear; future locked missions stay hidden.
+				# Only pending legacy rewards remain visible for old save files.
+				if is_legacy_mission:
+					if mission_is_claimed or not bool(mission.get("completed", false)):
+						continue
+				elif mission_is_claimed or not mission_is_unlocked:
 					continue
 				visible_missions += 1
 				var mission_type = "legacy" if is_legacy_mission else str(definition.get("type","main"))
@@ -1361,8 +1368,8 @@ func show_page(page):
 						_add_label("📘 مأموریت‌های اصلی | آموزش بازی", 21)
 						_add_label("این مسیر را به‌ترتیب پیش ببر؛ هر مرحله بخش تازه‌ای از مدیریت شهر را آموزش می‌دهد.",15)
 					else:
-						_add_label("⭐ مأموریت‌های فرعی | پول و تجربه", 21)
-						_add_label("این هدف‌ها مستقل‌اند و هرکدام را هر زمان خواستی انجام بده.",15)
+						_add_label("⭐ ادامه مسیر مأموریت‌ها | پول و تجربه", 21)
+						_add_label("این مأموریت‌ها به‌ترتیب باز می‌شوند؛ با دریافت جایزه هر مرحله، هدف بعدی فعال می‌شود.",15)
 				var is_claimed = bool(mission.get("claimed", false))
 				var is_completed = bool(mission.get("completed", false))
 				var card = PanelContainer.new()
