@@ -409,7 +409,7 @@ func _build_ui():
 	nav.add_constant_override("hseparation", 8)
 	nav.add_constant_override("vseparation", 8)
 	root.add_child(nav)
-	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بانک و امور مالی","p":"bank"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار و تجارت","p":"commerce"},{"t":"جاده و ناوگان","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش","p":"report"},{"t":"ماموریت‌ها","p":"missions"}]:
+	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بانک و امور مالی","p":"bank"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار و تجارت","p":"commerce"},{"t":"جاده و ناوگان","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش","p":"report"},{"t":"ماموریت‌ها","p":"missions"},{"t":"پروژه‌های ویژه","p":"projects"},{"t":"افتخارات شهر","p":"achievements"}]:
 		var nav_item = VBoxContainer.new()
 		nav_item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		nav_item.add_constant_override("separation", 2)
@@ -733,6 +733,14 @@ func show_page(page):
 			_add_label("وضعیت کلی شهر", 22)
 			_show_welcome_mission_hint()
 			_add_label("روز %d  |  سطح شهر %d" % [s.day,s.level], 19)
+			var login_reward_status = game.get_login_reward_status()
+			_add_label("🎁 زنجیره ورود: %d روز | هدیه امروز: %d سکه" % [int(login_reward_status.streak),int(login_reward_status.reward)],16)
+			var login_reward_button = _add_button("🎁 دریافت هدیه ورود روزانه",self,"claim_login_reward")
+			login_reward_button.disabled = bool(login_reward_status.claimed) or not bool(login_reward_status.logged_in)
+			var recent_city_events = s.get("city_event_history",[])
+			if not recent_city_events.empty():
+				var recent_event = recent_city_events[recent_city_events.size()-1]
+				_add_label("🎲 آخرین اتفاق شهر | روز %d: %s" % [int(recent_event.get("day",s.day)),str(recent_event.get("title","رویداد"))],16)
 			clock_label = _add_label("روز | زمان باقی‌مانده: 00:07", 18)
 			_add_label("خزانه: %d / %d سکه  |  پول قفل‌شده: %d" % [s.money,game.get_treasury_capacity(),game.get_locked_money()], 20)
 			_add_label("جمعیت: %d نفر  |  شاغل: %d  |  بیکار: %d" % [s.population,game.get_employed_count(),game.get_unemployed_count()], 19)
@@ -920,6 +928,16 @@ func show_page(page):
 			_add_label("ظرفیت مسکن: %d | ظرفیت شغلی: %d" % [game.get_housing_capacity(),game.get_job_capacity()])
 			_add_label("رضایت شهروندان: %d/۱۰۰" % int(s.get("satisfaction",50)))
 			_add_label("نیازهای روزانه: " + _needs_summary(), 15)
+			var resident_requests = s.get("resident_requests",[])
+			_add_label("📣 درخواست‌های شهروندان: %d" % resident_requests.size(),18)
+			for resident_request in resident_requests:
+				_add_label(str(resident_request.get("title","درخواست شهروندان"))+" | روز "+str(int(resident_request.get("day",s.day))),17)
+				_add_label(str(resident_request.get("description","")),15)
+				if bool(resident_request.get("accepted",false)):
+					_add_label("✓ پذیرفته شده؛ با ساخت ساختمان پیشنهادی، درخواست تکمیل می‌شود.",15)
+				else:
+					_add_button("پذیرفتن و تعهد ساخت",self,"resolve_resident_request",[int(resident_request.get("id",0)),true])
+					_add_button("رد درخواست",self,"resolve_resident_request",[int(resident_request.get("id",0)),false])
 			_add_label("روش جذب شهروند: " + ("خودکار" if str(s.get("citizen_recruitment_mode","auto")) == "auto" else "دستی"), 18)
 			var auto_recruit_button = _add_button("فعال‌کردن جذب خودکار", self, "set_recruitment_mode", ["auto"])
 			var manual_recruit_button = _add_button("فعال‌کردن جذب دستی", self, "set_recruitment_mode", ["manual"])
@@ -1335,6 +1353,47 @@ func show_page(page):
 					var stamp = OS.get_datetime_from_unix_time(int(event.get("timestamp", 0)))
 					var time_text = "%02d/%02d - %02d:%02d" % [int(stamp.get("day", 1)), int(stamp.get("month", 1)), int(stamp.get("hour", 0)), int(stamp.get("minute", 0))]
 					_add_label("[%s] روز %d | %s" % [time_text, int(event.get("day", 1)), str(event.get("message", ""))], 17)
+		"projects":
+			_add_label("🏗️ پروژه‌های بلندمدت شهر",23)
+			_add_label("این هدف‌ها برای توسعه چندمرحله‌ای شهر هستند؛ پیشرفتشان ذخیره می‌شود و جایزه را فقط یک‌بار می‌توانی بگیری.",16)
+			for project in game.get_long_term_projects():
+				var project_done = int(project.progress) >= int(project.goal)
+				_add_label(str(project.title),19)
+				_add_label(str(project.description),16)
+				_add_label("پیشرفت: %d از %d | پاداش: %d سکه + %d تجربه" % [int(project.progress),int(project.goal),int(project.reward),int(project.xp)],16)
+				var project_bar = ProgressBar.new()
+				project_bar.min_value = 0
+				project_bar.max_value = max(1,int(project.goal))
+				project_bar.value = int(project.progress)
+				project_bar.percent_visible = false
+				project_bar.rect_min_size = Vector2(0,12)
+				content.add_child(project_bar)
+				if bool(project.claimed):
+					_add_label("✓ جایزه دریافت شده",15)
+				elif project_done:
+					_add_button("🎁 دریافت جایزه پروژه",self,"claim_long_term_project",[str(project.id)])
+				else:
+					_add_label("● در حال پیشرفت",15)
+		"achievements":
+			_add_label("🏆 افتخارات و رکوردهای شهر",23)
+			var league = game.get_city_league()
+			_add_label("رتبه شهر: %s | امتیاز توسعه: %d" % [str(league.name),int(league.score)],19)
+			if int(league.next) > 0:
+				_add_label("برای رتبه بعدی به %d امتیاز نیاز داری." % max(0,int(league.next)-int(league.score)),15)
+			_add_label("این رتبه‌بندی بر اساس ذخیره همین شهر محاسبه می‌شود؛ جدول جهانی آنلاین نیست.",14)
+			var records = game.get_city_records()
+			_add_label("📊 بهترین رکوردها",19)
+			_add_label("بیشترین جمعیت: %d نفر | بیشترین خزانه: %d سکه" % [int(records.get("peak_population",0)),int(records.get("peak_money",0))],16)
+			_add_label("بالاترین سطح: %d | بیشترین رضایت: %d/۱۰۰ | بیشترین ساختمان: %d" % [int(records.get("peak_level",1)),int(records.get("peak_satisfaction",0)),int(records.get("most_buildings",0))],16)
+			var unlocked_achievements = 0
+			for achievement in game.get_achievements():
+				if bool(achievement.unlocked):
+					unlocked_achievements += 1
+			_add_label("نشان‌های بازشده: %d از %d" % [unlocked_achievements,game.ACHIEVEMENT_DEFINITIONS.size()],17)
+			for achievement in game.get_achievements():
+				var achievement_status = "🏅 دریافت‌شده" if bool(achievement.unlocked) else "🔒 قفل"
+				_add_label(achievement_status+" | "+str(achievement.title),18)
+				_add_label(str(achievement.description),15)
 		"missions":
 			_add_label("📅 مأموریت‌های روزانه", 23)
 			_add_label("هر روز سه هدف تازه برای توسعه شهر؛ پیشرفت و جایزه‌ها جدا از مأموریت‌های اصلی ذخیره می‌شوند.", 16)
@@ -2137,6 +2196,21 @@ func go_to_mission_target(mission_id):
 	if game_scroll_container != null and is_instance_valid(game_scroll_container):
 		game_scroll_container.scroll_vertical = 0
 	_show_message("به بخش مربوط به این مأموریت رفتی.")
+
+func claim_login_reward():
+	var result = game.claim_login_reward()
+	show_page("home")
+	_show_message(str(result.message))
+
+func resolve_resident_request(request_id, accepted):
+	var result = game.resolve_resident_request(int(request_id),bool(accepted))
+	show_page("citizens")
+	_show_message(str(result.message))
+
+func claim_long_term_project(project_id):
+	var result = game.claim_long_term_project(str(project_id))
+	show_page("projects")
+	_show_message(str(result.message))
 
 func _add_daily_claim_button(parent, mission_id):
 	var claim_button = Button.new()
