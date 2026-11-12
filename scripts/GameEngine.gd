@@ -1091,6 +1091,15 @@ func _update_city_services(report):
 		var recovery = int(round(float(coverage) * 0.12))
 		needs[need_id] = int(clamp(current - decay + recovery, 0, 100))
 		total_need += int(needs[need_id])
+	# A staffed police station provides a modest night-patrol safety benefit.
+	var night_patrol_active = false
+	for building_index in range(state.buildings.size()):
+		if str(state.buildings[building_index].get("id", "")) == "police_station" and _workers_for_building(building_index) > 0:
+			night_patrol_active = true
+			break
+	if night_patrol_active:
+		needs["safety"] = int(min(100, int(needs.get("safety", 0)) + 2))
+		report.append("گشت شبانه کلانتری فعال بود؛ امنیت شهر ۲ واحد بهبود یافت.")
 	state.needs = needs
 	state.services = service_state
 	var average = int(round(float(total_need) / float(need_ids.size())))
@@ -1261,7 +1270,8 @@ func collect_offline_income():
 func _calculate_transport_income(report):
 	var station_income = 0
 	var road_income = 0
-	var passenger_pool = max(0, int(floor(float(state.get("population", 0)) * 0.7)))
+	# Daily passenger demand includes the 3-minute night period, when fewer residents travel.
+	var passenger_pool = max(0, int(floor(float(state.get("population", 0)) * 0.6)))
 	for building_index in range(state.buildings.size()):
 		var building = state.buildings[building_index]
 		if int(building.get("rented_to", 0)) > 0:
