@@ -143,8 +143,11 @@ func _apply_environment():
 	environment_player.play()
 
 func play_sfx(kind="click"):
+	# Browser exports may block autoplay until the first user gesture; resume ambience on interaction.
 	if music_enabled and music_player != null and not music_player.playing:
 		_apply_music()
+	if environment_enabled and environment_player != null and not environment_player.playing:
+		_apply_environment()
 	if not effects_enabled or effects_volume <= 0.001 or effects_player == null:
 		return
 	var tones = []
