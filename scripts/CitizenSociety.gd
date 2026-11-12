@@ -499,6 +499,7 @@ func _process_citizen_bank_loans(engine, citizen, report):
 		if payment > 0:
 			citizen["wallet"] = int(citizen.get("wallet", 0)) - payment
 			loan["remaining"] = int(loan.get("remaining", 0)) - payment
+			engine._record_bank_transaction("citizen_repayment", payment, "قسط وام شهروند شماره %d" % int(citizen.get("id", 0)))
 			loan["missed_days"] = 0
 			if int(loan.get("remaining", 0)) <= 0:
 				loan["status"] = "paid"
