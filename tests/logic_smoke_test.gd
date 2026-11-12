@@ -6,14 +6,14 @@ const CitizenSocietyScript = preload("res://scripts/CitizenSociety.gd")
 func _init():
 	var game = EngineScript.new()
 	game.new_game()
-	assert(int(game.state.version) == 15)
+	assert(int(game.state.version) == 16)
 	assert(game.state.resources.has("food"))
 	assert(game.get_resource_definitions().has("food"))
 
 	# Main missions are sequential; side missions stay independently available.
 	var mission_game = EngineScript.new()
 	mission_game.new_game()
-	assert(mission_game.state.missions.size() == 50)
+	assert(mission_game.state.missions.size() == 54)
 	assert(bool(mission_game.state.missions[0].unlocked))
 	assert(bool(mission_game.state.missions[20].unlocked))
 	mission_game.state.land_owned = 11
@@ -37,7 +37,7 @@ func _init():
 	var mission_ids = []
 	for mission_definition in mission_game.MISSION_DEFINITIONS:
 		mission_ids.append(str(mission_definition.id))
-	assert(mission_ids.size() == 50)
+	assert(mission_ids.size() == 54)
 	for required_id in ["main_water","main_power","main_storage","main_school","main_clinic","main_wood","main_stone","main_sawmill","main_carpenter","main_city_bank","main_central_bank","main_level_five","side_sewage","side_waste","side_hospital","side_police","side_fire","side_university","side_cultural","side_iron_mine","side_fish_lake","side_fishing_dock","side_fish_market","side_fish_processing","side_grocery","side_bakery","side_restaurant","side_office"]:
 		assert(required_id in mission_ids)
 	var legacy_mission_game = EngineScript.new()
@@ -47,6 +47,30 @@ func _init():
 	assert(bool(legacy_mission_game.state.missions[0].claimed))
 	assert(str(legacy_mission_game.state.missions[20].id) == "side_water")
 	assert(bool(legacy_mission_game.state.missions[20].claimed))
+	# Login streaks count unique consecutive local calendar days only.
+	var time_game = EngineScript.new()
+	time_game.new_game()
+	assert(time_game.register_login_day_serial(20000))
+	assert(not time_game.register_login_day_serial(20000))
+	assert(int(time_game.state.login_streak) == 1)
+	assert(time_game.register_login_day_serial(20001))
+	assert(int(time_game.state.login_streak) == 2)
+	assert(time_game.register_login_day_serial(20003))
+	assert(int(time_game.state.login_streak) == 1)
+	assert(int(time_game._get_mission_progress("time_login_five")) == 1)
+	# Active play streak requires five active minutes in each game day.
+	time_game.state.active_play_seconds_today = 299
+	time_game.end_day()
+	assert(int(time_game.state.consecutive_active_game_days) == 0)
+	for active_day in range(3):
+		time_game.record_active_play_seconds(300.0)
+		time_game.end_day()
+	assert(int(time_game._get_mission_progress("time_play_three")) == 3)
+	assert(int(time_game._get_mission_progress("time_play_five")) == 3)
+	# Offline simulation must not count as active play or break a valid streak.
+	time_game.record_active_play_seconds(300.0)
+	time_game.end_day(true)
+	assert(int(time_game.state.consecutive_active_game_days) == 3)
 
 	var market_result = game.buy_resource("food", 5)
 	assert(bool(market_result.ok))
