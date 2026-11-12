@@ -56,6 +56,14 @@ jobs:
           grep -q "Mini ZekaCity logic smoke tests passed." /tmp/godot-tests.log
           if grep -E "SCRIPT ERROR|Parse Error" /tmp/godot-tests.log; then exit 1; fi
 
+      - name: Exercise every menu page for runtime validation
+        timeout-minutes: 1
+        run: |
+          set -o pipefail
+          timeout 25s xvfb-run -a /tmp/godot/Godot_v3.6.3-stable_x11.64 --audio-driver Dummy --path . --script res://tests/ui_smoke_test.gd 2>&1 | tee /tmp/godot-ui-tests.log
+          grep -q "Mini ZekaCity UI smoke tests passed." /tmp/godot-ui-tests.log
+          if grep -E "SCRIPT ERROR|Parse Error" /tmp/godot-ui-tests.log; then exit 1; fi
+
       - name: Launch the actual main scene for runtime validation
         run: |
           set -o pipefail
