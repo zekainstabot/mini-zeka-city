@@ -49,7 +49,6 @@ jobs:
           cp -a /tmp/godot-templates/templates/. "$HOME/.local/share/godot/templates/3.6.3.stable/"
 
       - name: Run game logic smoke tests
-        continue-on-error: true
         timeout-minutes: 1
         run: |
           set -o pipefail
