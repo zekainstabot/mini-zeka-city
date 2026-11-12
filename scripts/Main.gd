@@ -37,6 +37,7 @@ var touch_scroll_axis = ""
 var horizontal_scroll_velocity = 0.0
 var restart_confirm_panel = null
 var municipality_section_expanded = {"land":false,"tax":false,"requests":false,"properties":false,"projects":false}
+var citizen_status_expanded = {}
 var commerce_section_expanded = {"domestic":false,"export":false,"import":false,"shipments":false,"contracts":false}
 var storage_section_expanded = {}
 var current_district_expanded = {}
@@ -770,17 +771,31 @@ func show_page(page):
 				_add_label("ظرفیت خانه‌ها پر است؛ برای جذب شهروند جدید خانه بساز.", 15)
 			elif int(s.reputation) < 25:
 				_add_label("اعتبار شهر باید حداقل ۲۵ باشد تا متقاضی جدید بیاید.", 15)
+			var citizen_groups = {"بیکاران":[],"کارمندان شهرداری":[],"کارمندان بخش خصوصی":[],"کارآفرینان بخش خصوصی":[]}
 			for citizen in s.citizens:
-				var citizen_role = "بیکار"
+				var group_name = "بیکاران"
 				if str(citizen.get("job","")) != "":
-					citizen_role = "کارمند شهرداری: " + str(citizen.job)
+					group_name = "کارمندان شهرداری"
 				elif int(citizen.get("private_business_id",0)) > 0:
-					citizen_role = "کارآفرین بخش خصوصی"
+					group_name = "کارآفرینان بخش خصوصی"
 				elif int(citizen.get("private_job_id",0)) > 0:
-					citizen_role = "کارمند بخش خصوصی"
-				_add_label("شهروند %s — %s | کیف پول: %d سکه | زمین خصوصی: %d قطعه" % [str(citizen.id),citizen_role,int(citizen.get("wallet",0)),int(citizen.get("private_land",0))])
-				var interest_names = {"food":"خوراک","industry":"صنعت","services":"خدمات"}
-				_add_label("استعداد کارآفرینی: %d | ریسک‌پذیری: %d | علاقه: %s | پس‌انداز: %d" % [int(citizen.get("entrepreneurship",0)),int(citizen.get("risk_tolerance",0)),str(interest_names.get(str(citizen.get("business_interest","")),"نامشخص")),int(citizen.get("saving_habit",0))], 14)
+					group_name = "کارمندان بخش خصوصی"
+				citizen_groups[group_name].append(citizen)
+			for group_name in ["بیکاران","کارمندان شهرداری","کارمندان بخش خصوصی","کارآفرینان بخش خصوصی"]:
+				var group_citizens = citizen_groups[group_name]
+				if group_citizens.empty():
+					continue
+				var group_expanded = bool(citizen_status_expanded.get(group_name,false))
+				var group_button = _add_button(("%s " % ("▼" if group_expanded else "▶")) + "%s (%d)" % [group_name,group_citizens.size()], self, "toggle_citizen_status_group", [group_name])
+				_style_button(group_button,false)
+				if group_expanded:
+					for citizen in group_citizens:
+						var citizen_role = group_name
+						if str(citizen.get("job","")) != "":
+							citizen_role += ": " + str(citizen.job)
+						_add_label("شهروند %s — %s | کیف پول: %d سکه | زمین خصوصی: %d قطعه" % [str(citizen.id),citizen_role,int(citizen.get("wallet",0)),int(citizen.get("private_land",0))])
+						var interest_names = {"food":"خوراک","industry":"صنعت","services":"خدمات"}
+						_add_label("استعداد کارآفرینی: %d | ریسک‌پذیری: %d | علاقه: %s | پس‌انداز: %d" % [int(citizen.get("entrepreneurship",0)),int(citizen.get("risk_tolerance",0)),str(interest_names.get(str(citizen.get("business_interest","")),"نامشخص")),int(citizen.get("saving_habit",0))], 14)
 			_add_button(" تخصیص دوباره شغل‌ها", self, "reassign_jobs")
 		"municipality":
 			var civic = game.get_civic_overview()
@@ -1291,6 +1306,11 @@ func _municipality_section(title, section_id):
 
 func _end_municipality_section():
 	active_section_container = null
+
+func toggle_citizen_status_group(group_name):
+	var key = str(group_name)
+	citizen_status_expanded[key] = not bool(citizen_status_expanded.get(key,false))
+	show_page("citizens")
 
 func toggle_municipality_section(section_id):
 	var key = str(section_id)
