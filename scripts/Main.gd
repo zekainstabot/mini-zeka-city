@@ -125,6 +125,7 @@ func _process(delta):
 		construction_check_accumulator = 0.0
 		_update_construction_time_labels()
 		if game.process_constructions():
+			audio_manager.play_sfx("construction_done")
 			show_page(current_page)
 			_show_message(str(game.state.get("last_report", "ساخت‌وساز تکمیل شد.")))
 	if clock_cycle_seconds >= 600.0:
