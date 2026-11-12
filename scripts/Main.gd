@@ -86,7 +86,7 @@ func _process(delta):
 		var remaining = max(0, int(600.0 - clock_cycle_seconds))
 		var phase = "روز" if clock_cycle_seconds < 420.0 else "شب"
 		var phase_remaining = int(420.0 - clock_cycle_seconds) if phase == "روز" else int(600.0 - clock_cycle_seconds)
-		clock_label.text = PersianText.reshaper("%s | زمان باقی‌مانده: %02d:%02d" % [phase, int(phase_remaining / 60), phase_remaining % 60])
+		clock_label.text = PersianText.reshaper("%s | زمان باقی‌مانده: %02d:%02d" % [phase, phase_remaining % 60, int(phase_remaining / 60)])
 	if clock_save_accumulator >= 15.0:
 		clock_save_accumulator = 0.0
 		game.state["clock_last_unix"] = OS.get_unix_time()
@@ -538,7 +538,7 @@ func show_page(page):
 		"home":
 			_add_label("وضعیت کلی شهر", 22)
 			_add_label("روز %d  |  سطح شهر %d" % [s.day,s.level], 19)
-			clock_label = _add_label("روز | زمان باقی‌مانده: 07:00", 18)
+			clock_label = _add_label("روز | زمان باقی‌مانده: 00:07", 18)
 			_add_label("خزانه: %d / %d سکه  |  پول قفل‌شده: %d" % [s.money,game.get_treasury_capacity(),game.get_locked_money()], 20)
 			_add_label("جمعیت: %d نفر  |  شاغل: %d  |  بیکار: %d" % [s.population,game.get_employed_count(),game.get_unemployed_count()], 19)
 			_add_label("اعتبار شهر: %d  |  رضایت: %d/۱۰۰" % [s.reputation,int(s.get("satisfaction",50))], 18)
