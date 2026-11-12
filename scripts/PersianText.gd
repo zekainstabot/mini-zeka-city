@@ -1,11 +1,11 @@
 """
-https://en.wikipedia.org/wiki/Persian_alphabet
+Persian text shaping and right-to-left ordering for Godot 3.x.
 
-letters and replacements format:
-{ "letter": [ "isolated", "initial", "medial", "final" ] }
+Godot 3.x does not provide the same built-in Arabic shaping/RTL pipeline
+as newer Godot versions, so this helper keeps the existing public API while
+using joining capabilities instead of inspecting already-mutated characters.
 """
 extends Reference
-
 
 enum {
 	NOT_SUPPORTED = -1,
@@ -15,93 +15,60 @@ enum {
 	FINAL
 }
 
+# Presentation forms: isolated, initial, medial, final.
 const LETTERS := {
-	# alef
 	"آ" : ["ﺁ", "", "", "ﺂ"],
 	"ا" : ["ﺍ", "", "", "ﺎ"],
-	# be
 	"ب" : ["ﺏ", "ﺑ", "ﺒ", "ﺐ"],
-	# pe
 	"پ" : ["ﭖ", "ﭘ", "ﭙ", "ﭗ"],
-	# te
 	"ت" : ["ﺕ", "ﺗ", "ﺘ", "ﺖ"],
-	# se
 	"ث" : ["ﺙ", "ﺛ", "ﺜ", "ﺚ"],
-	# jim
 	"ج" : ["ﺝ", "ﺟ", "ﺠ", "ﺞ"],
-	# che
 	"چ" : ["ﭺ", "ﭼ", "ﭽ", "ﭻ"],
-	# he jimi
 	"ح" : ["ﺡ", "ﺣ", "ﺤ", "ﺢ"],
-	# khe
 	"خ" : ["ﺥ", "ﺧ", "ﺨ", "ﺦ"],
-	# dal
 	"د" : ["ﺩ", "", "", "ﺪ"],
-	# zal
 	"ذ" : ["ﺫ", "", "", "ﺬ"],
-	# re
 	"ر" : ["ﺭ", "", "", "ﺮ"],
-	# ze
 	"ز" : ["ﺯ", "", "", "ﺰ"],
-	# je
 	"ژ" : ["ﮊ", "", "", "ﮋ"],
-	# sin
 	"س" : ["ﺱ", "ﺳ", "ﺴ", "ﺲ"],
-	# shin
 	"ش" : ["ﺵ", "ﺷ", "ﺸ", "ﺶ"],
-	# sad
 	"ص" : ["ﺹ", "ﺻ", "ﺼ", "ﺺ"],
-	# zad
 	"ض" : ["ﺽ", "ﺿ", "ﻀ", "ﺾ"],
-	# ta
 	"ط" : ["ﻁ", "ﻃ", "ﻄ", "ﻂ"],
-	# za
 	"ظ" : ["ﻅ", "ﻇ", "ﻈ", "ﻆ"],
-	# ayn
 	"ع" : ["ﻉ", "ﻋ", "ﻌ", "ﻊ"],
-	# gayn
 	"غ" : ["ﻍ", "ﻏ", "ﻐ", "ﻎ"],
-	# fa
 	"ف" : ["ﻑ", "ﻓ", "ﻔ", "ﻒ"],
-	# qaf
 	"ق" : ["ﻕ", "ﻗ", "ﻘ", "ﻖ"],
-	# kaf
 	"ک" : ["ﮎ", "ﮐ", "ﮑ", "ﮏ"],
-	# gaf
 	"گ" : ["ﮒ", "ﮔ", "ﮕ", "ﮓ"],
-	# lam
 	"ل" : ["ﻝ", "ﻟ", "ﻠ", "ﻞ"],
-	# la
 	"ﻻ" : ["ﻻ", "", "", "ﻼ"],
-	# mim
 	"م" : ["ﻡ", "ﻣ", "ﻤ", "ﻢ"],
-	# nun
 	"ن" : ["ﻥ", "ﻧ", "ﻨ", "ﻦ"],
-	# vav
 	"و" : ["ﻭ", "", "", "ﻮ"],
-	# he
 	"ه" : ["ﻩ", "ﻫ", "ﻬ", "ﻪ"],
-	# ye
 	"ی" : ["ﯼ", "ﯾ", "ﯿ", "ﯽ"],
-	# hamzeh
 	"أ" : ["ﺃ", "", "", "ﺄ"],
+	"إ" : ["ﺇ", "", "", "ﺈ"],
 	"ؤ" : ["ﺅ", "", "", "ﺆ"],
 	"ئ" : ["ﺉ", "ﺋ", "ﺌ", "ﺊ"],
-	"ء" : ["ﺀ", "", "", ""],
+	"ء" : ["ﺀ", "", "", ""]
 }
+
 const BRACKETS := [
 	["(", ")"], ["«", "»"], ["{", "}"], ["[", "]"], ["<", ">"]
 ]
-
 
 static func reshaper(string: String, line_length: int = 0) -> String:
 	if string.empty():
 		return ""
 	string = wrap(string, line_length)
-	string = reshape(string)
 	string = invert(string)
+	string = reshape(string)
 	return string
-
 
 static func invert(string: String) -> String:
 	string = invert_brackets(string)
@@ -109,35 +76,29 @@ static func invert(string: String) -> String:
 	string = invert_letters(string)
 	return string
 
-
-# TODO: reverse non-Persian words
-static func invert_non_persian_words(string: String) -> String:
-	return string
-
-
 static func invert_brackets(string: String) -> String:
-	for letter in string.length():
+	for index in range(string.length()):
 		for bracket in BRACKETS:
-			if bracket.has(string[letter]):
-				string[letter] = bracket[ int(bracket.find(string[letter]) == 0) ]
+			if bracket.has(string[index]):
+				string[index] = bracket[int(bracket.find(string[index]) == 0)]
 	return string
-
 
 static func invert_numbers(string: String) -> String:
 	var regex = RegEx.new()
-	regex.compile("([0-9۰-۹])+")
-	var result: Array = regex.search_all(string)
-	if result:
-		for i in result:
-			var num: String = i.get_string()
-			var reverse_num: String = invert_letters(num)
-			string = string.replace(num, reverse_num)
+	regex.compile("([0-9۰-۹٠-٩])+" )
+	var matches = regex.search_all(string)
+	for match_result in matches:
+		var number = match_result.get_string()
+		var reversed_number = ""
+		for index in range(number.length() - 1, -1, -1):
+			reversed_number += number[index]
+		string = string.replace(number, reversed_number)
 	return string
 
-
+# Preserve Latin words and numeric groups while reversing RTL text runs.
 static func invert_letters(string: String) -> String:
 	var regex = RegEx.new()
-	regex.compile("[A-Za-z][A-Za-z0-9_./:+-]*(?: +[A-Za-z][A-Za-z0-9_./:+-]*)*")
+	regex.compile("[A-Za-z][A-Za-z0-9_./:+-]*(?: +[A-Za-z][A-Za-z0-9_./:+-]*)*|[0-9۰-۹٠-٩]+")
 	var matches = regex.search_all(string)
 	if matches.empty():
 		return _reverse_characters(string)
@@ -146,115 +107,94 @@ static func invert_letters(string: String) -> String:
 	for match_result in matches:
 		var match_start = match_result.get_start()
 		if match_start > cursor:
-			parts.append({"text":string.substr(cursor, match_start - cursor),"latin":false})
-		parts.append({"text":match_result.get_string(),"latin":true})
+			parts.append({"text": string.substr(cursor, match_start - cursor), "fixed": false})
+		parts.append({"text": match_result.get_string(), "fixed": true})
 		cursor = match_result.get_end()
 	if cursor < string.length():
-		parts.append({"text":string.substr(cursor),"latin":false})
+		parts.append({"text": string.substr(cursor), "fixed": false})
 	var result = ""
 	for index in range(parts.size() - 1, -1, -1):
 		var part = parts[index]
-		if bool(part.latin):
-			result += str(part.text)
-		else:
-			result += _reverse_characters(str(part.text))
+		result += str(part.text) if bool(part.fixed) else _reverse_characters(str(part.text))
 	return result
 
-
-static func _reverse_characters(string: String) -> String:
-	var result := ""
-	for letter in string:
-		result = letter + result
+static func _reverse_characters(value: String) -> String:
+	var result = ""
+	for index in range(value.length() - 1, -1, -1):
+		result += value[index]
 	return result
 
+# A letter can join the preceding logical character when it has a final form.
+static func _can_join_previous(letter: String) -> bool:
+	if not LETTERS.has(letter):
+		return false
+	return str(LETTERS[letter][FINAL]) != ""
+
+# A letter can join the following logical character when it has an initial form.
+static func _can_join_next(letter: String) -> bool:
+	if not LETTERS.has(letter):
+		return false
+	return str(LETTERS[letter][INITIAL]) != ""
 
 static func reshape(string: String) -> String:
 	string = string.replace("لا", "ﻻ")
-
-	for letter in string.length():
-		if LETTERS.keys().has(string[letter]):
-			var replacement: Array = LETTERS.get(string[letter])
-			# first letter
-			if previous(letter, string) == NOT_SUPPORTED:
-				if next(letter, string) == NOT_SUPPORTED:
-					string[letter] = replacement[ISOLATED]
-				else:
-					if replacement[INITIAL] == "":
-						string[letter] = replacement[ISOLATED]
-					else:
-						string[letter] = replacement[INITIAL]
-			# last letter
-			elif next(letter, string) == NOT_SUPPORTED:
-				if previous(letter, string) == ISOLATED or previous(letter, string) == FINAL:
-					string[letter] = replacement[ISOLATED]
-				else:
-					string[letter] = replacement[FINAL]
-			# middle letter
-			else:
-				if previous(letter, string) == ISOLATED:
-					if replacement[INITIAL] == "":
-						string[letter] = replacement[ISOLATED]
-					else:
-						string[letter] = replacement[INITIAL]
-				elif previous(letter, string) == INITIAL:
-					if replacement[INITIAL] == "" or replacement[MEDIAL] == "":
-						string[letter] = replacement[FINAL]
-					else:
-						string[letter] = replacement[MEDIAL]
-				elif previous(letter, string) == MEDIAL:
-					if next(letter, string) == NOT_SUPPORTED:
-						string[letter] = replacement[FINAL]
-					else:
-						if replacement[MEDIAL] == "":
-							string[letter] = replacement[FINAL]
-						else:
-							string[letter] = replacement[MEDIAL]
-				else:
-					if replacement[INITIAL] == "":
-						string[letter] = replacement[ISOLATED]
-					else:
-						string[letter] = replacement[INITIAL]
-	return string
-
-
-static func previous(letter: int, string: String) -> int:
-	if letter - 1 < 0:
-		return NOT_SUPPORTED
-	else:
-		var previous := string[letter - 1]
-		if LETTERS.keys().has(previous):
-			return ISOLATED
+	var source = string
+	var output = ""
+	for index in range(source.length()):
+		var letter = source[index]
+		if not LETTERS.has(letter):
+			output += letter
+			continue
+		var forms = LETTERS[letter]
+		var joins_previous = false
+		var joins_next = false
+		if index > 0:
+			var previous_letter = source[index - 1]
+			joins_previous = _can_join_next(previous_letter) and _can_join_previous(letter)
+		if index + 1 < source.length():
+			var next_letter = source[index + 1]
+			joins_next = _can_join_next(letter) and _can_join_previous(next_letter)
+		if joins_previous and joins_next:
+			output += str(forms[MEDIAL])
+		elif joins_previous:
+			output += str(forms[FINAL])
+		elif joins_next:
+			output += str(forms[INITIAL])
 		else:
-			for replacement in LETTERS.values():
-				if replacement.has(previous):
-					return replacement.find(previous)
-	return NOT_SUPPORTED
+			output += str(forms[ISOLATED])
+	return output
 
+# Kept for compatibility with any older callers.
+static func previous(letter: int, string: String) -> int:
+	if letter <= 0 or letter >= string.length():
+		return NOT_SUPPORTED
+	var current = string[letter - 1]
+	if not LETTERS.has(current):
+		return NOT_SUPPORTED
+	return FINAL if _can_join_previous(current) else ISOLATED
 
 static func next(letter: int, string: String) -> int:
-	if letter + 1 > string.length() - 1:
+	if letter < 0 or letter + 1 >= string.length():
 		return NOT_SUPPORTED
-	else:
-		var next := string[letter + 1]
-		if LETTERS.keys().has(next):
-			return ISOLATED
-		for replacement in LETTERS.values():
-			if replacement.has(next):
-				return replacement.find(next)
-	return NOT_SUPPORTED
-
+	var current = string[letter + 1]
+	if not LETTERS.has(current):
+		return NOT_SUPPORTED
+	return INITIAL if _can_join_next(current) else ISOLATED
 
 static func wrap(string: String, line_length: int = 0) -> String:
 	if line_length <= 0:
 		return string
-	var regex = RegEx.new()
-	regex.compile("(.{1," + str(line_length) + "})( +|$)")
-	var result: Array = regex.search_all(string)
-	if result:
-		string = ""
-		result.invert()
-		for sentence in result:
-			string += sentence.get_string()
-			if sentence != result[ result.size() - 1 ]:
-				string += "\n"
-	return string
+	var words = string.split(" ", false)
+	var lines = []
+	var current_line = ""
+	for word in words:
+		if current_line == "":
+			current_line = word
+		elif current_line.length() + 1 + word.length() <= line_length:
+			current_line += " " + word
+		else:
+			lines.append(current_line)
+			current_line = word
+	if current_line != "":
+		lines.append(current_line)
+	return "\n".join(lines)
