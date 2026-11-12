@@ -1304,7 +1304,7 @@ func _get_mission_progress(mission_id):
 		"buy_land_tutorial":
 			return max(0, int(state.get("land_owned", 10)) - 10)
 		"build_house_tutorial":
-			return max(0, get_building_count("small_house") - 1)
+			return max(0, get_building_count("small_house") - 2)
 		"build_farm_tutorial":
 			return get_building_count("farm")
 		"hire_worker_tutorial":
