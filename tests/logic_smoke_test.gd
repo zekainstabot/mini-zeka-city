@@ -54,6 +54,7 @@ func _init():
 	var legacy_mission_game = EngineScript.new()
 	legacy_mission_game.state = {"version":16,"missions":[{"id":"side_population","claimed":true,"completed":true},{"id":"buy_land_tutorial","claimed":true,"completed":true}],"buildings":[],"citizens":[],"resources":{},"market_stock":{}}
 	legacy_mission_game._normalize_state()
+	legacy_mission_game._sync_missions()
 	assert(str(legacy_mission_game.state.missions[0].id) == "buy_land_tutorial")
 	assert(bool(legacy_mission_game.state.missions[0].claimed))
 	assert(str(legacy_mission_game.state.missions[20].id) == "side_population")
