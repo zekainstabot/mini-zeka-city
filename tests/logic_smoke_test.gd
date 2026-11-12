@@ -5,7 +5,7 @@ const EngineScript = preload("res://scripts/GameEngine.gd")
 func _init():
 	var game = EngineScript.new()
 	game.new_game()
-	assert(int(game.state.version) == 10)
+	assert(int(game.state.version) == 14)
 	assert(game.state.resources.has("food"))
 	assert(game.get_resource_definitions().has("food"))
 
@@ -40,6 +40,29 @@ func _init():
 	var farm_report = farm_game.end_day()
 	assert(int(farm_game.state.resources.food) == 8)
 	assert(int(farm_game.state.day) == 2)
+	assert(int(farm_game.state.last_economy.net_cashflow) == int(farm_game.state.last_economy.treasury_closing) - int(farm_game.state.last_economy.treasury_opening))
+
+	var partial_farm_game = EngineScript.new()
+	partial_farm_game.new_game()
+	partial_farm_game.state.population = 1
+	partial_farm_game.state.citizens = [partial_farm_game.state.citizens[0]]
+	partial_farm_game.state.buildings.append({"id":"farm","workers":0,"balance":0})
+	partial_farm_game.assign_jobs()
+	partial_farm_game.end_day()
+	assert(int(partial_farm_game.state.resources.food) == 2)
+
+	var citizen_loan_game = EngineScript.new()
+	citizen_loan_game.new_game()
+	citizen_loan_game.state.buildings.append({"id":"central_bank","workers":0,"balance":0})
+	citizen_loan_game.state.population = 1
+	citizen_loan_game.state.citizens = [{"id":1,"job":"","job_building_index":-1,"wallet":100,"bank_loans":[{"id":1,"principal":500,"interest":50,"remaining":100,"daily_installment":50,"status":"active","missed_days":0}],"civic_profile_initialized":true}]
+	citizen_loan_game.assign_jobs()
+	var citizen_treasury_before = int(citizen_loan_game.state.money)
+	var citizen_day_summary = CitizenSociety.new().process_day(citizen_loan_game, [])
+	assert(int(citizen_loan_game.state.citizens[0].wallet) == 50)
+	assert(int(citizen_loan_game.state.citizens[0].bank_loans[0].remaining) == 50)
+	assert(int(citizen_loan_game.state.money) == citizen_treasury_before + 50)
+	assert(int(citizen_day_summary.citizen_loan_repayments) == 50)
 
 	var fleet_game = EngineScript.new()
 	fleet_game.new_game()
@@ -52,7 +75,7 @@ func _init():
 	var migration_game = EngineScript.new()
 	migration_game.state = {"version":9,"buildings":[],"citizens":[],"resources":{},"market_stock":{}}
 	migration_game._normalize_state()
-	assert(int(migration_game.state.version) == 10)
+	assert(int(migration_game.state.version) == 14)
 	assert(migration_game.state.resources.has("food"))
 	assert(int(migration_game.state.road_level) == 1)
 
