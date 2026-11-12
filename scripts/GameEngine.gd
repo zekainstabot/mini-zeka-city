@@ -393,7 +393,7 @@ func _normalize_state():
 	if typeof(state.get("mines", null)) != TYPE_ARRAY:
 		state["mines"] = []
 	# Save schema migration: add dynamic market, trade and shipping state.
-	state["version"] = 13
+	state["version"] = 14
 	if typeof(state.get("districts", null)) != TYPE_ARRAY:
 		state["districts"] = []
 	for id in RESOURCES.keys():
@@ -1078,7 +1078,10 @@ func _advance_mines(report):
 		if not bool(mine.get("active", false)):
 			continue
 		var resource_id = str(mine.get("resource", ""))
-		var production = (5 if resource_id == "stone" else 3)
+		var required_workers = max(1, int(BUILDINGS.get(str(state.buildings[building_index].get("id", "")), {}).get("jobs", 1)))
+		var actual_workers = _workers_for_building(building_index)
+		var base_production = (5 if resource_id == "stone" else 3)
+		var production = max(1, int(floor(float(base_production) * float(actual_workers) / float(required_workers))))
 		production = min(production, get_free_storage())
 		if resource_id == "iron_ore":
 			production = min(production, int(mine.get("remaining", 0)))
@@ -1370,6 +1373,7 @@ func get_daily_development_support():
 
 func end_day():
 	var report = []
+	var treasury_opening = int(state.get("money", 0))
 	assign_jobs()
 	var development_support_due = get_daily_development_support()
 	var development_support_paid = _add_money(development_support_due)
@@ -1438,11 +1442,12 @@ func end_day():
 		if business_income > 0 and required_workers > 0:
 			business_income = int(round(float(business_income) * float(workers) / float(required_workers)))
 		if str(building.id) == "fish_market":
-			if int(state.resources.get("fish", 0)) < 2:
+			var fish_needed = max(1, int(ceil(2.0 * float(workers) / float(max(1, required_workers)))))
+			if int(state.resources.get("fish", 0)) < fish_needed:
 				business_income = 0
 				report.append("بازار ماهی امروز فروش نداشت؛ ماهی تازه کافی در انبار نیست.")
 			else:
-				state.resources["fish"] = int(state.resources.get("fish", 0)) - 2
+				state.resources["fish"] = int(state.resources.get("fish", 0)) - fish_needed
 		if business_income > 0:
 			income += business_income
 			business_income_total += business_income
@@ -1453,21 +1458,25 @@ func end_day():
 			continue
 		var input = str(data.get("input", ""))
 		var amount = int(data.get("amount", 0))
+		if required_workers > 0:
+			amount = max(1, int(floor(float(amount) * float(workers) / float(required_workers))))
 		var output_rule = get_storage_rule(output)
 		if int(state.resources.get(output,0)) < int(output_rule.get("minimum",10)) and str(output_rule.get("low_action","market")) == "factory":
 			amount = int(ceil(float(amount) * 1.5))
 		if str(building.id) == "woodcutter" and int(state.forest_trees) <= 0:
 			report.append("چوب‌بری متوقف شد؛ جنگل برای رشد دوباره درخت‌ها به زمان نیاز دارد.")
 			continue
+		var scaled_input_amount = int(data.get("input_amount", 0))
+		if input != "" and required_workers > 0:
+			scaled_input_amount = max(1, int(ceil(float(scaled_input_amount) * float(workers) / float(required_workers))))
 		if input != "":
-			var input_amount = int(data.get("input_amount", 0))
-			if int(state.resources.get(input, 0)) < input_amount:
+			if int(state.resources.get(input, 0)) < scaled_input_amount:
 				continue
 		if get_free_storage() < amount:
 			continue
-		# Consume inputs only after confirming output can fit in storage.
+		# Consume only the inputs required for the staffed production level.
 		if input != "":
-			state.resources[input] = int(state.resources.get(input, 0)) - int(data.get("input_amount", 0))
+			state.resources[input] = int(state.resources.get(input, 0)) - scaled_input_amount
 		if str(building.id) == "woodcutter":
 			var felled = min(int(state.forest_trees), amount)
 			state.forest_trees -= felled
@@ -1554,14 +1563,24 @@ func end_day():
 		"net_cashflow": accepted_income + development_support_paid - paid_wages - maintenance_paid - bank_repayment_paid
 	}
 	var total_accepted_income = accepted_income + development_support_paid
-	report.append("خلاصه مالی: درآمد %d | حقوق %d | نگهداری %d | اقساط %d | تغییر خالص خزانه %d سکه." % [total_accepted_income, paid_wages, maintenance_paid, bank_repayment_paid, total_accepted_income - paid_wages - maintenance_paid - bank_repayment_paid])
 	for restock_id in RESOURCES.keys():
 		state.market_stock[restock_id] = min(100, int(state.market_stock.get(restock_id, 0)) + 5)
 	_refresh_trade_capacity()
 
 	_process_citizen_recruitment(report)
-	CitizenSociety.new().process_day(self, report)
-
+	var citizen_economy = CitizenSociety.new().process_day(self, report)
+	var private_tax_accepted = int(citizen_economy.get("private_business_tax", 0))
+	var citizen_loan_repayments = int(citizen_economy.get("citizen_loan_repayments", 0))
+	var citizen_loan_disbursements = int(citizen_economy.get("citizen_loan_disbursements", 0))
+	state.last_economy["private_business_tax"] = private_tax_accepted
+	state.last_economy["citizen_loan_repayments"] = citizen_loan_repayments
+	state.last_economy["citizen_loan_disbursements"] = citizen_loan_disbursements
+	state.last_economy["gross_income"] = int(state.last_economy.get("gross_income", 0)) + private_tax_accepted + citizen_loan_repayments
+	state.last_economy["accepted_income"] = int(state.last_economy.get("accepted_income", 0)) + private_tax_accepted + citizen_loan_repayments
+	state.last_economy["treasury_opening"] = treasury_opening
+	state.last_economy["treasury_closing"] = int(state.get("money", 0))
+	state.last_economy["net_cashflow"] = int(state.get("money", 0)) - treasury_opening
+	report.append("خلاصه مالی: درآمد ثبت‌شده %d | حقوق %d | نگهداری %d | اقساط شهرداری %d | اقساط شهروندان %d | وام پرداختی به شهروندان %d | تغییر خالص خزانه %d سکه." % [int(state.last_economy.accepted_income), paid_wages, maintenance_paid, bank_repayment_paid, citizen_loan_repayments, citizen_loan_disbursements, int(state.last_economy.net_cashflow)])
 	if not has_central_bank() and int(state.central_bank_rebuild_days_left) > 0:
 		state.central_bank_rebuild_days_left -= 1
 		if int(state.central_bank_rebuild_days_left) == 0:
