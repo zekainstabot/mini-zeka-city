@@ -10,6 +10,8 @@ func _init():
 	main.game.new_game()
 	for page in ["home","buildings","citizens","bank","municipality","private_economy","commerce","transport","imports","storage","report","missions","progress","help"]:
 		main.show_page(page)
+		if page == "help":
+			assert(main.content.get_child_count() > 30)
 	main.home_city_details_expanded = true
 	main.show_page("home")
 	assert(main.content.get_child_count() > 0)
