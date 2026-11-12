@@ -610,7 +610,7 @@ func show_page(page):
 			_add_label("جمعیت: %d نفر  |  شاغل: %d  |  بیکار: %d" % [s.population,game.get_employed_count(),game.get_unemployed_count()], 19)
 			var municipal_economy = s.get("last_economy", {})
 			var municipal_daily_income = int(municipal_economy.get("tax_income",0)) + int(municipal_economy.get("consumer_tax_income",0)) + int(municipal_economy.get("station_income",0)) + int(municipal_economy.get("road_income",0))
-			var municipal_daily_total = int(municipal_economy.get("accepted_income",0)) + int(municipal_economy.get("development_support",0))
+			var municipal_daily_total = int(municipal_economy.get("accepted_income",0))
 			_add_label("درآمد روزانه شهرداری: %d سکه" % municipal_daily_total, 18)
 			_add_label("اعتبار شهر: %d  |  رضایت: %d/۱۰۰" % [s.reputation,int(s.get("satisfaction",50))], 18)
 
@@ -841,7 +841,7 @@ func show_page(page):
 						var interest_names = {"food":"خوراک","industry":"صنعت","services":"خدمات"}
 						_add_label("استعداد کارآفرینی: %d | ریسک‌پذیری: %d | علاقه: %s | پس‌انداز: %d" % [int(citizen.get("entrepreneurship",0)),int(citizen.get("risk_tolerance",0)),str(interest_names.get(str(citizen.get("business_interest","")),"نامشخص")),int(citizen.get("saving_habit",0))], 14)
 			_add_button(" تخصیص دوباره شغل‌ها", self, "reassign_jobs")
- 		"bank":
+		"bank":
 			_add_label("🏦 بانک و امور مالی شهر",22)
 			_add_label("بانک مرکزی: %s | بانک شهری: %d" % ["فعال" if game.has_central_bank() else "ساخته نشده",game.get_building_count("municipal_bank")],17)
 			_add_label("وام فقط با بانک مرکزی و سپرده‌گذاری با بانک شهری فعال می‌شود.",15)
