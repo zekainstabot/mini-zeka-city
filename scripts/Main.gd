@@ -935,6 +935,7 @@ func show_page(page):
 			for resident_request in resident_requests:
 				_add_label(str(resident_request.get("title","درخواست شهروندان"))+" | روز "+str(int(resident_request.get("day",s.day))),17)
 				_add_label(str(resident_request.get("description","")),15)
+				_add_button("رفتن به بخش ساخت ساختمان پیشنهادی  ←",self,"go_to_resident_request_building",[str(resident_request.get("building_id",""))])
 				if bool(resident_request.get("accepted",false)):
 					_add_label("✓ پذیرفته شده؛ با ساخت ساختمان پیشنهادی، درخواست تکمیل می‌شود.",15)
 				else:
@@ -2216,6 +2217,12 @@ func resolve_resident_request(request_id, accepted):
 	var result = game.resolve_resident_request(int(request_id),bool(accepted))
 	show_page("citizens")
 	_show_message(str(result.message))
+
+func go_to_resident_request_building(building_id):
+	var definition = game.get_building_definitions().get(str(building_id),{})
+	selected_building_category = str(definition.get("category","خدمات شهری"))
+	show_page("buildings")
+	_show_message("دسته ساختمان پیشنهادی شهروندان باز شد.")
 
 func claim_long_term_project(project_id):
 	var result = game.claim_long_term_project(str(project_id))
