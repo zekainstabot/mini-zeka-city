@@ -1217,16 +1217,29 @@ func show_page(page):
 					_add_label("[%s] روز %d | %s" % [time_text, int(event.get("day", 1)), str(event.get("message", ""))], 17)
 		"missions":
 			var mission_list = game.get_missions()
-			var total_missions = game.MISSION_DEFINITIONS.size()
-			var claimed_count = 0
-			var active_count = 0
+			var main_total = 0
+			var main_claimed = 0
+			var side_total = 0
+			var side_claimed = 0
+			for definition in game.MISSION_DEFINITIONS:
+				if str(definition.get("type","main")) == "side":
+					side_total += 1
+				else:
+					main_total += 1
 			for saved_mission in mission_list:
-				if bool(saved_mission.get("claimed", false)):
-					claimed_count += 1
-				if bool(saved_mission.get("unlocked", false)) and not bool(saved_mission.get("claimed", false)):
-					active_count += 1
-			_add_label("🎯 مسیر پیشرفت شهر", 23)
-			_add_label("مرحله‌ها را به‌ترتیب انجام بده؛ با دریافت هر جایزه، مرحله بعدی باز می‌شود.", 16)
+				var saved_type = "main"
+				for definition in game.MISSION_DEFINITIONS:
+					if str(definition.id) == str(saved_mission.get("id","")):
+						saved_type = str(definition.get("type","main"))
+						break
+				if bool(saved_mission.get("claimed",false)):
+					if saved_type == "side":
+						side_claimed += 1
+					else:
+						main_claimed += 1
+			_add_label("🎯 مأموریت‌های شهر", 23)
+			_add_label("اصلی: آموزش مرحله‌به‌مرحله | فرعی: کسب پول و تجربه بیشتر", 16)
+			_add_label("آموزش اصلی: %d از %d | مأموریت فرعی: %d از %d" % [main_claimed,main_total,side_claimed,side_total],18)
 			var summary_panel = PanelContainer.new()
 			var summary_style = StyleBoxFlat.new()
 			summary_style.bg_color = Color("#172b3f")
@@ -1249,6 +1262,7 @@ func show_page(page):
 			summary_label.add_color_override("font_color", Color("#ffffff"))
 			summary_panel.add_child(summary_label)
 			var visible_missions = 0
+			var last_mission_type = ""
 			for mission_index in range(mission_list.size()):
 				var mission = mission_list[mission_index]
 				var definition = {}
@@ -1259,6 +1273,14 @@ func show_page(page):
 				if definition.empty():
 					continue
 				visible_missions += 1
+				var mission_type = str(definition.get("type","main"))
+				if mission_type != last_mission_type:
+					last_mission_type = mission_type
+					_add_label("📘 مأموریت‌های اصلی | آموزش بازی" if mission_type == "main" else "⭐ مأموریت‌های فرعی | پول و تجربه", 21)
+					if mission_type == "main":
+						_add_label("این مسیر را به‌ترتیب پیش ببر؛ هر مرحله بخش تازه‌ای از مدیریت شهر را آموزش می‌دهد.",15)
+					else:
+						_add_label("این هدف‌ها مستقل‌اند و هرکدام را هر زمان خواستی انجام بده.",15)
 				var is_claimed = bool(mission.get("claimed", false))
 				var is_completed = bool(mission.get("completed", false))
 				var card = PanelContainer.new()
@@ -1326,7 +1348,7 @@ func show_page(page):
 				var current_progress = int(mission.get("progress", 0))
 				var target_progress = max(1, int(definition.goal))
 				var progress_label = Label.new()
-				progress_label.text = PersianText.reshaper("پیشرفت: %d از %d     |     جایزه: %d سکه" % [current_progress, target_progress, int(definition.reward)])
+				progress_label.text = PersianText.reshaper("پیشرفت: %d از %d     |     پاداش: %d سکه + %d تجربه" % [current_progress, target_progress, int(definition.reward), int(definition.get("xp",0))])
 				progress_label.align = Label.ALIGN_RIGHT
 				progress_label.autowrap = true
 				progress_label.clip_text = false
