@@ -894,7 +894,11 @@ func _add_button(text, button_target, callback, args=[]):
 	return button
 
 func _toggle_commerce_section(section_id):
-	commerce_section_expanded[section_id] = not bool(commerce_section_expanded.get(section_id, false))
+	var key = str(section_id)
+	var was_expanded = bool(commerce_section_expanded.get(key, false))
+	for existing_key in commerce_section_expanded.keys():
+		commerce_section_expanded[existing_key] = false
+	commerce_section_expanded[key] = not was_expanded
 	show_page("commerce")
 
 func _show_message(text):
@@ -2155,12 +2159,18 @@ func _end_municipality_section():
 
 func toggle_citizen_status_group(group_name):
 	var key = str(group_name)
-	citizen_status_expanded[key] = not bool(citizen_status_expanded.get(key,false))
+	var was_expanded = bool(citizen_status_expanded.get(key, false))
+	for existing_key in citizen_status_expanded.keys():
+		citizen_status_expanded[existing_key] = false
+	citizen_status_expanded[key] = not was_expanded
 	show_page("citizens")
 
 func toggle_municipality_section(section_id):
 	var key = str(section_id)
-	municipality_section_expanded[key] = not bool(municipality_section_expanded.get(key, false))
+	var was_expanded = bool(municipality_section_expanded.get(key, false))
+	for existing_key in municipality_section_expanded.keys():
+		municipality_section_expanded[existing_key] = false
+	municipality_section_expanded[key] = not was_expanded
 	show_page("municipality")
 
 func _add_home_services_panel(city_state):
@@ -2464,19 +2474,39 @@ func build_building(id):
 	_show_message(result.message)
 
 func toggle_home_city_details():
-	home_city_details_expanded = not home_city_details_expanded
+	var was_expanded = home_city_details_expanded
+	home_city_details_expanded = not was_expanded
+	if not was_expanded:
+		home_buildings_expanded = false
+		home_economy_expanded = false
+		demolish_panel_expanded = false
 	show_page("home")
 
 func toggle_home_buildings():
-	home_buildings_expanded = not home_buildings_expanded
+	var was_expanded = home_buildings_expanded
+	home_buildings_expanded = not was_expanded
+	if not was_expanded:
+		home_city_details_expanded = false
+		home_economy_expanded = false
+		demolish_panel_expanded = false
 	show_page("home")
 
 func toggle_home_economy():
-	home_economy_expanded = not home_economy_expanded
+	var was_expanded = home_economy_expanded
+	home_economy_expanded = not was_expanded
+	if not was_expanded:
+		home_city_details_expanded = false
+		home_buildings_expanded = false
+		demolish_panel_expanded = false
 	show_page("home")
 
 func toggle_demolish_panel():
-	demolish_panel_expanded = not demolish_panel_expanded
+	var was_expanded = demolish_panel_expanded
+	demolish_panel_expanded = not was_expanded
+	if not was_expanded:
+		home_city_details_expanded = false
+		home_buildings_expanded = false
+		home_economy_expanded = false
 	show_page("home")
 
 func select_home_building(id):
@@ -2597,12 +2627,18 @@ func sell_item(id, amount):
 
 func toggle_current_district(district_id):
 	var key = str(district_id)
-	current_district_expanded[key] = not bool(current_district_expanded.get(key, false))
+	var was_expanded = bool(current_district_expanded.get(key, false))
+	for existing_key in current_district_expanded.keys():
+		current_district_expanded[existing_key] = false
+	current_district_expanded[key] = not was_expanded
 	show_page("buildings")
 
 func toggle_storage_section(resource_id):
 	var key = str(resource_id)
-	storage_section_expanded[key] = not bool(storage_section_expanded.get(key, false))
+	var was_expanded = bool(storage_section_expanded.get(key, false))
+	for existing_key in storage_section_expanded.keys():
+		storage_section_expanded[existing_key] = false
+	storage_section_expanded[key] = not was_expanded
 	show_page("storage")
 
 func adjust_storage_rule(resource_id, field, delta):
