@@ -44,8 +44,19 @@ var current_district_expanded = {}
 var active_section_container = null
 var mission_reward_badge = null
 var mission_badge_refresh_timer = 0.0
+var last_activity_ticks = 0
 
 func _input(event):
+	if game != null:
+		var meaningful_input = false
+		if event is InputEventScreenTouch and event.pressed:
+			meaningful_input = true
+		elif event is InputEventMouseButton and event.pressed:
+			meaningful_input = true
+		elif event is InputEventKey and event.pressed and not event.echo:
+			meaningful_input = true
+		if meaningful_input:
+			last_activity_ticks = OS.get_ticks_msec()
 	if game_scroll_container == null or not is_instance_valid(game_scroll_container):
 		return
 	if event is InputEventScreenTouch:
@@ -93,6 +104,8 @@ func _process(delta):
 		horizontal_scroll_velocity = 0.0
 	if game == null or game_paused:
 		return
+	if last_activity_ticks > 0 and OS.get_ticks_msec() - last_activity_ticks <= 90000:
+		game.record_active_play_seconds(delta)
 	clock_cycle_seconds += delta
 	mission_badge_refresh_timer += delta
 	if mission_badge_refresh_timer >= 1.0:
@@ -199,6 +212,8 @@ func _ready():
 	if not game.load_game():
 		game.new_game()
 		game.save_game()
+	game.register_login_today()
+	last_activity_ticks = OS.get_ticks_msec()
 	_apply_offline_progress()
 	clock_cycle_seconds = float(game.state.get("clock_cycle_seconds", 0))
 	set_process(true)
