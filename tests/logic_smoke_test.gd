@@ -6,20 +6,30 @@ const CitizenSocietyScript = preload("res://scripts/CitizenSociety.gd")
 func _init():
 	var game = EngineScript.new()
 	game.new_game()
-	assert(int(game.state.version) == 16)
+	assert(int(game.state.version) == 17)
 	assert(game.state.resources.has("food"))
 	assert(game.get_resource_definitions().has("food"))
 
 	# Main missions are sequential; side missions stay independently available.
 	var mission_game = EngineScript.new()
 	mission_game.new_game()
-	assert(mission_game.state.missions.size() == 54)
+	assert(mission_game.state.missions.size() == 52)
 	assert(bool(mission_game.state.missions[0].unlocked))
 	assert(bool(mission_game.state.missions[20].unlocked))
 	mission_game.state.land_owned = 11
+	mission_game.state.money = 9000
 	mission_game._update_missions()
 	assert(bool(mission_game.state.missions[0].completed))
 	var mission_money_before = int(mission_game.state.money)
+	var blocked_reward_game = EngineScript.new()
+	blocked_reward_game.new_game()
+	blocked_reward_game.state.land_owned = 11
+	blocked_reward_game._update_missions()
+	var blocked_reward = blocked_reward_game.claim_mission(0)
+	assert(not bool(blocked_reward.ok))
+	assert(not bool(blocked_reward_game.state.missions[0].claimed))
+	blocked_reward_game.state.money -= 300
+	assert(bool(blocked_reward_game.claim_mission(0).ok))
 	var main_claim = mission_game.claim_mission(0)
 	assert(bool(main_claim.ok))
 	assert(int(mission_game.state.xp) == 25)
@@ -31,21 +41,21 @@ func _init():
 	assert(bool(mission_game.state.missions[20].completed))
 	var side_claim = mission_game.claim_mission(20)
 	assert(bool(side_claim.ok))
-	assert(int(mission_game.state.xp) == 45)
-	assert(int(mission_game.state.money) == mission_money_before + 520)
+	assert(int(mission_game.state.xp) == 70)
+	assert(int(mission_game.state.money) == mission_money_before + 900)
 	assert(not bool(mission_game.claim_mission(20).ok))
 	var mission_ids = []
 	for mission_definition in mission_game.MISSION_DEFINITIONS:
 		mission_ids.append(str(mission_definition.id))
-	assert(mission_ids.size() == 54)
-	for required_id in ["main_water","main_power","main_storage","main_school","main_clinic","main_wood","main_stone","main_sawmill","main_carpenter","main_city_bank","main_central_bank","main_level_five","side_sewage","side_waste","side_hospital","side_police","side_fire","side_university","side_cultural","side_iron_mine","side_fish_lake","side_fishing_dock","side_fish_market","side_fish_processing","side_grocery","side_bakery","side_restaurant","side_office"]:
+	assert(mission_ids.size() == 52)
+	for required_id in ["main_water","main_power","main_storage","main_school","main_clinic","main_wood","main_stone","main_sawmill","main_carpenter","main_city_bank","main_central_bank","main_level_five","side_sewage","side_waste","side_hospital","side_police","side_fire","side_university","side_cultural","side_iron_mine","side_fish_lake","side_fishing_dock","side_fish_market","side_fish_processing","side_grocery","side_bakery","side_restaurant","side_office","side_loan_paid","side_export_eight","side_collect_profit","side_positive_cashflow","side_high_satisfaction","side_expand_districts","side_private_tax"]:
 		assert(required_id in mission_ids)
 	var legacy_mission_game = EngineScript.new()
-	legacy_mission_game.state = {"version":15,"missions":[{"id":"side_water","claimed":true,"completed":true},{"id":"buy_land_tutorial","claimed":true,"completed":true}],"buildings":[],"citizens":[],"resources":{},"market_stock":{}}
+	legacy_mission_game.state = {"version":16,"missions":[{"id":"side_population","claimed":true,"completed":true},{"id":"buy_land_tutorial","claimed":true,"completed":true}],"buildings":[],"citizens":[],"resources":{},"market_stock":{}}
 	legacy_mission_game._normalize_state()
 	assert(str(legacy_mission_game.state.missions[0].id) == "buy_land_tutorial")
 	assert(bool(legacy_mission_game.state.missions[0].claimed))
-	assert(str(legacy_mission_game.state.missions[20].id) == "side_water")
+	assert(str(legacy_mission_game.state.missions[20].id) == "side_population")
 	assert(bool(legacy_mission_game.state.missions[20].claimed))
 	# Login streaks count unique consecutive local calendar days only.
 	var time_game = EngineScript.new()
@@ -72,6 +82,25 @@ func _init():
 	time_game.end_day(true)
 	assert(int(time_game.state.consecutive_active_game_days) == 0)
 	assert(int(time_game.state.active_play_seconds_today) == 0)
+
+	# New economic and civic side-mission counters are tied to real game actions.
+	time_game.state.bank_loans = [{"status":"paid"}]
+	assert(int(time_game._get_mission_progress("side_loan_paid")) == 1)
+	time_game.state.trade_exported_units_total = 8
+	assert(int(time_game._get_mission_progress("side_export_eight")) == 8)
+	time_game.state.business_profit_collections_total = 1
+	assert(int(time_game._get_mission_progress("side_collect_profit")) == 1)
+	time_game.state.profitable_day_streak = 3
+	assert(int(time_game._get_mission_progress("side_positive_cashflow")) == 3)
+	time_game.state.high_satisfaction_day_streak = 3
+	assert(int(time_game._get_mission_progress("side_high_satisfaction")) == 3)
+	time_game.state.private_businesses = [{"tax_paid_total":100}]
+	assert(int(time_game._get_mission_progress("side_private_tax")) == 100)
+	var district_game = EngineScript.new()
+	district_game.new_game()
+	for district_building in range(21):
+		district_game.state.buildings.append({"id":"small_park","workers":0,"balance":0})
+	assert(int(district_game._get_mission_progress("side_expand_districts")) == 2)
 
 	var market_result = game.buy_resource("food", 5)
 	assert(bool(market_result.ok))
@@ -139,7 +168,7 @@ func _init():
 	var migration_game = EngineScript.new()
 	migration_game.state = {"version":9,"buildings":[],"citizens":[],"resources":{},"market_stock":{}}
 	migration_game._normalize_state()
-	assert(int(migration_game.state.version) == 16)
+	assert(int(migration_game.state.version) == 17)
 	assert(migration_game.state.resources.has("food"))
 	assert(int(migration_game.state.road_level) == 1)
 
