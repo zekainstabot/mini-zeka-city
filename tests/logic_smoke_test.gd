@@ -78,16 +78,19 @@ func _init():
 	assert(int(time_game.state.login_streak) == 1)
 	assert(int(time_game._get_mission_progress("time_login_five")) == 1)
 	# Active play streak requires five active minutes in each game day.
-	time_game.state.active_play_seconds_today = 299
+	for second in range(299):
+		time_game.record_active_play_seconds(1.0)
 	time_game.end_day()
 	assert(int(time_game.state.consecutive_active_game_days) == 0)
 	for active_day in range(3):
-		time_game.record_active_play_seconds(300.0)
+		for second in range(300):
+			time_game.record_active_play_seconds(1.0)
 		time_game.end_day()
 	assert(int(time_game._get_mission_progress("time_play_three")) == 3)
 	assert(int(time_game._get_mission_progress("time_play_five")) == 3)
 	# Offline simulation must not count as active play or break a valid streak.
-	time_game.record_active_play_seconds(300.0)
+	for second in range(300):
+		time_game.record_active_play_seconds(1.0)
 	time_game.end_day(true)
 	assert(int(time_game.state.consecutive_active_game_days) == 0)
 	assert(int(time_game.state.active_play_seconds_today) == 0)
