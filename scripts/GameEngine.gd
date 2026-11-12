@@ -1291,6 +1291,12 @@ func end_day():
 		var business_income = int(data.get("daily_revenue", 0))
 		if business_income > 0 and required_workers > 0:
 			business_income = int(round(float(business_income) * float(workers) / float(required_workers)))
+		if str(building.id) == "fish_market":
+			if int(state.resources.get("fish", 0)) < 2:
+				business_income = 0
+				report.append("بازار ماهی امروز فروش نداشت؛ ماهی تازه کافی در انبار نیست.")
+			else:
+				state.resources["fish"] = int(state.resources.get("fish", 0)) - 2
 		if business_income > 0:
 			income += business_income
 			business_income_total += business_income
