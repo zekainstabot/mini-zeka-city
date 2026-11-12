@@ -1254,7 +1254,7 @@ func show_page(page):
 			summary_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			content.add_child(summary_panel)
 			var summary_label = Label.new()
-			summary_label.text = PersianText.reshaper("پیشرفت آموزش: %d از %d مرحله" % [claimed_count, total_missions])
+			summary_label.text = PersianText.reshaper("پیشرفت کلی مأموریت‌ها: %d از %d" % [claimed_count, total_missions])
 			summary_label.align = Label.ALIGN_CENTER
 			summary_label.autowrap = true
 			summary_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1747,30 +1747,21 @@ func go_to_mission_target(mission_id):
 	var target_page = "home"
 	selected_building_category = ""
 	match str(mission_id):
-		"buy_land_tutorial":
+		"buy_land_tutorial", "build_house_tutorial":
 			target_page = "buildings"
-			selected_building_category = ""
-		"build_house_tutorial":
-			target_page = "buildings"
-			selected_building_category = "خانه‌ها"
-		"build_farm_tutorial":
+			selected_building_category = "خانه‌ها" if str(mission_id) == "build_house_tutorial" else ""
+		"build_farm_tutorial", "side_fish_lake", "side_fishing_dock":
 			target_page = "buildings"
 			selected_building_category = "کشاورزی"
-		"hire_worker_tutorial":
+		"hire_worker_tutorial", "population_tutorial", "side_population":
 			target_page = "citizens"
-		"population_tutorial":
-			target_page = "citizens"
-		"market_tutorial":
+		"market_tutorial", "side_grocery", "side_bakery", "side_restaurant", "side_office", "side_fish_market":
 			target_page = "buildings"
 			selected_building_category = "کسب‌وکارها"
 		"transport_tutorial":
 			target_page = "transport"
 		"level_tutorial", "main_level_five":
 			target_page = "home"
-		"population_tutorial", "side_population", "hire_worker_tutorial":
-			target_page = "citizens"
-		"transport_tutorial":
-			target_page = "transport"
 		"main_city_bank", "main_central_bank", "side_bank", "side_reserve":
 			target_page = "bank"
 		"main_storage":
@@ -1778,24 +1769,15 @@ func go_to_mission_target(mission_id):
 		"main_water", "main_power", "main_school", "main_clinic", "side_water", "side_power", "side_school", "side_clinic", "side_sewage", "side_waste", "side_hospital", "side_police", "side_fire":
 			target_page = "buildings"
 			selected_building_category = "خدمات شهری"
-		"main_wood", "main_sawmill", "main_carpenter", "side_wood", "side_sawmill", "side_carpenter":
+		"main_wood", "main_sawmill", "main_carpenter", "side_wood", "side_sawmill", "side_carpenter", "side_fish_processing":
 			target_page = "buildings"
 			selected_building_category = "کارخانه‌ها"
 		"main_stone", "side_stone_mine", "side_iron_mine":
 			target_page = "buildings"
 			selected_building_category = "معادن"
-		"side_fish_lake", "side_fishing_dock":
-			target_page = "buildings"
-			selected_building_category = "کشاورزی"
 		"side_park", "side_playground", "side_sports", "side_cultural":
 			target_page = "buildings"
 			selected_building_category = "تفریح و فرهنگ"
-		"market_tutorial", "side_grocery", "side_bakery", "side_restaurant", "side_office", "side_fish_market":
-			target_page = "buildings"
-			selected_building_category = "کسب‌وکارها"
-		"side_fish_processing":
-			target_page = "buildings"
-			selected_building_category = "کارخانه‌ها"
 		_:
 			target_page = "home"
 	show_page(target_page)
