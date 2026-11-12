@@ -1237,17 +1237,21 @@ func show_page(page):
 			var side_total = 0
 			var side_claimed = 0
 			for definition in game.MISSION_DEFINITIONS:
+				if bool(definition.get("legacy", false)):
+					continue
 				if str(definition.get("type","main")) == "side":
 					side_total += 1
 				else:
 					main_total += 1
 			for saved_mission in mission_list:
 				var saved_type = "main"
+				var saved_legacy = false
 				for definition in game.MISSION_DEFINITIONS:
 					if str(definition.id) == str(saved_mission.get("id","")):
 						saved_type = str(definition.get("type","main"))
+						saved_legacy = bool(definition.get("legacy", false))
 						break
-				if bool(saved_mission.get("claimed",false)):
+				if bool(saved_mission.get("claimed",false)) and not saved_legacy:
 					if saved_type == "side":
 						side_claimed += 1
 					else:
@@ -1287,14 +1291,21 @@ func show_page(page):
 						break
 				if definition.empty():
 					continue
+				var is_legacy_mission = bool(definition.get("legacy", false))
+				if is_legacy_mission and (bool(mission.get("claimed", false)) or not bool(mission.get("completed", false))):
+					continue
 				visible_missions += 1
-				var mission_type = str(definition.get("type","main"))
+				var mission_type = "legacy" if is_legacy_mission else str(definition.get("type","main"))
 				if mission_type != last_mission_type:
 					last_mission_type = mission_type
-					_add_label("📘 مأموریت‌های اصلی | آموزش بازی" if mission_type == "main" else "⭐ مأموریت‌های فرعی | پول و تجربه", 21)
-					if mission_type == "main":
+					if mission_type == "legacy":
+						_add_label("🎁 پاداش‌های باقی‌مانده از نسخه قبلی", 21)
+						_add_label("اگر در نسخه قبلی مأموریتی را کامل کرده بودی اما جایزه‌اش را نگرفته بودی، اینجا هنوز قابل دریافت است.",15)
+					elif mission_type == "main":
+						_add_label("📘 مأموریت‌های اصلی | آموزش بازی", 21)
 						_add_label("این مسیر را به‌ترتیب پیش ببر؛ هر مرحله بخش تازه‌ای از مدیریت شهر را آموزش می‌دهد.",15)
 					else:
+						_add_label("⭐ مأموریت‌های فرعی | پول و تجربه", 21)
 						_add_label("این هدف‌ها مستقل‌اند و هرکدام را هر زمان خواستی انجام بده.",15)
 				var is_claimed = bool(mission.get("claimed", false))
 				var is_completed = bool(mission.get("completed", false))
