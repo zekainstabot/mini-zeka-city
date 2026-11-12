@@ -1402,7 +1402,7 @@ func _get_mission_progress(mission_id):
 		"side_high_satisfaction":
 			return int(state.get("high_satisfaction_day_streak", 0))
 		"side_expand_districts":
-			return int(get_districts_overview().get("district_count", 0))
+			return int(state.get("districts", []).size())
 		"side_private_tax":
 			var private_tax_total = 0
 			for business in state.get("private_businesses", []):
