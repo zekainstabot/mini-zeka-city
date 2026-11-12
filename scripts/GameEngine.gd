@@ -1260,16 +1260,6 @@ func _get_mission_progress(mission_id):
 			return get_building_count("transport_depot")
 		"level_tutorial":
 			return int(state.level)
-		"side_water":
-			return get_building_count("water_tower")
-		"side_school":
-			return get_building_count("school")
-		"side_clinic":
-			return get_building_count("clinic")
-		"side_wood":
-			return get_building_count("woodcutter")
-		"side_bank":
-			return get_building_count("municipal_bank")
 		"side_population":
 			return int(state.population)
 		"side_reserve":
