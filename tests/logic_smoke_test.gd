@@ -138,7 +138,7 @@ func _init():
 	var migration_game = EngineScript.new()
 	migration_game.state = {"version":9,"buildings":[],"citizens":[],"resources":{},"market_stock":{}}
 	migration_game._normalize_state()
-	assert(int(migration_game.state.version) == 15)
+	assert(int(migration_game.state.version) == 16)
 	assert(migration_game.state.resources.has("food"))
 	assert(int(migration_game.state.road_level) == 1)
 
