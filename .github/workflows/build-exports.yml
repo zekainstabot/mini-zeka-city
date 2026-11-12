@@ -47,7 +47,8 @@ jobs:
 
       - name: Convert the complete Godot 3 project to Godot 4
         run: |
-          /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --editor --path . --convert-3to4 40000 1000000
+          set -o pipefail
+          /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --editor --path . --convert-3to4 40000 1000000 2>&1 | tee /tmp/godot-convert.log
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
@@ -58,7 +59,8 @@ jobs:
 
       - name: Import and validate converted Godot 4 project
         run: |
-          /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --editor --path . --quit
+          set -o pipefail
+          /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --editor --path . --quit 2>&1 | tee /tmp/godot-import.log
 
       - name: Run game logic smoke tests
         timeout-minutes: 1
@@ -117,6 +119,20 @@ jobs:
                 });
               }
             }
+
+      - name: Preserve migration diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot4-migration-diagnostics
+          path: |
+            /tmp/godot-convert.log
+            /tmp/godot-import.log
+            /tmp/godot-tests.log
+            /tmp/godot-ui-tests.log
+            /tmp/godot-main-scene.log
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Publish browser build for Render Static Site
         uses: peaceiris/actions-gh-pages@v4
