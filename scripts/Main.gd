@@ -111,6 +111,10 @@ func _process(delta):
 	if last_activity_ticks > 0 and OS.get_ticks_msec() - last_activity_ticks <= 90000:
 		game.record_active_play_seconds(delta)
 	clock_cycle_seconds += delta
+	var audio_night_mode = clock_cycle_seconds >= 420.0
+	if audio_manager != null and audio_night_mode != last_audio_night_mode:
+		last_audio_night_mode = audio_night_mode
+		audio_manager.set_night_mode(audio_night_mode)
 	mission_badge_refresh_timer += delta
 	if mission_badge_refresh_timer >= 1.0:
 		mission_badge_refresh_timer = 0.0
@@ -323,6 +327,8 @@ func _ready():
 	last_activity_ticks = OS.get_ticks_msec()
 	_apply_offline_progress()
 	clock_cycle_seconds = float(game.state.get("clock_cycle_seconds", 0))
+	last_audio_night_mode = clock_cycle_seconds >= 420.0
+	audio_manager.set_night_mode(last_audio_night_mode)
 	set_process(true)
 	_build_ui()
 	show_page("home")
@@ -2282,7 +2288,12 @@ func buy_land():
 	_show_message(result.message)
 
 func build_building(id):
+	var previous_level = int(game.state.get("level", 1))
 	var result = game.build(id)
+	if bool(result.get("ok", false)):
+		audio_manager.play_sfx("construction")
+		if int(game.state.get("level", 1)) > previous_level:
+			audio_manager.play_sfx("level")
 	show_page("buildings")
 	_show_message(result.message)
 
@@ -2375,7 +2386,12 @@ func upgrade_road():
 	_show_message(result.message)
 
 func build_transport_facility(building_id):
+	var previous_level = int(game.state.get("level", 1))
 	var result = game.build(str(building_id))
+	if bool(result.get("ok", false)):
+		audio_manager.play_sfx("construction")
+		if int(game.state.get("level", 1)) > previous_level:
+			audio_manager.play_sfx("level")
 	show_page("transport")
 	_show_message(result.message)
 
@@ -2508,6 +2524,8 @@ func go_to_mission_target(mission_id):
 
 func claim_login_reward():
 	var result = game.claim_login_reward()
+	if bool(result.get("ok", false)):
+		audio_manager.play_sfx("reward")
 	show_page("home")
 	_show_message(str(result.message))
 
@@ -2530,6 +2548,8 @@ func resolve_city_decision(option_id):
 
 func claim_mystery_reward():
 	var result = game.claim_mystery_reward()
+	if bool(result.get("ok", false)):
+		audio_manager.play_sfx("reward")
 	show_page("progress")
 	_show_message(str(result.message))
 
@@ -2550,6 +2570,8 @@ func claim_long_term_project(project_id):
 
 func claim_weekly_challenge():
 	var result = game.claim_weekly_challenge()
+	if bool(result.get("ok", false)):
+		audio_manager.play_sfx("reward")
 	show_page("progress")
 	_show_message(str(result.message))
 
@@ -2565,11 +2587,15 @@ func _add_daily_claim_button(parent, mission_id):
 
 func claim_daily_mission(mission_id):
 	var result = game.claim_daily_mission(str(mission_id))
+	if bool(result.get("ok", false)):
+		audio_manager.play_sfx("reward")
 	show_page("missions")
 	_show_message(result.message)
 
 func claim_mission(index):
 	var result = game.claim_mission(index)
+	if bool(result.get("ok", false)):
+		audio_manager.play_sfx("reward")
 	show_page("missions")
 	_show_message(result.message)
 
