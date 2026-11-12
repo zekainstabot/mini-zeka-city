@@ -24,14 +24,21 @@ const SERVICE_GROUPS = {
 	"sanitation": {"name":"بهداشت محیط","buildings":["sewage_plant","waste_facility"]}
 }
 const MISSION_DEFINITIONS = [
-	{"id":"buy_land_tutorial","title":"۱. اولین قدم شهرداری","description":"برای توسعه شهر، یک قطعه زمین جدید بخر.","goal":1,"reward":300,"hint":"از بخش ساختمان‌ها دکمه خرید زمین را بزن."},
-	{"id":"build_house_tutorial","title":"۲. خانه‌سازی","description":"یک خانه کوچک دیگر به شهر اضافه کن.","goal":1,"reward":400,"hint":"از ساختمان‌ها، دسته خانه‌ها را باز کن."},
-	{"id":"build_farm_tutorial","title":"۳. تأمین خوراک","description":"یک مزرعه برای تولید مواد غذایی بساز.","goal":1,"reward":500,"hint":"مزرعه در دسته کشاورزی قرار دارد."},
-	{"id":"hire_worker_tutorial","title":"۴. اولین استخدام","description":"حداقل یک شهروند را در یک شغل مشغول کن.","goal":1,"reward":600,"hint":"در بخش شهروندان، وضعیت شغل‌ها را بررسی کن."},
-	{"id":"population_tutorial","title":"۵. گسترش جمعیت","description":"جمعیت شهر را به ۸ نفر برسان.","goal":8,"reward":700,"hint":"با ساخت خانه و جذب شهروند ظرفیت جمعیت را بالا ببر."},
-	{"id":"market_tutorial","title":"۶. ورود به اقتصاد","description":"یک بازار مواد معدنی بساز.","goal":1,"reward":800,"hint":"بازار در دسته کسب‌وکارها قرار دارد."},
-	{"id":"transport_tutorial","title":"۷. راه تجارت","description":"یک پایانه حمل‌ونقل بساز.","goal":1,"reward":1000,"hint":"پایانه برای تجارت و واردات بین‌شهری لازم است."},
-	{"id":"level_tutorial","title":"۸. شهردار باتجربه","description":"شهر را به سطح ۳ برسان.","goal":3,"reward":1200,"hint":"با ساخت‌وساز و پیشرفت روزانه تجربه کسب کن."}
+	{"id":"buy_land_tutorial","type":"main","title":"۱. توسعه محدوده شهر","description":"یک قطعه زمین بخر تا با گسترش محدوده و ظرفیت ساخت آشنا شوی.","goal":1,"reward":300,"xp":25,"hint":"از بخش ساختمان‌ها، خرید زمین را انجام بده."},
+	{"id":"build_house_tutorial","type":"main","title":"۲. تأمین فضای سکونت","description":"یک خانه کوچک دیگر بساز و ظرفیت اسکان شهر را افزایش بده.","goal":1,"reward":400,"xp":30,"hint":"ساختمان‌ها ← خانه‌ها؛ قبل از ساخت، هزینه و ظرفیت را بررسی کن."},
+	{"id":"build_farm_tutorial","type":"main","title":"۳. زنجیره تأمین خوراک","description":"یک مزرعه بساز تا تولید مواد غذایی و اهمیت نیروی کار را یاد بگیری.","goal":1,"reward":500,"xp":35,"hint":"مزرعه در دسته کشاورزی است؛ برای تولید به کارگر نیاز دارد."},
+	{"id":"hire_worker_tutorial","type":"main","title":"۴. نیروی انسانی","description":"حداقل دو شهروند را شاغل کن و با ارتباط نیروی کار و تولید آشنا شو.","goal":2,"reward":550,"xp":40,"hint":"در بخش شهروندان، وضعیت اشتغال و ظرفیت شغلی ساختمان‌ها را بررسی کن."},
+	{"id":"population_tutorial","type":"main","title":"۵. رشد جمعیت و خدمات","description":"جمعیت را به ۸ نفر برسان؛ رشد جمعیت، نیاز به خانه و خدمات شهری را بیشتر می‌کند.","goal":8,"reward":650,"xp":45,"hint":"ظرفیت خانه‌ها و نیازهای شهروندان را هم‌زمان مدیریت کن."},
+	{"id":"market_tutorial","type":"main","title":"۶. بازار و منابع","description":"بازار مواد معدنی بساز و با خریدوفروش منابع و مدیریت انبار آشنا شو.","goal":1,"reward":700,"xp":50,"hint":"بازار مواد معدنی در دسته کسب‌وکارهاست؛ قیمت خرید و فروش را مقایسه کن."},
+	{"id":"transport_tutorial","type":"main","title":"۷. تجارت بین‌شهری","description":"پایانه حمل‌ونقل بساز تا مسیر تجارت و ظرفیت ارسال کالا را باز کنی.","goal":1,"reward":850,"xp":55,"hint":"پایانه حمل‌ونقل برای تجارت بین‌شهری و جابه‌جایی محموله‌ها کاربرد دارد."},
+	{"id":"level_tutorial","type":"main","title":"۸. شهردار باتجربه","description":"شهر را به سطح ۳ برسان؛ با تجربه گرفتن از فعالیت‌ها، ساختمان‌های تازه آزاد می‌شوند.","goal":3,"reward":1000,"xp":70,"hint":"نوار تجربه شهر را دنبال کن و توسعه را با توان مالی هماهنگ نگه دار."},
+	{"id":"side_water","type":"side","title":"خدمات پایه شهر","description":"یک برج آب بساز تا بخشی از نیازهای اساسی شهروندان تأمین شود.","goal":1,"reward":220,"xp":20,"hint":"خدمات شهری ← برج آب؛ هزینه ساخت و حقوق روزانه را در نظر بگیر."},
+	{"id":"side_school","type":"side","title":"سرمایه‌گذاری آموزشی","description":"یک مدرسه بساز تا ظرفیت آموزش شهر افزایش پیدا کند.","goal":1,"reward":450,"xp":35,"hint":"مدرسه نیروی کار و هزینه نگهداری روزانه نیاز دارد."},
+	{"id":"side_clinic","type":"side","title":"سلامت شهروندان","description":"یک درمانگاه بساز تا نیاز درمانی شهر بهتر پوشش داده شود.","goal":1,"reward":420,"xp":35,"hint":"درمانگاه را در دسته خدمات شهری پیدا می‌کنی."},
+	{"id":"side_wood","type":"side","title":"تولید منابع داخلی","description":"یک چوب‌بری بساز تا تولید یکی از منابع پایه شهر را راه‌اندازی کنی.","goal":1,"reward":300,"xp":25,"hint":"چوب‌بری در دسته کارخانه‌هاست و به کارگر نیاز دارد."},
+	{"id":"side_bank","type":"side","title":"آشنایی با بانکداری","description":"بانک شهری بساز تا امکان استفاده از خدمات مالی و سپرده را داشته باشی.","goal":1,"reward":550,"xp":45,"hint":"بانک شهری در خدمات شهری قرار دارد؛ قبل از ساخت خزانه را بررسی کن."},
+	{"id":"side_population","type":"side","title":"محله پرجمعیت","description":"جمعیت شهر را به ۱۲ نفر برسان و برای خدمات و اشتغال برنامه‌ریزی کن.","goal":12,"reward":600,"xp":45,"hint":"خانه کافی بساز و نیازهای شهروندان را زیر نظر بگیر."},
+	{"id":"side_reserve","type":"side","title":"ذخیره مالی مطمئن","description":"موجودی خزانه را به ۵۰۰۰ سکه برسان؛ بدون گرفتن وام.","goal":5000,"reward":500,"xp":40,"hint":"هزینه‌های ثابت را کنترل کن و از مالیات، تولید و تجارت درآمد بگیر."}
 ]
 
 const RESOURCES = {
@@ -205,7 +212,7 @@ var state = {}
 
 func new_game():
 	state = {
-		"version": 14,
+		"version": 15,
 		"districts": [],
 		"day": 1,
 		"clock_last_unix": OS.get_unix_time(),
@@ -269,7 +276,7 @@ func load_game():
 		return false
 	var parsed = parse_json(file.get_as_text())
 	file.close()
-	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 14:
+	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 15:
 		return false
 	state = parsed
 	_normalize_state()
@@ -393,7 +400,7 @@ func _normalize_state():
 	if typeof(state.get("mines", null)) != TYPE_ARRAY:
 		state["mines"] = []
 	# Save schema migration: add dynamic market, trade and shipping state.
-	state["version"] = 14
+	state["version"] = 15
 	if typeof(state.get("districts", null)) != TYPE_ARRAY:
 		state["districts"] = []
 	for id in RESOURCES.keys():
@@ -1195,7 +1202,7 @@ func _sync_missions():
 				found = true
 				break
 		if not found:
-			state.missions.append({"id":definition.id,"progress":0,"completed":false,"claimed":false,"unlocked":false})
+			state.missions.append({"id":definition.id,"type":definition.get("type","main"),"progress":0,"completed":false,"claimed":false,"unlocked":str(definition.get("type","main")) == "side"})
 	_update_missions()
 
 func _get_mission_progress(mission_id):
@@ -1216,6 +1223,20 @@ func _get_mission_progress(mission_id):
 			return get_building_count("transport_depot")
 		"level_tutorial":
 			return int(state.level)
+		"side_water":
+			return get_building_count("water_tower")
+		"side_school":
+			return get_building_count("school")
+		"side_clinic":
+			return get_building_count("clinic")
+		"side_wood":
+			return get_building_count("woodcutter")
+		"side_bank":
+			return get_building_count("municipal_bank")
+		"side_population":
+			return int(state.population)
+		"side_reserve":
+			return int(state.get("money", 0))
 	return 0
 
 func _update_missions():
@@ -1233,6 +1254,11 @@ func _update_missions():
 			state.missions[i] = mission
 			previous_claimed = bool(mission.get("claimed", false))
 			break
+		for definition in MISSION_DEFINITIONS:
+			if str(definition.id) == mission_id and str(definition.get("type","main")) == "side":
+				mission["unlocked"] = true
+				state.missions[i] = mission
+				break
 
 func get_missions():
 	_update_missions()
@@ -1249,17 +1275,21 @@ func claim_mission(mission_index):
 	if bool(mission.get("claimed", false)):
 		return {"ok":false,"message":"پاداش این ماموریت قبلاً دریافت شده است."}
 	var reward = 0
+	var xp_reward = 0
 	for definition in MISSION_DEFINITIONS:
 		if str(definition.id) == str(mission.get("id", "")):
 			reward = int(definition.reward)
+			xp_reward = int(definition.get("xp", 0))
 			break
 	var accepted = _add_money(reward)
 	if accepted < reward:
 		return {"ok":false,"message":"ظرفیت خزانه برای دریافت کامل پاداش کافی نیست."}
 	mission.claimed = true
 	state.missions[mission_index] = mission
+	var xp_message = _award_xp(xp_reward)
+	_update_missions()
 	save_game()
-	return {"ok":true,"message":"پاداش ماموریت دریافت شد: %d سکه." % reward}
+	return {"ok":true,"message":"پاداش دریافت شد: %d سکه و %d تجربه. %s" % [reward, xp_reward, xp_message]}
 
 
 func get_civic_overview():
