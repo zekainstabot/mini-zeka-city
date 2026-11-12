@@ -44,14 +44,8 @@ const MISSION_DEFINITIONS = [
 	{"id":"main_city_bank","type":"main","title":"۱۸. مدیریت مالی شهر","description":"یک بانک شهری بساز و با خدمات مالی و مدیریت نقدینگی آشنا شو.","goal":1,"reward":1000,"xp":70,"hint":"بانک شهری در خدمات شهری است؛ پیش از ساخت هزینه‌های روزانه را بسنج."},
 	{"id":"main_central_bank","type":"main","title":"۱۹. نظام بانکی پیشرفته","description":"پس از رسیدن به سطح لازم، بانک مرکزی بساز تا خدمات بانکی پیشرفته فعال شود.","goal":1,"reward":1200,"xp":80,"hint":"بانک مرکزی از سطح ۴ آزاد می‌شود؛ ابتدا سطح و خزانه را تقویت کن."},
 	{"id":"main_level_five","type":"main","title":"۲۰. شهردار باتجربه","description":"شهر را به سطح ۵ برسان؛ حالا آماده مدیریت خدمات و زیرساخت‌های پیشرفته هستی.","goal":5,"reward":1500,"xp":100,"hint":"تجربه را از فعالیت‌ها و مأموریت‌ها بگیر و توسعه را با توان مالی هماهنگ کن."},
-	{"id":"side_water","type":"side","title":"خدمات پایه شهر","description":"یک برج آب بساز تا بخشی از نیازهای اساسی شهروندان تأمین شود.","goal":1,"reward":220,"xp":20,"hint":"خدمات شهری ← برج آب؛ هزینه ساخت و حقوق روزانه را در نظر بگیر."},
-	{"id":"side_school","type":"side","title":"سرمایه‌گذاری آموزشی","description":"یک مدرسه بساز تا ظرفیت آموزش شهر افزایش پیدا کند.","goal":1,"reward":450,"xp":35,"hint":"مدرسه نیروی کار و هزینه نگهداری روزانه نیاز دارد."},
-	{"id":"side_clinic","type":"side","title":"سلامت شهروندان","description":"یک درمانگاه بساز تا نیاز درمانی شهر بهتر پوشش داده شود.","goal":1,"reward":420,"xp":35,"hint":"درمانگاه را در دسته خدمات شهری پیدا می‌کنی."},
-	{"id":"side_wood","type":"side","title":"تولید منابع داخلی","description":"یک چوب‌بری بساز تا تولید یکی از منابع پایه شهر را راه‌اندازی کنی.","goal":1,"reward":300,"xp":25,"hint":"چوب‌بری در دسته کارخانه‌هاست و به کارگر نیاز دارد."},
-	{"id":"side_bank","type":"side","title":"آشنایی با بانکداری","description":"بانک شهری بساز تا امکان استفاده از خدمات مالی و سپرده را داشته باشی.","goal":1,"reward":550,"xp":45,"hint":"بانک شهری در خدمات شهری قرار دارد؛ قبل از ساخت خزانه را بررسی کن."},
 	{"id":"side_population","type":"side","title":"محله پرجمعیت","description":"جمعیت شهر را به ۱۲ نفر برسان و برای خدمات و اشتغال برنامه‌ریزی کن.","goal":12,"reward":600,"xp":45,"hint":"خانه کافی بساز و نیازهای شهروندان را زیر نظر بگیر."},
 	{"id":"side_reserve","type":"side","title":"ذخیره مالی مطمئن","description":"موجودی خزانه را به ۱۵۰۰۰ سکه برسان.","goal":15000,"reward":500,"xp":40,"hint":"هزینه‌های ثابت را کنترل کن و از مالیات، تولید و تجارت درآمد بگیر."},
-	{"id":"side_power","type":"side","title":"برق‌رسانی شهر","description":"یک نیروگاه بساز و ظرفیت برق شهر را افزایش بده.","goal":1,"reward":350,"xp":25,"hint":"نیروگاه در خدمات شهری قرار دارد."},
 	{"id":"side_sewage","type":"side","title":"بهداشت فاضلاب","description":"یک تصفیه‌خانه فاضلاب بساز.","goal":1,"reward":450,"xp":30,"hint":"تصفیه‌خانه در خدمات شهری است و هزینه نگهداری دارد."},
 	{"id":"side_waste","type":"side","title":"مدیریت پسماند","description":"یک مرکز پسماند بساز تا خدمات بهداشت محیط کامل‌تر شود.","goal":1,"reward":420,"xp":30,"hint":"مرکز پسماند را در دسته خدمات شهری پیدا می‌کنی."},
 	{"id":"side_park","type":"side","title":"فضای سبز شهری","description":"یک پارک کوچک بساز تا نیاز تفریح شهروندان بهتر تأمین شود.","goal":1,"reward":250,"xp":20,"hint":"پارک کوچک در تفریح و فرهنگ قرار دارد."},
@@ -62,10 +56,7 @@ const MISSION_DEFINITIONS = [
 	{"id":"side_fire","type":"side","title":"آمادگی در بحران","description":"یک ایستگاه آتش‌نشانی بساز.","goal":1,"reward":650,"xp":45,"hint":"آتش‌نشانی در خدمات شهری و ساختمان‌های اضطراری قرار دارد."},
 	{"id":"side_university","type":"side","title":"آموزش عالی","description":"یک دانشگاه بساز و ظرفیت آموزش عالی شهر را گسترش بده.","goal":1,"reward":1100,"xp":75,"hint":"دانشگاه در سطح ۷ آزاد می‌شود."},
 	{"id":"side_cultural","type":"side","title":"هویت فرهنگی شهر","description":"یک مرکز فرهنگی بساز تا خدمات فرهنگی و تفریحی توسعه یابد.","goal":1,"reward":1000,"xp":70,"hint":"مرکز فرهنگی در سطح ۸ آزاد می‌شود."},
-	{"id":"side_stone_mine","type":"side","title":"استخراج سنگ","description":"یک معدن سنگ بساز و تولید سنگ را راه‌اندازی کن.","goal":1,"reward":350,"xp":25,"hint":"معدن سنگ در بخش معادن است."},
 	{"id":"side_iron_mine","type":"side","title":"استخراج آهن","description":"یک معدن آهن بساز تا سنگ‌آهن تولید شود.","goal":1,"reward":600,"xp":40,"hint":"معدن آهن در سطح ۳ آزاد می‌شود."},
-	{"id":"side_sawmill","type":"side","title":"کارخانه الوارسازی","description":"یک کارخانه الوارسازی بساز و زنجیره چوب را توسعه بده.","goal":1,"reward":500,"xp":35,"hint":"برای تولید الوار باید چوب کافی داشته باشی."},
-	{"id":"side_carpenter","type":"side","title":"کارگاه مبلمان","description":"یک کارگاه مبلمان بساز و تولید کالای نهایی را آغاز کن.","goal":1,"reward":700,"xp":50,"hint":"کارگاه مبلمان به الوار نیاز دارد."},
 	{"id":"side_fish_lake","type":"side","title":"پرورش و صید ماهی","description":"یک دریاچه ماهیگیری بساز تا تولید ماهی افزایش یابد.","goal":1,"reward":700,"xp":45,"hint":"دریاچه ماهیگیری در سطح ۲ آزاد می‌شود."},
 	{"id":"side_fishing_dock","type":"side","title":"اسکله صیادی","description":"یک اسکله صیادی بساز و ظرفیت صید ماهی را بیشتر کن.","goal":1,"reward":500,"xp":35,"hint":"اسکله صیادی در دسته کشاورزی قرار دارد."},
 	{"id":"side_fish_market","type":"side","title":"بازار محصولات دریایی","description":"یک بازار ماهی بساز تا فروش ماهی در شهر فعال شود.","goal":1,"reward":450,"xp":30,"hint":"بازار ماهی در کسب‌وکارها قرار دارد."},
@@ -77,7 +68,14 @@ const MISSION_DEFINITIONS = [
 	{"id":"time_login_five","type":"side","title":"حضور منظم شهردار","description":"در ۵ روز تقویمی متفاوت و پشت سر هم وارد بازی شو. ورود چندباره در یک روز فقط یک‌بار حساب می‌شود.","goal":5,"reward":150,"xp":12,"hint":"هر روز وارد شهر شو؛ اگر یک روز کامل جا بیفتد، شمارش پیوستگی از نو شروع می‌شود."},
 	{"id":"time_play_three","type":"side","title":"شهردار پیگیر","description":"در ۳ روزِ بازی متوالی، هر روز دست‌کم ۵ دقیقه با بازی تعامل فعال داشته باش. زمان آفلاین و رهاکردن بازی حساب نمی‌شود.","goal":3,"reward":220,"xp":18,"hint":"در طول هر روز بازی، فعالانه با منوها و بخش‌های شهر کار کن؛ با پایان روز، فعالیت ثبت می‌شود."},
 	{"id":"time_login_seven","type":"side","title":"وفاداری به شهر","description":"ورود به بازی را به ۷ روز تقویمی متوالی برسان.","goal":7,"reward":250,"xp":20,"hint":"این مأموریت پس از چند روز حضور منظم تکمیل می‌شود؛ ورود تکراری در یک روز امتیاز اضافه ندارد."},
-	{"id":"time_play_five","type":"side","title":"مدیریت پیوسته شهر","description":"در ۵ روزِ بازی متوالی، هر روز دست‌کم ۵ دقیقه تعامل فعال داشته باش.","goal":5,"reward":360,"xp":28,"hint":"هر روز بازی را واقعاً مدیریت کن؛ روزهایی که کمتر از ۵ دقیقه فعال باشی زنجیره را قطع می‌کنند."}
+	{"id":"time_play_five","type":"side","title":"مدیریت پیوسته شهر","description":"در ۵ روزِ بازی متوالی، هر روز دست‌کم ۵ دقیقه تعامل فعال داشته باش.","goal":5,"reward":360,"xp":28,"hint":"هر روز بازی را واقعاً مدیریت کن؛ روزهایی که کمتر از ۵ دقیقه فعال باشی زنجیره را قطع می‌کنند."},
+	{"id":"side_loan_paid","type":"side","title":"تسویه بدهی شهرداری","description":"یکی از وام‌های شهرداری را به‌طور کامل تسویه کن.","goal":1,"reward":180,"xp":15,"hint":"در بخش بانک، مانده وام و توان پرداخت خزانه را بررسی کن."},
+	{"id":"side_export_eight","type":"side","title":"تاجر بین‌شهری","description":"در مجموع ۸ واحد کالا به شهرهای همسایه صادر کن.","goal":8,"reward":220,"xp":18,"hint":"از بخش حمل‌ونقل، تقاضا و قیمت شهرهای همسایه را مقایسه کن."},
+	{"id":"side_collect_profit","type":"side","title":"برداشت سود کسب‌وکار","description":"حداقل یک بار سود یک کسب‌وکار را به خزانه منتقل کن.","goal":1,"reward":150,"xp":12,"hint":"در بخش ساختمان‌ها، سود جمع‌شده کسب‌وکار را برداشت کن."},
+	{"id":"side_positive_cashflow","type":"side","title":"انضباط مالی","description":"تراز خالص خزانه را برای ۳ روز متوالی مثبت نگه دار.","goal":3,"reward":250,"xp":20,"hint":"در گزارش مالی، درآمدها را با حقوق، نگهداری و اقساط مقایسه کن."},
+	{"id":"side_high_satisfaction","type":"side","title":"شهروندان راضی","description":"میانگین رضایت شهروندان را برای ۳ روز متوالی به حداقل ۷۵ برسان.","goal":3,"reward":300,"xp":22,"hint":"نیازهای خوراک، آب، برق، درمان، آموزش، امنیت، تفریح و بهداشت را متعادل نگه دار."},
+	{"id":"side_expand_districts","type":"side","title":"گسترش محله‌ها","description":"ساختمان‌های شهر را به دست‌کم ۲ محله گسترش بده.","goal":2,"reward":350,"xp":25,"hint":"با پر شدن ظرفیت ساخت محله فعلی، ساختمان‌های بعدی در محله تازه قرار می‌گیرند."},
+	{"id":"side_private_tax","type":"side","title":"درآمد مالیاتی پایدار","description":"از فعالیت کسب‌وکارهای خصوصی، در مجموع ۱۰۰ سکه مالیات دریافت کن.","goal":100,"reward":200,"xp":16,"hint":"درخواست‌های کسب‌وکار شهروندان را مدیریت کن تا فعالیت اقتصادی و پرداخت مالیات شکل بگیرد."}
 ]
 
 const RESOURCES = {
@@ -251,7 +249,7 @@ var state = {}
 
 func new_game():
 	state = {
-		"version": 16,
+		"version": 17,
 		"districts": [],
 		"day": 1,
 		"clock_last_unix": OS.get_unix_time(),
@@ -271,6 +269,14 @@ func new_game():
 		"xp": 0,
 		"reputation": 50,
 		"satisfaction": 50,
+		"last_login_day_serial": -1,
+		"login_streak": 0,
+		"active_play_seconds_today": 0.0,
+		"consecutive_active_game_days": 0,
+		"trade_exported_units_total": 0,
+		"business_profit_collections_total": 0,
+		"profitable_day_streak": 0,
+		"high_satisfaction_day_streak": 0,
 		"road_level": 1,
 		"transport_used_today": 0,
 		"needs": {"food":65,"water":70,"power":70,"health":70,"education":50,"safety":70,"leisure":50,"sanitation":70},
@@ -315,7 +321,7 @@ func load_game():
 		return false
 	var parsed = parse_json(file.get_as_text())
 	file.close()
-	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 16:
+	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 17:
 		return false
 	state = parsed
 	_normalize_state()
@@ -479,10 +485,14 @@ func _normalize_state():
 	state["login_streak"] = max(0, int(state.get("login_streak", 0)))
 	state["active_play_seconds_today"] = max(0.0, float(state.get("active_play_seconds_today", 0.0)))
 	state["consecutive_active_game_days"] = max(0, int(state.get("consecutive_active_game_days", 0)))
+	state["trade_exported_units_total"] = max(0, int(state.get("trade_exported_units_total", 0)))
+	state["business_profit_collections_total"] = max(0, int(state.get("business_profit_collections_total", 0)))
+	state["profitable_day_streak"] = max(0, int(state.get("profitable_day_streak", 0)))
+	state["high_satisfaction_day_streak"] = max(0, int(state.get("high_satisfaction_day_streak", 0)))
 	if typeof(state.get("mines", null)) != TYPE_ARRAY:
 		state["mines"] = []
 	# Save schema migration: add dynamic market, trade and shipping state.
-	state["version"] = 16
+	state["version"] = 17
 	if typeof(state.get("districts", null)) != TYPE_ARRAY:
 		state["districts"] = []
 	for id in RESOURCES.keys():
@@ -1377,6 +1387,27 @@ func _get_mission_progress(mission_id):
 			return int(state.get("login_streak", 0))
 		"time_play_three", "time_play_five":
 			return int(state.get("consecutive_active_game_days", 0))
+		"side_loan_paid":
+			var paid_loans = 0
+			for loan in state.get("bank_loans", []):
+				if str(loan.get("status", "")) == "paid":
+					paid_loans += 1
+			return paid_loans
+		"side_export_eight":
+			return int(state.get("trade_exported_units_total", 0))
+		"side_collect_profit":
+			return int(state.get("business_profit_collections_total", 0))
+		"side_positive_cashflow":
+			return int(state.get("profitable_day_streak", 0))
+		"side_high_satisfaction":
+			return int(state.get("high_satisfaction_day_streak", 0))
+		"side_expand_districts":
+			return int(get_districts_overview().get("district_count", 0))
+		"side_private_tax":
+			var private_tax_total = 0
+			for business in state.get("private_businesses", []):
+				private_tax_total += int(business.get("tax_paid_total", 0))
+			return private_tax_total
 	return 0
 
 func _update_missions():
@@ -1421,7 +1452,12 @@ func claim_mission(mission_index):
 			reward = int(definition.reward)
 			xp_reward = int(definition.get("xp", 0))
 			break
+	var treasury_room = max(0, get_treasury_capacity() - int(state.get("money", 0)))
+	if treasury_room < reward:
+		return {"ok":false,"message":"ظرفیت خالی خزانه برای دریافت کامل جایزه کافی نیست؛ ابتدا مقداری پول خرج کن یا ظرفیت خزانه را افزایش بده."}
 	var accepted = _add_money(reward)
+	if accepted < reward:
+		return {"ok":false,"message":"جایزه کامل به خزانه واریز نشد؛ مأموریت همچنان آماده دریافت می‌ماند."}
 	mission.claimed = true
 	state.missions[mission_index] = mission
 	var xp_message = _award_xp(xp_reward)
@@ -1803,6 +1839,15 @@ func end_day(is_offline=false):
 	state.last_economy["treasury_opening"] = treasury_opening
 	state.last_economy["treasury_closing"] = int(state.get("money", 0))
 	state.last_economy["net_cashflow"] = int(state.get("money", 0)) - treasury_opening
+	if int(state.last_economy.net_cashflow) > 0:
+		state["profitable_day_streak"] = int(state.get("profitable_day_streak", 0)) + 1
+	else:
+		state["profitable_day_streak"] = 0
+	if int(state.get("satisfaction", 0)) >= 75:
+		state["high_satisfaction_day_streak"] = int(state.get("high_satisfaction_day_streak", 0)) + 1
+	else:
+		state["high_satisfaction_day_streak"] = 0
+	_update_missions()
 	report.append("خلاصه مالی: درآمد ثبت‌شده %d | حقوق %d | نگهداری %d | اقساط شهرداری %d | اقساط شهروندان %d | وام پرداختی به شهروندان %d | تغییر خالص خزانه %d سکه." % [int(state.last_economy.accepted_income), paid_wages, maintenance_paid, bank_repayment_paid, citizen_loan_repayments, citizen_loan_disbursements, int(state.last_economy.net_cashflow)])
 	for report_message in report:
 		add_report_event(str(report_message), false)
@@ -1883,6 +1928,8 @@ func collect_business_profit(building_index):
 		return {"ok":false,"message":"ظرفیت خزانه پر است؛ فعلاً امکان برداشت سود وجود ندارد."}
 	building.balance = balance - accepted
 	state.buildings[building_index] = building
+	state["business_profit_collections_total"] = int(state.get("business_profit_collections_total", 0)) + 1
+	_update_missions()
 	save_game()
 	return {"ok":true,"message":"%d سکه سود به خزانه منتقل شد." % accepted}
 
@@ -2279,6 +2326,7 @@ func trade_with_city(city_id, resource_id, requested_amount):
 	var final_revenue = amount * unit_price
 	_add_money(final_revenue)
 	state.resources[resource_id] = available - amount
+	state["trade_exported_units_total"] = int(state.get("trade_exported_units_total", 0)) + amount
 	state.trade_remaining[city_id] = remaining - amount
 	demand_by_resource[resource_id] = demand - amount
 	state.trade_demand_remaining[city_id] = demand_by_resource
