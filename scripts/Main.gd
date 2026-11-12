@@ -737,6 +737,9 @@ func show_page(page):
 				var district_button = _add_button(("▼ " if expanded else "▶ ") + group_name, self, "toggle_current_district", [district_id])
 				_style_button(district_button, false)
 				if expanded:
+					var capacity_info = game.get_district_capacity_summary(district_id)
+					_add_label("ظرفیت محله | خانه‌ها: %d/۲۰  •  ساختمان‌های عادی: %d/۲۰  •  اضطراری: %d/۱۰" % [int(capacity_info.get("house_count",0)),int(capacity_info.get("other_count",0)),int(capacity_info.get("emergency_count",0))], 15)
+					_add_label("حداکثر ۲ عدد از هر نوع ساختمان؛ سهمیه اضطراری جدا از ظرفیت عادی است.", 14)
 					var district_building_counts = {}
 					for building in s.buildings:
 						var count_district_id = str(building.get("district_id", ""))
