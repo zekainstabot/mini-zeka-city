@@ -425,6 +425,7 @@ func _process_private_businesses(engine, report):
 		var workers = employee_ids.size()
 		var revenue_per_worker = int(business.get("revenue_per_worker", 50))
 		var revenue = revenue_per_worker * workers
+		var cash = int(business.get("balance", 0))
 		var wage_budget = min(int(business.get("wage", 15)) * workers, cash + revenue)
 		var wage_paid = 0
 		for citizen_index in range(state.citizens.size()):
