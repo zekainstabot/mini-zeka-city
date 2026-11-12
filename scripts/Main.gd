@@ -281,6 +281,8 @@ func _ready():
 		game.new_game()
 		game.save_game()
 	game.register_login_today()
+	game.get_daily_missions()
+	game.get_weekly_challenge()
 	last_activity_ticks = OS.get_ticks_msec()
 	_apply_offline_progress()
 	clock_cycle_seconds = float(game.state.get("clock_cycle_seconds", 0))
@@ -1393,12 +1395,13 @@ func show_page(page):
 			_add_label("📊 بهترین رکوردها",19)
 			_add_label("بیشترین جمعیت: %d نفر | بیشترین خزانه: %d سکه" % [int(records.get("peak_population",0)),int(records.get("peak_money",0))],16)
 			_add_label("بالاترین سطح: %d | بیشترین رضایت: %d/۱۰۰ | بیشترین ساختمان: %d" % [int(records.get("peak_level",1)),int(records.get("peak_satisfaction",0)),int(records.get("most_buildings",0))],16)
+			var achievement_list = game.get_achievements()
 			var unlocked_achievements = 0
-			for achievement in game.get_achievements():
+			for achievement in achievement_list:
 				if bool(achievement.unlocked):
 					unlocked_achievements += 1
-			_add_label("نشان‌های بازشده: %d از %d" % [unlocked_achievements,game.ACHIEVEMENT_DEFINITIONS.size()],17)
-			for achievement in game.get_achievements():
+			_add_label("نشان‌های بازشده: %d از %d" % [unlocked_achievements,achievement_list.size()],17)
+			for achievement in achievement_list:
 				var achievement_status = "🏅 دریافت‌شده" if bool(achievement.unlocked) else "🔒 قفل"
 				_add_label(achievement_status+" | "+str(achievement.title),18)
 				_add_label(str(achievement.description),15)
