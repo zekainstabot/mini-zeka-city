@@ -133,12 +133,16 @@ func _process(delta):
 		var remaining = max(0, int(600.0 - clock_cycle_seconds))
 		var phase = "روز" if clock_cycle_seconds < 420.0 else "شب"
 		var phase_remaining = int(420.0 - clock_cycle_seconds) if phase == "روز" else int(600.0 - clock_cycle_seconds)
-		clock_label.text = PersianText.reshaper("%s | زمان باقی‌مانده: %02d:%02d" % [phase, int(phase_remaining / 60), phase_remaining % 60])
+		clock_label.text = PersianText.reshaper("%s | زمان باقی‌مانده: " % phase) + _format_time_display(int(phase_remaining / 60), phase_remaining % 60)
 	if clock_save_accumulator >= 15.0:
 		clock_save_accumulator = 0.0
 		game.state["clock_last_unix"] = OS.get_unix_time()
 		game.state["clock_cycle_seconds"] = int(clock_cycle_seconds)
 		game.save_game()
+
+func _format_time_display(minutes, seconds):
+	# Keep the numeric timer in left-to-right order; PersianText.reshaper reverses digit groups.
+	return "\u200E%02d:%02d\u200E" % [int(minutes), int(seconds)]
 
 func _update_construction_time_labels():
 	if construction_time_labels.size() == 0 or game == null:
@@ -150,7 +154,7 @@ func _update_construction_time_labels():
 		var seconds_left = int(project.remaining)
 		var label = construction_time_labels[i].get("label", null)
 		if label != null and is_instance_valid(label):
-			label.text = PersianText.reshaper("%s | زمان باقی‌مانده: %02d:%02d" % [str(project.name), int(seconds_left / 60), seconds_left % 60])
+			label.text = PersianText.reshaper("%s | زمان باقی‌مانده: " % str(project.name)) + _format_time_display(int(seconds_left / 60), seconds_left % 60)
 
 func _apply_offline_progress():
 	var now = OS.get_unix_time()
