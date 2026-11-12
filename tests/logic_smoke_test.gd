@@ -7,7 +7,7 @@ const PersianTextScript = preload("res://scripts/PersianText.gd")
 func _init():
 	var game = EngineScript.new()
 	game.new_game()
-	assert(int(game.state.version) == 17)
+	assert(int(game.state.version) == 18)
 	assert(game.state.resources.has("food"))
 	assert(game.get_resource_definitions().has("food"))
 	assert(PersianTextScript.reshaper("بازی Godot").find("Godot") >= 0)
@@ -175,6 +175,41 @@ func _init():
 	profit_game.end_day()
 	assert(int(profit_game._get_mission_progress("side_collect_profit")) == 1)
 
+
+	# Engagement systems: rival cities, weekly city events, secrets, civic choices and landmarks.
+	var engagement_game = EngineScript.new()
+	engagement_game.new_game()
+	var standings = engagement_game.get_rival_standings()
+	assert(standings.size() == 4)
+	var player_found = false
+	for standing in standings:
+		if bool(standing.get("is_player", false)):
+			player_found = true
+			assert(int(standing.get("rank", 0)) >= 1 and int(standing.get("rank", 0)) <= 4)
+	assert(player_found)
+	var weekly_city_event = engagement_game.get_weekly_city_event()
+	assert(str(weekly_city_event.get("id", "")) in ["market_boom","festival_week","energy_saving","development_week"])
+
+	engagement_game.state["mystery_active"] = {"id":"test_secret","title":"راز آزمایشی","kind":"buildings","goal":1,"reward":500,"xp":20}
+	var mystery_reward = engagement_game.claim_mystery_reward()
+	assert(bool(mystery_reward.get("ok", false)))
+	assert("test_secret" in engagement_game.state.mystery_completed)
+
+	var decision_satisfaction_before = int(engagement_game.state.satisfaction)
+	engagement_game.state["pending_city_decision"] = {"id":"test_decision","options":[{"id":"volunteer","effect":"festival_volunteer"}]}
+	var decision_result = engagement_game.resolve_city_decision("volunteer")
+	assert(bool(decision_result.get("ok", false)))
+	assert(int(engagement_game.state.satisfaction) == decision_satisfaction_before + 2)
+
+	engagement_game.state.level = 2
+	engagement_game.state.population = 12
+	engagement_game.state.buildings.append({"id":"small_park","workers":0,"balance":0})
+	assert(bool(engagement_game.start_landmark_project("grand_tower").get("ok", false)))
+	var first_landmark_stage = engagement_game.get_landmark_project_status()
+	assert(bool(first_landmark_stage.get("requirements_met", false)))
+	assert(bool(engagement_game.invest_landmark_stage().get("ok", false)))
+	assert(int(engagement_game.get_landmark_project_status().get("stage", 0)) == 2)
+
 	var market_result = game.buy_resource("food", 5)
 	assert(bool(market_result.ok))
 	assert(int(game.state.resources.food) == 5)
@@ -243,7 +278,7 @@ func _init():
 	var migration_game = EngineScript.new()
 	migration_game.state = {"version":9,"buildings":[],"citizens":[],"resources":{},"market_stock":{}}
 	migration_game._normalize_state()
-	assert(int(migration_game.state.version) == 17)
+	assert(int(migration_game.state.version) == 18)
 	assert(migration_game.state.resources.has("food"))
 	assert(int(migration_game.state.road_level) == 1)
 
