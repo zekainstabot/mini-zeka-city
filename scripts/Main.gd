@@ -1777,8 +1777,19 @@ func go_to_mission_target(mission_id):
 			target_page = "transport"
 		"level_tutorial", "main_level_five":
 			target_page = "home"
-		"main_city_bank", "main_central_bank", "side_bank", "side_reserve":
+		"main_city_bank", "main_central_bank", "side_reserve", "side_loan_paid", "side_private_tax":
 			target_page = "bank"
+		"side_export_eight":
+			target_page = "transport"
+		"side_collect_profit":
+			target_page = "buildings"
+			selected_building_category = "کسب‌وکارها"
+		"side_positive_cashflow":
+			target_page = "home"
+		"side_high_satisfaction":
+			target_page = "citizens"
+		"side_expand_districts":
+			target_page = "buildings"
 		"main_storage":
 			target_page = "storage"
 		"main_water", "main_power", "main_school", "main_clinic", "side_water", "side_power", "side_school", "side_clinic", "side_sewage", "side_waste", "side_hospital", "side_police", "side_fire":
