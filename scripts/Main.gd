@@ -737,6 +737,15 @@ func show_page(page):
 				var district_button = _add_button(("▼ " if expanded else "▶ ") + group_name, self, "toggle_current_district", [district_id])
 				_style_button(district_button, false)
 				if expanded:
+					var district_building_counts = {}
+					for building in s.buildings:
+						var count_district_id = str(building.get("district_id", ""))
+						var count_group_id = count_district_id if count_district_id != "" else "industrial"
+						if count_group_id != district_id:
+							continue
+						var count_building_id = str(building.get("id", ""))
+						district_building_counts[count_building_id] = int(district_building_counts.get(count_building_id, 0)) + 1
+					var district_building_labels = {}
 					for i in range(s.buildings.size()):
 						var building = s.buildings[i]
 						var building_district_id = str(building.get("district_id", ""))
@@ -745,7 +754,11 @@ func show_page(page):
 							continue
 						var building_id = str(building.get("id", ""))
 						var building_definition = game.get_building_definitions().get(building_id, {})
-						_add_label("%s" % str(building_definition.get("name", "ساختمان")), 16)
+						if not district_building_labels.has(building_id):
+							var building_count = int(district_building_counts.get(building_id, 1))
+							var building_name = str(building_definition.get("name", "ساختمان"))
+							_add_label("%s ×%d" % [building_name, building_count], 16)
+							district_building_labels[building_id] = true
 						var production_output = str(building_definition.get("output", ""))
 						if production_output != "":
 							var assigned_workers = game._workers_for_building(i)
