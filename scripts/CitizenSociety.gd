@@ -543,22 +543,27 @@ func process_day(engine, report):
 	ensure_state(engine)
 	var state = engine.state
 	var summary = {"private_business_tax":0,"citizen_loan_repayments":0,"citizen_loan_disbursements":0}
-	_expire_rentals(engine, report)
-	_complete_civic_projects(engine, report)
 	for citizen_index in range(state.citizens.size()):
 		var citizen = state.citizens[citizen_index]
 		citizen = _process_citizen_bank_loans(engine, citizen, report, summary)
 		state.citizens[citizen_index] = citizen
-	summary["private_business_tax"] = _process_private_businesses(engine, report)
-	_queue_land_or_permit_requests(engine)
-	_queue_public_project_requests(engine)
-	if not state.business_requests.empty():
-		report.append("%d درخواست شهروندان برای زمین، مجوز یا پروژه عمرانی در شهرداری منتظر بررسی است." % state.business_requests.size())
+	# The municipal hall is the legal and administrative starting point for private enterprise.
+	# Until it is completed, citizen businesses, taxes, leases and civic projects remain dormant.
+	if engine.has_municipal_hall():
+		_expire_rentals(engine, report)
+		_complete_civic_projects(engine, report)
+		summary["private_business_tax"] = _process_private_businesses(engine, report)
+		_queue_land_or_permit_requests(engine)
+		_queue_public_project_requests(engine)
+		if not state.business_requests.empty():
+			report.append("%d درخواست شهروندان برای زمین، مجوز یا پروژه عمرانی در شهرداری منتظر بررسی است." % state.business_requests.size())
 	engine.state = state
 	return summary
 
 func resolve_request(engine, request_id, approved):
 	ensure_state(engine)
+	if not engine.has_municipal_hall():
+		return {"ok":false,"message":"برای بررسی درخواست‌های اقتصادی، ابتدا ساختمان شهرداری را بساز."}
 	var state = engine.state
 	var request_index = -1
 	for i in range(state.business_requests.size()):
@@ -748,6 +753,8 @@ func resolve_request(engine, request_id, approved):
 
 func adjust_tax_rate(engine, delta):
 	ensure_state(engine)
+	if not engine.has_municipal_hall():
+		return {"ok":false,"message":"برای مدیریت مالیات، ابتدا ساختمان شهرداری را بساز."}
 	var state = engine.state
 	state["business_tax_rate"] = int(clamp(int(state.get("business_tax_rate", 8)) + int(delta), 0, 30))
 	engine.state = state
@@ -756,6 +763,8 @@ func adjust_tax_rate(engine, delta):
 
 func adjust_permit_fee(engine, delta):
 	ensure_state(engine)
+	if not engine.has_municipal_hall():
+		return {"ok":false,"message":"برای مدیریت مجوزها، ابتدا ساختمان شهرداری را بساز."}
 	var state = engine.state
 	state["business_permit_fee"] = int(clamp(int(state.get("business_permit_fee", 50)) + int(delta), 0, 1000))
 	engine.state = state
@@ -764,6 +773,8 @@ func adjust_permit_fee(engine, delta):
 
 func adjust_private_land_price(engine, delta):
 	ensure_state(engine)
+	if not engine.has_municipal_hall():
+		return {"ok":false,"message":"برای قیمت‌گذاری زمین خصوصی، ابتدا ساختمان شهرداری را بساز."}
 	var state = engine.state
 	state["private_land_price"] = int(clamp(int(state.get("private_land_price", 300)) + int(delta), 100, 5000))
 	engine.state = state
