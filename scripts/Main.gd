@@ -1765,8 +1765,37 @@ func go_to_mission_target(mission_id):
 			selected_building_category = "کسب‌وکارها"
 		"transport_tutorial":
 			target_page = "transport"
-		"level_tutorial":
+		"level_tutorial", "main_level_five":
 			target_page = "home"
+		"population_tutorial", "side_population", "hire_worker_tutorial":
+			target_page = "citizens"
+		"transport_tutorial":
+			target_page = "transport"
+		"main_city_bank", "main_central_bank", "side_bank", "side_reserve":
+			target_page = "bank"
+		"main_storage":
+			target_page = "storage"
+		"main_water", "main_power", "main_school", "main_clinic", "side_water", "side_power", "side_school", "side_clinic", "side_sewage", "side_waste", "side_hospital", "side_police", "side_fire":
+			target_page = "buildings"
+			selected_building_category = "خدمات شهری"
+		"main_wood", "main_sawmill", "main_carpenter", "side_wood", "side_sawmill", "side_carpenter":
+			target_page = "buildings"
+			selected_building_category = "کارخانه‌ها"
+		"main_stone", "side_stone_mine", "side_iron_mine":
+			target_page = "buildings"
+			selected_building_category = "معادن"
+		"side_fish_lake", "side_fishing_dock":
+			target_page = "buildings"
+			selected_building_category = "کشاورزی"
+		"side_park", "side_playground", "side_sports", "side_cultural":
+			target_page = "buildings"
+			selected_building_category = "تفریح و فرهنگ"
+		"market_tutorial", "side_grocery", "side_bakery", "side_restaurant", "side_office", "side_fish_market":
+			target_page = "buildings"
+			selected_building_category = "کسب‌وکارها"
+		"side_fish_processing":
+			target_page = "buildings"
+			selected_building_category = "کارخانه‌ها"
 		_:
 			target_page = "home"
 	show_page(target_page)
