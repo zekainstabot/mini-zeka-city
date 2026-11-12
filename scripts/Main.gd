@@ -164,6 +164,16 @@ func _apply_offline_progress():
 	var money_before = int(game.state.get("money", 0))
 	for day_index in range(offline_days):
 		game.end_day(true)
+	game.state["pending_offline_digest"] = []
+	for day_index in range(offline_days):
+		var offline_report = game.end_day(true)
+		var digest = str(offline_report).split("\n")
+		for digest_line in digest:
+			var clean_line = str(digest_line).strip_edges()
+			if clean_line != "" and (clean_line.find("رویداد") >= 0 or clean_line.find("تصمیم") >= 0 or clean_line.find("رقبا") >= 0 or clean_line.find("درخواست") >= 0 or clean_line.find("تبریک") >= 0 or clean_line.find("تولید") >= 0):
+				game.state.pending_offline_digest.append(clean_line)
+	while game.state.pending_offline_digest.size() > 8:
+		game.state.pending_offline_digest.pop_front()
 	var offline_net = int(game.state.get("money", money_before)) - money_before
 	# Positive net earnings are held separately until the player explicitly collects them.
 	if offline_net > 0:
@@ -739,6 +749,20 @@ func show_page(page):
 			_add_label("🎁 زنجیره ورود: %d روز | هدیه امروز: %d سکه" % [int(login_reward_status.streak),int(login_reward_status.reward)],16)
 			var login_reward_button = _add_button("🎁 دریافت هدیه ورود روزانه",self,"claim_login_reward")
 			login_reward_button.disabled = bool(login_reward_status.claimed) or not bool(login_reward_status.logged_in)
+
+			var pending_decision = game.get_pending_city_decision()
+			if not pending_decision.empty():
+				_add_label("⚖️ تصمیم مهم شهروندان",20)
+				_add_label(str(pending_decision.get("title","تصمیم شهر")),18)
+				_add_label(str(pending_decision.get("description","")),15)
+				for decision_option in pending_decision.get("options", []):
+					_add_button(str(decision_option.get("label","انتخاب")),self,"resolve_city_decision",[str(decision_option.get("id",""))])
+			var rival_standings = game.get_rival_standings()
+			var my_rank = 0
+			for rival_row in rival_standings:
+				if bool(rival_row.get("is_player",false)):
+					my_rank = int(rival_row.get("rank",0))
+			_add_label("🏁 جایگاه فعلی شهر در رقابت: رتبه %d از %d" % [my_rank,rival_standings.size()],16)
 			var recent_city_events = s.get("city_event_history",[])
 			if not recent_city_events.empty():
 				var recent_event = recent_city_events[recent_city_events.size()-1]
@@ -1377,6 +1401,45 @@ func show_page(page):
 					_add_button("🎁 دریافت جایزه پروژه",self,"claim_long_term_project",[str(project.id)])
 				else:
 					_add_label("● در حال پیشرفت",15)
+
+			_add_label("🏙️ رقابت با شهرهای همسایه",23)
+			_add_label("شهرهای رقیب هر روز رشد می‌کنند؛ جایگاه تو با امتیاز واقعی توسعه شهر سنجیده می‌شود.",15)
+			for rival_row in game.get_rival_standings():
+				var rival_prefix = "👑 " if bool(rival_row.get("is_player",false)) else "🏘️ "
+				_add_label("%sرتبه %d | %s | امتیاز %d | جمعیت %d | سطح %d" % [rival_prefix,int(rival_row.get("rank",0)),str(rival_row.get("name","")),int(rival_row.get("score",0)),int(rival_row.get("population",0)),int(rival_row.get("level",1))],16)
+			_add_label("🔎 رازها و کشفیات مخفی",23)
+			var mystery = game.get_mystery_status()
+			if bool(mystery.get("active",false)):
+				_add_label("کشف تازه: "+str(mystery.get("title","راز مخفی")),18)
+				_add_label(str(mystery.get("clue","")),15)
+				_add_label(str(mystery.get("objective","")),16)
+				_add_label("پیشرفت: %d از %d | پاداش: %d سکه + %d تجربه" % [int(mystery.get("progress",0)),int(mystery.get("goal",1)),int(mystery.get("reward",0)),int(mystery.get("xp",0))],16)
+				if int(mystery.get("progress",0)) >= int(mystery.get("goal",1)):
+					_add_button("🗝️ باز کردن راز و دریافت جایزه",self,"claim_mystery_reward")
+			else:
+				_add_label("هنوز راز تازه‌ای پیدا نشده؛ با رشد شهر و گذر روزها سرنخ‌های جدید ظاهر می‌شوند.",15)
+				_add_label("رازهای کشف‌شده: %d" % int(mystery.get("completed",0)),15)
+			_add_label("🏛️ سازه‌های عظیم و پروژه‌های چندمرحله‌ای",23)
+			var landmark_status = game.get_landmark_project_status()
+			if bool(landmark_status.get("active",false)):
+				var stage_data = landmark_status.get("stage_data",{})
+				_add_label("پروژه فعال: %s | مرحله %d از %d" % [str(landmark_status.get("title","")),int(landmark_status.get("stage",1)),int(landmark_status.get("stage_total",1))],18)
+				_add_label("مرحله: %s | هزینه: %d سکه" % [str(stage_data.get("title","")),int(stage_data.get("cost",0))],16)
+				_add_label("شرایط: سطح %d، جمعیت %d، ساختمان کل %d" % [int(stage_data.get("level",1)),int(stage_data.get("population",0)),int(stage_data.get("buildings",0))],15)
+				var stage_button = _add_button("🏗️ سرمایه‌گذاری و تکمیل این مرحله",self,"invest_landmark_stage")
+				stage_button.disabled = not bool(landmark_status.get("requirements_met",false)) or game.get_available_money() < int(stage_data.get("cost",0))
+			else:
+				_add_label("فقط یک پروژه عظیم را هم‌زمان می‌توانی پیش ببری. هر سازه سه مرحله و شرط‌های مخصوص دارد.",15)
+				for landmark in game.get_landmark_project_definitions():
+					var completed_landmarks = landmark_status.get("completed",[])
+					var is_completed_landmark = str(landmark.id) in completed_landmarks
+					_add_label("%s | پاداش افتتاح: %d سکه + %d تجربه" % [str(landmark.title),int(landmark.reward),int(landmark.xp)],17)
+					_add_label(str(landmark.description),14)
+					if is_completed_landmark:
+						_add_label("✓ در شهر افتتاح شده",15)
+					else:
+						_add_button("آغاز پروژه "+str(landmark.title),self,"start_landmark_project",[str(landmark.id)])
+
 			_add_label("🏆 افتخارات و رکوردهای شهر",23)
 			var league = game.get_city_league()
 			_add_label("رتبه شهر: %s | امتیاز توسعه: %d" % [str(league.name),int(league.score)],19)
@@ -2223,6 +2286,27 @@ func go_to_resident_request_building(building_id):
 	selected_building_category = str(definition.get("category","خدمات شهری"))
 	show_page("buildings")
 	_show_message("دسته ساختمان پیشنهادی شهروندان باز شد.")
+
+
+func resolve_city_decision(option_id):
+	var result = game.resolve_city_decision(str(option_id))
+	show_page("home")
+	_show_message(str(result.message))
+
+func claim_mystery_reward():
+	var result = game.claim_mystery_reward()
+	show_page("progress")
+	_show_message(str(result.message))
+
+func start_landmark_project(project_id):
+	var result = game.start_landmark_project(str(project_id))
+	show_page("progress")
+	_show_message(str(result.message))
+
+func invest_landmark_stage():
+	var result = game.invest_landmark_stage()
+	show_page("progress")
+	_show_message(str(result.message))
 
 func claim_long_term_project(project_id):
 	var result = game.claim_long_term_project(str(project_id))
