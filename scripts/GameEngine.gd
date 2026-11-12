@@ -1786,12 +1786,15 @@ func get_daily_trade_city_ids():
 	if int(state.get("daily_trade_city_day", 0)) == current_day and int(state.get("daily_trade_city_level", 0)) == current_level and saved_ids.size() > 0:
 		var valid_saved = true
 		for saved_id in saved_ids:
-			if not TRADE_CITIES.has(str(saved_id)):
+			if not TRADE_CITIES.has(str(saved_id)) or str(saved_id) in ["mehrabad","navid","golestan"]:
 				valid_saved = false
 				break
 		if valid_saved:
 			return saved_ids.duplicate()
 	var available_ids = TRADE_CITIES.keys()
+	# Provincial trade screens must list real provinces, not the three old demo cities.
+	for legacy_city_id in ["mehrabad","navid","golestan"]:
+		available_ids.erase(legacy_city_id)
 	var rng = RandomNumberGenerator.new()
 	rng.seed = int(current_day * 7919 + current_level * 104729)
 	for index in range(available_ids.size() - 1, 0, -1):
