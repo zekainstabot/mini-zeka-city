@@ -73,7 +73,11 @@ const MISSION_DEFINITIONS = [
 	{"id":"side_grocery","type":"side","title":"دسترسی به مواد غذایی","description":"یک فروشگاه مواد غذایی بساز تا دسترسی شهروندان به خوراک بهتر شود.","goal":1,"reward":300,"xp":20,"hint":"فروشگاه مواد غذایی در کسب‌وکارها قرار دارد."},
 	{"id":"side_bakery","type":"side","title":"نان تازه شهر","description":"یک نانوایی بساز تا خدمات خوراکی شهر متنوع‌تر شود.","goal":1,"reward":350,"xp":25,"hint":"نانوایی به کارگر نیاز دارد."},
 	{"id":"side_restaurant","type":"side","title":"رونق رستوران‌داری","description":"یک رستوران بساز تا ظرفیت خدمات خوراکی افزایش یابد.","goal":1,"reward":550,"xp":35,"hint":"رستوران هزینه ساخت و حقوق روزانه بیشتری دارد."},
-	{"id":"side_office","type":"side","title":"اشتغال اداری","description":"یک ساختمان اداری بساز و فرصت شغلی جدید ایجاد کن.","goal":1,"reward":650,"xp":45,"hint":"ساختمان اداری ظرفیت شغلی بالایی دارد."}
+	{"id":"side_office","type":"side","title":"اشتغال اداری","description":"یک ساختمان اداری بساز و فرصت شغلی جدید ایجاد کن.","goal":1,"reward":650,"xp":45,"hint":"ساختمان اداری ظرفیت شغلی بالایی دارد."},
+	{"id":"time_login_five","type":"side","title":"حضور منظم شهردار","description":"در ۵ روز تقویمی متفاوت و پشت سر هم وارد بازی شو. ورود چندباره در یک روز فقط یک‌بار حساب می‌شود.","goal":5,"reward":150,"xp":12,"hint":"هر روز وارد شهر شو؛ اگر یک روز کامل جا بیفتد، شمارش پیوستگی از نو شروع می‌شود."},
+	{"id":"time_play_three","type":"side","title":"شهردار پیگیر","description":"در ۳ روزِ بازی متوالی، هر روز دست‌کم ۵ دقیقه با بازی تعامل فعال داشته باش. زمان آفلاین و رهاکردن بازی حساب نمی‌شود.","goal":3,"reward":220,"xp":18,"hint":"در طول هر روز بازی، فعالانه با منوها و بخش‌های شهر کار کن؛ با پایان روز، فعالیت ثبت می‌شود."},
+	{"id":"time_login_seven","type":"side","title":"وفاداری به شهر","description":"ورود به بازی را به ۷ روز تقویمی متوالی برسان.","goal":7,"reward":250,"xp":20,"hint":"این مأموریت پس از چند روز حضور منظم تکمیل می‌شود؛ ورود تکراری در یک روز امتیاز اضافه ندارد."},
+	{"id":"time_play_five","type":"side","title":"مدیریت پیوسته شهر","description":"در ۵ روزِ بازی متوالی، هر روز دست‌کم ۵ دقیقه تعامل فعال داشته باش.","goal":5,"reward":360,"xp":28,"hint":"هر روز بازی را واقعاً مدیریت کن؛ روزهایی که کمتر از ۵ دقیقه فعال باشی زنجیره را قطع می‌کنند."}
 ]
 
 const RESOURCES = {
@@ -247,7 +251,7 @@ var state = {}
 
 func new_game():
 	state = {
-		"version": 15,
+		"version": 16,
 		"districts": [],
 		"day": 1,
 		"clock_last_unix": OS.get_unix_time(),
@@ -311,7 +315,7 @@ func load_game():
 		return false
 	var parsed = parse_json(file.get_as_text())
 	file.close()
-	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 15:
+	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 16:
 		return false
 	state = parsed
 	_normalize_state()
@@ -320,6 +324,45 @@ func load_game():
 	_ensure_building_locations()
 	_sync_missions()
 	return true
+
+
+# Convert the local calendar date to a monotonic day number without relying on UTC.
+func _get_local_calendar_day_serial():
+	var date = OS.get_date()
+	var year = int(date.get("year", 1970))
+	var month = int(date.get("month", 1))
+	var day = int(date.get("day", 1))
+	if month <= 2:
+		year -= 1
+	var era = int(floor(float(year) / 400.0))
+	var year_of_era = year - era * 400
+	var adjusted_month = month + (-3 if month > 2 else 9)
+	var day_of_year = int((153 * adjusted_month + 2) / 5) + day - 1
+	var day_of_era = year_of_era * 365 + int(year_of_era / 4) - int(year_of_era / 100) + day_of_year
+	return era * 146097 + day_of_era
+
+func register_login_today():
+	return register_login_day_serial(_get_local_calendar_day_serial())
+
+# Public deterministic variant also makes calendar streak rules testable.
+func register_login_day_serial(day_serial):
+	var today = int(day_serial)
+	var previous = int(state.get("last_login_day_serial", -1))
+	if previous == today:
+		return false
+	if previous == today - 1:
+		state["login_streak"] = int(state.get("login_streak", 0)) + 1
+	else:
+		state["login_streak"] = 1
+	state["last_login_day_serial"] = today
+	_update_missions()
+	save_game()
+	return true
+
+func record_active_play_seconds(seconds):
+	if seconds <= 0.0:
+		return
+	state["active_play_seconds_today"] = float(state.get("active_play_seconds_today", 0.0)) + min(float(seconds), 1.0)
 
 func add_report_event(message, persist=true):
 	var clean_message = str(message).strip_edges()
@@ -432,10 +475,14 @@ func _normalize_state():
 		building["balance"] = max(0, int(building.get("balance", 0)))
 	if typeof(state.get("missions", null)) != TYPE_ARRAY:
 		state["missions"] = []
+	state["last_login_day_serial"] = int(state.get("last_login_day_serial", -1))
+	state["login_streak"] = max(0, int(state.get("login_streak", 0)))
+	state["active_play_seconds_today"] = max(0.0, float(state.get("active_play_seconds_today", 0.0)))
+	state["consecutive_active_game_days"] = max(0, int(state.get("consecutive_active_game_days", 0)))
 	if typeof(state.get("mines", null)) != TYPE_ARRAY:
 		state["mines"] = []
 	# Save schema migration: add dynamic market, trade and shipping state.
-	state["version"] = 15
+	state["version"] = 16
 	if typeof(state.get("districts", null)) != TYPE_ARRAY:
 		state["districts"] = []
 	for id in RESOURCES.keys():
@@ -1326,6 +1373,10 @@ func _get_mission_progress(mission_id):
 			return get_building_count("restaurant")
 		"side_office":
 			return get_building_count("office")
+		"time_login_five", "time_login_seven":
+			return int(state.get("login_streak", 0))
+		"time_play_three", "time_play_five":
+			return int(state.get("consecutive_active_game_days", 0))
 	return 0
 
 func _update_missions():
@@ -1488,7 +1539,7 @@ func get_daily_development_support():
 	var treasury_gap = max(0, 3000 - int(state.get("money", 0)))
 	return min(level_support, treasury_gap)
 
-func end_day():
+func end_day(is_offline=false):
 	var report = []
 	var treasury_opening = int(state.get("money", 0))
 	assign_jobs()
@@ -1708,6 +1759,13 @@ func end_day():
 			else:
 				report.append("مهلت بازسازی بانک مرکزی تمام شد؛ ظرفیت عادی خزانه فعال شد.")
 	_update_city_services(report)
+	if not is_offline:
+		var active_seconds = int(state.get("active_play_seconds_today", 0))
+		if active_seconds >= 300:
+			state["consecutive_active_game_days"] = int(state.get("consecutive_active_game_days", 0)) + 1
+		else:
+			state["consecutive_active_game_days"] = 0
+		state["active_play_seconds_today"] = 0.0
 	state.day += 1
 	state.transport_used_today = 0
 	_process_trade_arrivals(report)
