@@ -753,6 +753,18 @@ func show_page(page):
 				_add_label("هنوز ساختمانی در محله‌ای ساخته نشده است.", 15)
 		"citizens":
 			_add_label(" جمعیت: %d | شاغل: %d | بیکار: %d" % [s.population,game.get_employed_count(),game.get_unemployed_count()], 20)
+			var poor_citizens = 0
+			var middle_citizens = 0
+			var wealthy_citizens = 0
+			for wealth_citizen in s.citizens:
+				var citizen_wallet = int(wealth_citizen.get("wallet",0))
+				if citizen_wallet < 500:
+					poor_citizens += 1
+				elif citizen_wallet < 1200:
+					middle_citizens += 1
+				else:
+					wealthy_citizens += 1
+			_add_label("وضعیت اقتصادی شهروندان | فقیر: %d نفر  |  متوسط: %d نفر  |  ثروتمند: %d نفر" % [poor_citizens,middle_citizens,wealthy_citizens], 17)
 			_add_label("ظرفیت مسکن: %d | ظرفیت شغلی: %d" % [game.get_housing_capacity(),game.get_job_capacity()])
 			_add_label("رضایت شهروندان: %d/۱۰۰" % int(s.get("satisfaction",50)))
 			_add_label("نیازهای روزانه: " + _needs_summary(), 15)
