@@ -586,7 +586,7 @@ func show_page(page):
 			_add_label("برای گسترش شهر باید زمین بخری؛ هر ساختمان چند قطعه از زمین را اشغال می‌کند.", 15)
 			var land_button = _add_button("خرید ۱ قطعه زمین | قیمت: %d سکه" % game.get_land_unit_price(), self, "buy_land")
 			land_button.disabled = game.get_available_money() < game.get_land_unit_price()
-			var categories = ["همه","خانه‌ها","کشاورزی","معادن","کارخانه‌ها","کسب‌وکارها","خدمات شهری","تفریح و فرهنگ","انبارها"]
+			var categories = ["همه","خانه‌ها","کشاورزی","ماهیگیری","معادن","کارخانه‌ها","کسب‌وکارها","خدمات شهری","تفریح و فرهنگ","انبارها"]
 			_add_label("برای دیدن ساختمان‌ها، دسته موردنظر را باز کن:", 18)
 			for category in categories:
 				var is_expanded = selected_building_category == category
@@ -1154,7 +1154,9 @@ func _add_building_category_items(category):
 		var data = game.get_building_definitions()[id]
 		if category == "همه" and str(data.get("category","")) == "حمل‌ونقل":
 			continue
-		if category != "همه" and str(data.get("category","")) != category:
+		if category == "ماهیگیری" and not str(id) in ["fish_lake","fishing_dock","fish_market","fish_processing_plant"]:
+			continue
+		if category != "همه" and category != "ماهیگیری" and str(data.get("category","")) != category:
 			continue
 		visible_buildings += 1
 		var s = game.state
