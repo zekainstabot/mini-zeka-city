@@ -108,11 +108,45 @@ func _apply_offline_progress():
 	var last = int(game.state.get("clock_last_unix", now))
 	var elapsed = max(0, now - last)
 	var offline_days = min(10, int(floor(float(elapsed) / 3600.0)))
+	var money_before = int(game.state.get("money", 0))
 	for day_index in range(offline_days):
 		game.end_day()
+	var offline_net = int(game.state.get("money", money_before)) - money_before
+	# Positive net earnings are held separately until the player explicitly collects them.
+	if offline_net > 0:
+		game.state["money"] = money_before
+		game.state["pending_offline_income"] = int(game.state.get("pending_offline_income", 0)) + offline_net
+	if offline_days > 0:
+		game.state["pending_offline_days"] = int(game.state.get("pending_offline_days", 0)) + offline_days
 	game.state["clock_last_unix"] = now
 	game.state["clock_cycle_seconds"] = int(game.state.get("clock_cycle_seconds", 0))
 	game.save_game()
+
+func _show_offline_summary():
+	var days = int(game.state.get("pending_offline_days", 0))
+	if days <= 0:
+		return
+	var income = int(game.state.get("pending_offline_income", 0))
+	var dialog = ConfirmationDialog.new()
+	dialog.window_title = PersianText.reshaper("گزارش بازگشت به شهر")
+	if income > 0:
+		dialog.dialog_text = PersianText.reshaper("در مدت غیبت تو، شهر %d روز پیشرفت کرد.\nدرآمد خالص آماده دریافت: %d سکه\nبا تأیید، مبلغ به خزانه اضافه می‌شود." % [days, income])
+		dialog.get_ok().text = PersianText.reshaper("دریافت درآمد آفلاین")
+	else:
+		dialog.dialog_text = PersianText.reshaper("در مدت غیبت تو، شهر %d روز پیشرفت کرد.\nپس از محاسبه درآمد و هزینه‌ها، درآمد خالصی برای دریافت باقی نمانده است." % days)
+		dialog.get_ok().text = PersianText.reshaper("متوجه شدم")
+	dialog.get_cancel().text = PersianText.reshaper("بعداً")
+	dialog.connect("confirmed", self, "_claim_offline_income")
+	add_child(dialog)
+	dialog.popup_centered(Vector2(520, 300))
+
+func _claim_offline_income():
+	var result = game.collect_offline_income()
+	if int(game.state.get("pending_offline_income", 0)) <= 0:
+		game.state["pending_offline_days"] = 0
+		game.save_game()
+	show_page("home")
+	_show_message(str(result.message))
 
 func _notification(what):
 	if what == MainLoop.NOTIFICATION_WM_QUIT_REQUEST and game != null:
@@ -131,6 +165,7 @@ func _ready():
 	set_process(true)
 	_build_ui()
 	show_page("home")
+	_show_offline_summary()
 
 func _build_ui():
 	var background = ColorRect.new()
