@@ -197,8 +197,7 @@ static func previous(letter: int, string: String) -> int:
 	else:
 		var previous := string[letter - 1]
 		if LETTERS.keys().has(previous):
-			for replacement in LETTERS.get(previous):
-				return LETTERS.get(previous).find(replacement)
+			return ISOLATED
 		else:
 			for replacement in LETTERS.values():
 				if replacement.has(previous):
@@ -212,8 +211,10 @@ static func next(letter: int, string: String) -> int:
 	else:
 		var next := string[letter + 1]
 		if LETTERS.keys().has(next):
-			for replacement in LETTERS.get(next):
-				return LETTERS.get(next).find(replacement)
+			return ISOLATED
+		for replacement in LETTERS.values():
+			if replacement.has(next):
+				return replacement.find(next)
 	return NOT_SUPPORTED
 
 
