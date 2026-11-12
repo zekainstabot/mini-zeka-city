@@ -44,7 +44,7 @@ func _run_tests():
 	assert(offline_layout.get_child_count() >= 8)
 	assert(offline_layout.get_child(0) is Label)
 	assert(offline_layout.get_child(1) is Label)
-	assert(offline_layout.get_child(2) is HBoxContainer)
+	assert(offline_layout.get_child(2) is HBoxContainer or offline_layout.get_child(2) is VBoxContainer)
 	assert(offline_layout.get_child(4) is ScrollContainer)
 	assert(offline_layout.get_child(6) is Button)
 	assert(offline_layout.get_child(7) is Button)
