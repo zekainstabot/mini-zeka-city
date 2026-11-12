@@ -3,9 +3,15 @@ extends SceneTree
 const MainScene = preload("res://Main.tscn")
 const EngineScript = preload("res://scripts/GameEngine.gd")
 
-func _init():
+func _initialize():
+	# SceneTree._init runs before the root viewport is ready. Defer UI setup
+	# until the tree is initialized so layout and viewport APIs are valid.
+	call_deferred("_run_tests")
+
+func _run_tests():
 	var main = MainScene.instantiate()
 	get_root().add_child(main)
+	await process_frame
 	main.game = EngineScript.new()
 	main.game.new_game()
 	assert(main._get_geographic_rank_name(1) == "آبادی کوچک")
