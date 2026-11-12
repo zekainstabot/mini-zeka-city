@@ -98,7 +98,7 @@ static func invert_numbers(string: String) -> String:
 # Preserve Latin words and numeric groups while reversing RTL text runs.
 static func invert_letters(string: String) -> String:
 	var regex = RegEx.new()
-	regex.compile("[A-Za-z][A-Za-z0-9_./:+-]*(?: +[A-Za-z][A-Za-z0-9_./:+-]*)*|[0-9۰-۹٠-٩]+")
+	regex.compile("[A-Za-z][A-Za-z0-9_./:+-]*(?: +[A-Za-z][A-Za-z0-9_./:+-]*)*")
 	var matches = regex.search_all(string)
 	if matches.empty():
 		return _reverse_characters(string)
@@ -150,16 +150,16 @@ static func reshape(string: String) -> String:
 		var joins_next = false
 		if index > 0:
 			var previous_letter = source[index - 1]
-			joins_previous = _can_join_next(previous_letter) and _can_join_previous(letter)
+			joins_previous = _can_join_previous(previous_letter) and _can_join_next(letter)
 		if index + 1 < source.length():
 			var next_letter = source[index + 1]
-			joins_next = _can_join_next(letter) and _can_join_previous(next_letter)
+			joins_next = _can_join_previous(letter) and _can_join_next(next_letter)
 		if joins_previous and joins_next:
 			output += str(forms[MEDIAL])
 		elif joins_previous:
-			output += str(forms[FINAL])
-		elif joins_next:
 			output += str(forms[INITIAL])
+		elif joins_next:
+			output += str(forms[FINAL])
 		else:
 			output += str(forms[ISOLATED])
 	return output
