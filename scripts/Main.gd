@@ -618,11 +618,43 @@ func _update_progress_hud():
 	var xp = max(0, int(game.state.get("xp", 0)))
 	var required = max(1, int(game.get_xp_required_for_next_level()))
 	var percent = clamp(float(xp) * 100.0 / float(required), 0.0, 100.0)
-	level_status_label.text = PersianText.reshaper("سطح شهر  %d" % level)
+	var district_count = int(game.state.get("districts", []).size())
+	var geographic_rank = _get_geographic_rank_name(district_count)
+	level_status_label.text = PersianText.reshaper("سطح شهر %d  |  %s" % [level, geographic_rank])
 	xp_progress_label.text = PersianText.reshaper("تجربه شهر: %d٪" % int(round(percent)))
 	xp_progress_bar.max_value = required
 	xp_progress_bar.value = min(xp, required)
 	level_status_bar.value = 100
+
+func _get_geographic_rank_name(district_count):
+	# Every three built districts advance the city's geographic rank.
+	# A new city starts at the first rank even before its first district is registered.
+	var ranks = [
+		"آبادی کوچک", "آبادی", "آبادی بزرگ",
+		"روستای کوچک", "روستا", "روستای بزرگ",
+		"ده کوچک", "ده", "ده بزرگ",
+		"دهستان کوچک", "دهستان", "دهستان بزرگ",
+		"بخش کوچک", "بخش", "بخش بزرگ",
+		"شهر کوچک", "شهر", "شهر بزرگ",
+		"شهرستان کوچک", "شهرستان", "شهرستان بزرگ",
+		"استان کوچک", "استان", "استان بزرگ",
+		"ایالت کوچک", "ایالت", "ایالت بزرگ",
+		"کشور کوچک", "کشور", "کشور بزرگ",
+		"قاره کوچک", "قاره", "قاره بزرگ",
+		"سیاره کوچک", "سیاره", "سیاره بزرگ",
+		"منظومه کوچک", "منظومه", "منظومه بزرگ",
+		"سامانه ستاره‌ای کوچک", "سامانه ستاره‌ای", "سامانه ستاره‌ای بزرگ",
+		"کهکشان کوچک", "کهکشان", "کهکشان بزرگ",
+		"گروه کهکشانی کوچک", "گروه کهکشانی", "گروه کهکشانی بزرگ",
+		"خوشه کهکشانی کوچک", "خوشه کهکشانی", "خوشه کهکشانی بزرگ",
+		"ابرخوشه کهکشانی کوچک", "ابرخوشه کهکشانی", "ابرخوشه کهکشانی بزرگ",
+		"شبکه کیهانی کوچک", "شبکه کیهانی", "شبکه کیهانی بزرگ",
+		"جهان قابل مشاهده کوچک", "جهان قابل مشاهده", "جهان قابل مشاهده بزرگ",
+		"جهان کوچک", "جهان", "جهان بزرگ"
+	]
+	var safe_count = max(1, int(district_count))
+	var rank_index = int(floor(float(safe_count - 1) / 3.0))
+	return str(ranks[min(rank_index, ranks.size() - 1)])
 
 func _load_ui_font():
 	var font_data = DynamicFontData.new()
