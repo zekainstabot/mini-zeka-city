@@ -118,6 +118,17 @@ func _init():
 	assert(int(district_overview.get("district_count", 0)) >= 2)
 	assert(int(district_game._get_mission_progress("side_expand_districts")) >= 2)
 
+	var patrol_game = EngineScript.new()
+	patrol_game.new_game()
+	patrol_game.state.population = 1
+	patrol_game.state.citizens = [patrol_game.state.citizens[0]]
+	patrol_game.state.needs = {"food":60,"water":60,"power":60,"health":60,"education":63,"safety":60,"leisure":60,"sanitation":60}
+	patrol_game.state.buildings.append({"id":"police_station","workers":0,"balance":0})
+	patrol_game.assign_jobs()
+	patrol_game._update_city_services([])
+	assert(int(patrol_game.state.needs.safety) == 72)
+	assert(int(patrol_game.state.satisfaction) == 58)
+
 	var market_result = game.buy_resource("food", 5)
 	assert(bool(market_result.ok))
 	assert(int(game.state.resources.food) == 5)
