@@ -305,6 +305,14 @@ func new_game():
 		"city_records": {},
 		"long_term_project_claimed": [],
 		"weekly_challenge": {},
+		"rival_cities": [],
+		"mystery_active": {},
+		"mystery_completed": [],
+		"mystery_next_day": 4,
+		"landmark_project": {},
+		"landmark_projects_completed": [],
+		"pending_city_decision": {},
+		"next_city_decision_day": 6,
 		"central_bank_rebuild_days_left": 0,
 		"bank_loans": [],
 		"bank_deposits": [],
@@ -344,7 +352,7 @@ func load_game():
 		return false
 	var parsed = parse_json(file.get_as_text())
 	file.close()
-	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 17:
+	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 18:
 		return false
 	state = parsed
 	_normalize_state()
@@ -783,6 +791,246 @@ func claim_weekly_challenge():
 	save_game()
 	return {"ok":true,"message":"رقابت هفتگی را بردی! %d سکه و %d تجربه دریافت کردی. %s" % [reward,int(challenge.xp),xp_message]}
 
+
+func _default_rival_cities():
+	return [
+		{"id":"mehrabad_rival","name":"مهرآباد","population":18,"level":2,"buildings":7,"wealth":6500,"satisfaction":62,"score":330},
+		{"id":"navid_rival","name":"نویدشهر","population":26,"level":3,"buildings":10,"wealth":9200,"satisfaction":68,"score":520},
+		{"id":"golestan_rival","name":"گلستان","population":14,"level":2,"buildings":6,"wealth":4800,"satisfaction":58,"score":280}
+	]
+
+func _advance_rival_cities(report):
+	var rivals = state.get("rival_cities", _default_rival_cities())
+	for index in range(rivals.size()):
+		var rival = rivals[index]
+		var growth = 3 + int(rival.get("level", 1)) + int(randi() % 4)
+		rival["score"] = int(rival.get("score", 0)) + growth
+		if int(randi() % 100) < 28:
+			rival["population"] = int(rival.get("population", 0)) + 1
+			rival["buildings"] = int(rival.get("buildings", 0)) + (1 if int(randi() % 100) < 35 else 0)
+		if int(randi() % 100) < 18:
+			rival["level"] = min(10, int(rival.get("level", 1)) + 1)
+		rival["wealth"] = max(0, int(rival.get("wealth", 0)) + int(randi() % 500) - 120)
+		rival["satisfaction"] = int(clamp(int(rival.get("satisfaction", 50)) + int(randi() % 5) - 2, 35, 95))
+		rivals[index] = rival
+	state["rival_cities"] = rivals
+	var leader = rivals[0]
+	for rival in rivals:
+		if int(rival.get("score", 0)) > int(leader.get("score", 0)):
+			leader = rival
+	if int(leader.get("score", 0)) > int(get_city_league().score):
+		report.append("🏙️ خبر رقبا: %s در این روز از شهر تو جلوتر افتاد؛ برای پس گرفتن رتبه تلاش کن." % str(leader.get("name", "شهر رقیب")))
+
+func get_rival_standings():
+	var standings = []
+	var player_league = get_city_league()
+	standings.append({"id":"player","name":"شهر من","score":int(player_league.score),"population":int(state.get("population", 0)),"level":int(state.get("level", 1)),"is_player":true})
+	for rival in state.get("rival_cities", _default_rival_cities()):
+		standings.append({"id":str(rival.get("id","rival")),"name":str(rival.get("name","شهر رقیب")),"score":int(rival.get("score",0)),"population":int(rival.get("population",0)),"level":int(rival.get("level",1)),"is_player":false})
+	standings.sort_custom(self, "_sort_rival_standings")
+	for index in range(standings.size()):
+		standings[index]["rank"] = index + 1
+	return standings
+
+func _sort_rival_standings(a, b):
+	return int(a.get("score", 0)) > int(b.get("score", 0))
+
+func _process_mystery_discovery(report):
+	if not state.get("mystery_active", {}).empty():
+		return
+	if int(state.get("day", 1)) < int(state.get("mystery_next_day", 4)):
+		return
+	if int(state.get("randi_mystery_roll", -1)) == int(state.get("day", 1)):
+		return
+	state["randi_mystery_roll"] = int(state.get("day", 1))
+	if int(randi() % 100) >= 42:
+		state["mystery_next_day"] = int(state.get("day", 1)) + 2
+		return
+	var completed = state.get("mystery_completed", [])
+	var candidates = [
+		{"id":"lost_blueprint","min_level":1,"title":"نقشه گمشده معمار","clue":"یک شهروند سالخورده نقشه‌ای قدیمی پیدا کرده؛ می‌گوید شهر باید به ۵ ساختمان برسد تا راز آن روشن شود.","objective":"تعداد ساختمان‌های شهر را به ۵ برسان.","kind":"buildings","goal":5,"reward":500,"xp":40},
+		{"id":"merchant_letter","min_level":2,"title":"نامه بازرگان ناشناس","clue":"نامه‌ای از تاجری ناشناس رسیده؛ او می‌خواهد توان تجارت شهر را بسنجد.","objective":"در مجموع ۵ واحد کالا صادر کن.","kind":"exports","goal":5,"reward":650,"xp":50},
+		{"id":"green_secret","min_level":2,"title":"راز باغبان پیر","clue":"باغبان قدیمی شهر از یک راز برای شاد کردن مردم حرف می‌زند.","objective":"رضایت شهر را به ۷۵ برسان.","kind":"satisfaction","goal":75,"reward":700,"xp":55},
+		{"id":"founder_diary","min_level":3,"title":"دفترچه بنیان‌گذار","clue":"دفترچه‌ای مهروموم‌شده پیدا شده؛ تنها شهردار باتجربه می‌تواند نوشته‌هایش را بخواند.","objective":"شهر را به سطح ۴ برسان.","kind":"level","goal":4,"reward":900,"xp":70}
+	]
+	var available = []
+	for candidate in candidates:
+		if str(candidate.id) in completed or int(state.get("level", 1)) < int(candidate.min_level):
+			continue
+		available.append(candidate)
+	if available.empty():
+		return
+	var selected = available[int(randi() % available.size())].duplicate(true)
+	state["mystery_active"] = selected
+	report.append("🔎 کشف راز مخفی: %s. سرنخی تازه در بخش پیشرفت شهر منتظر توست." % str(selected.title))
+
+func get_mystery_status():
+	var mystery = state.get("mystery_active", {}).duplicate(true)
+	if mystery.empty():
+		return {"active":false,"completed":state.get("mystery_completed", []).size(),"next_day":int(state.get("mystery_next_day", 4))}
+	var progress = 0
+	match str(mystery.get("kind", "")):
+		"buildings":
+			progress = state.get("buildings", []).size()
+		"exports":
+			progress = int(state.get("trade_exported_units_total", 0))
+		"satisfaction":
+			progress = int(state.get("satisfaction", 0))
+		"level":
+			progress = int(state.get("level", 1))
+	mystery["progress"] = min(int(mystery.get("goal", 1)), progress)
+	mystery["active"] = true
+	return mystery
+
+func claim_mystery_reward():
+	var mystery = get_mystery_status()
+	if not bool(mystery.get("active", false)):
+		return {"ok":false,"message":"فعلاً راز مخفی تازه‌ای کشف نشده است."}
+	if int(mystery.get("progress", 0)) < int(mystery.get("goal", 1)):
+		return {"ok":false,"message":"هنوز سرنخ را کامل نکرده‌ای؛ شرط راز مخفی باقی مانده است."}
+	var reward = int(mystery.get("reward", 0))
+	if get_treasury_capacity() - int(state.get("money", 0)) < reward:
+		return {"ok":false,"message":"برای دریافت جایزه راز مخفی، ابتدا ظرفیت خزانه را خالی کن."}
+	_add_money(reward)
+	var xp = int(mystery.get("xp", 0))
+	var xp_message = _award_xp(xp)
+	var completed = state.get("mystery_completed", [])
+	completed.append(str(mystery.get("id", "")))
+	state["mystery_completed"] = completed
+	state["mystery_active"] = {}
+	state["mystery_next_day"] = int(state.get("day", 1)) + 2
+	save_game()
+	return {"ok":true,"message":"راز مخفی کشف شد! %d سکه و %d تجربه گرفتی. %s" % [reward,xp,xp_message]}
+
+func _maybe_create_city_decision(report):
+	if not state.get("pending_city_decision", {}).empty():
+		return
+	if int(state.get("day", 1)) < int(state.get("next_city_decision_day", 6)):
+		return
+	state["next_city_decision_day"] = int(state.get("day", 1)) + 5 + int(randi() % 4)
+	if int(randi() % 100) >= 32:
+		return
+	var choices = [
+		{"id":"festival","title":"پیشنهاد برگزاری جشن شهر","description":"شورای شهر پیشنهاد داده برای افزایش روحیه مردم یک جشن محلی برگزار شود.","options":[{"id":"fund","label":"برگزاری جشن | ۳۵۰ سکه","effect":"festival_fund"},{"id":"volunteer","label":"جشن مردمی و داوطلبانه","effect":"festival_volunteer"},{"id":"decline","label":"فعلاً برگزار نکن","effect":"decline"}]},
+		{"id":"water","title":"تصمیم اضطراری آب","description":"مصرف آب بالا رفته؛ باید بین سرمایه‌گذاری فوری و محدودیت مصرف انتخاب کنی.","options":[{"id":"invest","label":"سرمایه‌گذاری | ۵۰۰ سکه","effect":"water_invest"},{"id":"ration","label":"مدیریت مصرف","effect":"water_ration"}]},
+		{"id":"investor","title":"پیشنهاد سرمایه‌گذار","description":"یک سرمایه‌گذار برای کمک فوری به شهر پیشنهاد مالی داده، اما انتظار امتیاز اجتماعی دارد.","options":[{"id":"accept","label":"پذیرش سرمایه | دریافت ۷۰۰ سکه","effect":"investor_accept"},{"id":"decline","label":"رد پیشنهاد","effect":"decline"}]}
+	]
+	var selected = choices[int(randi() % choices.size())].duplicate(true)
+	state["pending_city_decision"] = selected
+	report.append("⚖️ تصمیم مهم شهر: %s. انتخابت را در صفحه شهر من انجام بده." % str(selected.title))
+
+func get_pending_city_decision():
+	return state.get("pending_city_decision", {}).duplicate(true)
+
+func resolve_city_decision(option_id):
+	var decision = state.get("pending_city_decision", {})
+	if decision.empty():
+		return {"ok":false,"message":"تصمیم معوقی وجود ندارد."}
+	var selected = {}
+	for option in decision.get("options", []):
+		if str(option.get("id", "")) == str(option_id):
+			selected = option
+			break
+	if selected.empty():
+		return {"ok":false,"message":"این گزینه معتبر نیست."}
+	var effect = str(selected.get("effect", ""))
+	if effect == "festival_fund" or effect == "water_invest":
+		var cost = 350 if effect == "festival_fund" else 500
+		if get_available_money() < cost:
+			return {"ok":false,"message":"موجودی آزاد خزانه برای این تصمیم کافی نیست."}
+		_spend_money(cost)
+	match effect:
+		"festival_fund":
+			state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) + 5, 0, 100))
+			state["reputation"] = int(clamp(int(state.get("reputation", 50)) + 2, 0, 100))
+		"festival_volunteer":
+			state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) + 2, 0, 100))
+			state["reputation"] = int(clamp(int(state.get("reputation", 50)) + 1, 0, 100))
+		"water_invest":
+			state["needs"]["water"] = int(clamp(int(state.needs.get("water", 50)) + 15, 0, 100))
+			state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) + 2, 0, 100))
+		"water_ration":
+			state["needs"]["water"] = int(clamp(int(state.needs.get("water", 50)) + 4, 0, 100))
+			state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) - 1, 0, 100))
+		"investor_accept":
+			_add_money(700)
+			state["reputation"] = int(clamp(int(state.get("reputation", 50)) + 1, 0, 100))
+			state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) - 2, 0, 100))
+		"decline":
+			state["reputation"] = int(clamp(int(state.get("reputation", 50)) - 1, 0, 100))
+	state["pending_city_decision"] = {}
+	save_game()
+	return {"ok":true,"message":"تصمیمت ثبت شد؛ پیامد آن در وضعیت شهر اعمال شد."}
+
+func get_landmark_project_definitions():
+	return [
+		{"id":"grand_tower","title":"برج بزرگ شهر","description":"نماد شهر و مقصد تازه گردشگران.","reward":1800,"xp":130,"stages":[{"title":"پی‌ریزی برج","cost":1200,"level":2,"population":12,"buildings":4},{"title":"اسکلت و سازه اصلی","cost":1900,"level":3,"population":20,"buildings":7},{"title":"افتتاح برج","cost":3000,"level":4,"population":30,"buildings":10}]},
+		{"id":"trade_center","title":"مرکز تجارت منطقه","description":"مرکز مبادله کالا و قراردادهای بین‌شهری.","reward":2200,"xp":160,"stages":[{"title":"تأمین زمین و مجوز","cost":1600,"level":3,"population":20,"buildings":6},{"title":"ساخت سالن‌های تجاری","cost":2600,"level":4,"population":35,"buildings":1,"building_id":"mineral_market"},{"title":"افتتاح مرکز تجارت","cost":3800,"level":5,"population":50,"exports":20}]},
+		{"id":"regional_airport","title":"فرودگاه منطقه‌ای","description":"پروژه‌ای بزرگ برای پیوند شهر با منطقه و رشد آینده.","reward":3000,"xp":220,"stages":[{"title":"مطالعات و مجوز فرودگاه","cost":2200,"level":4,"population":35,"buildings":8},{"title":"ساخت باند و پایانه","cost":4200,"level":5,"population":55,"building_id":"transport_depot","building_count":1},{"title":"آماده‌سازی و افتتاح","cost":6000,"level":6,"population":75,"exports":35}]}
+	]
+
+func get_landmark_project_status():
+	var active = state.get("landmark_project", {}).duplicate(true)
+	if active.empty():
+		return {"active":false,"completed":state.get("landmark_projects_completed", []).duplicate(true)}
+	var definition = {}
+	for project in get_landmark_project_definitions():
+		if str(project.id) == str(active.get("id", "")):
+			definition = project
+			break
+	if definition.empty():
+		return {"active":false,"completed":state.get("landmark_projects_completed", []).duplicate(true)}
+	var stage_index = int(active.get("stage", 0))
+	if stage_index >= definition.stages.size():
+		return {"active":false,"completed":state.get("landmark_projects_completed", []).duplicate(true)}
+	var stage = definition.stages[stage_index].duplicate(true)
+	var requirements_met = int(state.get("level", 1)) >= int(stage.get("level", 1)) and int(state.get("population", 0)) >= int(stage.get("population", 0)) and state.get("buildings", []).size() >= int(stage.get("buildings", 0))
+	if str(stage.get("building_id", "")) != "":
+		requirements_met = requirements_met and get_building_count(str(stage.building_id)) >= int(stage.get("building_count", 1))
+	if int(stage.get("exports", 0)) > 0:
+		requirements_met = requirements_met and int(state.get("trade_exported_units_total", 0)) >= int(stage.exports)
+	return {"active":true,"id":str(definition.id),"title":str(definition.title),"description":str(definition.description),"stage":stage_index+1,"stage_total":definition.stages.size(),"stage_data":stage,"requirements_met":requirements_met,"reward":int(definition.reward),"xp":int(definition.xp)}
+
+func start_landmark_project(project_id):
+	if not state.get("landmark_project", {}).empty():
+		return {"ok":false,"message":"ابتدا پروژه عظیم فعلی را به پایان برسان."}
+	if str(project_id) in state.get("landmark_projects_completed", []):
+		return {"ok":false,"message":"این سازه قبلاً در شهر افتتاح شده است."}
+	for project in get_landmark_project_definitions():
+		if str(project.id) == str(project_id):
+			state["landmark_project"] = {"id":str(project_id),"stage":0}
+			save_game()
+			return {"ok":true,"message":"پروژه %s آغاز شد؛ برای هر مرحله باید شرایط را فراهم و هزینه را پرداخت کنی." % str(project.title)}
+	return {"ok":false,"message":"پروژه پیدا نشد."}
+
+func invest_landmark_stage():
+	var status = get_landmark_project_status()
+	if not bool(status.get("active", false)):
+		return {"ok":false,"message":"پروژه عظیمی برای ادامه وجود ندارد."}
+	if not bool(status.get("requirements_met", false)):
+		return {"ok":false,"message":"شرایط جمعیت، سطح یا ساختمان‌های این مرحله هنوز فراهم نیست."}
+	var stage = status.stage_data
+	var cost = int(stage.get("cost", 0))
+	if get_available_money() < cost:
+		return {"ok":false,"message":"موجودی آزاد خزانه برای این مرحله کافی نیست."}
+	_spend_money(cost)
+	var active = state.get("landmark_project", {})
+	active["stage"] = int(active.get("stage", 0)) + 1
+	state["landmark_project"] = active
+	if int(active.stage) >= int(status.stage_total):
+		var project_id = str(status.id)
+		var completed = state.get("landmark_projects_completed", [])
+		completed.append(project_id)
+		state["landmark_projects_completed"] = completed
+		state["landmark_project"] = {}
+		_add_money(int(status.reward))
+		var xp_message = _award_xp(int(status.xp))
+		save_game()
+		return {"ok":true,"message":"🎉 %s افتتاح شد! پاداش %d سکه و %d تجربه دریافت کردی. %s" % [str(status.title),int(status.reward),int(status.xp),xp_message]}
+	save_game()
+	return {"ok":true,"message":"مرحله «%s» تکمیل شد؛ مرحله بعدی پروژه آماده پیگیری است." % str(stage.get("title", "پروژه"))}
+
+
 func get_long_term_projects():
 	var claimed = state.get("long_term_project_claimed", [])
 	var public_count = 0
@@ -969,6 +1217,20 @@ func _normalize_state():
 		state["long_term_project_claimed"] = []
 	if typeof(state.get("weekly_challenge", null)) != TYPE_DICTIONARY:
 		state["weekly_challenge"] = {}
+	if typeof(state.get("rival_cities", null)) != TYPE_ARRAY or state.get("rival_cities", []).empty():
+		state["rival_cities"] = _default_rival_cities()
+	if typeof(state.get("mystery_active", null)) != TYPE_DICTIONARY:
+		state["mystery_active"] = {}
+	if typeof(state.get("mystery_completed", null)) != TYPE_ARRAY:
+		state["mystery_completed"] = []
+	state["mystery_next_day"] = max(int(state.get("day", 1)) + 1, int(state.get("mystery_next_day", 4)))
+	if typeof(state.get("landmark_project", null)) != TYPE_DICTIONARY:
+		state["landmark_project"] = {}
+	if typeof(state.get("landmark_projects_completed", null)) != TYPE_ARRAY:
+		state["landmark_projects_completed"] = []
+	if typeof(state.get("pending_city_decision", null)) != TYPE_DICTIONARY:
+		state["pending_city_decision"] = {}
+	state["next_city_decision_day"] = max(int(state.get("day", 1)) + 1, int(state.get("next_city_decision_day", 6)))
 	state["next_resident_request_id"] = max(1, int(state.get("next_resident_request_id", 1)))
 	state["next_resident_request_day"] = max(int(state.get("day", 1)) + 1, int(state.get("next_resident_request_day", int(state.get("day", 1)) + 3)))
 	state["last_login_day_serial"] = int(state.get("last_login_day_serial", -1))
@@ -982,7 +1244,7 @@ func _normalize_state():
 	if typeof(state.get("mines", null)) != TYPE_ARRAY:
 		state["mines"] = []
 	# Save schema migration: add dynamic market, trade and shipping state.
-	state["version"] = 17
+	state["version"] = 18
 	if typeof(state.get("districts", null)) != TYPE_ARRAY:
 		state["districts"] = []
 	for id in RESOURCES.keys():
@@ -2301,6 +2563,9 @@ func end_day(is_offline=false):
 	_update_city_services(report)
 	_process_city_event(report)
 	_process_resident_requests(report)
+	_advance_rival_cities(report)
+	_process_mystery_discovery(report)
+	_maybe_create_city_decision(report)
 	if not is_offline:
 		var active_seconds = int(state.get("active_play_seconds_today", 0))
 		if active_seconds >= 300:
