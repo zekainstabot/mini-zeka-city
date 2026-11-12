@@ -1020,13 +1020,6 @@ func show_page(page):
 				var title_row = HBoxContainer.new()
 				title_row.add_constant_override("separation", 8)
 				card_body.add_child(title_row)
-				var go_button = Button.new()
-				go_button.text = PersianText.reshaper("رفتن ↗")
-				go_button.rect_min_size = Vector2(112, 52 if get_viewport_rect().size.x < 900 else 44)
-				_apply_font(go_button, 17 if get_viewport_rect().size.x < 900 else 15)
-				_style_button(go_button, false)
-				go_button.connect("pressed", self, "go_to_mission_target", [str(mission.get("id", ""))])
-				title_row.add_child(go_button)
 				var title_label = Label.new()
 				title_label.text = PersianText.reshaper(str(definition.title))
 				title_label.align = Label.ALIGN_RIGHT
@@ -1090,6 +1083,14 @@ func show_page(page):
 					_apply_font(hint_label, 16)
 					hint_label.add_color_override("font_color", Color("#cbd5e1"))
 					card_body.add_child(hint_label)
+				var go_button = Button.new()
+				go_button.text = PersianText.reshaper("رفتن به بخش مربوط به این مأموریت  ←")
+				go_button.rect_min_size = Vector2(0, 58 if get_viewport_rect().size.x < 900 else 50)
+				go_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				_apply_font(go_button, 19 if get_viewport_rect().size.x < 900 else 17)
+				_style_button(go_button, false)
+				go_button.connect("pressed", self, "go_to_mission_target", [str(mission.get("id", ""))])
+				card_body.add_child(go_button)
 				if is_unlocked and is_completed and not is_claimed:
 					var claim_button = Button.new()
 					claim_button.text = PersianText.reshaper("🎁 دریافت جایزه و باز کردن مرحله بعد")
