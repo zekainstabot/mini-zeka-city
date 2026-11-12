@@ -1225,19 +1225,21 @@ func _sync_missions():
 	var valid_ids = []
 	for definition in MISSION_DEFINITIONS:
 		valid_ids.append(str(definition.id))
-	var retained = []
+	var saved_by_id = {}
 	for saved_mission in state.missions:
-		if str(saved_mission.get("id", "")) in valid_ids:
-			retained.append(saved_mission)
-	state["missions"] = retained
+		var saved_id = str(saved_mission.get("id", ""))
+		if saved_id in valid_ids:
+			saved_by_id[saved_id] = saved_mission
+	# Keep old progress but always restore the canonical main-then-side order.
+	state.missions = []
 	for definition in MISSION_DEFINITIONS:
-		var found = false
-		for mission in state.missions:
-			if str(mission.get("id", "")) == str(definition.id):
-				found = true
-				break
-		if not found:
-			state.missions.append({"id":definition.id,"type":definition.get("type","main"),"progress":0,"completed":false,"claimed":false,"unlocked":str(definition.get("type","main")) == "side"})
+		var mission_id = str(definition.id)
+		if saved_by_id.has(mission_id):
+			var saved = saved_by_id[mission_id]
+			saved["type"] = str(definition.get("type", "main"))
+			state.missions.append(saved)
+		else:
+			state.missions.append({"id":mission_id,"type":definition.get("type","main"),"progress":0,"completed":false,"claimed":false,"unlocked":str(definition.get("type","main")) == "side"})
 	_update_missions()
 
 func _get_mission_progress(mission_id):
