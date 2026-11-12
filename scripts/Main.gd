@@ -667,6 +667,49 @@ func _show_message(text):
 	if game != null and str(text).strip_edges() != "" and game.has_method("add_report_event"):
 		game.add_report_event(str(text))
 
+func _show_welcome_mission_hint():
+	# Show the onboarding hint until the first tutorial mission is completed.
+	for mission in game.get_missions():
+		if str(mission.get("id", "")) == "buy_land_tutorial" and bool(mission.get("completed", false)):
+			return
+	var panel = PanelContainer.new()
+	var panel_style = StyleBoxFlat.new()
+	panel_style.bg_color = Color("#26384d")
+	panel_style.border_color = Color("#60a5fa")
+	panel_style.set_border_width_all(2)
+	panel_style.set_corner_radius_all(10)
+	panel_style.content_margin_left = 12
+	panel_style.content_margin_right = 12
+	panel_style.content_margin_top = 10
+	panel_style.content_margin_bottom = 10
+	panel.add_stylebox_override("panel", panel_style)
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.add_child(panel)
+	var layout = VBoxContainer.new()
+	layout.add_constant_override("separation", 8)
+	panel.add_child(layout)
+	var welcome = Label.new()
+	welcome.text = PersianText.reshaper("به شهر خودت خوش اومدی! برای شروع، به مأموریت‌ها برو.")
+	welcome.align = Label.ALIGN_CENTER
+	welcome.autowrap = true
+	welcome.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_font(welcome, 18 if get_viewport_rect().size.x < 900 else 17)
+	welcome.add_color_override("font_color", Color("#ffffff"))
+	layout.add_child(welcome)
+	var go_button = Button.new()
+	go_button.text = PersianText.reshaper("رفتن به مأموریت‌ها  ←")
+	go_button.rect_min_size = Vector2(0, 54 if get_viewport_rect().size.x < 900 else 46)
+	go_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_font(go_button, 19 if get_viewport_rect().size.x < 900 else 17)
+	_style_button(go_button, false)
+	go_button.connect("pressed", self, "_open_missions_from_welcome")
+	layout.add_child(go_button)
+
+func _open_missions_from_welcome():
+	show_page("missions")
+	if game_scroll_container != null and is_instance_valid(game_scroll_container):
+		game_scroll_container.scroll_vertical = 0
+
 func show_page(page):
 	current_page = page
 	# Never let labels/buttons from a previous collapsible section attach to an old page.
@@ -687,6 +730,7 @@ func show_page(page):
 				construction_time_labels.append({"label":time_label,"name":str(project.name)})
 	match page:
 		"home":
+			_show_welcome_mission_hint()
 			_add_label("وضعیت کلی شهر", 22)
 			_add_label("روز %d  |  سطح شهر %d" % [s.day,s.level], 19)
 			clock_label = _add_label("روز | زمان باقی‌مانده: 00:07", 18)
