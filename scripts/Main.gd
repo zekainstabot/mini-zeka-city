@@ -326,7 +326,7 @@ func _build_ui():
 	nav.add_constant_override("hseparation", 8)
 	nav.add_constant_override("vseparation", 8)
 	root.add_child(nav)
-	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار و تجارت","p":"commerce"},{"t":"جاده و ناوگان","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش","p":"report"},{"t":"ماموریت‌ها","p":"missions"}]:
+	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بانک و امور مالی","p":"bank"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار و تجارت","p":"commerce"},{"t":"جاده و ناوگان","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش","p":"report"},{"t":"ماموریت‌ها","p":"missions"}]:
 		var nav_item = VBoxContainer.new()
 		nav_item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		nav_item.add_constant_override("separation", 2)
@@ -610,8 +610,8 @@ func show_page(page):
 			_add_label("جمعیت: %d نفر  |  شاغل: %d  |  بیکار: %d" % [s.population,game.get_employed_count(),game.get_unemployed_count()], 19)
 			var municipal_economy = s.get("last_economy", {})
 			var municipal_daily_income = int(municipal_economy.get("tax_income",0)) + int(municipal_economy.get("consumer_tax_income",0)) + int(municipal_economy.get("station_income",0)) + int(municipal_economy.get("road_income",0))
-			var municipal_income_per_minute = int(floor(float(municipal_daily_income) / 10.0))
-			_add_label("درآمد شهرداری: %d سکه در دقیقه" % municipal_income_per_minute, 18)
+			var municipal_daily_total = int(municipal_economy.get("accepted_income",0)) + int(municipal_economy.get("development_support",0))
+			_add_label("درآمد روزانه شهرداری: %d سکه" % municipal_daily_total, 18)
 			_add_label("اعتبار شهر: %d  |  رضایت: %d/۱۰۰" % [s.reputation,int(s.get("satisfaction",50))], 18)
 
 			var details_toggle = _add_button(("▼ " if home_city_details_expanded else "▶ ") + "خدمات و زیرساخت شهر", self, "toggle_home_city_details")
@@ -841,6 +841,40 @@ func show_page(page):
 						var interest_names = {"food":"خوراک","industry":"صنعت","services":"خدمات"}
 						_add_label("استعداد کارآفرینی: %d | ریسک‌پذیری: %d | علاقه: %s | پس‌انداز: %d" % [int(citizen.get("entrepreneurship",0)),int(citizen.get("risk_tolerance",0)),str(interest_names.get(str(citizen.get("business_interest","")),"نامشخص")),int(citizen.get("saving_habit",0))], 14)
 			_add_button(" تخصیص دوباره شغل‌ها", self, "reassign_jobs")
+ 		"bank":
+			_add_label("🏦 بانک و امور مالی شهر",22)
+			_add_label("بانک مرکزی: %s | بانک شهری: %d" % ["فعال" if game.has_central_bank() else "ساخته نشده",game.get_building_count("municipal_bank")],17)
+			_add_label("وام فقط با بانک مرکزی و سپرده‌گذاری با بانک شهری فعال می‌شود.",15)
+			_add_label("موجودی خزانه: %d سکه | ظرفیت آزاد: %d سکه" % [int(s.money),game.get_available_money()],16)
+			_add_label("حداکثر وام قابل دریافت: %d سکه" % game.get_bank_loan_limit(),16)
+			_add_label("💳 دریافت وام",19)
+			for loan_option in [{"amount":1000,"days":7},{"amount":3000,"days":14},{"amount":5000,"days":30}]:
+				var loan_button = _add_button("درخواست وام %d سکه‌ای — %d روزه" % [int(loan_option.amount),int(loan_option.days)],self,"request_bank_loan",[int(loan_option.amount),int(loan_option.days)])
+				loan_button.disabled = not game.has_central_bank() or game.get_bank_loan_limit() < int(loan_option.amount)
+			for loan_index in range(s.get("bank_loans",[]).size()):
+				var loan = s.bank_loans[loan_index]
+				_add_label("وام #%d | اصل: %d | سود: %d | مانده: %d | وضعیت: %s" % [int(loan.get("id",loan_index+1)),int(loan.get("principal",0)),int(loan.get("interest",0)),int(loan.get("remaining",0)),"فعال" if str(loan.get("status","")) == "active" else "تسویه‌شده"],15)
+				if str(loan.get("status","")) == "active":
+					_add_button("تسویه زودهنگام وام #%d — %d سکه" % [int(loan.get("id",loan_index+1)),int(loan.get("remaining",0))],self,"repay_bank_loan",[loan_index])
+			_add_label("🏧 سپرده‌گذاری",19)
+			_add_label("سود کل سپرده: ۷ روز ۳٪ | ۱۴ روز ۷٪ | ۳۰ روز ۱۵٪؛ برداشت پیش از سررسید بدون سود است.",14)
+			for deposit_option in [{"amount":500,"days":7},{"amount":1000,"days":14},{"amount":2500,"days":30}]:
+				var deposit_button = _add_button("سپرده %d سکه‌ای — %d روزه" % [int(deposit_option.amount),int(deposit_option.days)],self,"open_bank_deposit",[int(deposit_option.amount),int(deposit_option.days)])
+				deposit_button.disabled = game.get_building_count("municipal_bank") <= 0 or game.get_available_money() < int(deposit_option.amount)
+			for deposit_index in range(s.get("bank_deposits",[]).size()):
+				var deposit = s.bank_deposits[deposit_index]
+				var deposit_status = str(deposit.get("status","active"))
+				if deposit_status == "withdrawn":
+					continue
+				_add_label("سپرده #%d | اصل: %d | سود: %d | سررسید: روز %d | %s" % [int(deposit.get("id",deposit_index+1)),int(deposit.get("principal",0)),int(deposit.get("interest",0)),int(deposit.get("maturity_day",0)),"آماده برداشت" if deposit_status == "matured" or int(s.day) >= int(deposit.get("maturity_day",0)) else "در حال سپرده"],15)
+				_add_button("برداشت سپرده #%d" % int(deposit.get("id",deposit_index+1)),self,"withdraw_bank_savings",[deposit_index])
+			_add_label("📜 گردش حساب و سوابق مالی",19)
+			if s.get("bank_transactions",[]).empty():
+				_add_label("هنوز تراکنش بانکی ثبت نشده است.",15)
+			else:
+				for transaction_index in range(s.bank_transactions.size()-1,-1,-1):
+					var transaction = s.bank_transactions[transaction_index]
+					_add_label("روز %d | %s | %d سکه | %s" % [int(transaction.get("day",0)),str(transaction.get("kind","")),int(transaction.get("amount",0)),str(transaction.get("description",""))],14)
 		"municipality":
 			var civic = game.get_civic_overview()
 			_add_label("🏛️ شهرداری و مدیریت اقتصاد شهر", 22)
@@ -1470,6 +1504,26 @@ func adjust_business_permit_fee(delta):
 func adjust_private_land_price(delta):
 	var result = game.adjust_private_land_price(delta)
 	show_page("municipality")
+	_show_message(result.message)
+
+func request_bank_loan(amount, days):
+	var result = game.take_bank_loan(int(amount),int(days))
+	show_page("bank")
+	_show_message(result.message)
+
+func repay_bank_loan(index):
+	var result = game.repay_bank_loan_early(int(index))
+	show_page("bank")
+	_show_message(result.message)
+
+func open_bank_deposit(amount, days):
+	var result = game.create_bank_deposit(int(amount),int(days))
+	show_page("bank")
+	_show_message(result.message)
+
+func withdraw_bank_savings(index):
+	var result = game.withdraw_bank_deposit(int(index))
+	show_page("bank")
 	_show_message(result.message)
 
 func buy_land():
