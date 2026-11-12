@@ -226,97 +226,182 @@ func _show_offline_summary():
 	var popup = PopupPanel.new()
 	offline_summary_popup = popup
 	popup.name = "OfflineIncomePopup"
+
 	var card = PanelContainer.new()
-	card.rect_min_size = Vector2(300 if compact else 440, 0)
+	card.rect_min_size = Vector2(310 if compact else 470, 0)
 	var card_style = StyleBoxFlat.new()
-	card_style.bg_color = Color("#172235")
-	card_style.border_color = Color("#64748b")
-	card_style.set_border_width_all(2)
-	card_style.set_corner_radius_all(14)
-	card_style.content_margin_left = 18
-	card_style.content_margin_right = 18
-	card_style.content_margin_top = 18
-	card_style.content_margin_bottom = 18
+	card_style.bg_color = Color("#111c2e")
+	card_style.border_color = Color("#475569")
+	card_style.set_border_width_all(1)
+	card_style.set_corner_radius_all(16)
+	card_style.content_margin_left = 16
+	card_style.content_margin_right = 16
+	card_style.content_margin_top = 16
+	card_style.content_margin_bottom = 16
 	card.add_stylebox_override("panel", card_style)
 	popup.add_child(card)
+
 	var layout = VBoxContainer.new()
-	layout.add_constant_override("separation", 12)
+	layout.name = "OfflineSummaryLayout"
+	layout.add_constant_override("separation", 10)
 	card.add_child(layout)
 
-	var title = Label.new()
-	title.text = PersianText.reshaper("گزارش بازگشت به شهر")
-	title.align = Label.ALIGN_CENTER
-	title.autowrap = true
-	_apply_font(title, 23 if compact else 21)
-	title.add_color_override("font_color", Color("#ffffff"))
-	layout.add_child(title)
+	var welcome = Label.new()
+	welcome.text = PersianText.reshaper("خوش برگشتی! 👋")
+	welcome.align = Label.ALIGN_CENTER
+	welcome.autowrap = true
+	_apply_font(welcome, 25 if compact else 24)
+	welcome.add_color_override("font_color", Color("#ffffff"))
+	layout.add_child(welcome)
 
-	var details = Label.new()
-	details.align = Label.ALIGN_CENTER
-	details.autowrap = true
-	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	details.rect_min_size = Vector2(0, 86 if compact else 76)
-	if income > 0:
-		details.text = PersianText.reshaper("در زمان نبودنت، شهر %d روز فعالیت کرده است.\nدرآمد خالص قابل دریافت:" % days)
-	else:
-		details.text = PersianText.reshaper("در زمان نبودنت، شهر %d روز فعالیت کرده است.\nدرآمد و هزینه‌ها محاسبه شدند، اما درآمد خالصی برای دریافت باقی نمانده است." % days)
-	_apply_font(details, 18 if compact else 17)
-	details.add_color_override("font_color", Color("#e2e8f0"))
-	layout.add_child(details)
+	var subtitle = Label.new()
+	subtitle.text = PersianText.reshaper("در مدتی که نبودی، شهر به فعالیتش ادامه داد.")
+	subtitle.align = Label.ALIGN_CENTER
+	subtitle.autowrap = true
+	_apply_font(subtitle, 16 if compact else 15)
+	subtitle.add_color_override("font_color", Color("#cbd5e1"))
+	layout.add_child(subtitle)
 
+	var stats = HBoxContainer.new()
+	stats.add_constant_override("separation", 8)
+	layout.add_child(stats)
+
+	var days_panel = PanelContainer.new()
+	days_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var days_style = StyleBoxFlat.new()
+	days_style.bg_color = Color("#1e3a5f")
+	days_style.set_corner_radius_all(10)
+	days_style.content_margin_left = 8
+	days_style.content_margin_right = 8
+	days_style.content_margin_top = 9
+	days_style.content_margin_bottom = 9
+	days_panel.add_stylebox_override("panel", days_style)
+	stats.add_child(days_panel)
+	var days_box = VBoxContainer.new()
+	days_box.add_constant_override("separation", 3)
+	days_panel.add_child(days_box)
+	var days_value = Label.new()
+	days_value.text = PersianText.reshaper("%d روز" % days)
+	days_value.align = Label.ALIGN_CENTER
+	_apply_font(days_value, 22 if compact else 21)
+	days_value.add_color_override("font_color", Color("#ffffff"))
+	days_box.add_child(days_value)
+	var days_caption = Label.new()
+	days_caption.text = PersianText.reshaper("مدت غیبت")
+	days_caption.align = Label.ALIGN_CENTER
+	_apply_font(days_caption, 13)
+	days_caption.add_color_override("font_color", Color("#bfdbfe"))
+	days_box.add_child(days_caption)
+
+	var money_panel = PanelContainer.new()
+	money_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var money_style = StyleBoxFlat.new()
+	money_style.bg_color = Color("#174334") if income > 0 else Color("#334155")
+	money_style.set_corner_radius_all(10)
+	money_style.content_margin_left = 8
+	money_style.content_margin_right = 8
+	money_style.content_margin_top = 9
+	money_style.content_margin_bottom = 9
+	money_panel.add_stylebox_override("panel", money_style)
+	stats.add_child(money_panel)
+	var money_box = VBoxContainer.new()
+	money_box.add_constant_override("separation", 3)
+	money_panel.add_child(money_box)
+	var money_value = Label.new()
+	money_value.text = PersianText.reshaper("%s سکه" % _format_number(income))
+	money_value.align = Label.ALIGN_CENTER
+	money_value.autowrap = true
+	_apply_font(money_value, 20 if compact else 19)
+	money_value.add_color_override("font_color", Color("#86efac") if income > 0 else Color("#e2e8f0"))
+	money_box.add_child(money_value)
+	var money_caption = Label.new()
+	money_caption.text = PersianText.reshaper("درآمد آماده دریافت" if income > 0 else "مانده درآمد")
+	money_caption.align = Label.ALIGN_CENTER
+	money_caption.autowrap = true
+	_apply_font(money_caption, 12 if compact else 13)
+	money_caption.add_color_override("font_color", Color("#bbf7d0") if income > 0 else Color("#cbd5e1"))
+	money_box.add_child(money_caption)
 
 	var digest_items = game.state.get("pending_offline_digest", [])
-	if not digest_items.empty():
-		var news_title = Label.new()
-		news_title.text = PersianText.reshaper("📰 خبرهای مهم در زمان غیبت")
-		news_title.align = Label.ALIGN_CENTER
-		_apply_font(news_title, 18 if compact else 17)
-		news_title.add_color_override("font_color", Color("#fbbf24"))
-		layout.add_child(news_title)
+	var news_title = Label.new()
+	news_title.text = PersianText.reshaper("گزارش اتفاقات شهر")
+	news_title.align = Label.ALIGN_RIGHT
+	_apply_font(news_title, 17 if compact else 16)
+	news_title.add_color_override("font_color", Color("#fbbf24"))
+	layout.add_child(news_title)
+
+	var news_scroll = ScrollContainer.new()
+	news_scroll.name = "OfflineNewsScroll"
+	news_scroll.rect_min_size = Vector2(0, 105 if compact else 125)
+	news_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	layout.add_child(news_scroll)
+	var news_list = VBoxContainer.new()
+	news_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	news_list.add_constant_override("separation", 6)
+	news_scroll.add_child(news_list)
+
+	if digest_items.empty():
+		var empty_news = Label.new()
+		empty_news.text = PersianText.reshaper("اتفاق مهمی ثبت نشده؛ شهر آرام بوده است.")
+		empty_news.align = Label.ALIGN_CENTER
+		empty_news.autowrap = true
+		_apply_font(empty_news, 14)
+		empty_news.add_color_override("font_color", Color("#cbd5e1"))
+		news_list.add_child(empty_news)
+	else:
 		var shown_news = 0
 		for news_item in digest_items:
-			if shown_news >= 5:
+			if shown_news >= 8:
 				break
+			var news_row = PanelContainer.new()
+			var row_style = StyleBoxFlat.new()
+			row_style.bg_color = Color("#1e293b")
+			row_style.set_corner_radius_all(7)
+			row_style.content_margin_left = 9
+			row_style.content_margin_right = 9
+			row_style.content_margin_top = 6
+			row_style.content_margin_bottom = 6
+			news_row.add_stylebox_override("panel", row_style)
+			news_list.add_child(news_row)
 			var news_label = Label.new()
 			news_label.text = PersianText.reshaper("• " + str(news_item))
 			news_label.align = Label.ALIGN_RIGHT
 			news_label.autowrap = true
 			news_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			_apply_font(news_label, 15 if compact else 14)
-			news_label.add_color_override("font_color", Color("#dbeafe"))
-			layout.add_child(news_label)
+			_apply_font(news_label, 14 if compact else 13)
+			news_label.add_color_override("font_color", Color("#e2e8f0"))
+			news_row.add_child(news_label)
 			shown_news += 1
 
-	if income > 0:
-		var amount = Label.new()
-		amount.text = PersianText.reshaper("%d سکه" % income)
-		amount.align = Label.ALIGN_CENTER
-		amount.autowrap = true
-		amount.rect_min_size = Vector2(0, 44)
-		_apply_font(amount, 26 if compact else 24)
-		amount.add_color_override("font_color", Color("#86efac"))
-		layout.add_child(amount)
+	var note = Label.new()
+	note.text = PersianText.reshaper("درآمد تا زمان دریافت، جدا از خزانه نگه داشته می‌شود." if income > 0 else "درآمد و هزینه‌های این مدت محاسبه شده‌اند؛ مازاد درآمدی وجود ندارد.")
+	note.align = Label.ALIGN_CENTER
+	note.autowrap = true
+	_apply_font(note, 13)
+	note.add_color_override("font_color", Color("#94a3b8"))
+	layout.add_child(note)
 
+	if income > 0:
 		var claim_button = Button.new()
-		claim_button.text = PersianText.reshaper("دریافت درآمد در خزانه")
-		claim_button.rect_min_size = Vector2(0, 58 if compact else 52)
+		claim_button.text = PersianText.reshaper("واریز درآمد به خزانه")
+		claim_button.rect_min_size = Vector2(0, 54 if compact else 50)
 		claim_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_apply_font(claim_button, 19 if compact else 17)
+		_apply_font(claim_button, 18 if compact else 17)
 		_style_button(claim_button, false)
 		claim_button.connect("pressed", self, "_claim_offline_income")
 		layout.add_child(claim_button)
 
 	var later_button = Button.new()
-	later_button.text = PersianText.reshaper("بعداً")
-	later_button.rect_min_size = Vector2(0, 54 if compact else 48)
+	later_button.text = PersianText.reshaper("فعلاً نه، بعداً بررسی می‌کنم")
+	later_button.rect_min_size = Vector2(0, 46 if compact else 42)
 	later_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_font(later_button, 18 if compact else 16)
+	_apply_font(later_button, 15 if compact else 14)
 	_style_button(later_button, true)
 	later_button.connect("pressed", popup, "hide")
 	layout.add_child(later_button)
 
 	add_child(popup)
-	popup.popup_centered(Vector2(380 if compact else 520, 470 if compact else 420))
+	popup.popup_centered(Vector2(390 if compact else 540, 590 if compact else 560))
 
 func _claim_offline_income():
 	if offline_summary_popup != null and is_instance_valid(offline_summary_popup):
