@@ -52,7 +52,8 @@ var TRADE_CITIES = {
 
 func _init():
 	_add_iran_provincial_capitals()
-	for city_id in TRADE_CITIES.keys():
+	# Keep legacy trade-city fish demand separate; provincial demand is defined per province.
+	for city_id in ["mehrabad","navid","golestan"]:
 		TRADE_CITIES[city_id].demand["fish"] = 12 + int(TRADE_CITIES[city_id].daily_capacity % 9)
 		TRADE_CITIES[city_id].demand["processed_fish"] = 6 + int(TRADE_CITIES[city_id].daily_capacity % 7)
 		TRADE_CITIES[city_id].supply["fish"] = 10 + int(TRADE_CITIES[city_id].daily_capacity % 8)
