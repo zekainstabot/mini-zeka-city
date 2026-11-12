@@ -191,6 +191,8 @@ func _init():
 	assert(str(weekly_city_event.get("id", "")) in ["market_boom","festival_week","energy_saving","development_week"])
 
 	engagement_game.state["mystery_active"] = {"id":"test_secret","title":"راز آزمایشی","kind":"buildings","goal":1,"reward":500,"xp":20}
+	# Keep enough treasury capacity available so this reward test checks the mystery flow, not a full treasury.
+	engagement_game.state["money"] = 1000
 	engagement_game.state.buildings.append({"id":"small_house","workers":0,"balance":0})
 	var mystery_reward = engagement_game.claim_mystery_reward()
 	assert(bool(mystery_reward.get("ok", false)))
