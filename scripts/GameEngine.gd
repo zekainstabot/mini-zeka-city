@@ -95,13 +95,46 @@ func _add_iran_provincial_capitals():
 	for i in range(capitals.size()):
 		var city = capitals[i]
 		var city_id = str(city["id"]).strip_edges()
-		var demand = {
-			"stone": 10 + ((i * 7) % 16),
-			"iron_ore": 8 + ((i * 5) % 18),
-			"wood": 12 + ((i * 3) % 20),
-			"lumber": 8 + ((i * 11) % 17),
-			"furniture": 6 + ((i * 13) % 20)
+		var province_needs = {
+			"tabriz":["iron_ore","lumber","furniture"],
+			"urmia":["food","fish","furniture"],
+			"ardabil":["food","wood"],
+			"isfahan":["iron_ore","lumber","furniture"],
+			"karaj":["food","furniture","processed_fish"],
+			"ilam":["stone","wood"],
+			"bushehr":["food","fish","processed_fish"],
+			"tehran":["food","lumber","furniture"],
+			"shahrekord":["food","fish","wood"],
+			"birjand":["stone","food"],
+			"mashhad":["food","lumber","furniture"],
+			"bojnord":["food","wood","lumber"],
+			"ahvaz":["stone","iron_ore","food"],
+			"zanjan":["iron_ore","lumber"],
+			"semnan":["stone","furniture"],
+			"zahedan":["food","fish","wood"],
+			"shiraz":["food","furniture","processed_fish"],
+			"qazvin":["food","lumber","furniture"],
+			"qom":["food","furniture"],
+			"sanandaj":["food","wood","furniture"],
+			"kerman":["stone","iron_ore","processed_fish"],
+			"kermanshah":["food","wood","lumber"],
+			"yasuj":["food","fish","wood"],
+			"gorgan":["food","fish","lumber"],
+			"rasht":["food","fish","processed_fish"],
+			"khorramabad":["stone","food","wood"],
+			"sari":["fish","processed_fish","wood"],
+			"arak":["iron_ore","furniture"],
+			"bandar_abbas":["food","fish","processed_fish"],
+			"hamedan":["food","lumber"],
+			"yazd":["stone","iron_ore","furniture"]
 		}
+		var demand = {}
+		for resource_id in RESOURCES.keys():
+			demand[resource_id] = 0
+		var requested_goods = province_needs.get(city_id, ["food","wood"])
+		for need_index in range(requested_goods.size()):
+			var resource_id = str(requested_goods[need_index])
+			demand[resource_id] = 8 + int((i * 7 + need_index * 5) % 18)
 		var supply = {
 			"stone": 8 + ((i * 11) % 28),
 			"iron_ore": 5 + ((i * 13) % 35),
@@ -1787,6 +1820,8 @@ func get_trade_export_price(city_id, resource_id):
 	if not TRADE_CITIES.has(city_id) or not RESOURCES.has(resource_id):
 		return 0
 	var city = TRADE_CITIES[city_id]
+	if int(city.demand.get(resource_id, 0)) <= 0:
+		return 0
 	var demand = int(state.get("trade_demand_remaining", {}).get(city_id, city.demand).get(resource_id, 0))
 	if demand <= 0:
 		return 0
@@ -1798,6 +1833,8 @@ func trade_with_city(city_id, resource_id, requested_amount):
 	if not TRADE_CITIES.has(city_id) or not RESOURCES.has(resource_id) or requested_amount <= 0:
 		return {"ok":false,"message":"درخواست تجارت نامعتبر است."}
 	var city = TRADE_CITIES[city_id]
+	if int(city.demand.get(resource_id, 0)) <= 0:
+		return {"ok":false,"message":city.name+" به این کالا نیازی ندارد و آن را نمی‌پذیرد."}
 	var demand_by_resource = state.trade_demand_remaining.get(city_id, city.demand)
 	var demand = int(demand_by_resource.get(resource_id, 0))
 	if demand <= 0:
