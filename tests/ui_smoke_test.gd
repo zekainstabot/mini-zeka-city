@@ -18,7 +18,7 @@ func _init():
 	for page in ["home","buildings","citizens","bank","municipality","private_economy","commerce","transport","imports","storage","report","missions","progress","audio","help"]:
 		main.show_page(page)
 		if page == "audio":
-			assert(main.content.get_child_count() >= 10)
+			assert(main.content.get_child_count() >= 18)
 		if page == "help":
 			assert(main.content.get_child_count() > 30)
 	main.home_city_details_expanded = true
