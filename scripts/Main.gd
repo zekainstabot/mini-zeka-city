@@ -863,7 +863,7 @@ func show_page(page):
 			if commerce_section_expanded.export:
 				var trade_ids = game.get_daily_trade_city_ids()
 				_add_label("استان‌های فعال امروز: %d | ظرفیت حمل آزاد: %d واحد" % [trade_ids.size(),game.get_transport_capacity_remaining()],16)
-				_add_label("این فهرست فردا تغییر می‌کند؛ سطح شهر تعداد استان‌های قابل معامله را افزایش می‌دهد.",14)
+				_add_label("هر استان فقط کالاهای موردنیاز خودش را می‌خرد؛ کالاهای دیگر برای صادرات به آن استان پذیرفته نمی‌شوند. فهرست فردا تغییر می‌کند.",14)
 				for city_id in trade_ids:
 					var city = game.get_trade_cities()[city_id]
 					_add_label("%s | ظرفیت باقی‌مانده: %d از %d واحد" % [city.name,int(s.trade_remaining.get(city_id,city.daily_capacity)),int(city.daily_capacity)],18)
