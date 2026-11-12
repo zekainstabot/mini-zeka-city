@@ -143,6 +143,7 @@ func _init():
 
 	var farm_game = EngineScript.new()
 	farm_game.new_game()
+	farm_game.state["storage_rules"] = {"food":{"minimum":0,"maximum":40,"low_action":"market","high_action":"market"}}
 	farm_game.state.buildings.append({"id":"farm","workers":0,"balance":0})
 	farm_game.assign_jobs()
 	var farm_report = farm_game.end_day()
@@ -152,6 +153,7 @@ func _init():
 
 	var partial_farm_game = EngineScript.new()
 	partial_farm_game.new_game()
+	partial_farm_game.state["storage_rules"] = {"food":{"minimum":0,"maximum":40,"low_action":"market","high_action":"market"}}
 	partial_farm_game.state.population = 1
 	partial_farm_game.state.citizens = [partial_farm_game.state.citizens[0]]
 	partial_farm_game.state.buildings.append({"id":"farm","workers":0,"balance":0})
