@@ -1465,6 +1465,19 @@ func end_day():
 				income += revenue
 				resource_income_total += revenue
 				report.append(str(sell_amount)+" واحد "+RESOURCES[id].name+" فروخته شد؛ درآمد: "+str(revenue)+" سکه.")
+	# Automatically transfer every business's accumulated sales profit to the treasury.
+	var automatic_business_profit = 0
+	for profit_index in range(state.buildings.size()):
+		var profit_building = state.buildings[profit_index]
+		var pending_profit = max(0, int(profit_building.get("balance", 0)))
+		if pending_profit <= 0:
+			continue
+		automatic_business_profit += pending_profit
+		profit_building.balance = 0
+		state.buildings[profit_index] = profit_building
+	if automatic_business_profit > 0:
+		income += automatic_business_profit
+		report.append("سود کسب‌وکارها به‌صورت خودکار به خزانه منتقل شد: %d سکه." % automatic_business_profit)
 	var accepted_income = _add_money(income)
 	if accepted_income < income:
 		report.append("ظرفیت خزانه پر است؛ %d سکه از درآمد امروز دریافت نشد." % (income - accepted_income))
@@ -1477,6 +1490,7 @@ func end_day():
 		"food_units_consumed": int(citizen_market.food_units),
 		"food_stock": int(state.resources.get("food",0)),
 		"business_income": business_income_total,
+		"automatic_business_profit": automatic_business_profit,
 		"resource_income": resource_income_total,
 		"station_income": station_income,
 		"road_income": road_income,
