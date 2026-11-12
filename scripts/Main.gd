@@ -622,6 +622,8 @@ func show_page(page):
 				_add_label("ذخیره غذای شهر: %d واحد" % int(s.resources.get("food",0)), 16)
 				var home_economy = s.get("last_economy", {})
 				_add_label("آخرین تراز روزانه: %d سکه" % int(home_economy.get("net_cashflow",0)), 17)
+				_add_label("درآمد ایستگاه‌ها و پایانه‌ها: %d سکه" % int(home_economy.get("station_income",0)), 16)
+				_add_label("عوارض جاده‌ای: %d سکه" % int(home_economy.get("road_income",0)), 16)
 			var save_city_button = _add_button("💾 ذخیره شهر", self, "save_now")
 			_style_button(save_city_button, false)
 		"buildings":
