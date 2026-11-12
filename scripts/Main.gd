@@ -162,9 +162,8 @@ func _apply_offline_progress():
 	var elapsed = max(0, now - last)
 	var offline_days = min(10, int(floor(float(elapsed) / 3600.0)))
 	var money_before = int(game.state.get("money", 0))
-	for day_index in range(offline_days):
-		game.end_day(true)
-	game.state["pending_offline_digest"] = []
+	if offline_days > 0:
+		game.state["pending_offline_digest"] = []
 	for day_index in range(offline_days):
 		var offline_report = game.end_day(true)
 		var digest = str(offline_report).split("\n")
@@ -232,6 +231,29 @@ func _show_offline_summary():
 	details.add_color_override("font_color", Color("#e2e8f0"))
 	layout.add_child(details)
 
+
+	var digest_items = game.state.get("pending_offline_digest", [])
+	if not digest_items.empty():
+		var news_title = Label.new()
+		news_title.text = PersianText.reshaper("📰 خبرهای مهم در زمان غیبت")
+		news_title.align = Label.ALIGN_CENTER
+		_apply_font(news_title, 18 if compact else 17)
+		news_title.add_color_override("font_color", Color("#fbbf24"))
+		layout.add_child(news_title)
+		var shown_news = 0
+		for news_item in digest_items:
+			if shown_news >= 5:
+				break
+			var news_label = Label.new()
+			news_label.text = PersianText.reshaper("• " + str(news_item))
+			news_label.align = Label.ALIGN_RIGHT
+			news_label.autowrap = true
+			news_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			_apply_font(news_label, 15 if compact else 14)
+			news_label.add_color_override("font_color", Color("#dbeafe"))
+			layout.add_child(news_label)
+			shown_news += 1
+
 	if income > 0:
 		var amount = Label.new()
 		amount.text = PersianText.reshaper("%d سکه" % income)
@@ -261,7 +283,7 @@ func _show_offline_summary():
 	layout.add_child(later_button)
 
 	add_child(popup)
-	popup.popup_centered(Vector2(360 if compact else 500, 320 if compact else 300))
+	popup.popup_centered(Vector2(380 if compact else 520, 470 if compact else 420))
 
 func _claim_offline_income():
 	if offline_summary_popup != null and is_instance_valid(offline_summary_popup):
