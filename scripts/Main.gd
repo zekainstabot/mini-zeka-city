@@ -1269,7 +1269,7 @@ func show_page(page):
 			summary_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			content.add_child(summary_panel)
 			var summary_label = Label.new()
-			summary_label.text = PersianText.reshaper("پیشرفت کلی مأموریت‌ها: %d از %d" % [claimed_count, total_missions])
+			summary_label.text = PersianText.reshaper("پیشرفت کلی مأموریت‌ها: %d از %d" % [main_claimed + side_claimed, main_total + side_total])
 			summary_label.align = Label.ALIGN_CENTER
 			summary_label.autowrap = true
 			summary_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
