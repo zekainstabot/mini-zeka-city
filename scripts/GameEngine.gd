@@ -550,7 +550,7 @@ func _process_resident_requests(report):
 					_add_money(reward)
 					state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) + 3, 0, 100))
 					report.append("درخواست شهروندان انجام شد؛ %d سکه پاداش و رضایت بیشتر دریافت کردی." % reward)
-					requests.remove(index)
+					requests.remove_at(index)
 					continue
 				else:
 					report.append("ساختمان درخواستی شهروندان ساخته شد؛ برای دریافت پاداش %d سکه‌ای باید ظرفیت خزانه را خالی کنی." % reward)
@@ -558,7 +558,7 @@ func _process_resident_requests(report):
 		if int(state.get("day", 1)) - int(request.get("day", 1)) >= 7:
 			if bool(request.get("accepted", false)):
 				state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) - 1, 0, 100))
-			requests.remove(index)
+			requests.remove_at(index)
 	state["resident_requests"] = requests
 	var next_day = int(state.get("next_resident_request_day", 1))
 	if int(state.get("day", 1)) < next_day or requests.size() >= 2:
@@ -632,7 +632,7 @@ func resolve_resident_request(request_id, accepted):
 			state["resident_requests"] = requests
 			save_game()
 			return {"ok":true,"message":"درخواست پذیرفته شد؛ با ساخت ساختمان پیشنهادی، پاداش و رضایت شهروندان را می‌گیری."}
-		requests.remove(index)
+		requests.remove_at(index)
 		state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) - 1, 0, 100))
 		state["resident_requests"] = requests
 		save_game()
@@ -1337,7 +1337,7 @@ func accept_citizen_request(request_index):
 	if int(state.population) >= get_housing_capacity():
 		return {"ok":false,"message":"ظرفیت خانه‌ها پر است؛ ابتدا خانه بیشتری بساز."}
 	var request = state.citizen_requests[request_index]
-	state.citizen_requests.remove(request_index)
+	state.citizen_requests.remove_at(request_index)
 	state.population += 1
 	state.citizens.append({"id":_next_citizen_id(),"job":"","job_building_index":-1,"wallet":100})
 	assign_jobs()
@@ -1348,7 +1348,7 @@ func reject_citizen_request(request_index):
 	if request_index < 0 or request_index >= state.citizen_requests.size():
 		return {"ok":false,"message":"درخواست پیدا نشد."}
 	var request = state.citizen_requests[request_index]
-	state.citizen_requests.remove(request_index)
+	state.citizen_requests.remove_at(request_index)
 	save_game()
 	return {"ok":true,"message":"درخواست متقاضی شماره %d رد شد." % int(request.get("id",0))}
 
@@ -1851,7 +1851,7 @@ func demolish(index):
 	var id = state.buildings[index].id
 	if id == "small_house" and get_building_count(id) <= 1:
 		return {"ok":false,"message":"آخرین خانه شهر را نمی‌توان تخریب کرد."}
-	state.buildings.remove(index)
+	state.buildings.remove_at(index)
 	_ensure_building_locations()
 	for request_index in range(state.get("business_requests", []).size() - 1, -1, -1):
 		var civic_request = state.business_requests[request_index]
@@ -1863,7 +1863,7 @@ func demolish(index):
 				if int(state.citizens[citizen_index].get("id", 0)) == int(civic_request.get("citizen_id", 0)):
 					state.citizens[citizen_index]["civic_request_pending"] = false
 					state.citizens[citizen_index]["next_civic_request_day"] = int(state.day) + 1
-			state.business_requests.remove(request_index)
+			state.business_requests.remove_at(request_index)
 		elif requested_building_index > index:
 			civic_request["building_index"] = requested_building_index - 1
 			state.business_requests[request_index] = civic_request
@@ -1876,7 +1876,7 @@ func demolish(index):
 				state.private_businesses[business_index] = private_business
 	for mine_index in range(state.mines.size() - 1, -1, -1):
 		if int(state.mines[mine_index].get("building_index", -1)) == index:
-			state.mines.remove(mine_index)
+			state.mines.remove_at(mine_index)
 		elif int(state.mines[mine_index].get("building_index", -1)) > index:
 			state.mines[mine_index].building_index -= 1
 	if id == "central_bank":
@@ -1912,7 +1912,7 @@ func assign_jobs():
 		citizen.job_building_index = building_index
 		citizen.job = str(state.buildings[building_index].id)
 		state.citizens[citizen_index] = citizen
-		workplaces.remove(0)
+		workplaces.remove_at(0)
 
 func _workers_for_building(building_index):
 	var count = 0
