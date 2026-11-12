@@ -308,7 +308,7 @@ func _show_offline_summary():
 	money_box.add_constant_override("separation", 3)
 	money_panel.add_child(money_box)
 	var money_value = Label.new()
-	money_value.text = PersianText.reshaper("%s سکه" % _format_number(income))
+	money_value.text = PersianText.reshaper("%s سکه" % str(income))
 	money_value.align = Label.ALIGN_CENTER
 	money_value.autowrap = true
 	_apply_font(money_value, 20 if compact else 19)
