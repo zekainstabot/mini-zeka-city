@@ -967,7 +967,7 @@ func show_page(page):
 				var controls = HBoxContainer.new()
 				controls.add_constant_override("separation",6)
 				controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				content.add_child(controls)
+				active_section_container.add_child(controls)
 				var low_down = Button.new()
 				low_down.text = PersianText.reshaper("حداقل −")
 				_style_button(low_down,false)
