@@ -287,5 +287,30 @@ func _init():
 	assert(migration_game.state.resources.has("food"))
 	assert(int(migration_game.state.road_level) == 1)
 
+	# The municipal hall unlocks municipal controls and starts the private economy.
+	var civic_gate_game = EngineScript.new()
+	civic_gate_game.new_game()
+	assert(not civic_gate_game.has_municipal_hall())
+	var gated_business = {"id":1,"owner_citizen_id":1,"building_id":"grocery_store","balance":200,"jobs":2,"wage":20,"revenue_per_worker":100,"tax_paid_total":0,"tax_credit":0}
+	civic_gate_game.state.private_businesses.append(gated_business)
+	var gated_report = []
+	var gated_summary = CitizenSocietyScript.new().process_day(civic_gate_game, gated_report)
+	assert(int(gated_summary.private_business_tax) == 0)
+	assert(int(civic_gate_game.state.private_businesses[0].balance) == 200)
+	assert(civic_gate_game.state.business_requests.empty())
+	assert(not civic_gate_game.resolve_civic_request(999, true).ok)
+	assert(not civic_gate_game.adjust_business_tax(1).ok)
+	var hall_build_result = civic_gate_game.build("municipal_hall")
+	assert(bool(hall_build_result.ok))
+	assert(not civic_gate_game.has_municipal_hall())
+	civic_gate_game.state.constructions[0]["finish_at"] = 0
+	civic_gate_game.process_constructions()
+	assert(civic_gate_game.has_municipal_hall())
+	assert(bool(civic_gate_game.adjust_business_tax(1).ok))
+	var unlocked_business_balance = int(civic_gate_game.state.private_businesses[0].balance)
+	var unlocked_summary = CitizenSocietyScript.new().process_day(civic_gate_game, [])
+	assert(int(unlocked_summary.private_business_tax) > 0)
+	assert(int(civic_gate_game.state.private_businesses[0].balance) < unlocked_business_balance + 200)
+
 	print("Mini ZekaCity logic smoke tests passed.")
 	quit()
