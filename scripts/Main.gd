@@ -6,6 +6,7 @@ const AudioManagerScript = preload("res://scripts/AudioManager.gd")
 var game = null
 var audio_manager = null
 var last_audio_night_mode = false
+var audio_warning_cooldown = 0.0
 var current_page = "home"
 var message_label = null
 var content = null
@@ -115,6 +116,8 @@ func _process(delta):
 	if audio_manager != null and audio_night_mode != last_audio_night_mode:
 		last_audio_night_mode = audio_night_mode
 		audio_manager.set_night_mode(audio_night_mode)
+	audio_warning_cooldown = max(0.0, audio_warning_cooldown - delta)
+	_check_city_audio_warnings()
 	mission_badge_refresh_timer += delta
 	if mission_badge_refresh_timer >= 1.0:
 		mission_badge_refresh_timer = 0.0
@@ -130,7 +133,9 @@ func _process(delta):
 			_show_message(str(game.state.get("last_report", "ساخت‌وساز تکمیل شد.")))
 	if clock_cycle_seconds >= 600.0:
 		clock_cycle_seconds -= 600.0
-		game.end_day()
+		var daily_audio_report = str(game.end_day())
+		if daily_audio_report.find("رویداد") >= 0 or daily_audio_report.find("تصمیم") >= 0:
+			audio_manager.play_sfx("event")
 		game.state["clock_last_unix"] = OS.get_unix_time()
 		game.state["clock_cycle_seconds"] = int(clock_cycle_seconds)
 		game.save_game()
@@ -147,6 +152,20 @@ func _process(delta):
 		game.state["clock_last_unix"] = OS.get_unix_time()
 		game.state["clock_cycle_seconds"] = int(clock_cycle_seconds)
 		game.save_game()
+
+func _check_city_audio_warnings():
+	if audio_manager == null or audio_warning_cooldown > 0.0 or not audio_manager.is_effects_enabled():
+		return
+	var money = int(game.state.get("money", 0))
+	var needs = game.state.get("needs", {})
+	var critical_need = false
+	for need_id in ["food", "water", "power", "safety"]:
+		if int(needs.get(need_id, 60)) <= 18:
+			critical_need = true
+			break
+	if money <= 800 or critical_need:
+		audio_manager.play_sfx("warning")
+		audio_warning_cooldown = 90.0
 
 func _format_time_display(minutes, seconds):
 	# Keep the numeric timer in left-to-right order; PersianText.reshaper reverses digit groups.
@@ -833,6 +852,10 @@ func toggle_effects_enabled():
 	audio_manager.set_effects_enabled(not audio_manager.is_effects_enabled())
 	show_page("audio")
 
+func toggle_environment_enabled():
+	audio_manager.set_environment_enabled(not audio_manager.is_environment_enabled())
+	show_page("audio")
+
 func _add_audio_slider(kind):
 	var slider = HSlider.new()
 	slider.min_value = 0.0
@@ -843,6 +866,9 @@ func _add_audio_slider(kind):
 	if kind == "music":
 		slider.value = audio_manager.get_music_volume()
 		slider.connect("value_changed", self, "_on_music_volume_changed")
+	elif kind == "environment":
+		slider.value = audio_manager.get_environment_volume()
+		slider.connect("value_changed", self, "_on_environment_volume_changed")
 	else:
 		slider.value = audio_manager.get_effects_volume()
 		slider.connect("value_changed", self, "_on_effects_volume_changed")
@@ -853,6 +879,9 @@ func _on_music_volume_changed(value):
 
 func _on_effects_volume_changed(value):
 	audio_manager.set_effects_volume(value)
+
+func _on_environment_volume_changed(value):
+	audio_manager.set_environment_volume(value)
 
 func _open_help():
 	show_page("help")
