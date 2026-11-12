@@ -507,11 +507,15 @@ func _process_resident_requests(report):
 		if bool(request.get("accepted", false)):
 			if get_building_count(str(request.get("building_id", ""))) > 0:
 				var reward = int(request.get("reward", 80))
-				_add_money(reward)
-				state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) + 3, 0, 100))
-				report.append("درخواست شهروندان انجام شد؛ %d سکه پاداش و رضایت بیشتر دریافت کردی." % reward)
-				requests.remove(index)
-				continue
+				if get_treasury_capacity() - int(state.get("money", 0)) >= reward:
+					_add_money(reward)
+					state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) + 3, 0, 100))
+					report.append("درخواست شهروندان انجام شد؛ %d سکه پاداش و رضایت بیشتر دریافت کردی." % reward)
+					requests.remove(index)
+					continue
+				else:
+					report.append("ساختمان درخواستی شهروندان ساخته شد؛ برای دریافت پاداش %d سکه‌ای باید ظرفیت خزانه را خالی کنی." % reward)
+					continue
 		if int(state.get("day", 1)) - int(request.get("day", 1)) >= 7:
 			if bool(request.get("accepted", false)):
 				state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) - 1, 0, 100))
@@ -535,6 +539,8 @@ func _process_resident_requests(report):
 		var need_value = int(state.get("needs", {}).get(str(candidate.need), 100))
 		var building_data = BUILDINGS.get(str(candidate.building), {})
 		if need_value >= int(candidate.threshold) or building_data.empty():
+			continue
+		if get_building_count(str(candidate.building)) > 0:
 			continue
 		if int(state.get("level", 1)) < int(building_data.get("level_unlock", 1)) or int(state.get("population", 0)) < int(building_data.get("unlock", 0)):
 			continue
@@ -679,7 +685,7 @@ func get_long_term_projects():
 	var public_count = 0
 	for building_id in ["water_tower","power_station","school","clinic","police_station","fire_station","sewage_plant","waste_facility","small_park"]:
 		public_count += get_building_count(building_id)
-	var industry_count = get_building_count("woodcutter") + get_building_count("sawmill") + get_building_count("carpenter")
+	var industry_count = int(get_building_count("woodcutter") > 0) + int(get_building_count("sawmill") > 0) + int(get_building_count("carpenter") > 0)
 	return [
 		{"id":"population_25","title":"شهر ۲۵ نفره","description":"جمعیت شهر را به ۲۵ نفر برسان.","progress":min(25,int(state.get("population",0))),"goal":25,"reward":1200,"xp":90,"claimed":"population_25" in claimed},
 		{"id":"public_services_5","title":"زیرساخت پایدار","description":"حداقل ۵ ساختمان خدمات عمومی بساز.","progress":min(5,public_count),"goal":5,"reward":1000,"xp":75,"claimed":"public_services_5" in claimed},
