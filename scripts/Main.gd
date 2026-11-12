@@ -141,12 +141,16 @@ func _show_offline_summary():
 	dialog.popup_centered(Vector2(520, 300))
 
 func _claim_offline_income():
-	var result = game.collect_offline_income()
+	var pending = int(game.state.get("pending_offline_income", 0))
+	var message = "گزارش آفلاین بسته شد."
+	if pending > 0:
+		var result = game.collect_offline_income()
+		message = str(result.message)
 	if int(game.state.get("pending_offline_income", 0)) <= 0:
 		game.state["pending_offline_days"] = 0
 		game.save_game()
 	show_page("home")
-	_show_message(str(result.message))
+	_show_message(message)
 
 func _notification(what):
 	if what == MainLoop.NOTIFICATION_WM_QUIT_REQUEST and game != null:
