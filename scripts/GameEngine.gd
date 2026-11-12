@@ -1348,9 +1348,22 @@ func _calculate_transport_income(report):
 	return {"station_income":station_income, "road_income":road_income}
 
 
+func get_daily_development_support():
+	# Temporary development support prevents a young city from becoming insolvent.
+	# It tapers off with level and only tops the treasury up toward 3,000 coins.
+	var support_by_level = {1:250, 2:180, 3:100}
+	var level = int(state.get("level", 1))
+	var level_support = int(support_by_level.get(level, 0))
+	var treasury_gap = max(0, 3000 - int(state.get("money", 0)))
+	return min(level_support, treasury_gap)
+
 func end_day():
 	var report = []
 	assign_jobs()
+	var development_support_due = get_daily_development_support()
+	var development_support_paid = _add_money(development_support_due)
+	if development_support_paid > 0:
+		report.append("کمک‌هزینه توسعه شهر: %d سکه." % development_support_paid)
 	var total_wages = 0
 	var paid_wages = 0
 	var treasury_for_payroll = get_available_money()
@@ -1387,7 +1400,7 @@ func end_day():
 	_advance_mines(report)
 	# Forest regrowth is gradual and capped; logging consumes actual trees.
 	state.forest_trees = min(100, int(state.forest_trees) + 2)
-	var tax_income = int(state.population) * 2
+	var tax_income = int(state.population) * 5
 	var business_income_total = 0
 	var resource_income_total = 0
 	var citizen_market = _process_citizen_purchases(report)
@@ -1476,20 +1489,32 @@ func end_day():
 				income += revenue
 				resource_income_total += revenue
 				report.append(str(sell_amount)+" واحد "+RESOURCES[id].name+" فروخته شد؛ درآمد: "+str(revenue)+" سکه.")
-	# Automatically transfer every business's accumulated sales profit to the treasury.
+	# Transfer business profits automatically, but preserve any amount the treasury cannot accept.
 	var automatic_business_profit = 0
 	for profit_index in range(state.buildings.size()):
+		var profit_building = state.buildings[profit_index]
+		automatic_business_profit += max(0, int(profit_building.get("balance", 0)))
+	if automatic_business_profit > 0:
+		income += automatic_business_profit
+	var accepted_income = _add_money(income)
+	var non_business_income = max(0, income - automatic_business_profit)
+	var business_profit_remaining = min(automatic_business_profit, max(0, accepted_income - min(accepted_income, non_business_income)))
+	var automatic_business_profit_transferred = business_profit_remaining
+	for profit_index in range(state.buildings.size()):
+		if business_profit_remaining <= 0:
+			break
 		var profit_building = state.buildings[profit_index]
 		var pending_profit = max(0, int(profit_building.get("balance", 0)))
 		if pending_profit <= 0:
 			continue
-		automatic_business_profit += pending_profit
-		profit_building.balance = 0
+		var transferred = min(pending_profit, business_profit_remaining)
+		profit_building.balance = pending_profit - transferred
 		state.buildings[profit_index] = profit_building
-	if automatic_business_profit > 0:
-		income += automatic_business_profit
-		report.append("سود کسب‌وکارها به‌صورت خودکار به خزانه منتقل شد: %d سکه." % automatic_business_profit)
-	var accepted_income = _add_money(income)
+		business_profit_remaining -= transferred
+	if automatic_business_profit_transferred > 0:
+		report.append("سود کسب‌وکارها به‌صورت خودکار به خزانه منتقل شد: %d سکه." % automatic_business_profit_transferred)
+	if automatic_business_profit_transferred < automatic_business_profit:
+		report.append("به‌دلیل پر بودن ظرفیت خزانه، %d سکه سود در حساب کسب‌وکارها باقی ماند." % (automatic_business_profit - automatic_business_profit_transferred))
 	if accepted_income < income:
 		report.append("ظرفیت خزانه پر است؛ %d سکه از درآمد امروز دریافت نشد." % (income - accepted_income))
 	state.last_economy = {
@@ -1501,20 +1526,22 @@ func end_day():
 		"food_units_consumed": int(citizen_market.food_units),
 		"food_stock": int(state.resources.get("food",0)),
 		"business_income": business_income_total,
-		"automatic_business_profit": automatic_business_profit,
+		"development_support": development_support_paid,
+		"automatic_business_profit": automatic_business_profit_transferred,
 		"resource_income": resource_income_total,
 		"station_income": station_income,
 		"road_income": road_income,
-		"gross_income": income,
-		"accepted_income": accepted_income,
+		"gross_income": income + development_support_paid,
+		"accepted_income": accepted_income + development_support_paid,
 		"wages_due": total_wages,
 		"wages_paid": paid_wages,
 		"fleet_maintenance": fleet_maintenance,
 		"road_maintenance": road_maintenance,
 		"maintenance_paid": maintenance_paid,
-		"net_cashflow": accepted_income - paid_wages - maintenance_paid
+		"net_cashflow": accepted_income + development_support_paid - paid_wages - maintenance_paid
 	}
-	report.append("خلاصه مالی: درآمد %d | حقوق %d | تغییر خالص خزانه %d سکه." % [accepted_income, paid_wages, accepted_income - paid_wages - maintenance_paid])
+	var total_accepted_income = accepted_income + development_support_paid
+	report.append("خلاصه مالی: درآمد %d | حقوق %d | تغییر خالص خزانه %d سکه." % [total_accepted_income, paid_wages, total_accepted_income - paid_wages - maintenance_paid])
 	for restock_id in RESOURCES.keys():
 		state.market_stock[restock_id] = min(100, int(state.market_stock.get(restock_id, 0)) + 5)
 	_refresh_trade_capacity()
