@@ -8,7 +8,7 @@ func _init():
 	get_root().add_child(main)
 	main.game = EngineScript.new()
 	main.game.new_game()
-	for page in ["home","buildings","citizens","bank","municipality","private_economy","commerce","transport","imports","storage","report","missions","progress"]:
+	for page in ["home","buildings","citizens","bank","municipality","private_economy","commerce","transport","imports","storage","report","missions","progress","help"]:
 		main.show_page(page)
 	main.home_city_details_expanded = true
 	main.show_page("home")
