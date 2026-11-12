@@ -746,6 +746,22 @@ func show_page(page):
 						var building_id = str(building.get("id", ""))
 						var building_definition = game.get_building_definitions().get(building_id, {})
 						_add_label("%s" % str(building_definition.get("name", "ساختمان")), 16)
+						var production_output = str(building_definition.get("output", ""))
+						if production_output != "":
+							var assigned_workers = game._workers_for_building(i)
+							var required_workers = int(building_definition.get("jobs", 0))
+							var production_amount = int(building_definition.get("amount", 0))
+							var production_status = "آماده تولید در نوبت اقتصادی بعدی"
+							if assigned_workers <= 0:
+								production_status = "متوقف — بدون کارگر"
+							elif building_id == "woodcutter" and game.get_forest_tree_count() <= 0:
+								production_status = "متوقف — درختی در جنگل باقی نمانده"
+							elif str(building_definition.get("input", "")) != "" and int(s.resources.get(str(building_definition.get("input", "")), 0)) < int(building_definition.get("input_amount", 0)):
+								production_status = "متوقف — مواد اولیه کافی نیست"
+							elif game.get_free_storage() < production_amount:
+								production_status = "متوقف — انبار جا ندارد"
+							_add_label("وضعیت تولید: %s" % production_status, 15)
+							_add_label("نیروی کار: %d از %d نفر | محصول: %s" % [assigned_workers, required_workers, str(game.get_resource_definitions().get(production_output, {}).get("name", production_output))], 14)
 						if int(building.get("balance", 0)) > 0:
 							_add_label("حساب %s: %d سکه" % [str(building_definition.get("name", "ساختمان")), int(building.get("balance", 0))], 15)
 							_add_button("برداشت سود %s: %d سکه" % [str(building_definition.get("name", "ساختمان")), int(building.get("balance", 0))], self, "collect_profit", [i])
