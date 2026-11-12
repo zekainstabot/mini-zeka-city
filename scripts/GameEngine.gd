@@ -107,6 +107,7 @@ var TRADE_CITIES = {
 }
 
 func _init():
+	randomize()
 	_add_iran_provincial_capitals()
 	# Keep legacy trade-city fish demand separate; provincial demand is defined per province.
 	for city_id in ["mehrabad","navid","golestan"]:
@@ -377,6 +378,10 @@ func _ensure_daily_missions():
 			"baseline_buildings": state.get("buildings", []).size(),
 			"baseline_employed": get_employed_count(),
 			"baseline_city_day": int(state.get("day", 1)),
+			"baseline_land": int(state.get("land_owned", 10)),
+			"baseline_population": int(state.get("population", 0)),
+			"baseline_exports": int(state.get("trade_exported_units_total", 0)),
+			"baseline_profit_collections": int(state.get("business_profit_collections_total", 0)),
 			"claimed": []
 		}
 		state["daily_missions"] = daily
@@ -388,10 +393,27 @@ func get_daily_missions():
 	var building_progress = max(0, state.get("buildings", []).size() - int(daily.get("baseline_buildings", 0)))
 	var employed_progress = max(0, get_employed_count() - int(daily.get("baseline_employed", 0)))
 	var day_progress = max(0, int(state.get("day", 1)) - int(daily.get("baseline_city_day", 1)))
+	var land_progress = max(0, int(state.get("land_owned", 10)) - int(daily.get("baseline_land", 10)))
+	var population_progress = max(0, int(state.get("population", 0)) - int(daily.get("baseline_population", 0)))
+	var export_progress = max(0, int(state.get("trade_exported_units_total", 0)) - int(daily.get("baseline_exports", 0)))
+	var profit_progress = max(0, int(state.get("business_profit_collections_total", 0)) - int(daily.get("baseline_profit_collections", 0)))
 	var claimed = daily.get("claimed", [])
+	var rotation = int(daily.get("day_serial", 0)) % 3
+	if rotation == 0:
+		return [
+			{"id":"daily_build","title":"یک قدم برای توسعه","description":"امروز یک ساختمان جدید بساز.","progress":min(1, building_progress),"goal":1,"reward":180,"xp":12,"claimed":"daily_build" in claimed},
+			{"id":"daily_hire","title":"فرصت شغلی تازه","description":"امروز حداقل یک شهروند را شاغل کن.","progress":min(1, employed_progress),"goal":1,"reward":140,"xp":10,"claimed":"daily_hire" in claimed},
+			{"id":"daily_day","title":"یک روز مدیریت موفق","description":"امروز یک روز بازی را با موفقیت به پایان برسان.","progress":min(1, day_progress),"goal":1,"reward":120,"xp":8,"claimed":"daily_day" in claimed}
+		]
+	elif rotation == 1:
+		return [
+			{"id":"daily_land","title":"گسترش محدوده","description":"امروز یک قطعه زمین به شهر اضافه کن.","progress":min(1, land_progress),"goal":1,"reward":160,"xp":11,"claimed":"daily_land" in claimed},
+			{"id":"daily_population","title":"شهر رو به رشد","description":"امروز جمعیت شهر را حداقل یک نفر افزایش بده.","progress":min(1, population_progress),"goal":1,"reward":170,"xp":12,"claimed":"daily_population" in claimed},
+			{"id":"daily_export","title":"تاجر یک‌روزه","description":"امروز حداقل ۳ واحد کالا صادر کن.","progress":min(3, export_progress),"goal":3,"reward":200,"xp":15,"claimed":"daily_export" in claimed}
+		]
 	return [
-		{"id":"daily_build","title":"یک قدم برای توسعه","description":"امروز یک ساختمان جدید بساز.","progress":min(1, building_progress),"goal":1,"reward":180,"xp":12,"claimed":"daily_build" in claimed},
-		{"id":"daily_hire","title":"فرصت شغلی تازه","description":"امروز حداقل یک شهروند را شاغل کن.","progress":min(1, employed_progress),"goal":1,"reward":140,"xp":10,"claimed":"daily_hire" in claimed},
+		{"id":"daily_profit","title":"سودآوری کسب‌وکار","description":"امروز سود یک کسب‌وکار را به خزانه منتقل کن.","progress":min(1, profit_progress),"goal":1,"reward":160,"xp":12,"claimed":"daily_profit" in claimed},
+		{"id":"daily_satisfaction","title":"شهردار محبوب","description":"رضایت شهر را به ۷۰ یا بیشتر برسان.","progress":1 if int(state.get("satisfaction", 0)) >= 70 else 0,"goal":1,"reward":170,"xp":12,"claimed":"daily_satisfaction" in claimed},
 		{"id":"daily_day","title":"یک روز مدیریت موفق","description":"امروز یک روز بازی را با موفقیت به پایان برسان.","progress":min(1, day_progress),"goal":1,"reward":120,"xp":8,"claimed":"daily_day" in claimed}
 	]
 
@@ -865,6 +887,7 @@ func _normalize_state():
 	if typeof(state.get("long_term_project_claimed", null)) != TYPE_ARRAY:
 		state["long_term_project_claimed"] = []
 	state["next_resident_request_id"] = max(1, int(state.get("next_resident_request_id", 1)))
+	state["next_resident_request_day"] = max(int(state.get("day", 1)) + 1, int(state.get("next_resident_request_day", int(state.get("day", 1)) + 3)))
 	state["last_login_day_serial"] = int(state.get("last_login_day_serial", -1))
 	state["login_streak"] = max(0, int(state.get("login_streak", 0)))
 	state["active_play_seconds_today"] = max(0.0, float(state.get("active_play_seconds_today", 0.0)))
