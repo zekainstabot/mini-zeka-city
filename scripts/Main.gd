@@ -661,13 +661,15 @@ func _build_ui():
 func _update_mission_reward_badge():
 	if mission_reward_badge == null or not is_instance_valid(mission_reward_badge) or game == null:
 		return
-	var ready_to_claim = false
+	var ready_count = 0
 	for mission in game.get_missions():
 		if bool(mission.get("completed", false)) and not bool(mission.get("claimed", false)) and bool(mission.get("unlocked", false)):
-			ready_to_claim = true
-			break
-	mission_reward_badge.text = PersianText.reshaper("🎁  جایزه آماده دریافت  🎁" if ready_to_claim else "")
-	mission_reward_badge.visible = ready_to_claim
+			ready_count += 1
+	for daily_mission in game.get_daily_missions():
+		if int(daily_mission.get("progress", 0)) >= int(daily_mission.get("goal", 1)) and not bool(daily_mission.get("claimed", false)):
+			ready_count += 1
+	mission_reward_badge.text = PersianText.reshaper("🎁 %d جایزه آماده" % ready_count if ready_count > 0 else "")
+	mission_reward_badge.visible = ready_count > 0
 
 func _create_menu_action(title, callback):
 	var button = Button.new()
@@ -1905,6 +1907,14 @@ func show_page(page):
 				elif daily_done:
 					_add_daily_claim_button(daily_body, str(daily_mission.id))
 				else:
+					var daily_go_button = Button.new()
+					daily_go_button.text = PersianText.reshaper("رفتن ←")
+					daily_go_button.rect_min_size = Vector2(0, 46 if get_viewport_rect().size.x < 900 else 40)
+					daily_go_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+					_apply_font(daily_go_button, 17)
+					_style_button(daily_go_button, false)
+					daily_go_button.connect("pressed", self, "go_to_mission_target", [str(daily_mission.id)])
+					daily_body.add_child(daily_go_button)
 					var daily_waiting = Label.new()
 					daily_waiting.text = PersianText.reshaper("● در حال انجام")
 					daily_waiting.align = Label.ALIGN_RIGHT
@@ -1938,8 +1948,7 @@ func show_page(page):
 					else:
 						main_claimed += 1
 			_add_label("🎯 مأموریت‌های شهر", 23)
-			_add_label("اصلی: آموزش مرحله‌به‌مرحله | فرعی: کسب پول و تجربه بیشتر", 16)
-			_add_label("آموزش اصلی: %d از %d | مأموریت فرعی: %d از %d" % [main_claimed,main_total,side_claimed,side_total],18)
+			_add_label("اصلی: %d از %d تکمیل‌شده   |   فرعی: %d از %d تکمیل‌شده" % [main_claimed,main_total,side_claimed,side_total],17)
 			var summary_panel = PanelContainer.new()
 			var summary_style = StyleBoxFlat.new()
 			summary_style.bg_color = Color("#172b3f")
@@ -1980,7 +1989,7 @@ func show_page(page):
 				if is_legacy_mission:
 					if mission_is_claimed or not bool(mission.get("completed", false)):
 						continue
-				elif mission_is_claimed or not mission_is_unlocked:
+				elif not mission_is_unlocked:
 					continue
 				visible_missions += 1
 				var mission_type = "legacy" if is_legacy_mission else str(definition.get("type","main"))
@@ -1990,11 +1999,9 @@ func show_page(page):
 						_add_label("🎁 پاداش‌های باقی‌مانده از نسخه قبلی", 21)
 						_add_label("اگر در نسخه قبلی مأموریتی را کامل کرده بودی اما جایزه‌اش را نگرفته بودی، اینجا هنوز قابل دریافت است.",15)
 					elif mission_type == "main":
-						_add_label("📘 مأموریت‌های اصلی | آموزش بازی", 21)
-						_add_label("این مسیر را به‌ترتیب پیش ببر؛ هر مرحله بخش تازه‌ای از مدیریت شهر را آموزش می‌دهد.",15)
+						_add_label("📘 مأموریت‌های اصلی", 21)
 					else:
-						_add_label("⭐ ادامه مسیر مأموریت‌ها | پول و تجربه", 21)
-						_add_label("این مأموریت‌ها به‌ترتیب باز می‌شوند؛ با دریافت جایزه هر مرحله، هدف بعدی فعال می‌شود.",15)
+						_add_label("⭐ مأموریت‌های فرعی", 21)
 				var is_claimed = bool(mission.get("claimed", false))
 				var is_completed = bool(mission.get("completed", false))
 				var card = PanelContainer.new()
@@ -2098,10 +2105,10 @@ func show_page(page):
 					hint_label.add_color_override("font_color", Color("#cbd5e1"))
 					card_body.add_child(hint_label)
 				var go_button = Button.new()
-				go_button.text = PersianText.reshaper("رفتن به بخش مربوط به این مأموریت  ←")
-				go_button.rect_min_size = Vector2(0, 58 if get_viewport_rect().size.x < 900 else 50)
+				go_button.text = PersianText.reshaper("رفتن به بخش مربوط  ←")
+				go_button.rect_min_size = Vector2(0, 50 if get_viewport_rect().size.x < 900 else 42)
 				go_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				_apply_font(go_button, 19 if get_viewport_rect().size.x < 900 else 17)
+				_apply_font(go_button, 17 if get_viewport_rect().size.x < 900 else 16)
 				_style_button(go_button, false)
 				go_button.connect("pressed", self, "go_to_mission_target", [str(mission.get("id", ""))])
 				card_body.add_child(go_button)
@@ -2616,6 +2623,17 @@ func go_to_mission_target(mission_id):
 	var target_page = "home"
 	selected_building_category = ""
 	match str(mission_id):
+		"daily_build", "daily_land":
+			target_page = "buildings"
+		"daily_hire", "daily_population", "daily_satisfaction":
+			target_page = "citizens"
+		"daily_export":
+			target_page = "transport"
+		"daily_profit":
+			target_page = "buildings"
+			selected_building_category = "کسب‌وکارها"
+		"daily_day":
+			target_page = "home"
 		"buy_land_tutorial", "build_house_tutorial":
 			target_page = "buildings"
 			selected_building_category = "خانه‌ها" if str(mission_id) == "build_house_tutorial" else ""

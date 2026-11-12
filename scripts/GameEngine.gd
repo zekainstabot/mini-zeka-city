@@ -2215,11 +2215,16 @@ func _update_missions():
 			mission["unlocked"] = bool(mission.get("completed", false)) and not bool(mission.get("claimed", false))
 			state.missions[i] = mission
 			continue
-		mission["unlocked"] = previous_claimed
+		# Side missions are always independently available; only the main path is sequential.
+		if str(definition.get("type", "main")) == "side":
+			mission["unlocked"] = true
+		else:
+			mission["unlocked"] = previous_claimed
 		var progress = min(int(definition.goal), _get_mission_progress(mission_id))
 		mission["progress"] = progress
 		mission["completed"] = progress >= int(definition.goal)
-		previous_claimed = bool(mission.get("claimed", false))
+		if str(definition.get("type", "main")) == "main":
+			previous_claimed = bool(mission.get("claimed", false))
 		state.missions[i] = mission
 
 func get_missions():
