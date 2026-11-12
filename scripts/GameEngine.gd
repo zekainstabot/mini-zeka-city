@@ -1,4 +1,4 @@
-extends Reference
+extends RefCounted
 class_name MiniZekaCityEngine
 
 const CitizenSociety = preload("res://scripts/CitizenSociety.gd")
@@ -265,7 +265,7 @@ func new_game():
 		"version": 18,
 		"districts": [],
 		"day": 1,
-		"clock_last_unix": OS.get_unix_time(),
+		"clock_last_unix": Time.get_unix_time_from_system(),
 		"clock_cycle_seconds": 0,
 		"pending_offline_income": 0,
 		"pending_offline_days": 0,
@@ -342,7 +342,7 @@ func new_game():
 		"citizens": [],
 		"last_economy": {"tax_income":0,"business_income":0,"resource_income":0,"gross_income":0,"accepted_income":0,"wages_due":0,"wages_paid":0,"fleet_maintenance":0,"road_maintenance":0,"maintenance_paid":0,"net_cashflow":0},
 		"last_report": "شهر جدید ساخته شد. به مینی زکا سیتی خوش آمدی.",
-		"report_events": [{"timestamp":OS.get_unix_time(),"day":1,"message":"شهر جدید ساخته شد. به مینی زکا سیتی خوش آمدی."}]
+		"report_events": [{"timestamp":Time.get_unix_time_from_system(),"day":1,"message":"شهر جدید ساخته شد. به مینی زکا سیتی خوش آمدی."}]
 	}
 	_sync_population()
 	CitizenSociety.new().ensure_state(self)
@@ -356,7 +356,9 @@ func load_game():
 		return false
 	if file.open(SAVE_PATH, File.READ) != OK:
 		return false
-	var parsed = parse_json(file.get_as_text())
+	var test_json_conv = JSON.new()
+	test_json_conv.parse(file.get_as_text())
+	var parsed = test_json_conv.get_data()
 	file.close()
 	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 18:
 		return false
@@ -575,7 +577,7 @@ func _process_resident_requests(report):
 	for candidate in candidates:
 		var need_value = int(state.get("needs", {}).get(str(candidate.need), 100))
 		var building_data = BUILDINGS.get(str(candidate.building), {})
-		if need_value >= int(candidate.threshold) or building_data.empty():
+		if need_value >= int(candidate.threshold) or building_data.is_empty():
 			continue
 		if get_building_count(str(candidate.building)) > 0:
 			continue
@@ -593,11 +595,11 @@ func _process_resident_requests(report):
 		if need_value < lowest:
 			lowest = need_value
 			selected = candidate
-	if selected.empty():
+	if selected.is_empty():
 		state["next_resident_request_day"] = int(state.get("day", 1)) + 3
 		return
 	var citizen_id = 0
-	if not state.get("citizens", []).empty():
+	if not state.get("citizens", []).is_empty():
 		var citizen = state.citizens[int(randi() % state.citizens.size())]
 		citizen_id = int(citizen.get("id", 0))
 	var request_id = int(state.get("next_resident_request_id", 1))
@@ -852,7 +854,7 @@ func get_rival_standings():
 	standings.append({"id":"player","name":"شهر من","score":int(player_league.score),"population":int(state.get("population", 0)),"level":int(state.get("level", 1)),"is_player":true})
 	for rival in state.get("rival_cities", _default_rival_cities()):
 		standings.append({"id":str(rival.get("id","rival")),"name":str(rival.get("name","شهر رقیب")),"score":int(rival.get("score",0)),"population":int(rival.get("population",0)),"level":int(rival.get("level",1)),"is_player":false})
-	standings.sort_custom(self, "_sort_rival_standings")
+	standings.sort_custom(Callable(self, "_sort_rival_standings"))
 	for index in range(standings.size()):
 		standings[index]["rank"] = index + 1
 	return standings
@@ -861,7 +863,7 @@ func _sort_rival_standings(a, b):
 	return int(a.get("score", 0)) > int(b.get("score", 0))
 
 func _process_mystery_discovery(report):
-	if not state.get("mystery_active", {}).empty():
+	if not state.get("mystery_active", {}).is_empty():
 		return
 	if int(state.get("day", 1)) < int(state.get("mystery_next_day", 4)):
 		return
@@ -883,7 +885,7 @@ func _process_mystery_discovery(report):
 		if str(candidate.id) in completed or int(state.get("level", 1)) < int(candidate.min_level):
 			continue
 		available.append(candidate)
-	if available.empty():
+	if available.is_empty():
 		return
 	var selected = available[int(randi() % available.size())].duplicate(true)
 	state["mystery_active"] = selected
@@ -891,7 +893,7 @@ func _process_mystery_discovery(report):
 
 func get_mystery_status():
 	var mystery = state.get("mystery_active", {}).duplicate(true)
-	if mystery.empty():
+	if mystery.is_empty():
 		return {"active":false,"completed":state.get("mystery_completed", []).size(),"next_day":int(state.get("mystery_next_day", 4))}
 	var progress = 0
 	match str(mystery.get("kind", "")):
@@ -928,7 +930,7 @@ func claim_mystery_reward():
 	return {"ok":true,"message":"راز مخفی کشف شد! %d سکه و %d تجربه گرفتی. %s" % [reward,xp,xp_message]}
 
 func _maybe_create_city_decision(report):
-	if not state.get("pending_city_decision", {}).empty():
+	if not state.get("pending_city_decision", {}).is_empty():
 		return
 	if int(state.get("day", 1)) < int(state.get("next_city_decision_day", 6)):
 		return
@@ -949,14 +951,14 @@ func get_pending_city_decision():
 
 func resolve_city_decision(option_id):
 	var decision = state.get("pending_city_decision", {})
-	if decision.empty():
+	if decision.is_empty():
 		return {"ok":false,"message":"تصمیم معوقی وجود ندارد."}
 	var selected = {}
 	for option in decision.get("options", []):
 		if str(option.get("id", "")) == str(option_id):
 			selected = option
 			break
-	if selected.empty():
+	if selected.is_empty():
 		return {"ok":false,"message":"این گزینه معتبر نیست."}
 	var effect = str(selected.get("effect", ""))
 	if effect == "festival_fund" or effect == "water_invest":
@@ -996,14 +998,14 @@ func get_landmark_project_definitions():
 
 func get_landmark_project_status():
 	var active = state.get("landmark_project", {}).duplicate(true)
-	if active.empty():
+	if active.is_empty():
 		return {"active":false,"completed":state.get("landmark_projects_completed", []).duplicate(true)}
 	var definition = {}
 	for project in get_landmark_project_definitions():
 		if str(project.id) == str(active.get("id", "")):
 			definition = project
 			break
-	if definition.empty():
+	if definition.is_empty():
 		return {"active":false,"completed":state.get("landmark_projects_completed", []).duplicate(true)}
 	var stage_index = int(active.get("stage", 0))
 	if stage_index >= definition.stages.size():
@@ -1017,7 +1019,7 @@ func get_landmark_project_status():
 	return {"active":true,"id":str(definition.id),"title":str(definition.title),"description":str(definition.description),"stage":stage_index+1,"stage_total":definition.stages.size(),"stage_data":stage,"requirements_met":requirements_met,"reward":int(definition.reward),"xp":int(definition.xp)}
 
 func start_landmark_project(project_id):
-	if not state.get("landmark_project", {}).empty():
+	if not state.get("landmark_project", {}).is_empty():
 		return {"ok":false,"message":"ابتدا پروژه عظیم فعلی را به پایان برسان."}
 	if str(project_id) in state.get("landmark_projects_completed", []):
 		return {"ok":false,"message":"این سازه قبلاً در شهر افتتاح شده است."}
@@ -1119,7 +1121,7 @@ func add_report_event(message, persist=true):
 		return
 	if typeof(state.get("report_events", null)) != TYPE_ARRAY:
 		state["report_events"] = []
-	state.report_events.append({"timestamp":OS.get_unix_time(),"day":int(state.get("day", 1)),"message":clean_message})
+	state.report_events.append({"timestamp":Time.get_unix_time_from_system(),"day":int(state.get("day", 1)),"message":clean_message})
 	while state.report_events.size() > 100:
 		state.report_events.pop_front()
 	if persist:
@@ -1129,7 +1131,7 @@ func save_game():
 	var file = File.new()
 	if file.open(SAVE_PATH, File.WRITE) != OK:
 		return false
-	file.store_string(to_json(state))
+	file.store_string(JSON.new().stringify(state))
 	file.close()
 	return true
 
@@ -1177,7 +1179,7 @@ func _normalize_state():
 	if not state.has("last_import_report"):
 		state["last_import_report"] = "هنوز محموله‌ای سفارش داده نشده است."
 	if not state.has("clock_last_unix"):
-		state["clock_last_unix"] = OS.get_unix_time()
+		state["clock_last_unix"] = Time.get_unix_time_from_system()
 	if not state.has("clock_cycle_seconds"):
 		state["clock_cycle_seconds"] = 0
 	if not state.has("pending_offline_income"):
@@ -1242,7 +1244,7 @@ func _normalize_state():
 		state["long_term_project_claimed"] = []
 	if typeof(state.get("weekly_challenge", null)) != TYPE_DICTIONARY:
 		state["weekly_challenge"] = {}
-	if typeof(state.get("rival_cities", null)) != TYPE_ARRAY or state.get("rival_cities", []).empty():
+	if typeof(state.get("rival_cities", null)) != TYPE_ARRAY or state.get("rival_cities", []).is_empty():
 		state["rival_cities"] = _default_rival_cities()
 	if typeof(state.get("mystery_active", null)) != TYPE_DICTIONARY:
 		state["mystery_active"] = {}
@@ -1786,7 +1788,7 @@ func build(id):
 	var xp_message = _award_xp(earned_xp)
 	if construction_times.has(id):
 		var seconds = int(construction_times[id])
-		state.constructions.append({"id":id,"finish_at":OS.get_unix_time()+seconds,"zone":location.zone,"district_id":location.district_id,"district_name":location.district_name})
+		state.constructions.append({"id":id,"finish_at":Time.get_unix_time_from_system()+seconds,"zone":location.zone,"district_id":location.district_id,"district_name":location.district_name})
 		save_game()
 		return {"ok":true,"message":data.name+" شروع شد؛ زمان ساخت: %d دقیقه. محل ساخت: %s. هزینه پرداخت شد. +%d تجربه. %s" % [int(ceil(float(seconds)/60.0)),location_label,earned_xp,xp_message]}
 	if id == "central_bank":
@@ -1802,7 +1804,7 @@ func build(id):
 	return {"ok":true,"message":data.name+" با موفقیت در %s ساخته شد. +%d تجربه. %s" % [location_label,earned_xp,xp_message]}
 
 func process_constructions():
-	var now = OS.get_unix_time()
+	var now = Time.get_unix_time_from_system()
 	var remaining = []
 	var completed = []
 	for construction in state.get("constructions", []):
@@ -1833,7 +1835,7 @@ func get_active_construction_count():
 
 func get_construction_status():
 	var result = []
-	var now = OS.get_unix_time()
+	var now = Time.get_unix_time_from_system()
 	for construction in state.get("constructions", []):
 		var id = str(construction.get("id", ""))
 		if not BUILDINGS.has(id):
@@ -1904,7 +1906,7 @@ func assign_jobs():
 		var citizen = state.citizens[citizen_index]
 		if int(citizen.get("private_job_id", 0)) > 0:
 			continue
-		if workplaces.empty():
+		if workplaces.is_empty():
 			break
 		var building_index = workplaces[0]
 		citizen.job_building_index = building_index
@@ -2211,7 +2213,7 @@ func _update_missions():
 			if str(candidate.id) == mission_id:
 				definition = candidate
 				break
-		if definition.empty():
+		if definition.is_empty():
 			continue
 		if bool(definition.get("legacy", false)):
 			# Preserve unclaimed rewards from older versions without adding
@@ -2690,7 +2692,7 @@ func _process_citizen_purchases(report):
 		var weight = int(max(1, int(data.get("service_capacity", 1)) * workers / required))
 		shops.append({"index":i,"weight":weight})
 		total_weight += weight
-	if shops.empty() or total_weight <= 0:
+	if shops.is_empty() or total_weight <= 0:
 		return {"spending":0,"tax":0,"buyers":0,"business_revenue":0,"food_units":0}
 	var spending = 0
 	var sales_tax = 0

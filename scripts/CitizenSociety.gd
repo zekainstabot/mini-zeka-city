@@ -1,4 +1,4 @@
-extends Reference
+extends RefCounted
 
 # Independent citizen economy and municipal request system.
 # Private businesses use their own cash balances and never merge with the player's treasury.
@@ -105,7 +105,7 @@ func _find_rentable_building(engine):
 		var building = state.buildings[i]
 		var data = engine.get_building_definitions().get(str(building.get("id", "")), {})
 		var category = str(data.get("category", ""))
-		if data.empty() or int(data.get("jobs", 0)) <= 0:
+		if data.is_empty() or int(data.get("jobs", 0)) <= 0:
 			continue
 		if category != "کسب‌وکارها" and category != "کارخانه‌ها":
 			continue
@@ -304,7 +304,7 @@ func _choose_public_project(engine):
 			continue
 		var building_id = str(candidate.id)
 		var data = engine.get_building_definitions().get(building_id, {})
-		if data.empty():
+		if data.is_empty():
 			continue
 		if int(state.population) < int(data.get("unlock", 0)) or int(state.level) < int(data.get("level_unlock", 1)):
 			continue
@@ -321,7 +321,7 @@ func _choose_public_project(engine):
 
 func _queue_public_project_requests(engine):
 	var state = engine.state
-	if not state.civic_projects.empty():
+	if not state.civic_projects.is_empty():
 		return
 	# Residents can initiate a public project even when no private company exists.
 	var candidates = []
@@ -346,7 +346,7 @@ func _queue_public_project_requests(engine):
 			continue
 		candidates.append({"citizen":citizen,"building_id":building_id,"cost":cost,"contribution":contribution,"score":civic_score})
 	if candidates.size() > 0:
-		candidates.sort_custom(self, "_sort_civic_candidates")
+		candidates.sort_custom(Callable(self, "_sort_civic_candidates"))
 		var selected = candidates[0]
 		var citizen = selected.citizen
 		var building_id = str(selected.building_id)
@@ -403,7 +403,7 @@ func _process_private_businesses(engine, report):
 	for business_index in range(state.private_businesses.size()):
 		var business = state.private_businesses[business_index]
 		var data = engine.get_building_definitions().get(str(business.get("building_id", "")), {})
-		if data.empty():
+		if data.is_empty():
 			continue
 		var employee_ids = []
 		for citizen_index in range(state.citizens.size()):
@@ -555,7 +555,7 @@ func process_day(engine, report):
 		summary["private_business_tax"] = _process_private_businesses(engine, report)
 		_queue_land_or_permit_requests(engine)
 		_queue_public_project_requests(engine)
-		if not state.business_requests.empty():
+		if not state.business_requests.is_empty():
 			report.append("%d درخواست شهروندان برای زمین، مجوز یا پروژه عمرانی در شهرداری منتظر بررسی است." % state.business_requests.size())
 	engine.state = state
 	return summary
@@ -663,7 +663,7 @@ func resolve_request(engine, request_id, approved):
 		var footprint = int(request.get("footprint", 1))
 		var permit_fee = int(state.get("business_permit_fee", 50))
 		var permit_treasury_room = max(0, engine.get_treasury_capacity() - int(state.money))
-		if data.empty() or int(citizen.get("private_land", 0)) < footprint or int(citizen.get("wallet", 0)) < cost or permit_treasury_room < permit_fee:
+		if data.is_empty() or int(citizen.get("private_land", 0)) < footprint or int(citizen.get("wallet", 0)) < cost or permit_treasury_room < permit_fee:
 			return {"ok":false,"message":"شرایط زمین یا سرمایه برای صدور مجوز دیگر برقرار نیست."}
 		var business_id = int(state.get("next_private_business_id", 1))
 		state["next_private_business_id"] = business_id + 1
@@ -703,7 +703,7 @@ func resolve_request(engine, request_id, approved):
 		var data = engine.get_building_definitions().get(building_id, {})
 		var contribution = int(request.get("contribution", 0))
 		var municipal_amount = int(request.get("municipal_amount", 0))
-		if data.empty() or int(citizen.get("wallet", 0)) < contribution or engine.get_available_money() < municipal_amount:
+		if data.is_empty() or int(citizen.get("wallet", 0)) < contribution or engine.get_available_money() < municipal_amount:
 			return {"ok":false,"message":"سرمایه شهروند یا بودجه شهرداری برای مشارکت در این پروژه کافی نیست."}
 		if engine.get_land_free() < int(engine.get_land_size(building_id)):
 			return {"ok":false,"message":"زمین آزاد برای اجرای این پروژه عمومی کافی نیست."}

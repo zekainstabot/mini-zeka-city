@@ -4,7 +4,7 @@ const MainScene = preload("res://Main.tscn")
 const EngineScript = preload("res://scripts/GameEngine.gd")
 
 func _init():
-	var main = MainScene.instance()
+	var main = MainScene.instantiate()
 	get_root().add_child(main)
 	main.game = EngineScript.new()
 	main.game.new_game()

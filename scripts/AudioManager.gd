@@ -128,7 +128,7 @@ func _apply_music(force_restart=false):
 	if not music_enabled or music_volume <= 0.001:
 		music_player.stop()
 		return
-	music_player.volume_db = linear2db(max(0.001, music_volume))
+	music_player.volume_db = linear_to_db(max(0.001, music_volume))
 	if force_restart or music_player.stream == null:
 		music_player.stream = _make_ambient_music(night_mode)
 	if not music_player.playing:
@@ -137,7 +137,7 @@ func _apply_music(force_restart=false):
 func _apply_effects():
 	for voice in effects_players:
 		if voice != null:
-			voice.volume_db = linear2db(max(0.001, effects_volume))
+			voice.volume_db = linear_to_db(max(0.001, effects_volume))
 
 func _apply_environment(force_restart=false):
 	if environment_player == null:
@@ -145,7 +145,7 @@ func _apply_environment(force_restart=false):
 	if not environment_enabled or environment_volume <= 0.001:
 		environment_player.stop()
 		return
-	environment_player.volume_db = linear2db(max(0.001, environment_volume))
+	environment_player.volume_db = linear_to_db(max(0.001, environment_volume))
 	if force_restart or environment_player.stream == null:
 		environment_player.stream = _make_environment_stream(environment_mode, night_mode)
 	if not environment_player.playing:
@@ -157,7 +157,7 @@ func play_sfx(kind="click"):
 		_apply_music()
 	if environment_enabled and environment_player != null and not environment_player.playing:
 		_apply_environment()
-	if not effects_enabled or effects_volume <= 0.001 or effects_players.empty():
+	if not effects_enabled or effects_volume <= 0.001 or effects_players.is_empty():
 		return
 	var selected_player = null
 	for voice in effects_players:
@@ -198,7 +198,7 @@ func play_sfx(kind="click"):
 func _make_environment_stream(mode, is_night):
 	var duration = 6.0
 	var sample_count = int(SAMPLE_RATE * duration)
-	var bytes = PoolByteArray()
+	var bytes = PackedByteArray()
 	bytes.resize(sample_count * 2)
 	for i in range(sample_count):
 		var t = float(i) / float(SAMPLE_RATE)
@@ -230,11 +230,11 @@ func _make_environment_stream(mode, is_night):
 		var value = int(clamp(sample * edge * 5200.0, -32767.0, 32767.0))
 		bytes[i * 2] = value & 0xff
 		bytes[i * 2 + 1] = (value >> 8) & 0xff
-	var stream = AudioStreamSample.new()
-	stream.format = AudioStreamSample.FORMAT_16_BITS
+	var stream = AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = SAMPLE_RATE
 	stream.stereo = false
-	stream.loop_mode = AudioStreamSample.LOOP_FORWARD
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	stream.loop_begin = 0
 	stream.loop_end = sample_count
 	stream.data = bytes
@@ -245,7 +245,7 @@ func _make_ambient_music(is_night):
 	if is_night:
 		notes = [220.0, 261.63, 329.63, 261.63, 196.0, 246.94, 293.66, 246.94]
 	var sample_count = SAMPLE_RATE * 8
-	var bytes = PoolByteArray()
+	var bytes = PackedByteArray()
 	bytes.resize(sample_count * 2)
 	for i in range(sample_count):
 		var t = float(i) / float(SAMPLE_RATE)
@@ -261,11 +261,11 @@ func _make_ambient_music(is_night):
 		var sample = int(clamp((fundamental * 0.48 + harmonic + pad) * fade * slow_pulse * 3900.0, -32767.0, 32767.0))
 		bytes[i * 2] = sample & 0xff
 		bytes[i * 2 + 1] = (sample >> 8) & 0xff
-	var stream = AudioStreamSample.new()
-	stream.format = AudioStreamSample.FORMAT_16_BITS
+	var stream = AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = SAMPLE_RATE
 	stream.stereo = false
-	stream.loop_mode = AudioStreamSample.LOOP_FORWARD
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	stream.loop_begin = 0
 	stream.loop_end = sample_count
 	stream.data = bytes
@@ -276,7 +276,7 @@ func _make_tone_stream(tones, master_gain):
 	for tone in tones:
 		duration = max(duration, float(tone[1]) + float(tone[2]))
 	var sample_count = int(ceil((duration + 0.04) * SAMPLE_RATE))
-	var bytes = PoolByteArray()
+	var bytes = PackedByteArray()
 	bytes.resize(sample_count * 2)
 	for i in range(sample_count):
 		var t = float(i) / float(SAMPLE_RATE)
@@ -292,8 +292,8 @@ func _make_tone_stream(tones, master_gain):
 		var sample = int(clamp(mixed * master_gain * 8500.0, -32767.0, 32767.0))
 		bytes[i * 2] = sample & 0xff
 		bytes[i * 2 + 1] = (sample >> 8) & 0xff
-	var stream = AudioStreamSample.new()
-	stream.format = AudioStreamSample.FORMAT_16_BITS
+	var stream = AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = SAMPLE_RATE
 	stream.stereo = false
 	stream.data = bytes

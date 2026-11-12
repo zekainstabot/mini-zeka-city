@@ -17,8 +17,8 @@ func _init():
 	var construction_limit_game = EngineScript.new()
 	construction_limit_game.new_game()
 	construction_limit_game.state.constructions = [
-		{"id":"small_park","finish_at":OS.get_unix_time()+120},
-		{"id":"bakery","finish_at":OS.get_unix_time()+180}
+		{"id":"small_park","finish_at":Time.get_unix_time_from_system()+120},
+		{"id":"bakery","finish_at":Time.get_unix_time_from_system()+180}
 	]
 	assert(construction_limit_game.get_active_construction_count() == 2)
 	var construction_money_before = int(construction_limit_game.state.money)
@@ -297,7 +297,7 @@ func _init():
 	var gated_summary = CitizenSocietyScript.new().process_day(civic_gate_game, gated_report)
 	assert(int(gated_summary.private_business_tax) == 0)
 	assert(int(civic_gate_game.state.private_businesses[0].balance) == 200)
-	assert(civic_gate_game.state.business_requests.empty())
+	assert(civic_gate_game.state.business_requests.is_empty())
 	assert(not civic_gate_game.resolve_civic_request(999, true).ok)
 	assert(not civic_gate_game.adjust_business_tax(1).ok)
 	var hall_build_result = civic_gate_game.build("municipal_hall")

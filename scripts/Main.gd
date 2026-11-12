@@ -63,7 +63,7 @@ func _input(event):
 		elif event is InputEventKey and event.pressed and not event.echo:
 			meaningful_input = true
 		if meaningful_input:
-			last_activity_ticks = OS.get_ticks_msec()
+			last_activity_ticks = Time.get_ticks_msec()
 	if game_scroll_container == null or not is_instance_valid(game_scroll_container):
 		return
 	if event is InputEventScreenTouch:
@@ -89,13 +89,13 @@ func _input(event):
 		if touch_scroll_dragging:
 			var delta_position = event.position - touch_scroll_last_position
 			if touch_scroll_axis == "horizontal":
-				var horizontal_bar = game_scroll_container.get_h_scrollbar()
+				var horizontal_bar = game_scroll_container.get_h_scroll_bar()
 				var max_horizontal = max(0.0, horizontal_bar.max_value - horizontal_bar.page)
 				game_scroll_container.scroll_horizontal = int(clamp(float(game_scroll_container.scroll_horizontal) - delta_position.x * 1.25, 0.0, max_horizontal))
 				horizontal_scroll_velocity = -delta_position.x * 13.0
 			elif touch_scroll_axis == "vertical":
 				var delta_y = event.position.y - touch_scroll_last_y
-				var bar = game_scroll_container.get_v_scrollbar()
+				var bar = game_scroll_container.get_v_scroll_bar()
 				var max_scroll = max(0.0, bar.max_value - bar.page)
 				game_scroll_container.scroll_vertical = int(clamp(float(game_scroll_container.scroll_vertical) - delta_y * 1.35, 0.0, max_scroll))
 		touch_scroll_last_y = event.position.y
@@ -103,7 +103,7 @@ func _input(event):
 
 func _process(delta):
 	if not touch_scroll_dragging and abs(horizontal_scroll_velocity) > 8.0 and game_scroll_container != null and is_instance_valid(game_scroll_container):
-		var horizontal_bar = game_scroll_container.get_h_scrollbar()
+		var horizontal_bar = game_scroll_container.get_h_scroll_bar()
 		var max_horizontal = max(0.0, horizontal_bar.max_value - horizontal_bar.page)
 		game_scroll_container.scroll_horizontal = int(clamp(float(game_scroll_container.scroll_horizontal) + horizontal_scroll_velocity * delta, 0.0, max_horizontal))
 		horizontal_scroll_velocity = lerp(horizontal_scroll_velocity, 0.0, min(1.0, delta * 7.5))
@@ -111,7 +111,7 @@ func _process(delta):
 		horizontal_scroll_velocity = 0.0
 	if game == null or game_paused:
 		return
-	if last_activity_ticks > 0 and OS.get_ticks_msec() - last_activity_ticks <= 90000:
+	if last_activity_ticks > 0 and Time.get_ticks_msec() - last_activity_ticks <= 90000:
 		game.record_active_play_seconds(delta)
 	clock_cycle_seconds += delta
 	var audio_night_mode = clock_cycle_seconds >= 420.0
@@ -138,7 +138,7 @@ func _process(delta):
 		var daily_audio_report = str(game.end_day())
 		if daily_audio_report.find("رویداد") >= 0 or daily_audio_report.find("تصمیم") >= 0:
 			audio_manager.play_sfx("event")
-		game.state["clock_last_unix"] = OS.get_unix_time()
+		game.state["clock_last_unix"] = Time.get_unix_time_from_system()
 		game.state["clock_cycle_seconds"] = int(clock_cycle_seconds)
 		game.save_game()
 		if current_page == "home":
@@ -151,7 +151,7 @@ func _process(delta):
 		clock_label.text = PersianText.reshaper("%s | زمان باقی‌مانده: " % phase) + _format_time_display(int(phase_remaining / 60), phase_remaining % 60)
 	if clock_save_accumulator >= 15.0:
 		clock_save_accumulator = 0.0
-		game.state["clock_last_unix"] = OS.get_unix_time()
+		game.state["clock_last_unix"] = Time.get_unix_time_from_system()
 		game.state["clock_cycle_seconds"] = int(clock_cycle_seconds)
 		game.save_game()
 
@@ -192,7 +192,7 @@ func _update_construction_time_labels():
 func _apply_offline_progress():
 	# Keep offline digest keys initialized even when no full offline day elapsed.
 	game.state["pending_offline_digest"] = game.state.get("pending_offline_digest", [])
-	var now = OS.get_unix_time()
+	var now = Time.get_unix_time_from_system()
 	var last = int(game.state.get("clock_last_unix", now))
 	var elapsed = max(0, now - last)
 	var offline_days = min(10, int(floor(float(elapsed) / 3600.0)))
@@ -233,7 +233,7 @@ func _show_offline_summary():
 	popup.name = "OfflineIncomePopup"
 
 	var card = PanelContainer.new()
-	card.rect_min_size = Vector2(popup_width, popup_height)
+	card.custom_minimum_size = Vector2(popup_width, popup_height)
 	var card_style = StyleBoxFlat.new()
 	card_style.bg_color = Color("#111c2e")
 	card_style.border_color = Color("#475569")
@@ -243,34 +243,34 @@ func _show_offline_summary():
 	card_style.content_margin_right = 14 if compact else 20
 	card_style.content_margin_top = 12 if compact else 18
 	card_style.content_margin_bottom = 12 if compact else 18
-	card.add_stylebox_override("panel", card_style)
+	card.add_theme_stylebox_override("panel", card_style)
 	popup.add_child(card)
 
 	var layout = VBoxContainer.new()
 	layout.name = "OfflineSummaryLayout"
 	layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	layout.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	layout.add_constant_override("separation", 7 if compact else 10)
+	layout.add_theme_constant_override("separation", 7 if compact else 10)
 	card.add_child(layout)
 
 	var welcome = Label.new()
 	welcome.text = PersianText.reshaper("خوش برگشتی! 👋")
-	welcome.align = Label.ALIGN_CENTER
+	welcome.align = Label.ALIGNMENT_CENTER
 	welcome.autowrap = true
 	_apply_font(welcome, 20 if compact else 22)
-	welcome.add_color_override("font_color", Color("#ffffff"))
+	welcome.add_theme_color_override("font_color", Color("#ffffff"))
 	layout.add_child(welcome)
 
 	var subtitle = Label.new()
 	subtitle.text = PersianText.reshaper("در مدتی که نبودی، شهر به فعالیتش ادامه داد.")
-	subtitle.align = Label.ALIGN_CENTER
+	subtitle.align = Label.ALIGNMENT_CENTER
 	subtitle.autowrap = true
 	_apply_font(subtitle, 13 if compact else 15)
-	subtitle.add_color_override("font_color", Color("#cbd5e1"))
+	subtitle.add_theme_color_override("font_color", Color("#cbd5e1"))
 	layout.add_child(subtitle)
 
 	var stats = VBoxContainer.new() if compact else HBoxContainer.new()
-	stats.add_constant_override("separation", 6 if compact else 8)
+	stats.add_theme_constant_override("separation", 6 if compact else 8)
 	layout.add_child(stats)
 
 	var days_panel = PanelContainer.new()
@@ -282,22 +282,22 @@ func _show_offline_summary():
 	days_style.content_margin_right = 8
 	days_style.content_margin_top = 6 if compact else 9
 	days_style.content_margin_bottom = 6 if compact else 9
-	days_panel.add_stylebox_override("panel", days_style)
+	days_panel.add_theme_stylebox_override("panel", days_style)
 	stats.add_child(days_panel)
 	var days_box = VBoxContainer.new()
-	days_box.add_constant_override("separation", 2)
+	days_box.add_theme_constant_override("separation", 2)
 	days_panel.add_child(days_box)
 	var days_value = Label.new()
 	days_value.text = PersianText.reshaper("%d روز" % days)
-	days_value.align = Label.ALIGN_CENTER
+	days_value.align = Label.ALIGNMENT_CENTER
 	_apply_font(days_value, 17 if compact else 20)
-	days_value.add_color_override("font_color", Color("#ffffff"))
+	days_value.add_theme_color_override("font_color", Color("#ffffff"))
 	days_box.add_child(days_value)
 	var days_caption = Label.new()
 	days_caption.text = PersianText.reshaper("مدت غیبت")
-	days_caption.align = Label.ALIGN_CENTER
+	days_caption.align = Label.ALIGNMENT_CENTER
 	_apply_font(days_caption, 11 if compact else 13)
-	days_caption.add_color_override("font_color", Color("#bfdbfe"))
+	days_caption.add_theme_color_override("font_color", Color("#bfdbfe"))
 	days_box.add_child(days_caption)
 
 	var money_panel = PanelContainer.new()
@@ -309,52 +309,52 @@ func _show_offline_summary():
 	money_style.content_margin_right = 8
 	money_style.content_margin_top = 6 if compact else 9
 	money_style.content_margin_bottom = 6 if compact else 9
-	money_panel.add_stylebox_override("panel", money_style)
+	money_panel.add_theme_stylebox_override("panel", money_style)
 	stats.add_child(money_panel)
 	var money_box = VBoxContainer.new()
-	money_box.add_constant_override("separation", 2)
+	money_box.add_theme_constant_override("separation", 2)
 	money_panel.add_child(money_box)
 	var money_value = Label.new()
 	money_value.text = PersianText.reshaper("%s سکه" % str(income))
-	money_value.align = Label.ALIGN_CENTER
+	money_value.align = Label.ALIGNMENT_CENTER
 	money_value.autowrap = true
 	_apply_font(money_value, 16 if compact else 19)
-	money_value.add_color_override("font_color", Color("#86efac") if income > 0 else Color("#e2e8f0"))
+	money_value.add_theme_color_override("font_color", Color("#86efac") if income > 0 else Color("#e2e8f0"))
 	money_box.add_child(money_value)
 	var money_caption = Label.new()
 	money_caption.text = PersianText.reshaper("درآمد آماده دریافت" if income > 0 else "مانده درآمد")
-	money_caption.align = Label.ALIGN_CENTER
+	money_caption.align = Label.ALIGNMENT_CENTER
 	money_caption.autowrap = true
 	_apply_font(money_caption, 10 if compact else 12)
-	money_caption.add_color_override("font_color", Color("#bbf7d0") if income > 0 else Color("#cbd5e1"))
+	money_caption.add_theme_color_override("font_color", Color("#bbf7d0") if income > 0 else Color("#cbd5e1"))
 	money_box.add_child(money_caption)
 
 	var news_title = Label.new()
 	news_title.text = PersianText.reshaper("گزارش اتفاقات شهر")
 	news_title.align = Label.ALIGN_RIGHT
 	_apply_font(news_title, 15 if compact else 17)
-	news_title.add_color_override("font_color", Color("#fbbf24"))
+	news_title.add_theme_color_override("font_color", Color("#fbbf24"))
 	layout.add_child(news_title)
 
 	var news_scroll = ScrollContainer.new()
 	news_scroll.name = "OfflineNewsScroll"
-	news_scroll.rect_min_size = Vector2(0, 70 if compact else 110)
+	news_scroll.custom_minimum_size = Vector2(0, 70 if compact else 110)
 	news_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	news_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	layout.add_child(news_scroll)
 	var news_list = VBoxContainer.new()
 	news_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	news_list.add_constant_override("separation", 5)
+	news_list.add_theme_constant_override("separation", 5)
 	news_scroll.add_child(news_list)
 
 	var digest_items = game.state.get("pending_offline_digest", [])
-	if digest_items.empty():
+	if digest_items.is_empty():
 		var empty_news = Label.new()
 		empty_news.text = PersianText.reshaper("اتفاق مهمی ثبت نشده؛ شهر آرام بوده است.")
-		empty_news.align = Label.ALIGN_CENTER
+		empty_news.align = Label.ALIGNMENT_CENTER
 		empty_news.autowrap = true
 		_apply_font(empty_news, 12 if compact else 14)
-		empty_news.add_color_override("font_color", Color("#cbd5e1"))
+		empty_news.add_theme_color_override("font_color", Color("#cbd5e1"))
 		news_list.add_child(empty_news)
 	else:
 		var shown_news = 0
@@ -370,7 +370,7 @@ func _show_offline_summary():
 			row_style.content_margin_right = 8
 			row_style.content_margin_top = 5
 			row_style.content_margin_bottom = 5
-			news_row.add_stylebox_override("panel", row_style)
+			news_row.add_theme_stylebox_override("panel", row_style)
 			news_list.add_child(news_row)
 			var news_label = Label.new()
 			news_label.text = PersianText.reshaper("• " + str(news_item))
@@ -378,35 +378,35 @@ func _show_offline_summary():
 			news_label.autowrap = true
 			news_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			_apply_font(news_label, 11 if compact else 13)
-			news_label.add_color_override("font_color", Color("#e2e8f0"))
+			news_label.add_theme_color_override("font_color", Color("#e2e8f0"))
 			news_row.add_child(news_label)
 			shown_news += 1
 
 	var note = Label.new()
 	note.text = PersianText.reshaper("درآمد تا زمان دریافت، جدا از خزانه نگه داشته می‌شود." if income > 0 else "درآمد و هزینه‌های این مدت محاسبه شده‌اند؛ مازاد درآمدی وجود ندارد.")
-	note.align = Label.ALIGN_CENTER
+	note.align = Label.ALIGNMENT_CENTER
 	note.autowrap = true
 	_apply_font(note, 11 if compact else 13)
-	note.add_color_override("font_color", Color("#94a3b8"))
+	note.add_theme_color_override("font_color", Color("#94a3b8"))
 	layout.add_child(note)
 
 	if income > 0:
 		var claim_button = Button.new()
 		claim_button.text = PersianText.reshaper("واریز درآمد به خزانه")
-		claim_button.rect_min_size = Vector2(0, 44 if compact else 50)
+		claim_button.custom_minimum_size = Vector2(0, 44 if compact else 50)
 		claim_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_apply_font(claim_button, 14 if compact else 17)
 		_style_button(claim_button, false)
-		claim_button.connect("pressed", self, "_claim_offline_income")
+		claim_button.connect("pressed", Callable(self, "_claim_offline_income"))
 		layout.add_child(claim_button)
 
 	var later_button = Button.new()
 	later_button.text = PersianText.reshaper("فعلاً نه، بعداً بررسی می‌کنم")
-	later_button.rect_min_size = Vector2(0, 40 if compact else 44)
+	later_button.custom_minimum_size = Vector2(0, 40 if compact else 44)
 	later_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_font(later_button, 12 if compact else 14)
 	_style_button(later_button, true)
-	later_button.connect("pressed", popup, "hide")
+	later_button.connect("pressed", Callable(popup, "hide"))
 	layout.add_child(later_button)
 
 	add_child(popup)
@@ -429,7 +429,7 @@ func _claim_offline_income():
 
 func _notification(what):
 	if what == MainLoop.NOTIFICATION_WM_QUIT_REQUEST and game != null:
-		game.state["clock_last_unix"] = OS.get_unix_time()
+		game.state["clock_last_unix"] = Time.get_unix_time_from_system()
 		game.state["clock_cycle_seconds"] = int(clock_cycle_seconds)
 		game.save_game()
 
@@ -444,7 +444,7 @@ func _ready():
 	game.register_login_today()
 	game.get_daily_missions()
 	game.get_weekly_challenge()
-	last_activity_ticks = OS.get_ticks_msec()
+	last_activity_ticks = Time.get_ticks_msec()
 	_apply_offline_progress()
 	clock_cycle_seconds = float(game.state.get("clock_cycle_seconds", 0))
 	last_audio_night_mode = clock_cycle_seconds >= 420.0
@@ -465,32 +465,32 @@ func _build_ui():
 	root.anchor_bottom = 1
 	var screen_width = get_viewport_rect().size.x
 	var compact_layout = screen_width < 900
-	root.margin_left = 28 if compact_layout else 24
-	root.margin_top = 16 if compact_layout else 22
-	root.margin_right = -32 if compact_layout else -24
-	root.margin_bottom = -16 if compact_layout else -22
-	root.add_constant_override("separation", 16 if compact_layout else 12)
+	root.offset_left = 28 if compact_layout else 24
+	root.offset_top = 16 if compact_layout else 22
+	root.offset_right = -32 if compact_layout else -24
+	root.offset_bottom = -16 if compact_layout else -22
+	root.add_theme_constant_override("separation", 16 if compact_layout else 12)
 	add_child(root)
 	header_label = Label.new()
 	header_label.text = PersianText.reshaper("مینی زکا سیتی")
-	header_label.align = Label.ALIGN_CENTER
+	header_label.align = Label.ALIGNMENT_CENTER
 	_apply_font(header_label, 28 if compact_layout else 26)
-	header_label.add_color_override("font_color", Color("#ffffff"))
+	header_label.add_theme_color_override("font_color", Color("#ffffff"))
 	root.add_child(header_label)
 	var menu_row = HBoxContainer.new()
-	menu_row.alignment = BoxContainer.ALIGN_CENTER
+	menu_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	root.add_child(menu_row)
 	var menu_button = Button.new()
 	menu_button.text = PersianText.reshaper("☰ منو")
-	menu_button.rect_min_size = Vector2(180, 54 if compact_layout else 46)
+	menu_button.custom_minimum_size = Vector2(180, 54 if compact_layout else 46)
 	_apply_font(menu_button, 20 if compact_layout else 18)
 	_style_button(menu_button, true)
 	menu_row.add_child(menu_button)
 
 	var help_button = Button.new()
 	help_button.text = PersianText.reshaper("؟")
-	help_button.hint_tooltip = "راهنمای کامل بازی"
-	help_button.rect_min_size = Vector2(58 if compact_layout else 50, 58 if compact_layout else 46)
+	help_button.tooltip_text = "راهنمای کامل بازی"
+	help_button.custom_minimum_size = Vector2(58 if compact_layout else 50, 58 if compact_layout else 46)
 	help_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_apply_font(help_button, 29 if compact_layout else 25)
 	var help_normal = StyleBoxFlat.new()
@@ -508,62 +508,62 @@ func _build_ui():
 	help_pressed.border_color = Color("#5eead4")
 	help_pressed.set_border_width_all(2)
 	help_pressed.set_corner_radius_all(24)
-	help_button.add_stylebox_override("normal", help_normal)
-	help_button.add_stylebox_override("hover", help_hover)
-	help_button.add_stylebox_override("focus", help_hover)
-	help_button.add_stylebox_override("pressed", help_pressed)
-	help_button.add_color_override("font_color", Color("#ffffff"))
-	help_button.add_color_override("font_color_hover", Color("#ffffff"))
-	help_button.add_color_override("font_color_pressed", Color("#ffffff"))
-	help_button.connect("pressed", self, "_open_help")
+	help_button.add_theme_stylebox_override("normal", help_normal)
+	help_button.add_theme_stylebox_override("hover", help_hover)
+	help_button.add_theme_stylebox_override("focus", help_hover)
+	help_button.add_theme_stylebox_override("pressed", help_pressed)
+	help_button.add_theme_color_override("font_color", Color("#ffffff"))
+	help_button.add_theme_color_override("font_color_hover", Color("#ffffff"))
+	help_button.add_theme_color_override("font_color_pressed", Color("#ffffff"))
+	help_button.connect("pressed", Callable(self, "_open_help"))
 	menu_row.add_child(help_button)
 	menu_panel = VBoxContainer.new()
 	menu_panel.visible = false
 	menu_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	menu_panel.add_constant_override("separation", 7)
+	menu_panel.add_theme_constant_override("separation", 7)
 	root.add_child(menu_panel)
 	menu_pause_button = _create_menu_action("⏸ توقف بازی", "toggle_pause")
 	_create_menu_action("🔊 صدا و موسیقی", "open_audio_settings")
 	_create_menu_action("💾 ذخیره بازی", "save_from_menu")
 	_create_menu_action("🔄 شروع دوباره شهر", "confirm_restart_from_menu")
 	_create_menu_action("🏙️ بازگشت به شهر من", "return_home_from_menu")
-	menu_button.connect("pressed", self, "_toggle_game_menu")
+	menu_button.connect("pressed", Callable(self, "_toggle_game_menu"))
 	restart_confirm_panel = VBoxContainer.new()
 	restart_confirm_panel.visible = false
-	restart_confirm_panel.add_constant_override("separation", 8)
+	restart_confirm_panel.add_theme_constant_override("separation", 8)
 	menu_panel.add_child(restart_confirm_panel)
 	var restart_confirm_text = Label.new()
 	restart_confirm_text.text = PersianText.reshaper("⚠️ شروع دوباره شهر؟\nتمام پیشرفت فعلی این شهر پاک می‌شود و یک شهر تازه ساخته خواهد شد.")
-	restart_confirm_text.align = Label.ALIGN_CENTER
+	restart_confirm_text.align = Label.ALIGNMENT_CENTER
 	restart_confirm_text.autowrap = true
 	restart_confirm_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	restart_confirm_text.rect_min_size = Vector2(0, 100 if compact_layout else 76)
+	restart_confirm_text.custom_minimum_size = Vector2(0, 100 if compact_layout else 76)
 	_apply_font(restart_confirm_text, 19 if compact_layout else 17)
-	restart_confirm_text.add_color_override("font_color", Color("#fde68a"))
+	restart_confirm_text.add_theme_color_override("font_color", Color("#fde68a"))
 	restart_confirm_panel.add_child(restart_confirm_text)
 	var restart_yes_button = Button.new()
 	restart_yes_button.text = PersianText.reshaper("بله، شروع دوباره")
-	restart_yes_button.rect_min_size = Vector2(0, 54 if compact_layout else 46)
+	restart_yes_button.custom_minimum_size = Vector2(0, 54 if compact_layout else 46)
 	restart_yes_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_font(restart_yes_button, 19 if compact_layout else 17)
 	_style_button(restart_yes_button, false)
-	restart_yes_button.connect("pressed", self, "_restart_city")
+	restart_yes_button.connect("pressed", Callable(self, "_restart_city"))
 	restart_confirm_panel.add_child(restart_yes_button)
 	var restart_no_button = Button.new()
 	restart_no_button.text = PersianText.reshaper("انصراف")
-	restart_no_button.rect_min_size = Vector2(0, 54 if compact_layout else 46)
+	restart_no_button.custom_minimum_size = Vector2(0, 54 if compact_layout else 46)
 	restart_no_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_font(restart_no_button, 19 if compact_layout else 17)
 	_style_button(restart_no_button, false)
-	restart_no_button.connect("pressed", self, "_cancel_restart")
+	restart_no_button.connect("pressed", Callable(self, "_cancel_restart"))
 	restart_confirm_panel.add_child(restart_no_button)
 	# Persistent city progression panel: stays visible above navigation on every page.
 	var progress_panel = VBoxContainer.new()
-	progress_panel.add_constant_override("separation", 3)
+	progress_panel.add_theme_constant_override("separation", 3)
 	root.add_child(progress_panel)
 	level_status_label = Label.new()
-	level_status_label.align = Label.ALIGN_CENTER
-	level_status_label.add_color_override("font_color", Color("#fbbf24"))
+	level_status_label.align = Label.ALIGNMENT_CENTER
+	level_status_label.add_theme_color_override("font_color", Color("#fbbf24"))
 	_apply_font(level_status_label, 17 if compact_layout else 15)
 	progress_panel.add_child(level_status_label)
 	level_status_bar = ProgressBar.new()
@@ -571,53 +571,53 @@ func _build_ui():
 	level_status_bar.max_value = 100
 	level_status_bar.value = 100
 	level_status_bar.percent_visible = false
-	level_status_bar.rect_min_size = Vector2(0, 10 if compact_layout else 8)
+	level_status_bar.custom_minimum_size = Vector2(0, 10 if compact_layout else 8)
 	var level_fill = StyleBoxFlat.new()
 	level_fill.bg_color = Color("#d97706")
 	level_fill.set_corner_radius_all(5)
-	level_status_bar.add_stylebox_override("fg", level_fill)
+	level_status_bar.add_theme_stylebox_override("fg", level_fill)
 	var level_bg = StyleBoxFlat.new()
 	level_bg.bg_color = Color("#334155")
 	level_bg.set_corner_radius_all(5)
-	level_status_bar.add_stylebox_override("bg", level_bg)
+	level_status_bar.add_theme_stylebox_override("bg", level_bg)
 	progress_panel.add_child(level_status_bar)
 	xp_progress_label = Label.new()
-	xp_progress_label.align = Label.ALIGN_CENTER
-	xp_progress_label.add_color_override("font_color", Color("#a5f3fc"))
+	xp_progress_label.align = Label.ALIGNMENT_CENTER
+	xp_progress_label.add_theme_color_override("font_color", Color("#a5f3fc"))
 	_apply_font(xp_progress_label, 15 if compact_layout else 13)
 	progress_panel.add_child(xp_progress_label)
 	xp_progress_bar = ProgressBar.new()
 	xp_progress_bar.min_value = 0
 	xp_progress_bar.max_value = 100
 	xp_progress_bar.percent_visible = false
-	xp_progress_bar.rect_min_size = Vector2(0, 12 if compact_layout else 10)
+	xp_progress_bar.custom_minimum_size = Vector2(0, 12 if compact_layout else 10)
 	var xp_fill = StyleBoxFlat.new()
 	xp_fill.bg_color = Color("#06b6d4")
 	xp_fill.set_corner_radius_all(5)
-	xp_progress_bar.add_stylebox_override("fg", xp_fill)
+	xp_progress_bar.add_theme_stylebox_override("fg", xp_fill)
 	var xp_bg = StyleBoxFlat.new()
 	xp_bg.bg_color = Color("#334155")
 	xp_bg.set_corner_radius_all(5)
-	xp_progress_bar.add_stylebox_override("bg", xp_bg)
+	xp_progress_bar.add_theme_stylebox_override("bg", xp_bg)
 	progress_panel.add_child(xp_progress_bar)
 	_update_progress_hud()
 	var nav = GridContainer.new()
 	nav.columns = 2 if compact_layout else 3
-	nav.add_constant_override("hseparation", 8)
-	nav.add_constant_override("vseparation", 8)
+	nav.add_theme_constant_override("h_separation", 8)
+	nav.add_theme_constant_override("v_separation", 8)
 	root.add_child(nav)
 	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بانک و امور مالی","p":"bank"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار و تجارت","p":"commerce"},{"t":"جاده و ناوگان","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش","p":"report"},{"t":"ماموریت‌ها","p":"missions"},{"t":"پیشرفت شهر","p":"progress"}]:
 		var nav_item = VBoxContainer.new()
 		nav_item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		nav_item.add_constant_override("separation", 2)
+		nav_item.add_theme_constant_override("separation", 2)
 		if item.p == "missions":
 			mission_reward_badge = Label.new()
 			mission_reward_badge.text = ""
-			mission_reward_badge.align = Label.ALIGN_CENTER
+			mission_reward_badge.align = Label.ALIGNMENT_CENTER
 			mission_reward_badge.valign = Label.VALIGN_CENTER
-			mission_reward_badge.rect_min_size = Vector2(0, 30)
-			mission_reward_badge.add_color_override("font_color", Color("#facc15"))
-			mission_reward_badge.add_color_override("font_color_shadow", Color("#111827"))
+			mission_reward_badge.custom_minimum_size = Vector2(0, 30)
+			mission_reward_badge.add_theme_color_override("font_color", Color("#facc15"))
+			mission_reward_badge.add_theme_color_override("font_color_shadow", Color("#111827"))
 			mission_reward_badge.modulate = Color("#ffffff")
 			_apply_font(mission_reward_badge, 17)
 			nav_item.add_child(mission_reward_badge)
@@ -625,12 +625,12 @@ func _build_ui():
 		var civic_page_locked = item.p in ["municipality", "private_economy"] and not game.has_municipal_hall()
 		b.text = PersianText.reshaper(item.t + (" 🔒" if civic_page_locked else "") + "  ")
 		b.disabled = civic_page_locked
-		b.rect_min_size = Vector2(0, 64 if compact_layout else 58)
+		b.custom_minimum_size = Vector2(0, 64 if compact_layout else 58)
 		b.flat = false
 		_apply_font(b, 21 if compact_layout else 18)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_style_button(b, true)
-		b.connect("pressed", self, "show_page", [item.p])
+		b.connect("pressed", Callable(self, "show_page").bind(item.p))
 		nav_item.add_child(b)
 		nav.add_child(nav_item)
 	var line = HSeparator.new()
@@ -639,33 +639,33 @@ func _build_ui():
 	game_scroll_container = scroll
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.rect_clip_content = true
+	scroll.clip_contents = true
 	root.add_child(scroll)
 	# Hide both scrollbars completely; scrolling remains available by touch/drag.
-	var horizontal_bar = scroll.get_h_scrollbar()
-	var vertical_bar = scroll.get_v_scrollbar()
+	var horizontal_bar = scroll.get_h_scroll_bar()
+	var vertical_bar = scroll.get_v_scroll_bar()
 	horizontal_bar.visible = false
 	vertical_bar.visible = false
 	horizontal_bar.modulate = Color(1, 1, 1, 0)
 	vertical_bar.modulate = Color(1, 1, 1, 0)
-	horizontal_bar.rect_min_size = Vector2(0, 0)
-	vertical_bar.rect_min_size = Vector2(0, 0)
+	horizontal_bar.custom_minimum_size = Vector2(0, 0)
+	vertical_bar.custom_minimum_size = Vector2(0, 0)
 	content = VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.rect_min_size = Vector2(0, 0)
-	content.add_constant_override("separation", 16 if compact_layout else 10)
+	content.custom_minimum_size = Vector2(0, 0)
+	content.add_theme_constant_override("separation", 16 if compact_layout else 10)
 	scroll.add_child(content)
 	message_label = Label.new()
-	message_label.align = Label.ALIGN_CENTER
+	message_label.align = Label.ALIGNMENT_CENTER
 	message_label.valign = Label.VALIGN_CENTER
 	message_label.autowrap = true
 	message_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	message_label.rect_min_size = Vector2(0, 76 if compact_layout else 58)
+	message_label.custom_minimum_size = Vector2(0, 76 if compact_layout else 58)
 	var message_font = _apply_font(message_label, 27 if compact_layout else 23)
 	if message_font != null:
 		message_font.outline_size = 1
 		message_font.outline_color = Color("#101827")
-	message_label.add_color_override("font_color", Color("#ffffff"))
+	message_label.add_theme_color_override("font_color", Color("#ffffff"))
 	message_label.modulate = Color("#ffffff")
 	root.add_child(message_label)
 
@@ -685,13 +685,13 @@ func _update_mission_reward_badge():
 func _create_menu_action(title, callback):
 	var button = Button.new()
 	button.text = PersianText.reshaper(title)
-	button.rect_min_size = Vector2(0, 52 if get_viewport_rect().size.x < 900 else 44)
+	button.custom_minimum_size = Vector2(0, 52 if get_viewport_rect().size.x < 900 else 44)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_font(button, 18 if get_viewport_rect().size.x < 900 else 16)
 	_style_button(button, false)
-	button.connect("pressed", self, callback)
+	button.connect("pressed", Callable(self, callback))
 	if audio_manager != null:
-		button.connect("pressed", audio_manager, "play_sfx", ["click"])
+		button.connect("pressed", Callable(audio_manager, "play_sfx").bind("click"))
 	menu_panel.add_child(button)
 	return button
 
@@ -741,7 +741,7 @@ func _restart_city():
 	clock_save_accumulator = 0.0
 	construction_check_accumulator = 0.0
 	game.new_game()
-	game.state["clock_last_unix"] = OS.get_unix_time()
+	game.state["clock_last_unix"] = Time.get_unix_time_from_system()
 	game.state["clock_cycle_seconds"] = 0
 	game.save_game()
 	selected_home_building_id = ""
@@ -795,14 +795,14 @@ func _get_geographic_rank_name(district_count):
 	return str(ranks[min(rank_index, ranks.size() - 1)])
 
 func _load_ui_font():
-	var font_data = DynamicFontData.new()
+	var font_data = FontFile.new()
 	font_data.font_path = "res://assets/fonts/Vazirmatn.ttf"
 	font_data.antialiased = true
-	font_data.hinting = DynamicFontData.HINTING_NORMAL
+	font_data.hinting = FontFile.HINTING_NORMAL
 	# Re-rasterize glyphs at 2x resolution instead of stretching a low-resolution
 	# glyph texture when the game is displayed on mobile or in the HTML5 canvas.
 	font_data.override_oversampling = 2.0
-	ui_font = DynamicFont.new()
+	ui_font = FontFile.new()
 	ui_font.font_data = font_data
 	ui_font.size = 20
 	ui_font.use_filter = false
@@ -811,7 +811,7 @@ func _load_ui_font():
 func _apply_font(control, size=18):
 	if ui_font == null:
 		return
-	var font = DynamicFont.new()
+	var font = FontFile.new()
 	font.font_data = ui_font.font_data
 	font.use_filter = false
 	font.use_mipmaps = true
@@ -819,7 +819,7 @@ func _apply_font(control, size=18):
 	# that made small Persian letter details look heavy.
 	font.size = int(size) + (5 if get_viewport_rect().size.x < 900 else 4)
 	font.outline_size = 0
-	control.add_font_override("font", font)
+	control.add_theme_font_override("font", font)
 	return font
 
 func _button_style(bg_color, border_color):
@@ -845,18 +845,18 @@ func _style_button(button, navigation=false):
 	var border_hover = Color("#000000") if navigation else Color("#4B5057")
 	var border_pressed = Color("#000000") if navigation else Color("#30343A")
 	var text_color = Color("#FFFFFF") if navigation else Color("#111111")
-	button.add_stylebox_override("normal", _button_style(normal_color, border_normal))
-	button.add_stylebox_override("hover", _button_style(hover_color, border_hover))
-	button.add_stylebox_override("focus", _button_style(hover_color, border_hover))
-	button.add_stylebox_override("pressed", _button_style(pressed_color, border_pressed))
-	button.add_stylebox_override("disabled", _button_style(Color("#D1D5DB"), Color("#6B7280")))
-	button.add_color_override("font_color", text_color)
-	button.add_color_override("font_color_focus", text_color)
-	button.add_color_override("font_color_hover", text_color)
-	button.add_color_override("font_color_pressed", text_color)
-	button.add_color_override("font_color_disabled", Color("#4B5563"))
+	button.add_theme_stylebox_override("normal", _button_style(normal_color, border_normal))
+	button.add_theme_stylebox_override("hover", _button_style(hover_color, border_hover))
+	button.add_theme_stylebox_override("focus", _button_style(hover_color, border_hover))
+	button.add_theme_stylebox_override("pressed", _button_style(pressed_color, border_pressed))
+	button.add_theme_stylebox_override("disabled", _button_style(Color("#D1D5DB"), Color("#6B7280")))
+	button.add_theme_color_override("font_color", text_color)
+	button.add_theme_color_override("font_color_focus", text_color)
+	button.add_theme_color_override("font_color_hover", text_color)
+	button.add_theme_color_override("font_color_pressed", text_color)
+	button.add_theme_color_override("font_color_disabled", Color("#4B5563"))
 	var button_font = button.get_font("font")
-	if button_font is DynamicFont:
+	if button_font is FontFile:
 		button_font.outline_size = 1
 		button_font.outline_color = Color("#FFFFFF") if not navigation else Color("#111827")
 
@@ -872,9 +872,9 @@ func _add_label(text, size=18):
 	_apply_font(label, size)
 	label.autowrap = true
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.rect_min_size = Vector2(0, 44 if get_viewport_rect().size.x < 900 else 34)
-	label.add_color_override("font_color", Color("#f8fafc"))
-	label.add_color_override("font_color_shadow", Color("#0b1220"))
+	label.custom_minimum_size = Vector2(0, 44 if get_viewport_rect().size.x < 900 else 34)
+	label.add_theme_color_override("font_color", Color("#f8fafc"))
+	label.add_theme_color_override("font_color_shadow", Color("#0b1220"))
 	label.modulate = Color("#ffffff")
 	var target = active_section_container if active_section_container != null else content
 	target.add_child(label)
@@ -883,13 +883,13 @@ func _add_label(text, size=18):
 func _add_button(text, button_target, callback, args=[]):
 	var button = Button.new()
 	button.text = PersianText.reshaper(text + "  ")
-	button.rect_min_size = Vector2(0, 58 if get_viewport_rect().size.x < 900 else 50)
+	button.custom_minimum_size = Vector2(0, 58 if get_viewport_rect().size.x < 900 else 50)
 	_apply_font(button, 19 if get_viewport_rect().size.x < 900 else 17)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_button(button, false)
 	if audio_manager != null and button_target != audio_manager:
-		button.connect("pressed", audio_manager, "play_sfx", ["click"])
-	button.connect("pressed", button_target, callback, args)
+		button.connect("pressed", Callable(audio_manager, "play_sfx").bind("click"))
+	button.connect("pressed", Callable(button_target, callback).bind(args))
 	var parent = active_section_container if active_section_container != null else content
 	parent.add_child(button)
 	return button
@@ -922,27 +922,27 @@ func _show_welcome_mission_hint():
 	panel_style.content_margin_right = 12
 	panel_style.content_margin_top = 10
 	panel_style.content_margin_bottom = 10
-	panel.add_stylebox_override("panel", panel_style)
+	panel.add_theme_stylebox_override("panel", panel_style)
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_child(panel)
 	var layout = VBoxContainer.new()
-	layout.add_constant_override("separation", 8)
+	layout.add_theme_constant_override("separation", 8)
 	panel.add_child(layout)
 	var welcome = Label.new()
 	welcome.text = PersianText.reshaper("به شهر خودت خوش اومدی! برای شروع، به مأموریت‌ها برو.")
-	welcome.align = Label.ALIGN_CENTER
+	welcome.align = Label.ALIGNMENT_CENTER
 	welcome.autowrap = true
 	welcome.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_font(welcome, 18 if get_viewport_rect().size.x < 900 else 17)
-	welcome.add_color_override("font_color", Color("#ffffff"))
+	welcome.add_theme_color_override("font_color", Color("#ffffff"))
 	layout.add_child(welcome)
 	var go_button = Button.new()
 	go_button.text = PersianText.reshaper("رفتن به مأموریت‌ها  ←")
-	go_button.rect_min_size = Vector2(0, 54 if get_viewport_rect().size.x < 900 else 46)
+	go_button.custom_minimum_size = Vector2(0, 54 if get_viewport_rect().size.x < 900 else 46)
 	go_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_font(go_button, 19 if get_viewport_rect().size.x < 900 else 17)
 	_style_button(go_button, false)
-	go_button.connect("pressed", self, "_open_missions_from_welcome")
+	go_button.connect("pressed", Callable(self, "_open_missions_from_welcome"))
 	layout.add_child(go_button)
 
 
@@ -975,17 +975,17 @@ func _add_audio_slider(kind):
 	slider.min_value = 0.0
 	slider.max_value = 1.0
 	slider.step = 0.05
-	slider.rect_min_size = Vector2(0, 42)
+	slider.custom_minimum_size = Vector2(0, 42)
 	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if kind == "music":
 		slider.value = audio_manager.get_music_volume()
-		slider.connect("value_changed", self, "_on_music_volume_changed")
+		slider.connect("value_changed", Callable(self, "_on_music_volume_changed"))
 	elif kind == "environment":
 		slider.value = audio_manager.get_environment_volume()
-		slider.connect("value_changed", self, "_on_environment_volume_changed")
+		slider.connect("value_changed", Callable(self, "_on_environment_volume_changed"))
 	else:
 		slider.value = audio_manager.get_effects_volume()
-		slider.connect("value_changed", self, "_on_effects_volume_changed")
+		slider.connect("value_changed", Callable(self, "_on_effects_volume_changed"))
 	content.add_child(slider)
 
 func _on_music_volume_changed(value):
@@ -1014,17 +1014,17 @@ func _add_help_section(title, description, target_page=""):
 	panel_style.content_margin_right = 12
 	panel_style.content_margin_top = 10
 	panel_style.content_margin_bottom = 10
-	panel.add_stylebox_override("panel", panel_style)
+	panel.add_theme_stylebox_override("panel", panel_style)
 	content.add_child(panel)
 	var body = VBoxContainer.new()
-	body.add_constant_override("separation", 5)
+	body.add_theme_constant_override("separation", 5)
 	panel.add_child(body)
 	var heading = Label.new()
 	heading.text = PersianText.reshaper(title)
 	heading.align = Label.ALIGN_RIGHT
 	heading.autowrap = true
 	_apply_font(heading, 18 if get_viewport_rect().size.x < 900 else 17)
-	heading.add_color_override("font_color", Color("#fbbf24"))
+	heading.add_theme_color_override("font_color", Color("#fbbf24"))
 	body.add_child(heading)
 	var details = Label.new()
 	details.text = PersianText.reshaper(description)
@@ -1032,16 +1032,16 @@ func _add_help_section(title, description, target_page=""):
 	details.autowrap = true
 	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_font(details, 16 if get_viewport_rect().size.x < 900 else 15)
-	details.add_color_override("font_color", Color("#e2e8f0"))
+	details.add_theme_color_override("font_color", Color("#e2e8f0"))
 	body.add_child(details)
 	if str(target_page) != "":
 		var jump = Button.new()
 		jump.text = PersianText.reshaper("رفتن به بخش مربوط  ←")
-		jump.rect_min_size = Vector2(0, 48 if get_viewport_rect().size.x < 900 else 42)
+		jump.custom_minimum_size = Vector2(0, 48 if get_viewport_rect().size.x < 900 else 42)
 		jump.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_apply_font(jump, 16 if get_viewport_rect().size.x < 900 else 15)
 		_style_button(jump, false)
-		jump.connect("pressed", self, "show_page", [str(target_page)])
+		jump.connect("pressed", Callable(self, "show_page").bind(str(target_page)))
 		body.add_child(jump)
 
 func _open_missions_from_welcome():
@@ -1086,7 +1086,7 @@ func show_page(page):
 			login_reward_button.disabled = bool(login_reward_status.claimed) or not bool(login_reward_status.logged_in)
 
 			var pending_decision = game.get_pending_city_decision()
-			if not pending_decision.empty():
+			if not pending_decision.is_empty():
 				_add_label("⚖️ تصمیم مهم شهروندان",20)
 				_add_label(str(pending_decision.get("title","تصمیم شهر")),18)
 				_add_label(str(pending_decision.get("description","")),15)
@@ -1099,7 +1099,7 @@ func show_page(page):
 					my_rank = int(rival_row.get("rank",0))
 			_add_label("🏁 جایگاه فعلی شهر در رقابت: رتبه %d از %d" % [my_rank,rival_standings.size()],16)
 			var recent_city_events = s.get("city_event_history",[])
-			if not recent_city_events.empty():
+			if not recent_city_events.is_empty():
 				var recent_event = recent_city_events[recent_city_events.size()-1]
 				_add_label("🎲 آخرین اتفاق شهر | روز %d: %s" % [int(recent_event.get("day",s.day)),str(recent_event.get("title","رویداد"))],16)
 			clock_label = _add_label("روز | زمان باقی‌مانده: 00:07", 18)
@@ -1126,7 +1126,7 @@ func show_page(page):
 							var home_count = game.get_building_count(home_id)
 							if home_count > 0:
 								category_rows.append({"id":home_id,"name":str(home_data.name),"count":home_count})
-					if not category_rows.empty():
+					if not category_rows.is_empty():
 						any_home_building = true
 						_add_label("【"+home_category+"】", 17)
 						for home_row in category_rows:
@@ -1146,28 +1146,28 @@ func show_page(page):
 					var home_button = _add_button("%s  |  تعداد: %d" % [str(home_data.name),home_count], self, "select_home_building", [home_id])
 					_style_button(home_button, false)
 					if selected_home_building_id == str(home_id):
-						home_button.add_color_override("font_color", Color("#fde68a"))
+						home_button.add_theme_color_override("font_color", Color("#fde68a"))
 				if selected_home_building_id != "" and game.get_building_count(selected_home_building_id) > 0:
 					var selected_definition = game.get_building_definitions()[selected_home_building_id]
 					var selected_count = game.get_building_count(selected_home_building_id)
 					_add_label("انتخاب‌شده: %s  |  موجود: %d" % [selected_definition.name,selected_count], 17)
 					_add_label("تعداد برای تخریب: %d" % selected_demolish_quantity, 16)
 					var quantity_row = HBoxContainer.new()
-					quantity_row.add_constant_override("separation", 8)
+					quantity_row.add_theme_constant_override("separation", 8)
 					content.add_child(quantity_row)
 					var less_button = Button.new()
 					less_button.text = "−"
-					less_button.rect_min_size = Vector2(70,58)
+					less_button.custom_minimum_size = Vector2(70,58)
 					_apply_font(less_button,24)
 					_style_button(less_button,false)
-					less_button.connect("pressed",self,"adjust_demolish_quantity",[-1])
+					less_button.connect("pressed", Callable(self, "adjust_demolish_quantity").bind(-1))
 					quantity_row.add_child(less_button)
 					var more_button = Button.new()
 					more_button.text = "+"
-					more_button.rect_min_size = Vector2(70,58)
+					more_button.custom_minimum_size = Vector2(70,58)
 					_apply_font(more_button,24)
 					_style_button(more_button,false)
-					more_button.connect("pressed",self,"adjust_demolish_quantity",[1])
+					more_button.connect("pressed", Callable(self, "adjust_demolish_quantity").bind(1))
 					quantity_row.add_child(more_button)
 					var demolish_button = _add_button("تخریب %d عدد از %s" % [selected_demolish_quantity,selected_definition.name],self,"demolish_selected_buildings")
 					_style_button(demolish_button, false)
@@ -1326,7 +1326,7 @@ func show_page(page):
 				citizen_groups[group_name].append(citizen)
 			for group_name in ["بیکاران","کارمندان شهرداری","کارمندان بخش خصوصی","کارآفرینان بخش خصوصی"]:
 				var group_citizens = citizen_groups[group_name]
-				if group_citizens.empty():
+				if group_citizens.is_empty():
 					continue
 				var group_expanded = bool(citizen_status_expanded.get(group_name,false))
 				var group_button = _add_button(("%s " % ("▼" if group_expanded else "▶")) + "%s (%d)" % [group_name,group_citizens.size()], self, "toggle_citizen_status_group", [group_name])
@@ -1383,7 +1383,7 @@ func show_page(page):
 				_add_label("سپرده #%d | اصل: %d | سود: %d | سررسید: روز %d | %s" % [int(deposit.get("id",deposit_index+1)),int(deposit.get("principal",0)),int(deposit.get("interest",0)),int(deposit.get("maturity_day",0)),"آماده برداشت" if deposit_status == "matured" or int(s.day) >= int(deposit.get("maturity_day",0)) else "در حال سپرده"],15)
 				_add_button("برداشت سپرده #%d" % int(deposit.get("id",deposit_index+1)),self,"withdraw_bank_savings",[deposit_index])
 			_add_label("📜 گردش حساب و سوابق مالی",19)
-			if s.get("bank_transactions",[]).empty():
+			if s.get("bank_transactions",[]).is_empty():
 				_add_label("هنوز تراکنش بانکی ثبت نشده است.",15)
 			else:
 				for transaction_index in range(s.bank_transactions.size()-1,-1,-1):
@@ -1410,7 +1410,7 @@ func show_page(page):
 			_end_municipality_section()
 			_municipality_section("📨 درخواست‌های شهروندان", "requests")
 			_add_label("درخواست‌های شهروندان برای بررسی شهرداری: %d" % int(civic.get("request_count",0)), 19)
-			if civic.get("requests", []).empty():
+			if civic.get("requests", []).is_empty():
 				_add_label("درخواستی در انتظار بررسی نیست.", 16)
 			for municipal_request in civic.get("requests", []):
 				_add_label("%s | شهروند شماره %d | روز %d | مبلغ: %d سکه" % [str(municipal_request.get("title","درخواست شهروند")),int(municipal_request.get("citizen_id",0)),int(municipal_request.get("day",s.day)),int(municipal_request.get("amount",0))], 17)
@@ -1463,23 +1463,23 @@ func show_page(page):
 				elif request_type == "public_project":
 					_add_label("هزینه پروژه با سرمایه کسب‌وکار: %d" % int(request.get("amount",0)), 15)
 				var request_row = HBoxContainer.new()
-				request_row.add_constant_override("separation", 8)
+				request_row.add_theme_constant_override("separation", 8)
 				content.add_child(request_row)
 				var approve_button = Button.new()
 				approve_button.text = "تأیید"
 				_style_button(approve_button,false)
 				_apply_font(approve_button,16)
 				approve_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				approve_button.connect("pressed",self,"resolve_private_request",[int(request.get("id",0)),true])
+				approve_button.connect("pressed", Callable(self, "resolve_private_request").bind(int(request.get("id",0)),true))
 				request_row.add_child(approve_button)
 				var reject_button = Button.new()
 				reject_button.text = "رد درخواست"
 				_style_button(reject_button,false)
 				_apply_font(reject_button,16)
 				reject_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				reject_button.connect("pressed",self,"resolve_private_request",[int(request.get("id",0)),false])
+				reject_button.connect("pressed", Callable(self, "resolve_private_request").bind(int(request.get("id",0)),false))
 				request_row.add_child(reject_button)
-			if private_economy_data.get("requests", []).empty():
+			if private_economy_data.get("requests", []).is_empty():
 				_add_label("درخواستی در انتظار نیست. شهروندان با توجه به نیازهای شهر و سرمایه‌شان پیشنهادهای تازه می‌سازند.", 15)
 			_add_label("🏗️ پروژه‌های مشارکتی در حال اجرا: %d" % int(private_economy_data.get("project_count",0)), 18)
 			for project in private_economy_data.get("projects", []):
@@ -1487,7 +1487,7 @@ func show_page(page):
 				_add_label("%s | پیشنهاددهنده: شهروند %d | تحویل روز %d" % [str(project_data.get("name","پروژه شهری")),int(project.get("citizen_id",0)),int(project.get("finish_day",0))], 15)
 				_add_label("سهم مردم: %d | سهم شهرداری: %d" % [int(project.get("citizen_contribution",0)),int(project.get("municipal_contribution",0))], 14)
 			_add_label("🏪 کسب‌وکارهای مردم", 19)
-			if private_economy_data.get("private_businesses", []).empty():
+			if private_economy_data.get("private_businesses", []).is_empty():
 				_add_label("هنوز کسب‌وکار خصوصی تأسیس نشده؛ مردم پس از پس‌انداز، برای زمین، اجاره ملک یا مجوز کسب‌وکار درخواست می‌دهند.", 15)
 			for business in private_economy_data.get("private_businesses", []):
 				_add_label("%s | مالک: شهروند %d | کارمند: %d | فروش روزانه: %d سکه" % [str(business.get("name","کسب‌وکار")),int(business.get("owner_citizen_id",0)),business.get("employees",[]).size(),int(business.get("last_revenue",0))], 16)
@@ -1552,7 +1552,7 @@ func show_page(page):
 						import_button.disabled = game.get_free_storage() < 5 or game.get_transport_capacity_remaining() < 5 or game.get_available_money() < (5 * price + int(ceil(float(5 * price) * 0.10)))
 			_add_button(("▼ " if commerce_section_expanded.shipments else "▶ ") + "محموله‌های در راه", self, "_toggle_commerce_section", ["shipments"])
 			if commerce_section_expanded.shipments:
-				if s.trade_shipments.empty():
+				if s.trade_shipments.is_empty():
 					_add_label("محموله‌ای در راه نیست.")
 				for shipment in s.trade_shipments:
 					var shipment_city = game.get_import_cities().get(str(shipment.get("city_id","")) ,{"name":"نامشخص"})
@@ -1561,7 +1561,7 @@ func show_page(page):
 				_add_label("آخرین سفارش: "+str(s.get("last_import_report","")),15)
 			_add_button(("▼ " if commerce_section_expanded.contracts else "▶ ") + "قراردادهای واردات", self, "_toggle_commerce_section", ["contracts"])
 			if commerce_section_expanded.contracts:
-				if s.import_contracts.empty():
+				if s.import_contracts.is_empty():
 					_add_label("قرارداد فعالی ثبت نشده است.")
 				for contract_index in range(s.import_contracts.size()):
 					var contract = s.import_contracts[contract_index]
@@ -1589,7 +1589,7 @@ func show_page(page):
 			_add_label("ایستگاه اتوبوس: %d | ایستگاه تاکسی: %d" % [game.get_building_count("bus_station"),game.get_building_count("taxi_station")],16)
 			for facility_id in ["bus_station","taxi_station"]:
 				var facility = game.get_building_definitions().get(facility_id,{})
-				if facility.empty():
+				if facility.is_empty():
 					continue
 				var facility_button = _add_button("ساخت "+str(facility.get("name","ایستگاه"))+" — %d سکه | زمین: %d قطعه" % [int(facility.get("cost",0)),game.get_land_size(facility_id)],self,"build_transport_facility",[facility_id])
 				facility_button.disabled = int(s.level) < int(facility.get("level_unlock",1))
@@ -1599,7 +1599,7 @@ func show_page(page):
 			_add_label("هر پایانه با ۲ کارمند، یک کامیون را فعال می‌کند؛ هر پایانه حداکثر ۲ کامیون پشتیبانی می‌کند.",15)
 			_add_label("نگهداری روزانه ناوگان: %d سکه | نگهداری جاده: %d سکه" % [game.get_fleet_maintenance(),game.get_road_maintenance()],16)
 			var depot = game.get_building_definitions().get("transport_depot",{})
-			if not depot.empty():
+			if not depot.is_empty():
 				var depot_button = _add_button("ساخت پایانه حمل‌ونقل — %d سکه | زمین: %d قطعه" % [int(depot.get("cost",0)),game.get_land_size("transport_depot")],self,"build_transport_facility",["transport_depot"])
 				depot_button.disabled = int(s.level) < int(depot.get("level_unlock",1))
 			_add_label("ظرفیت کامیون‌ها بین واردات، قراردادهای تأمین و صادرات مشترک است.",15)
@@ -1619,7 +1619,7 @@ func show_page(page):
 					var import_button = _add_button("سفارش ۵ واحد "+game.get_resource_definitions()[resource_id].name+" از "+city.name,self,"import_from_city",[city_id,resource_id,5])
 					import_button.disabled = game.get_free_storage() < 5 or game.get_transport_capacity_remaining() < 5 or game.get_available_money() < (5 * price + int(ceil(float(5 * price) * 0.10)))
 			_add_label(" محموله‌های در راه:",18)
-			if s.trade_shipments.empty():
+			if s.trade_shipments.is_empty():
 				_add_label("محموله‌ای در راه نیست.")
 			for shipment in s.trade_shipments:
 				var shipment_city = game.get_import_cities().get(str(shipment.get("city_id","")),{"name":"نامشخص"})
@@ -1627,7 +1627,7 @@ func show_page(page):
 				_add_label("#%d | %s | %d واحد %s | تحویل روز %d" % [int(shipment.get("id",0)),shipment_city.name,int(shipment.get("amount",0)),shipment_resource.name,int(shipment.get("arrival_day",0))],15)
 			_add_label("آخرین سفارش: "+str(s.get("last_import_report","")),15)
 			_add_label(" قراردادهای واردات:",18)
-			if s.import_contracts.empty():
+			if s.import_contracts.is_empty():
 				_add_label("قرارداد فعالی ثبت نشده است.")
 			for contract_index in range(s.import_contracts.size()):
 				var contract = s.import_contracts[contract_index]
@@ -1656,14 +1656,14 @@ func show_page(page):
 				if not is_expanded:
 					continue
 				var section_body = VBoxContainer.new()
-				section_body.add_constant_override("separation",5)
+				section_body.add_theme_constant_override("separation",5)
 				section_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				content.add_child(section_body)
 				active_section_container = section_body
 				_add_label("موجودی انبار: %d | موجودی بازار: %d" % [current_amount,market_amount],16)
 				_add_label("حداقل موجودی: %d | حداکثر موجودی: %d" % [int(rule.get("minimum",10)),int(rule.get("maximum",40))],16)
 				var controls = HBoxContainer.new()
-				controls.add_constant_override("separation",6)
+				controls.add_theme_constant_override("separation",6)
 				controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				active_section_container.add_child(controls)
 				var low_down = Button.new()
@@ -1671,28 +1671,28 @@ func show_page(page):
 				_style_button(low_down,false)
 				_apply_font(low_down,16)
 				low_down.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				low_down.connect("pressed",self,"adjust_storage_rule",[id,"minimum",-5])
+				low_down.connect("pressed", Callable(self, "adjust_storage_rule").bind(id,"minimum",-5))
 				controls.add_child(low_down)
 				var low_up = Button.new()
 				low_up.text = PersianText.reshaper("حداقل +")
 				_style_button(low_up,false)
 				_apply_font(low_up,16)
 				low_up.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				low_up.connect("pressed",self,"adjust_storage_rule",[id,"minimum",5])
+				low_up.connect("pressed", Callable(self, "adjust_storage_rule").bind(id,"minimum",5))
 				controls.add_child(low_up)
 				var high_down = Button.new()
 				high_down.text = PersianText.reshaper("حداکثر −")
 				_style_button(high_down,false)
 				_apply_font(high_down,16)
 				high_down.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				high_down.connect("pressed",self,"adjust_storage_rule",[id,"maximum",-5])
+				high_down.connect("pressed", Callable(self, "adjust_storage_rule").bind(id,"maximum",-5))
 				controls.add_child(high_down)
 				var high_up = Button.new()
 				high_up.text = PersianText.reshaper("حداکثر +")
 				_style_button(high_up,false)
 				_apply_font(high_up,16)
 				high_up.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				high_up.connect("pressed",self,"adjust_storage_rule",[id,"maximum",5])
+				high_up.connect("pressed", Callable(self, "adjust_storage_rule").bind(id,"maximum",5))
 				controls.add_child(high_up)
 				_add_label("وقتی موجودی کم شد: "+("خرید از بازار" if str(rule.get("low_action","market")) == "market" else "افزایش تولید کارخانه"),15)
 				_add_button("تغییر روش تأمین",self,"toggle_storage_low_action",[id])
@@ -1706,12 +1706,12 @@ func show_page(page):
 			_add_label("گزارش وقایع شهر", 22)
 			var events = s.get("report_events", [])
 			_add_label("جدیدترین رویدادها بالا نمایش داده می‌شوند | سقف ذخیره: ۱۰۰ پیام | تعداد فعلی: %d" % events.size(), 15)
-			if events.empty():
+			if events.is_empty():
 				_add_label("هنوز رویدادی ثبت نشده است.", 18)
 			else:
 				for event_index in range(events.size() - 1, -1, -1):
 					var event = events[event_index]
-					var stamp = OS.get_datetime_from_unix_time(int(event.get("timestamp", 0)))
+					var stamp = Time.get_datetime_dict_from_system_from_unix_time(int(event.get("timestamp", 0)))
 					var time_text = "%02d/%02d - %02d:%02d" % [int(stamp.get("day", 1)), int(stamp.get("month", 1)), int(stamp.get("hour", 0)), int(stamp.get("minute", 0))]
 					_add_label("[%s] روز %d | %s" % [time_text, int(event.get("day", 1)), str(event.get("message", ""))], 17)
 
@@ -1799,7 +1799,7 @@ func show_page(page):
 				project_bar.max_value = max(1,int(project.goal))
 				project_bar.value = int(project.progress)
 				project_bar.percent_visible = false
-				project_bar.rect_min_size = Vector2(0,12)
+				project_bar.custom_minimum_size = Vector2(0,12)
 				content.add_child(project_bar)
 				if bool(project.claimed):
 					_add_label("✓ این جایزه را دریافت کرده‌ای",15)
@@ -1892,24 +1892,24 @@ func show_page(page):
 				daily_style.content_margin_right = 12
 				daily_style.content_margin_top = 10
 				daily_style.content_margin_bottom = 10
-				daily_card.add_stylebox_override("panel", daily_style)
+				daily_card.add_theme_stylebox_override("panel", daily_style)
 				content.add_child(daily_card)
 				var daily_body = VBoxContainer.new()
-				daily_body.add_constant_override("separation", 5)
+				daily_body.add_theme_constant_override("separation", 5)
 				daily_card.add_child(daily_body)
 				var daily_title = Label.new()
 				daily_title.text = PersianText.reshaper(str(daily_mission.title))
 				daily_title.align = Label.ALIGN_RIGHT
 				daily_title.autowrap = true
 				_apply_font(daily_title, 18)
-				daily_title.add_color_override("font_color", Color("#fde68a") if daily_done else Color("#ffffff"))
+				daily_title.add_theme_color_override("font_color", Color("#fde68a") if daily_done else Color("#ffffff"))
 				daily_body.add_child(daily_title)
 				var daily_desc = Label.new()
 				daily_desc.text = PersianText.reshaper(str(daily_mission.description))
 				daily_desc.align = Label.ALIGN_RIGHT
 				daily_desc.autowrap = true
 				_apply_font(daily_desc, 16)
-				daily_desc.add_color_override("font_color", Color("#dbeafe"))
+				daily_desc.add_theme_color_override("font_color", Color("#dbeafe"))
 				daily_body.add_child(daily_desc)
 				var daily_progress = Label.new()
 				daily_progress.text = PersianText.reshaper("پیشرفت: %d از %d  |  جایزه: %d سکه + %d تجربه" % [int(daily_mission.progress), int(daily_mission.goal), int(daily_mission.reward), int(daily_mission.xp)])
@@ -1922,24 +1922,24 @@ func show_page(page):
 					daily_status.text = PersianText.reshaper("✓ جایزه امروز دریافت شده")
 					daily_status.align = Label.ALIGN_RIGHT
 					_apply_font(daily_status, 16)
-					daily_status.add_color_override("font_color", Color("#86efac"))
+					daily_status.add_theme_color_override("font_color", Color("#86efac"))
 					daily_body.add_child(daily_status)
 				elif daily_done:
 					_add_daily_claim_button(daily_body, str(daily_mission.id))
 				else:
 					var daily_go_button = Button.new()
 					daily_go_button.text = PersianText.reshaper("رفتن ←")
-					daily_go_button.rect_min_size = Vector2(0, 46 if get_viewport_rect().size.x < 900 else 40)
+					daily_go_button.custom_minimum_size = Vector2(0, 46 if get_viewport_rect().size.x < 900 else 40)
 					daily_go_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 					_apply_font(daily_go_button, 17)
 					_style_button(daily_go_button, false)
-					daily_go_button.connect("pressed", self, "go_to_mission_target", [str(daily_mission.id)])
+					daily_go_button.connect("pressed", Callable(self, "go_to_mission_target").bind(str(daily_mission.id)))
 					daily_body.add_child(daily_go_button)
 					var daily_waiting = Label.new()
 					daily_waiting.text = PersianText.reshaper("● در حال انجام")
 					daily_waiting.align = Label.ALIGN_RIGHT
 					_apply_font(daily_waiting, 15)
-					daily_waiting.add_color_override("font_color", Color("#cbd5e1"))
+					daily_waiting.add_theme_color_override("font_color", Color("#cbd5e1"))
 					daily_body.add_child(daily_waiting)
 			_add_label("━━━━━━━━━━━━━━━━━━━━", 14)
 			var mission_list = game.get_missions()
@@ -1979,16 +1979,16 @@ func show_page(page):
 			summary_style.content_margin_right = 14
 			summary_style.content_margin_top = 10
 			summary_style.content_margin_bottom = 10
-			summary_panel.add_stylebox_override("panel", summary_style)
+			summary_panel.add_theme_stylebox_override("panel", summary_style)
 			summary_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			content.add_child(summary_panel)
 			var summary_label = Label.new()
 			summary_label.text = PersianText.reshaper("پیشرفت کلی مأموریت‌ها: %d از %d" % [main_claimed + side_claimed, main_total + side_total])
-			summary_label.align = Label.ALIGN_CENTER
+			summary_label.align = Label.ALIGNMENT_CENTER
 			summary_label.autowrap = true
 			summary_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			_apply_font(summary_label, 19)
-			summary_label.add_color_override("font_color", Color("#ffffff"))
+			summary_label.add_theme_color_override("font_color", Color("#ffffff"))
 			summary_panel.add_child(summary_label)
 			var visible_missions = 0
 			var last_mission_type = ""
@@ -1999,7 +1999,7 @@ func show_page(page):
 					if str(item.id) == str(mission.get("id", "")):
 						definition = item
 						break
-				if definition.empty():
+				if definition.is_empty():
 					continue
 				var is_legacy_mission = bool(definition.get("legacy", false))
 				var mission_is_claimed = bool(mission.get("claimed", false))
@@ -2026,8 +2026,8 @@ func show_page(page):
 				var is_completed = bool(mission.get("completed", false))
 				var card = PanelContainer.new()
 				card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				card.rect_min_size = Vector2(0, 0)
-				card.rect_clip_content = false
+				card.custom_minimum_size = Vector2(0, 0)
+				card.clip_contents = false
 				var card_style = StyleBoxFlat.new()
 				card_style.bg_color = Color("#173b32") if is_claimed else (Color("#493719") if is_completed else Color("#202b3b"))
 				card_style.border_color = Color("#4ade80") if is_claimed else (Color("#fbbf24") if is_completed else Color("#64748b"))
@@ -2037,54 +2037,54 @@ func show_page(page):
 				card_style.content_margin_right = 0
 				card_style.content_margin_top = 0
 				card_style.content_margin_bottom = 0
-				card.add_stylebox_override("panel", card_style)
+				card.add_theme_stylebox_override("panel", card_style)
 				content.add_child(card)
 				var card_margin = MarginContainer.new()
-				card_margin.add_constant_override("margin_left", 14)
-				card_margin.add_constant_override("margin_right", 14)
-				card_margin.add_constant_override("margin_top", 12)
-				card_margin.add_constant_override("margin_bottom", 12)
+				card_margin.add_theme_constant_override("offset_left", 14)
+				card_margin.add_theme_constant_override("offset_right", 14)
+				card_margin.add_theme_constant_override("offset_top", 12)
+				card_margin.add_theme_constant_override("offset_bottom", 12)
 				card_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				card.add_child(card_margin)
 				var card_body = VBoxContainer.new()
-				card_body.add_constant_override("separation", 7)
+				card_body.add_theme_constant_override("separation", 7)
 				card_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				card_body.rect_clip_content = false
+				card_body.clip_contents = false
 				card_margin.add_child(card_body)
 				var is_unlocked = bool(mission.get("unlocked", false))
 				var status_text = "✓ جایزه دریافت شده" if is_claimed else ("🎁 جایزه آماده دریافت" if is_completed else ("● در حال انجام" if is_unlocked else "🔒 پس از تکمیل مرحله قبلی باز می‌شود"))
 				var title_row = HBoxContainer.new()
-				title_row.add_constant_override("separation", 8)
+				title_row.add_theme_constant_override("separation", 8)
 				card_body.add_child(title_row)
 				var title_label = Label.new()
 				title_label.text = PersianText.reshaper(str(definition.title))
 				title_label.align = Label.ALIGN_RIGHT
 				title_label.clip_text = false
 				title_label.autowrap = true
-				title_label.rect_min_size = Vector2(0, 34)
+				title_label.custom_minimum_size = Vector2(0, 34)
 				title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				_apply_font(title_label, 19)
-				title_label.add_color_override("font_color", Color("#86efac") if is_claimed else (Color("#fde68a") if is_completed else Color("#ffffff")))
+				title_label.add_theme_color_override("font_color", Color("#86efac") if is_claimed else (Color("#fde68a") if is_completed else Color("#ffffff")))
 				title_row.add_child(title_label)
 				var status_label = Label.new()
 				status_label.text = PersianText.reshaper(status_text)
 				status_label.align = Label.ALIGN_RIGHT
 				status_label.autowrap = true
 				status_label.clip_text = false
-				status_label.rect_min_size = Vector2(0, 30)
+				status_label.custom_minimum_size = Vector2(0, 30)
 				status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				_apply_font(status_label, 16)
-				status_label.add_color_override("font_color", Color("#86efac") if is_claimed else (Color("#fde68a") if is_completed else Color("#cbd5e1")))
+				status_label.add_theme_color_override("font_color", Color("#86efac") if is_claimed else (Color("#fde68a") if is_completed else Color("#cbd5e1")))
 				card_body.add_child(status_label)
 				var description_label = Label.new()
 				description_label.text = PersianText.reshaper(str(definition.description))
 				description_label.align = Label.ALIGN_RIGHT
 				description_label.autowrap = true
 				description_label.clip_text = false
-				description_label.rect_min_size = Vector2(0, 48)
+				description_label.custom_minimum_size = Vector2(0, 48)
 				description_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				_apply_font(description_label, 17)
-				description_label.add_color_override("font_color", Color("#f8fafc"))
+				description_label.add_theme_color_override("font_color", Color("#f8fafc"))
 				card_body.add_child(description_label)
 				var current_progress = int(mission.get("progress", 0))
 				var target_progress = max(1, int(definition.goal))
@@ -2093,25 +2093,25 @@ func show_page(page):
 				progress_label.align = Label.ALIGN_RIGHT
 				progress_label.autowrap = true
 				progress_label.clip_text = false
-				progress_label.rect_min_size = Vector2(0, 34)
+				progress_label.custom_minimum_size = Vector2(0, 34)
 				progress_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				_apply_font(progress_label, 16)
-				progress_label.add_color_override("font_color", Color("#bae6fd"))
+				progress_label.add_theme_color_override("font_color", Color("#bae6fd"))
 				card_body.add_child(progress_label)
 				var mission_progress = ProgressBar.new()
 				mission_progress.min_value = 0
 				mission_progress.max_value = target_progress
 				mission_progress.value = min(current_progress, target_progress)
 				mission_progress.percent_visible = false
-				mission_progress.rect_min_size = Vector2(0, 12)
+				mission_progress.custom_minimum_size = Vector2(0, 12)
 				var mission_fill = StyleBoxFlat.new()
 				mission_fill.bg_color = Color("#22c55e") if is_completed else Color("#38bdf8")
 				mission_fill.set_corner_radius_all(6)
-				mission_progress.add_stylebox_override("fg", mission_fill)
+				mission_progress.add_theme_stylebox_override("fg", mission_fill)
 				var mission_bg = StyleBoxFlat.new()
 				mission_bg.bg_color = Color("#334155")
 				mission_bg.set_corner_radius_all(6)
-				mission_progress.add_stylebox_override("bg", mission_bg)
+				mission_progress.add_theme_stylebox_override("bg", mission_bg)
 				card_body.add_child(mission_progress)
 				if not is_claimed:
 					var hint_label = Label.new()
@@ -2119,27 +2119,27 @@ func show_page(page):
 					hint_label.align = Label.ALIGN_RIGHT
 					hint_label.autowrap = true
 					hint_label.clip_text = false
-					hint_label.rect_min_size = Vector2(0, 48)
+					hint_label.custom_minimum_size = Vector2(0, 48)
 					hint_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 					_apply_font(hint_label, 16)
-					hint_label.add_color_override("font_color", Color("#cbd5e1"))
+					hint_label.add_theme_color_override("font_color", Color("#cbd5e1"))
 					card_body.add_child(hint_label)
 				var go_button = Button.new()
 				go_button.text = PersianText.reshaper("رفتن به بخش مربوط  ←")
-				go_button.rect_min_size = Vector2(0, 50 if get_viewport_rect().size.x < 900 else 42)
+				go_button.custom_minimum_size = Vector2(0, 50 if get_viewport_rect().size.x < 900 else 42)
 				go_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				_apply_font(go_button, 17 if get_viewport_rect().size.x < 900 else 16)
 				_style_button(go_button, false)
-				go_button.connect("pressed", self, "go_to_mission_target", [str(mission.get("id", ""))])
+				go_button.connect("pressed", Callable(self, "go_to_mission_target").bind(str(mission.get("id", ""))))
 				card_body.add_child(go_button)
 				if is_unlocked and is_completed and not is_claimed:
 					var claim_button = Button.new()
 					claim_button.text = PersianText.reshaper("🎁 دریافت جایزه و باز کردن مرحله بعد")
-					claim_button.rect_min_size = Vector2(0, 58 if get_viewport_rect().size.x < 900 else 50)
+					claim_button.custom_minimum_size = Vector2(0, 58 if get_viewport_rect().size.x < 900 else 50)
 					claim_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 					_apply_font(claim_button, 18)
 					_style_button(claim_button, false)
-					claim_button.connect("pressed", self, "claim_mission", [mission_index])
+					claim_button.connect("pressed", Callable(self, "claim_mission").bind(mission_index))
 					card_body.add_child(claim_button)
 			if visible_missions == 0:
 				_add_label("آموزش هنوز شروع نشده است؛ بازی را ادامه بده.", 17)
@@ -2147,7 +2147,7 @@ func show_page(page):
 			_add_label("بخش پیدا نشد.")
 	# Extra scrollable safe area so the last controls/text stay above Android browser navigation bars.
 	var bottom_scroll_space = Control.new()
-	bottom_scroll_space.rect_min_size = Vector2(0, 180 if get_viewport_rect().size.x < 900 else 90)
+	bottom_scroll_space.custom_minimum_size = Vector2(0, 180 if get_viewport_rect().size.x < 900 else 90)
 	bottom_scroll_space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_child(bottom_scroll_space)
 	header_label.text = PersianText.reshaper("مینی زکا سیتی  |  خزانه: %d  |  جمعیت: %d" % [s.money,s.population])
@@ -2156,7 +2156,7 @@ func _municipality_section(title, section_id):
 	var expanded = bool(municipality_section_expanded.get(section_id, false))
 	var header = _add_button(("▼ " if expanded else "▶ ") + title, self, "toggle_municipality_section", [section_id])
 	active_section_container = VBoxContainer.new()
-	active_section_container.add_constant_override("separation", 5)
+	active_section_container.add_theme_constant_override("separation", 5)
 	active_section_container.visible = expanded
 	content.add_child(active_section_container)
 
@@ -2191,10 +2191,10 @@ func _add_home_services_panel(city_state):
 	panel_style.content_margin_right = 12
 	panel_style.content_margin_top = 10
 	panel_style.content_margin_bottom = 10
-	panel.add_stylebox_override("panel", panel_style)
+	panel.add_theme_stylebox_override("panel", panel_style)
 	content.add_child(panel)
 	var body = VBoxContainer.new()
-	body.add_constant_override("separation", 9)
+	body.add_theme_constant_override("separation", 9)
 	panel.add_child(body)
 
 	var total_coverage = 0
@@ -2204,12 +2204,12 @@ func _add_home_services_panel(city_state):
 	var average_coverage = int(round(float(total_coverage) / float(max(1, service_count))))
 	var header = Button.new()
 	header.text = PersianText.reshaper(("%s  🏙️  خدمات و زیرساخت شهر" % ("▼" if home_city_details_expanded else "▶")) + "     میانگین پوشش: %d%%" % average_coverage)
-	header.rect_min_size = Vector2(0, 62 if compact else 54)
+	header.custom_minimum_size = Vector2(0, 62 if compact else 54)
 	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.align = Button.ALIGN_RIGHT
 	_apply_font(header, 19 if compact else 17)
 	_style_button(header, false)
-	header.connect("pressed", self, "toggle_home_city_details")
+	header.connect("pressed", Callable(self, "toggle_home_city_details"))
 	body.add_child(header)
 
 	var hint = Label.new()
@@ -2217,7 +2217,7 @@ func _add_home_services_panel(city_state):
 	hint.align = Label.ALIGN_RIGHT
 	hint.autowrap = true
 	_apply_font(hint, 15 if compact else 14)
-	hint.add_color_override("font_color", Color("#cbd5e1"))
+	hint.add_theme_color_override("font_color", Color("#cbd5e1"))
 	body.add_child(hint)
 
 	if not home_city_details_expanded:
@@ -2229,13 +2229,13 @@ func _add_home_services_panel(city_state):
 	section_title.text = PersianText.reshaper("شاخص خدمات شهری")
 	section_title.align = Label.ALIGN_RIGHT
 	_apply_font(section_title, 18)
-	section_title.add_color_override("font_color", Color("#f8fafc"))
+	section_title.add_theme_color_override("font_color", Color("#f8fafc"))
 	body.add_child(section_title)
 
 	var grid = GridContainer.new()
 	grid.columns = 2
-	grid.add_constant_override("hseparation", 8)
-	grid.add_constant_override("vseparation", 8)
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.add_child(grid)
 	var service_order = ["food","water","power","health","education","safety","leisure","sanitation"]
@@ -2254,7 +2254,7 @@ func _add_home_services_panel(city_state):
 	infra_title.text = PersianText.reshaper("زیرساخت‌های پشتیبان")
 	infra_title.align = Label.ALIGN_RIGHT
 	_apply_font(infra_title, 18)
-	infra_title.add_color_override("font_color", Color("#f8fafc"))
+	infra_title.add_theme_color_override("font_color", Color("#f8fafc"))
 	body.add_child(infra_title)
 	var central_bank_status = "فعال" if game.has_central_bank() else ("بازسازی: %d روز" % int(city_state.get("central_bank_rebuild_days_left", 0)) if int(city_state.get("central_bank_rebuild_days_left", 0)) > 0 else "ساخته نشده")
 	var infrastructure_text = "ساختمان‌ها: %d   |   ظرفیت انبار: %d\nبانک مرکزی: %s   |   بانک شهری: %d\nجنگل: %d/۱۰۰ درخت   |   معادن فعال: %d" % [city_state.buildings.size(), game.get_storage_capacity(), central_bank_status, game.get_building_count("municipal_bank"), game.get_forest_tree_count(), _active_mine_count()]
@@ -2262,9 +2262,9 @@ func _add_home_services_panel(city_state):
 	infra_label.text = PersianText.reshaper(infrastructure_text)
 	infra_label.align = Label.ALIGN_RIGHT
 	infra_label.autowrap = true
-	infra_label.rect_min_size = Vector2(0, 76 if compact else 64)
+	infra_label.custom_minimum_size = Vector2(0, 76 if compact else 64)
 	_apply_font(infra_label, 16 if compact else 15)
-	infra_label.add_color_override("font_color", Color("#dbeafe"))
+	infra_label.add_theme_color_override("font_color", Color("#dbeafe"))
 	body.add_child(infra_label)
 
 func _add_service_metric_card(parent, title_text, coverage, need, building_count, compact):
@@ -2278,27 +2278,27 @@ func _add_service_metric_card(parent, title_text, coverage, need, building_count
 	card_style.content_margin_right = 8
 	card_style.content_margin_top = 8
 	card_style.content_margin_bottom = 8
-	card.add_stylebox_override("panel", card_style)
+	card.add_theme_stylebox_override("panel", card_style)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	parent.add_child(card)
 	var stack = VBoxContainer.new()
-	stack.add_constant_override("separation", 4)
+	stack.add_theme_constant_override("separation", 4)
 	card.add_child(stack)
 
 	var title = Label.new()
 	title.text = PersianText.reshaper("%s  (%d ساختمان)" % [title_text, building_count])
 	title.align = Label.ALIGN_RIGHT
 	title.autowrap = true
-	title.rect_min_size = Vector2(0, 38 if compact else 32)
+	title.custom_minimum_size = Vector2(0, 38 if compact else 32)
 	_apply_font(title, 16 if compact else 15)
-	title.add_color_override("font_color", Color("#f8fafc"))
+	title.add_theme_color_override("font_color", Color("#f8fafc"))
 	stack.add_child(title)
 
 	var coverage_label = Label.new()
 	coverage_label.text = PersianText.reshaper("پوشش خدمات: %d٪" % coverage)
 	coverage_label.align = Label.ALIGN_RIGHT
 	_apply_font(coverage_label, 15)
-	coverage_label.add_color_override("font_color", Color("#86efac") if coverage >= 70 else (Color("#fcd34d") if coverage >= 40 else Color("#fca5a5")))
+	coverage_label.add_theme_color_override("font_color", Color("#86efac") if coverage >= 70 else (Color("#fcd34d") if coverage >= 40 else Color("#fca5a5")))
 	stack.add_child(coverage_label)
 
 	var coverage_bar = ProgressBar.new()
@@ -2306,22 +2306,22 @@ func _add_service_metric_card(parent, title_text, coverage, need, building_count
 	coverage_bar.max_value = 100
 	coverage_bar.value = coverage
 	coverage_bar.percent_visible = false
-	coverage_bar.rect_min_size = Vector2(0, 9)
+	coverage_bar.custom_minimum_size = Vector2(0, 9)
 	var fill = StyleBoxFlat.new()
 	fill.bg_color = Color("#22c55e") if coverage >= 70 else (Color("#f59e0b") if coverage >= 40 else Color("#ef4444"))
 	fill.set_corner_radius_all(4)
-	coverage_bar.add_stylebox_override("fg", fill)
+	coverage_bar.add_theme_stylebox_override("fg", fill)
 	var track = StyleBoxFlat.new()
 	track.bg_color = Color("#334155")
 	track.set_corner_radius_all(4)
-	coverage_bar.add_stylebox_override("bg", track)
+	coverage_bar.add_theme_stylebox_override("bg", track)
 	stack.add_child(coverage_bar)
 
 	var need_label = Label.new()
 	need_label.text = PersianText.reshaper("رضایت از این نیاز: %d٪" % need)
 	need_label.align = Label.ALIGN_RIGHT
 	_apply_font(need_label, 14)
-	need_label.add_color_override("font_color", Color("#cbd5e1"))
+	need_label.add_theme_color_override("font_color", Color("#cbd5e1"))
 	stack.add_child(need_label)
 
 func _service_summary():
@@ -2376,7 +2376,7 @@ func _add_building_category_items(category):
 		if category != "همه" and category != "ماهیگیری" and str(data.get("category","")) != category:
 			continue
 		building_ids.append(str(id))
-	building_ids.sort_custom(self, "_sort_building_ids_by_unlock_priority")
+	building_ids.sort_custom(Callable(self, "_sort_building_ids_by_unlock_priority"))
 	for id in building_ids:
 		var data = definitions[id]
 		visible_buildings += 1
@@ -2597,7 +2597,7 @@ func build_transport_facility(building_id):
 
 func advance_day():
 	var report = game.end_day()
-	game.state["clock_last_unix"] = OS.get_unix_time()
+	game.state["clock_last_unix"] = Time.get_unix_time_from_system()
 	clock_cycle_seconds = 0.0
 	game.state["clock_cycle_seconds"] = 0
 	show_page("home")
@@ -2848,11 +2848,11 @@ func claim_weekly_challenge():
 func _add_daily_claim_button(parent, mission_id):
 	var claim_button = Button.new()
 	claim_button.text = PersianText.reshaper("🎁 دریافت جایزه")
-	claim_button.rect_min_size = Vector2(0, 48 if get_viewport_rect().size.x < 900 else 42)
+	claim_button.custom_minimum_size = Vector2(0, 48 if get_viewport_rect().size.x < 900 else 42)
 	claim_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_font(claim_button, 17)
 	_style_button(claim_button, false)
-	claim_button.connect("pressed", self, "claim_daily_mission", [mission_id])
+	claim_button.connect("pressed", Callable(self, "claim_daily_mission").bind(mission_id))
 	parent.add_child(claim_button)
 
 func claim_daily_mission(mission_id):
