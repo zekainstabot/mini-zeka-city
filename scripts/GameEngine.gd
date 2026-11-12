@@ -1725,7 +1725,7 @@ func get_daily_trade_city_ids():
 		visible_count = 8
 	elif current_level >= 6:
 		visible_count = 5
-	var selected = available_ids.slice(0, min(visible_count, available_ids.size()))
+	var selected = available_ids.slice(0, min(visible_count, available_ids.size()) - 1)
 	state["daily_trade_city_ids"] = selected
 	state["daily_trade_city_day"] = current_day
 	state["daily_trade_city_level"] = current_level
