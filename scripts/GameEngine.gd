@@ -293,6 +293,7 @@ func new_game():
 		"needs": {"food":65,"water":70,"power":70,"health":70,"education":50,"safety":70,"leisure":50,"sanitation":70},
 		"services": {},
 		"missions": [],
+		"daily_missions": {},
 		"central_bank_rebuild_days_left": 0,
 		"bank_loans": [],
 		"bank_deposits": [],
@@ -357,6 +358,56 @@ func _get_local_calendar_day_serial():
 	var day_of_year = int((153 * adjusted_month + 2) / 5) + day - 1
 	var day_of_era = year_of_era * 365 + int(year_of_era / 4) - int(year_of_era / 100) + day_of_year
 	return era * 146097 + day_of_era
+
+func _ensure_daily_missions():
+	var today = _get_local_calendar_day_serial()
+	var daily = state.get("daily_missions", {})
+	if int(daily.get("day_serial", -1)) != today:
+		daily = {
+			"day_serial": today,
+			"baseline_buildings": state.get("buildings", []).size(),
+			"baseline_employed": get_employed_count(),
+			"baseline_city_day": int(state.get("day", 1)),
+			"claimed": []
+		}
+		state["daily_missions"] = daily
+		save_game()
+	return daily
+
+func get_daily_missions():
+	var daily = _ensure_daily_missions()
+	var building_progress = max(0, state.get("buildings", []).size() - int(daily.get("baseline_buildings", 0)))
+	var employed_progress = max(0, get_employed_count() - int(daily.get("baseline_employed", 0)))
+	var day_progress = max(0, int(state.get("day", 1)) - int(daily.get("baseline_city_day", 1)))
+	var claimed = daily.get("claimed", [])
+	return [
+		{"id":"daily_build","title":"یک قدم برای توسعه","description":"امروز یک ساختمان جدید بساز.","progress":min(1, building_progress),"goal":1,"reward":180,"xp":12,"claimed":"daily_build" in claimed},
+		{"id":"daily_hire","title":"فرصت شغلی تازه","description":"امروز حداقل یک شهروند را شاغل کن.","progress":min(1, employed_progress),"goal":1,"reward":140,"xp":10,"claimed":"daily_hire" in claimed},
+		{"id":"daily_day","title":"یک روز مدیریت موفق","description":"امروز یک روز بازی را با موفقیت به پایان برسان.","progress":min(1, day_progress),"goal":1,"reward":120,"xp":8,"claimed":"daily_day" in claimed}
+	]
+
+func claim_daily_mission(mission_id):
+	var missions = get_daily_missions()
+	for mission in missions:
+		if str(mission.id) != str(mission_id):
+			continue
+		if bool(mission.claimed):
+			return {"ok":false,"message":"جایزه این مأموریت روزانه قبلاً دریافت شده است."}
+		if int(mission.progress) < int(mission.goal):
+			return {"ok":false,"message":"این مأموریت روزانه هنوز کامل نشده است."}
+		var reward = int(mission.reward)
+		if get_treasury_capacity() - int(state.get("money", 0)) < reward:
+			return {"ok":false,"message":"ظرفیت خالی خزانه برای دریافت جایزه کافی نیست."}
+		var daily = state.get("daily_missions", {})
+		var claimed = daily.get("claimed", [])
+		claimed.append(str(mission_id))
+		daily["claimed"] = claimed
+		state["daily_missions"] = daily
+		_add_money(reward)
+		var xp_message = _award_xp(int(mission.xp))
+		save_game()
+		return {"ok":true,"message":"جایزه روزانه دریافت شد: %d سکه و %d تجربه. %s" % [reward, int(mission.xp), xp_message]}
+	return {"ok":false,"message":"مأموریت روزانه پیدا نشد."}
 
 func register_login_today():
 	return register_login_day_serial(_get_local_calendar_day_serial())
@@ -492,6 +543,8 @@ func _normalize_state():
 		building["balance"] = max(0, int(building.get("balance", 0)))
 	if typeof(state.get("missions", null)) != TYPE_ARRAY:
 		state["missions"] = []
+	if typeof(state.get("daily_missions", null)) != TYPE_DICTIONARY:
+		state["daily_missions"] = {}
 	state["last_login_day_serial"] = int(state.get("last_login_day_serial", -1))
 	state["login_streak"] = max(0, int(state.get("login_streak", 0)))
 	state["active_play_seconds_today"] = max(0.0, float(state.get("active_play_seconds_today", 0.0)))
