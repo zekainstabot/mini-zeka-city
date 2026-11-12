@@ -769,6 +769,9 @@ func show_page(page):
 			_add_label("روز %d  |  سطح شهر %d" % [s.day,s.level], 19)
 			var login_reward_status = game.get_login_reward_status()
 			_add_label("🎁 زنجیره ورود: %d روز | هدیه امروز: %d سکه" % [int(login_reward_status.streak),int(login_reward_status.reward)],16)
+			var weekly_city_event = game.get_weekly_city_event()
+			_add_label("🌟 رویداد این هفته: %s" % str(weekly_city_event.get("title","")),17)
+			_add_label("%s | اثر: %s" % [str(weekly_city_event.get("description","")),str(weekly_city_event.get("effect",""))],14)
 			var login_reward_button = _add_button("🎁 دریافت هدیه ورود روزانه",self,"claim_login_reward")
 			login_reward_button.disabled = bool(login_reward_status.claimed) or not bool(login_reward_status.logged_in)
 
