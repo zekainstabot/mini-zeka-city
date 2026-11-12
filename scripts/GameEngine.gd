@@ -317,6 +317,7 @@ func new_game():
 		"landmark_projects_completed": [],
 		"pending_city_decision": {},
 		"next_city_decision_day": 6,
+		"weekly_city_event": {},
 		"central_bank_rebuild_days_left": 0,
 		"bank_loans": [],
 		"bank_deposits": [],
@@ -714,6 +715,25 @@ func get_city_league():
 		if score >= int(league.min):
 			selected = league
 	return {"score":score,"name":str(selected.name),"next":int(selected.next)}
+
+
+func get_weekly_city_event():
+	var today = _get_local_calendar_day_serial()
+	var week_serial = int(floor(float(today) / 7.0))
+	var saved = state.get("weekly_city_event", {})
+	if int(saved.get("week_serial", -1)) != week_serial:
+		var rotation = int(week_serial % 4)
+		var events = [
+			{"id":"market_boom","title":"هفته رونق بازار","description":"کسب‌وکارهای شهر این هفته ۱۰٪ درآمد بیشتری دارند.","effect":"۱۰٪ درآمد اضافه کسب‌وکارها"},
+			{"id":"festival_week","title":"هفته جشنواره شهر","description":"برنامه‌های فرهنگی حال‌وهوای شهر را بهتر می‌کنند.","effect":"هر روز ۱ امتیاز رضایت بیشتر"},
+			{"id":"energy_saving","title":"هفته صرفه‌جویی انرژی","description":"مدیریت شهری هزینه نگهداری ناوگان و جاده را کاهش داده است.","effect":"۱۵٪ کاهش هزینه نگهداری"},
+			{"id":"development_week","title":"هفته توسعه و آموزش","description":"فعالیت‌های عمرانی و آموزشی تجربه بیشتری تولید می‌کنند.","effect":"۲۰ تجربه اضافه در پایان هر روز"}
+		]
+		saved = events[rotation].duplicate(true)
+		saved["week_serial"] = week_serial
+		state["weekly_city_event"] = saved
+		save_game()
+	return saved.duplicate(true)
 
 func get_weekly_challenge():
 	var today = _get_local_calendar_day_serial()
@@ -1234,6 +1254,8 @@ func _normalize_state():
 		state["landmark_projects_completed"] = []
 	if typeof(state.get("pending_city_decision", null)) != TYPE_DICTIONARY:
 		state["pending_city_decision"] = {}
+	if typeof(state.get("weekly_city_event", null)) != TYPE_DICTIONARY:
+		state["weekly_city_event"] = {}
 	state["next_city_decision_day"] = max(int(state.get("day", 1)) + 1, int(state.get("next_city_decision_day", 6)))
 	state["next_resident_request_id"] = max(1, int(state.get("next_resident_request_id", 1)))
 	state["next_resident_request_day"] = max(int(state.get("day", 1)) + 1, int(state.get("next_resident_request_day", int(state.get("day", 1)) + 3)))
@@ -2346,6 +2368,7 @@ func get_daily_development_support():
 
 func end_day(is_offline=false):
 	var report = []
+	var weekly_event = get_weekly_city_event()
 	var treasury_opening = int(state.get("money", 0))
 	assign_jobs()
 	var development_support_due = get_daily_development_support()
@@ -2372,6 +2395,9 @@ func end_day(is_offline=false):
 	var fleet_maintenance = get_fleet_maintenance()
 	var road_maintenance = get_road_maintenance()
 	var maintenance_due = fleet_maintenance + road_maintenance
+	if str(weekly_event.get("id", "")) == "energy_saving":
+		maintenance_due = int(floor(float(maintenance_due) * 0.85))
+		report.append("رویداد هفتگی صرفه‌جویی انرژی: هزینه نگهداری ۱۵٪ کمتر شد.")
 	var maintenance_paid = min(maintenance_due, get_available_money())
 	state.money = int(state.money) - maintenance_paid
 	if maintenance_paid < maintenance_due:
@@ -2459,6 +2485,12 @@ func end_day(is_offline=false):
 		state.resources[output] = int(state.resources.get(output, 0)) + amount
 		report.append(data.name+" تولید کرد: "+str(amount)+" "+RESOURCES[output].name+".")
 
+	if str(weekly_event.get("id", "")) == "market_boom" and business_income_total > 0:
+		var weekly_business_bonus = int(round(float(business_income_total) * 0.10))
+		income += weekly_business_bonus
+		report.append("هفته رونق بازار: %d سکه درآمد اضافه از کسب‌وکارها." % weekly_business_bonus)
+	if str(weekly_event.get("id", "")) == "festival_week":
+		state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) + 1, 0, 100))
 	# Apply each warehouse threshold after today's production.
 	var treasury_before_storage_rules = int(state.get("money", 0))
 	for storage_resource_id in RESOURCES.keys():
@@ -2592,6 +2624,9 @@ func end_day(is_offline=false):
 			city_stock[resource_id] = min(int(TRADE_CITIES[city_id].supply.get(resource_id,0)), int(city_stock.get(resource_id,0)) + max(1,int(TRADE_CITIES[city_id].supply.get(resource_id,0) / 5)))
 			state.city_export_stock[city_id] = city_stock
 	var xp_earned = get_daily_xp_gain()
+	if str(weekly_event.get("id", "")) == "development_week":
+		xp_earned += 20
+		report.append("هفته توسعه و آموزش: ۲۰ تجربه اضافه دریافت شد.")
 	var previous_level = int(state.level)
 	state.xp += xp_earned
 	var levels_gained = 0
