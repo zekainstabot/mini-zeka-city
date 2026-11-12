@@ -439,9 +439,10 @@ func _apply_font(control, size=18):
 	# Keep the rendered glyph edges crisp instead of smoothing the font texture.
 	font.use_filter = false
 	font.use_mipmaps = false
-	# Keep text crisp: use a clear font size without an outline that can soften glyph edges.
+	# A thin, high-contrast outline adds visual weight without enlarging glyphs.
 	font.size = int(size) + (5 if get_viewport_rect().size.x < 900 else 4)
-	font.outline_size = 0
+	font.outline_size = 1
+	font.outline_color = Color("#111827")
 	control.add_font_override("font", font)
 	return font
 
@@ -478,6 +479,10 @@ func _style_button(button, navigation=false):
 	button.add_color_override("font_color_hover", text_color)
 	button.add_color_override("font_color_pressed", text_color)
 	button.add_color_override("font_color_disabled", Color("#4B5563"))
+	var button_font = button.get_font("font")
+	if button_font is DynamicFont:
+		button_font.outline_size = 1
+		button_font.outline_color = Color("#FFFFFF") if not navigation else Color("#111827")
 
 func _clear_content():
 	construction_time_labels.clear()
