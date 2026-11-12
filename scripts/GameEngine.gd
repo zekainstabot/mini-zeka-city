@@ -713,6 +713,7 @@ func get_weekly_challenge():
 			"baseline_buildings":state.get("buildings", []).size(),
 			"baseline_population":int(state.get("population", 0)),
 			"baseline_exports":int(state.get("trade_exported_units_total", 0)),
+			"baseline_money":int(state.get("money", 0)),
 			"claimed":false
 		}
 		state["weekly_challenge"] = challenge
@@ -746,10 +747,10 @@ func get_weekly_challenge():
 			reward = 850
 			xp = 55
 		3:
-			title = "هفته اقتصاد سالم"
-			description = "تراز مالی شهر را ۳ روز متوالی مثبت نگه دار."
-			progress = min(3, int(state.get("profitable_day_streak", 0)))
-			goal = 3
+			title = "هفته پس‌انداز"
+			description = "این هفته موجودی خزانه را ۱٬۰۰۰ سکه افزایش بده."
+			progress = max(0, int(state.get("money", 0)) - int(challenge.get("baseline_money", 0)))
+			goal = 1000
 			reward = 1000
 			xp = 70
 	return {
