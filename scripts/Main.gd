@@ -38,6 +38,7 @@ var commerce_section_expanded = {"domestic":false,"export":false,"import":false,
 var storage_section_expanded = {}
 var active_section_container = null
 var mission_reward_badge = null
+var mission_badge_refresh_timer = 0.0
 
 func _input(event):
 	if game_scroll_container == null or not is_instance_valid(game_scroll_container):
@@ -66,6 +67,10 @@ func _process(delta):
 	if game == null or game_paused:
 		return
 	clock_cycle_seconds += delta
+	mission_badge_refresh_timer += delta
+	if mission_badge_refresh_timer >= 1.0:
+		mission_badge_refresh_timer = 0.0
+		_update_mission_reward_badge()
 	clock_save_accumulator += delta
 	construction_check_accumulator += delta
 	if construction_check_accumulator >= 1.0:
@@ -302,9 +307,12 @@ func _build_ui():
 			mission_reward_badge = Label.new()
 			mission_reward_badge.text = ""
 			mission_reward_badge.align = Label.ALIGN_CENTER
-			mission_reward_badge.rect_min_size = Vector2(0, 24)
+			mission_reward_badge.valign = Label.VALIGN_CENTER
+			mission_reward_badge.rect_min_size = Vector2(0, 30)
 			mission_reward_badge.add_color_override("font_color", Color("#facc15"))
-			_apply_font(mission_reward_badge, 15)
+			mission_reward_badge.add_color_override("font_color_shadow", Color("#111827"))
+			mission_reward_badge.modulate = Color("#ffffff")
+			_apply_font(mission_reward_badge, 17)
 			nav_item.add_child(mission_reward_badge)
 		var b = Button.new()
 		b.text = PersianText.reshaper(item.t + "  ")
@@ -360,7 +368,8 @@ func _update_mission_reward_badge():
 		if bool(mission.get("completed", false)) and not bool(mission.get("claimed", false)) and bool(mission.get("unlocked", false)):
 			ready_to_claim = true
 			break
-	mission_reward_badge.text = PersianText.reshaper("🎁 جایزه آماده دریافت" if ready_to_claim else "")
+	mission_reward_badge.text = PersianText.reshaper("🎁  جایزه آماده دریافت  🎁" if ready_to_claim else "")
+	mission_reward_badge.visible = ready_to_claim
 
 func _create_menu_action(title, callback):
 	var button = Button.new()
