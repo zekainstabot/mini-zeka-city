@@ -5,6 +5,7 @@ const SETTINGS_PATH = "user://audio_settings.cfg"
 
 var music_player = null
 var effects_player = null
+var effects_players = []
 var environment_player = null
 var settings = ConfigFile.new()
 var music_enabled = true
@@ -28,9 +29,13 @@ func _ready():
 	music_player = AudioStreamPlayer.new()
 	music_player.name = "OriginalAmbientMusic"
 	add_child(music_player)
-	effects_player = AudioStreamPlayer.new()
-	effects_player.name = "OriginalSoundEffects"
-	add_child(effects_player)
+	effects_players.clear()
+	for voice_index in range(4):
+		var voice = AudioStreamPlayer.new()
+		voice.name = "OriginalSoundEffects%d" % voice_index
+		add_child(voice)
+		effects_players.append(voice)
+	effects_player = effects_players[0]
 	environment_player = AudioStreamPlayer.new()
 	environment_player.name = "OriginalCitySoundscape"
 	add_child(environment_player)
@@ -105,7 +110,7 @@ func set_environment_mode(value):
 		requested = "city"
 	environment_mode = requested
 	_save_settings()
-	_apply_environment()
+	_apply_environment(true)
 
 func set_night_mode(value):
 	var next_mode = bool(value)
@@ -113,34 +118,38 @@ func set_night_mode(value):
 		return
 	night_mode = next_mode
 	if music_enabled:
-		_apply_music()
+		_apply_music(true)
 	if environment_enabled:
-		_apply_environment()
+		_apply_environment(true)
 
-func _apply_music():
+func _apply_music(force_restart=false):
 	if music_player == null:
 		return
 	if not music_enabled or music_volume <= 0.001:
 		music_player.stop()
 		return
 	music_player.volume_db = linear2db(max(0.001, music_volume))
-	music_player.stream = _make_ambient_music(night_mode)
-	music_player.play()
+	if force_restart or music_player.stream == null:
+		music_player.stream = _make_ambient_music(night_mode)
+	if not music_player.playing:
+		music_player.play()
 
 func _apply_effects():
-	if effects_player == null:
-		return
-	effects_player.volume_db = linear2db(max(0.001, effects_volume))
+	for voice in effects_players:
+		if voice != null:
+			voice.volume_db = linear2db(max(0.001, effects_volume))
 
-func _apply_environment():
+func _apply_environment(force_restart=false):
 	if environment_player == null:
 		return
 	if not environment_enabled or environment_volume <= 0.001:
 		environment_player.stop()
 		return
 	environment_player.volume_db = linear2db(max(0.001, environment_volume))
-	environment_player.stream = _make_environment_stream(environment_mode, night_mode)
-	environment_player.play()
+	if force_restart or environment_player.stream == null:
+		environment_player.stream = _make_environment_stream(environment_mode, night_mode)
+	if not environment_player.playing:
+		environment_player.play()
 
 func play_sfx(kind="click"):
 	# Browser exports may block autoplay until the first user gesture; resume ambience on interaction.
@@ -148,7 +157,14 @@ func play_sfx(kind="click"):
 		_apply_music()
 	if environment_enabled and environment_player != null and not environment_player.playing:
 		_apply_environment()
-	if not effects_enabled or effects_volume <= 0.001 or effects_player == null:
+	if not effects_enabled or effects_volume <= 0.001 or effects_players.empty():
+		return
+	var selected_player = null
+	for voice in effects_players:
+		if not voice.playing:
+			selected_player = voice
+			break
+	if selected_player == null:
 		return
 	var tones = []
 	match str(kind):
@@ -176,8 +192,8 @@ func play_sfx(kind="click"):
 			tones = [[110.0, 0.0, 0.35], [146.83, 0.30, 0.35], [123.47, 0.62, 0.40]]
 		_:
 			tones = [[880.0, 0.0, 0.055], [1174.66, 0.025, 0.075]]
-	effects_player.stream = _make_tone_stream(tones, 0.72)
-	effects_player.play()
+	selected_player.stream = _make_tone_stream(tones, 0.72)
+	selected_player.play()
 
 func _make_environment_stream(mode, is_night):
 	var duration = 6.0
