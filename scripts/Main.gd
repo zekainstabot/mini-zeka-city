@@ -256,7 +256,7 @@ func _show_offline_summary():
 	var welcome = Label.new()
 	welcome.text = PersianText.reshaper("خوش برگشتی! 👋")
 	welcome.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	welcome.autowrap = true
+	welcome.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_apply_font(welcome, 20 if compact else 22)
 	welcome.add_theme_color_override("font_color", Color("#ffffff"))
 	layout.add_child(welcome)
@@ -264,7 +264,7 @@ func _show_offline_summary():
 	var subtitle = Label.new()
 	subtitle.text = PersianText.reshaper("در مدتی که نبودی، شهر به فعالیتش ادامه داد.")
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	subtitle.autowrap = true
+	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_apply_font(subtitle, 13 if compact else 15)
 	subtitle.add_theme_color_override("font_color", Color("#cbd5e1"))
 	layout.add_child(subtitle)
@@ -317,14 +317,14 @@ func _show_offline_summary():
 	var money_value = Label.new()
 	money_value.text = PersianText.reshaper("%s سکه" % str(income))
 	money_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	money_value.autowrap = true
+	money_value.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_apply_font(money_value, 16 if compact else 19)
 	money_value.add_theme_color_override("font_color", Color("#86efac") if income > 0 else Color("#e2e8f0"))
 	money_box.add_child(money_value)
 	var money_caption = Label.new()
 	money_caption.text = PersianText.reshaper("درآمد آماده دریافت" if income > 0 else "مانده درآمد")
 	money_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	money_caption.autowrap = true
+	money_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_apply_font(money_caption, 10 if compact else 12)
 	money_caption.add_theme_color_override("font_color", Color("#bbf7d0") if income > 0 else Color("#cbd5e1"))
 	money_box.add_child(money_caption)
@@ -352,7 +352,7 @@ func _show_offline_summary():
 		var empty_news = Label.new()
 		empty_news.text = PersianText.reshaper("اتفاق مهمی ثبت نشده؛ شهر آرام بوده است.")
 		empty_news.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		empty_news.autowrap = true
+		empty_news.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_apply_font(empty_news, 12 if compact else 14)
 		empty_news.add_theme_color_override("font_color", Color("#cbd5e1"))
 		news_list.add_child(empty_news)
@@ -375,7 +375,7 @@ func _show_offline_summary():
 			var news_label = Label.new()
 			news_label.text = PersianText.reshaper("• " + str(news_item))
 			news_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-			news_label.autowrap = true
+			news_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			news_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			_apply_font(news_label, 11 if compact else 13)
 			news_label.add_theme_color_override("font_color", Color("#e2e8f0"))
@@ -385,7 +385,7 @@ func _show_offline_summary():
 	var note = Label.new()
 	note.text = PersianText.reshaper("درآمد تا زمان دریافت، جدا از خزانه نگه داشته می‌شود." if income > 0 else "درآمد و هزینه‌های این مدت محاسبه شده‌اند؛ مازاد درآمدی وجود ندارد.")
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	note.autowrap = true
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_apply_font(note, 11 if compact else 13)
 	note.add_theme_color_override("font_color", Color("#94a3b8"))
 	layout.add_child(note)
@@ -535,7 +535,7 @@ func _build_ui():
 	var restart_confirm_text = Label.new()
 	restart_confirm_text.text = PersianText.reshaper("⚠️ شروع دوباره شهر؟\nتمام پیشرفت فعلی این شهر پاک می‌شود و یک شهر تازه ساخته خواهد شد.")
 	restart_confirm_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	restart_confirm_text.autowrap = true
+	restart_confirm_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	restart_confirm_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	restart_confirm_text.custom_minimum_size = Vector2(0, 100 if compact_layout else 76)
 	_apply_font(restart_confirm_text, 19 if compact_layout else 17)
@@ -570,7 +570,7 @@ func _build_ui():
 	level_status_bar.min_value = 0
 	level_status_bar.max_value = 100
 	level_status_bar.value = 100
-	level_status_bar.percent_visible = false
+	level_status_bar.show_percentage = false
 	level_status_bar.custom_minimum_size = Vector2(0, 10 if compact_layout else 8)
 	var level_fill = StyleBoxFlat.new()
 	level_fill.bg_color = Color("#d97706")
@@ -589,7 +589,7 @@ func _build_ui():
 	xp_progress_bar = ProgressBar.new()
 	xp_progress_bar.min_value = 0
 	xp_progress_bar.max_value = 100
-	xp_progress_bar.percent_visible = false
+	xp_progress_bar.show_percentage = false
 	xp_progress_bar.custom_minimum_size = Vector2(0, 12 if compact_layout else 10)
 	var xp_fill = StyleBoxFlat.new()
 	xp_fill.bg_color = Color("#06b6d4")
@@ -658,13 +658,13 @@ func _build_ui():
 	message_label = Label.new()
 	message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	message_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	message_label.autowrap = true
+	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	message_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	message_label.custom_minimum_size = Vector2(0, 76 if compact_layout else 58)
 	var message_font = _apply_font(message_label, 27 if compact_layout else 23)
 	if message_font != null:
-		message_font.outline_size = 1
-		message_font.outline_color = Color("#101827")
+		message_label.add_theme_constant_override("outline_size", 1)
+		message_label.add_theme_color_override("font_outline_color", Color("#101827"))
 	message_label.add_theme_color_override("font_color", Color("#ffffff"))
 	message_label.modulate = Color("#ffffff")
 	root.add_child(message_label)
@@ -795,32 +795,19 @@ func _get_geographic_rank_name(district_count):
 	return str(ranks[min(rank_index, ranks.size() - 1)])
 
 func _load_ui_font():
-	var font_data = FontFile.new()
-	font_data.font_path = "res://assets/fonts/Vazirmatn.ttf"
-	font_data.antialiased = true
-	font_data.hinting = TextServer.HINTING_NORMAL
-	# Re-rasterize glyphs at 2x resolution instead of stretching a low-resolution
-	# glyph texture when the game is displayed on mobile or in the HTML5 canvas.
-	font_data.override_oversampling = 2.0
-	ui_font = FontFile.new()
-	ui_font.font_data = font_data
-	ui_font.size = 20
-	ui_font.use_filter = false
-	ui_font.use_mipmaps = true
+	# Godot 4 uses FontFile itself as the font resource; the old DynamicFont
+	# wrapper and its font_path/font_data/size properties no longer exist.
+	ui_font = load("res://assets/fonts/Vazirmatn.ttf") as Font
+	if ui_font == null:
+		push_error("Could not load Vazirmatn font from res://assets/fonts/Vazirmatn.ttf")
 
 func _apply_font(control, size=18):
 	if ui_font == null:
-		return
-	var font = FontFile.new()
-	font.font_data = ui_font.font_data
-	font.use_filter = false
-	font.use_mipmaps = true
-	# Keep the existing readable mobile sizing, but avoid the extra outline
-	# that made small Persian letter details look heavy.
-	font.size = int(size) + (5 if get_viewport_rect().size.x < 900 else 4)
-	font.outline_size = 0
-	control.add_theme_font_override("font", font)
-	return font
+		return null
+	control.add_theme_font_override("font", ui_font)
+	control.add_theme_font_size_override("font_size", int(size) + (5 if get_viewport_rect().size.x < 900 else 4))
+	control.add_theme_constant_override("outline_size", 0)
+	return ui_font
 
 func _button_style(bg_color, border_color):
 	var style = StyleBoxFlat.new()
@@ -855,10 +842,8 @@ func _style_button(button, navigation=false):
 	button.add_theme_color_override("font_color_hover", text_color)
 	button.add_theme_color_override("font_color_pressed", text_color)
 	button.add_theme_color_override("font_color_disabled", Color("#4B5563"))
-	var button_font = button.get_font("font")
-	if button_font is FontFile:
-		button_font.outline_size = 1
-		button_font.outline_color = Color("#FFFFFF") if not navigation else Color("#111827")
+	button.add_theme_constant_override("outline_size", 1)
+	button.add_theme_color_override("font_outline_color", Color("#FFFFFF") if not navigation else Color("#111827"))
 
 func _clear_content():
 	construction_time_labels.clear()
@@ -870,7 +855,7 @@ func _add_label(text, size=18):
 	label.text = PersianText.reshaper(text)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_apply_font(label, size)
-	label.autowrap = true
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.custom_minimum_size = Vector2(0, 44 if get_viewport_rect().size.x < 900 else 34)
 	label.add_theme_color_override("font_color", Color("#f8fafc"))
@@ -931,7 +916,7 @@ func _show_welcome_mission_hint():
 	var welcome = Label.new()
 	welcome.text = PersianText.reshaper("به شهر خودت خوش اومدی! برای شروع، به مأموریت‌ها برو.")
 	welcome.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	welcome.autowrap = true
+	welcome.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	welcome.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_font(welcome, 18 if get_viewport_rect().size.x < 900 else 17)
 	welcome.add_theme_color_override("font_color", Color("#ffffff"))
@@ -1022,14 +1007,14 @@ func _add_help_section(title, description, target_page=""):
 	var heading = Label.new()
 	heading.text = PersianText.reshaper(title)
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	heading.autowrap = true
+	heading.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_apply_font(heading, 18 if get_viewport_rect().size.x < 900 else 17)
 	heading.add_theme_color_override("font_color", Color("#fbbf24"))
 	body.add_child(heading)
 	var details = Label.new()
 	details.text = PersianText.reshaper(description)
 	details.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	details.autowrap = true
+	details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_font(details, 16 if get_viewport_rect().size.x < 900 else 15)
 	details.add_theme_color_override("font_color", Color("#e2e8f0"))
@@ -1798,7 +1783,7 @@ func show_page(page):
 				project_bar.min_value = 0
 				project_bar.max_value = max(1,int(project.goal))
 				project_bar.value = int(project.progress)
-				project_bar.percent_visible = false
+				project_bar.show_percentage = false
 				project_bar.custom_minimum_size = Vector2(0,12)
 				content.add_child(project_bar)
 				if bool(project.claimed):
@@ -1900,21 +1885,21 @@ func show_page(page):
 				var daily_title = Label.new()
 				daily_title.text = PersianText.reshaper(str(daily_mission.title))
 				daily_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-				daily_title.autowrap = true
+				daily_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				_apply_font(daily_title, 18)
 				daily_title.add_theme_color_override("font_color", Color("#fde68a") if daily_done else Color("#ffffff"))
 				daily_body.add_child(daily_title)
 				var daily_desc = Label.new()
 				daily_desc.text = PersianText.reshaper(str(daily_mission.description))
 				daily_desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-				daily_desc.autowrap = true
+				daily_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				_apply_font(daily_desc, 16)
 				daily_desc.add_theme_color_override("font_color", Color("#dbeafe"))
 				daily_body.add_child(daily_desc)
 				var daily_progress = Label.new()
 				daily_progress.text = PersianText.reshaper("پیشرفت: %d از %d  |  جایزه: %d سکه + %d تجربه" % [int(daily_mission.progress), int(daily_mission.goal), int(daily_mission.reward), int(daily_mission.xp)])
 				daily_progress.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-				daily_progress.autowrap = true
+				daily_progress.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				_apply_font(daily_progress, 15)
 				daily_body.add_child(daily_progress)
 				if bool(daily_mission.claimed):
@@ -1985,7 +1970,7 @@ func show_page(page):
 			var summary_label = Label.new()
 			summary_label.text = PersianText.reshaper("پیشرفت کلی مأموریت‌ها: %d از %d" % [main_claimed + side_claimed, main_total + side_total])
 			summary_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			summary_label.autowrap = true
+			summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			summary_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			_apply_font(summary_label, 19)
 			summary_label.add_theme_color_override("font_color", Color("#ffffff"))
@@ -2060,7 +2045,7 @@ func show_page(page):
 				title_label.text = PersianText.reshaper(str(definition.title))
 				title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 				title_label.clip_text = false
-				title_label.autowrap = true
+				title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				title_label.custom_minimum_size = Vector2(0, 34)
 				title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				_apply_font(title_label, 19)
@@ -2069,7 +2054,7 @@ func show_page(page):
 				var status_label = Label.new()
 				status_label.text = PersianText.reshaper(status_text)
 				status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-				status_label.autowrap = true
+				status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				status_label.clip_text = false
 				status_label.custom_minimum_size = Vector2(0, 30)
 				status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -2079,7 +2064,7 @@ func show_page(page):
 				var description_label = Label.new()
 				description_label.text = PersianText.reshaper(str(definition.description))
 				description_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-				description_label.autowrap = true
+				description_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				description_label.clip_text = false
 				description_label.custom_minimum_size = Vector2(0, 48)
 				description_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -2091,7 +2076,7 @@ func show_page(page):
 				var progress_label = Label.new()
 				progress_label.text = PersianText.reshaper("پیشرفت: %d از %d     |     پاداش: %d سکه + %d تجربه" % [current_progress, target_progress, int(definition.reward), int(definition.get("xp",0))])
 				progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-				progress_label.autowrap = true
+				progress_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				progress_label.clip_text = false
 				progress_label.custom_minimum_size = Vector2(0, 34)
 				progress_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -2102,7 +2087,7 @@ func show_page(page):
 				mission_progress.min_value = 0
 				mission_progress.max_value = target_progress
 				mission_progress.value = min(current_progress, target_progress)
-				mission_progress.percent_visible = false
+				mission_progress.show_percentage = false
 				mission_progress.custom_minimum_size = Vector2(0, 12)
 				var mission_fill = StyleBoxFlat.new()
 				mission_fill.bg_color = Color("#22c55e") if is_completed else Color("#38bdf8")
@@ -2117,7 +2102,7 @@ func show_page(page):
 					var hint_label = Label.new()
 					hint_label.text = PersianText.reshaper("راهنما: " + str(definition.get("hint", "از بخش‌های شهر هدف را دنبال کن.")))
 					hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-					hint_label.autowrap = true
+					hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 					hint_label.clip_text = false
 					hint_label.custom_minimum_size = Vector2(0, 48)
 					hint_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -2215,7 +2200,7 @@ func _add_home_services_panel(city_state):
 	var hint = Label.new()
 	hint.text = PersianText.reshaper("وضعیت آب، برق، درمان، امنیت و امکانات شهر را یک‌جا ببین.")
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	hint.autowrap = true
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_apply_font(hint, 15 if compact else 14)
 	hint.add_theme_color_override("font_color", Color("#cbd5e1"))
 	body.add_child(hint)
@@ -2261,7 +2246,7 @@ func _add_home_services_panel(city_state):
 	var infra_label = Label.new()
 	infra_label.text = PersianText.reshaper(infrastructure_text)
 	infra_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	infra_label.autowrap = true
+	infra_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	infra_label.custom_minimum_size = Vector2(0, 76 if compact else 64)
 	_apply_font(infra_label, 16 if compact else 15)
 	infra_label.add_theme_color_override("font_color", Color("#dbeafe"))
@@ -2288,7 +2273,7 @@ func _add_service_metric_card(parent, title_text, coverage, need, building_count
 	var title = Label.new()
 	title.text = PersianText.reshaper("%s  (%d ساختمان)" % [title_text, building_count])
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	title.autowrap = true
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.custom_minimum_size = Vector2(0, 38 if compact else 32)
 	_apply_font(title, 16 if compact else 15)
 	title.add_theme_color_override("font_color", Color("#f8fafc"))
@@ -2305,7 +2290,7 @@ func _add_service_metric_card(parent, title_text, coverage, need, building_count
 	coverage_bar.min_value = 0
 	coverage_bar.max_value = 100
 	coverage_bar.value = coverage
-	coverage_bar.percent_visible = false
+	coverage_bar.show_percentage = false
 	coverage_bar.custom_minimum_size = Vector2(0, 9)
 	var fill = StyleBoxFlat.new()
 	fill.bg_color = Color("#22c55e") if coverage >= 70 else (Color("#f59e0b") if coverage >= 40 else Color("#ef4444"))
