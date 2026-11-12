@@ -1775,13 +1775,13 @@ func show_page(page):
 			_add_button("🏙️ حالا برگردیم به شهر!", self, "return_home_from_menu")
 
 		"progress":
-			_add_label("🏗️ پروژه‌های بلندمدت شهر",23)
-			_add_label("این هدف‌ها برای توسعه چندمرحله‌ای شهر هستند؛ پیشرفتشان ذخیره می‌شود و جایزه را فقط یک‌بار می‌توانی بگیری.",16)
+			_add_label("🏗️ هدف‌های بلندمدت شهر",23)
+			_add_label("این هدف‌ها با ساخت‌وساز و رشد شهر کامل می‌شوند. پیشرفت هر هدف ذخیره می‌شود و پس از تکمیل، می‌توانی جایزه‌اش را دریافت کنی.",16)
 			for project in game.get_long_term_projects():
 				var project_done = int(project.progress) >= int(project.goal)
 				_add_label(str(project.title),19)
 				_add_label(str(project.description),16)
-				_add_label("پیشرفت: %d از %d | پاداش: %d سکه + %d تجربه" % [int(project.progress),int(project.goal),int(project.reward),int(project.xp)],16)
+				_add_label("میزان پیشرفت: %d از %d\nجایزه: %d سکه و %d تجربه" % [int(project.progress),int(project.goal),int(project.reward),int(project.xp)],16)
 				var project_bar = ProgressBar.new()
 				project_bar.min_value = 0
 				project_bar.max_value = max(1,int(project.goal))
@@ -1790,76 +1790,76 @@ func show_page(page):
 				project_bar.rect_min_size = Vector2(0,12)
 				content.add_child(project_bar)
 				if bool(project.claimed):
-					_add_label("✓ جایزه دریافت شده",15)
+					_add_label("✓ این جایزه را دریافت کرده‌ای",15)
 				elif project_done:
 					_add_button("🎁 دریافت جایزه پروژه",self,"claim_long_term_project",[str(project.id)])
 				else:
-					_add_label("● در حال پیشرفت",15)
+					_add_label("● هنوز در حال تکمیل این هدف هستی",15)
 
-			_add_label("🏙️ رقابت با شهرهای همسایه",23)
-			_add_label("شهرهای رقیب هر روز رشد می‌کنند؛ جایگاه تو با امتیاز واقعی توسعه شهر سنجیده می‌شود.",15)
+			_add_label("🏙️ رتبه‌بندی شهرها",23)
+			_add_label("شهر تو با شهرهای رقیب مقایسه می‌شود. هر روز ممکن است امتیاز آن‌ها تغییر کند؛ با افزایش سطح، جمعیت و ساختمان‌ها رتبه‌ات را بهتر کن.",15)
 			for rival_row in game.get_rival_standings():
 				var rival_prefix = "👑 " if bool(rival_row.get("is_player",false)) else "🏘️ "
-				_add_label("%sرتبه %d | %s | امتیاز %d | جمعیت %d | سطح %d" % [rival_prefix,int(rival_row.get("rank",0)),str(rival_row.get("name","")),int(rival_row.get("score",0)),int(rival_row.get("population",0)),int(rival_row.get("level",1))],16)
-			_add_label("🔎 رازها و کشفیات مخفی",23)
+				_add_label("%sرتبه %d ـ %s\nامتیاز توسعه: %d | جمعیت: %d نفر | سطح: %d" % [rival_prefix,int(rival_row.get("rank",0)),str(rival_row.get("name","")),int(rival_row.get("score",0)),int(rival_row.get("population",0)),int(rival_row.get("level",1))],16)
+			_add_label("🔎 رازها و کشفیات",23)
 			var mystery = game.get_mystery_status()
 			if bool(mystery.get("active",false)):
-				_add_label("کشف تازه: "+str(mystery.get("title","راز مخفی")),18)
+				_add_label("سرنخ تازه: "+str(mystery.get("title","راز مخفی")),18)
 				_add_label(str(mystery.get("clue","")),15)
 				_add_label(str(mystery.get("objective","")),16)
-				_add_label("پیشرفت: %d از %d | پاداش: %d سکه + %d تجربه" % [int(mystery.get("progress",0)),int(mystery.get("goal",1)),int(mystery.get("reward",0)),int(mystery.get("xp",0))],16)
+				_add_label("پیشرفت سرنخ: %d از %d\nپاداش کشف: %d سکه و %d تجربه" % [int(mystery.get("progress",0)),int(mystery.get("goal",1)),int(mystery.get("reward",0)),int(mystery.get("xp",0))],16)
 				if int(mystery.get("progress",0)) >= int(mystery.get("goal",1)):
 					_add_button("🗝️ باز کردن راز و دریافت جایزه",self,"claim_mystery_reward")
 			else:
-				_add_label("هنوز راز تازه‌ای پیدا نشده؛ با رشد شهر و گذر روزها سرنخ‌های جدید ظاهر می‌شوند.",15)
-				_add_label("رازهای کشف‌شده: %d" % int(mystery.get("completed",0)),15)
-			_add_label("🏛️ سازه‌های عظیم و پروژه‌های چندمرحله‌ای",23)
+				_add_label("فعلاً سرنخ تازه‌ای پیدا نکرده‌ای. با پیشرفت شهر و گذشت روزها، ممکن است راز تازه‌ای کشف شود.",15)
+				_add_label("تعداد رازهای کشف‌شده: %d" % int(mystery.get("completed",0)),15)
+			_add_label("🏛️ پروژه‌های بزرگ شهری",23)
 			var landmark_status = game.get_landmark_project_status()
 			if bool(landmark_status.get("active",false)):
 				var stage_data = landmark_status.get("stage_data",{})
-				_add_label("پروژه فعال: %s | مرحله %d از %d" % [str(landmark_status.get("title","")),int(landmark_status.get("stage",1)),int(landmark_status.get("stage_total",1))],18)
-				_add_label("مرحله: %s | هزینه: %d سکه" % [str(stage_data.get("title","")),int(stage_data.get("cost",0))],16)
-				_add_label("شرایط: سطح %d، جمعیت %d، ساختمان کل %d" % [int(stage_data.get("level",1)),int(stage_data.get("population",0)),int(stage_data.get("buildings",0))],15)
+				_add_label("پروژه در حال اجرا: %s\nمرحله %d از %d" % [str(landmark_status.get("title","")),int(landmark_status.get("stage",1)),int(landmark_status.get("stage_total",1))],18)
+				_add_label("کار این مرحله: %s\nهزینه تکمیل: %d سکه" % [str(stage_data.get("title","")),int(stage_data.get("cost",0))],16)
+				_add_label("برای انجام این مرحله لازم است: سطح شهر %d، جمعیت %d نفر و دست‌کم %d ساختمان داشته باشی." % [int(stage_data.get("level",1)),int(stage_data.get("population",0)),int(stage_data.get("buildings",0))],15)
 				var stage_button = _add_button("🏗️ سرمایه‌گذاری و تکمیل این مرحله",self,"invest_landmark_stage")
 				stage_button.disabled = not bool(landmark_status.get("requirements_met",false)) or game.get_available_money() < int(stage_data.get("cost",0))
 			else:
-				_add_label("فقط یک پروژه عظیم را هم‌زمان می‌توانی پیش ببری. هر سازه سه مرحله و شرط‌های مخصوص دارد.",15)
+				_add_label("در هر زمان فقط یک پروژه بزرگ را می‌توانی دنبال کنی. هر پروژه چند مرحله دارد و برای عبور از هر مرحله باید شرط‌های آن را فراهم کنی و هزینه‌اش را بپردازی.",15)
 				for landmark in game.get_landmark_project_definitions():
 					var completed_landmarks = landmark_status.get("completed",[])
 					var is_completed_landmark = str(landmark.id) in completed_landmarks
-					_add_label("%s | پاداش افتتاح: %d سکه + %d تجربه" % [str(landmark.title),int(landmark.reward),int(landmark.xp)],17)
+					_add_label("%s\nجایزه پس از افتتاح: %d سکه و %d تجربه" % [str(landmark.title),int(landmark.reward),int(landmark.xp)],17)
 					_add_label(str(landmark.description),14)
 					if is_completed_landmark:
-						_add_label("✓ در شهر افتتاح شده",15)
+						_add_label("✓ این سازه در شهر افتتاح شده است",15)
 					else:
 						_add_button("آغاز پروژه "+str(landmark.title),self,"start_landmark_project",[str(landmark.id)])
 
-			_add_label("🏆 افتخارات و رکوردهای شهر",23)
+			_add_label("🏆 رتبه، افتخارات و رکوردهای شهر",23)
 			var league = game.get_city_league()
-			_add_label("رتبه شهر: %s | امتیاز توسعه: %d" % [str(league.name),int(league.score)],19)
+			_add_label("جایگاه فعلی شهر: %s\nامتیاز توسعه: %d" % [str(league.name),int(league.score)],19)
 			if int(league.next) > 0:
-				_add_label("برای رتبه بعدی به %d امتیاز نیاز داری." % max(0,int(league.next)-int(league.score)),15)
-			_add_label("این رتبه‌بندی بر اساس ذخیره همین شهر محاسبه می‌شود؛ جدول جهانی آنلاین نیست.",14)
+				_add_label("برای رسیدن به رتبه بعدی، %d امتیاز دیگر لازم داری." % max(0,int(league.next)-int(league.score)),15)
+			_add_label("این رتبه فقط بر اساس وضعیت شهر خودت محاسبه می‌شود و جدول رتبه‌بندی جهانی نیست.",14)
 			var weekly = game.get_weekly_challenge()
-			_add_label("🏁 رقابت هفتگی | "+str(weekly.title),19)
+			_add_label("🏁 چالش این هفته: "+str(weekly.title),19)
 			_add_label(str(weekly.description),15)
-			_add_label("پیشرفت: %d از %d | جایزه: %d سکه + %d تجربه" % [int(weekly.progress),int(weekly.goal),int(weekly.reward),int(weekly.xp)],16)
+			_add_label("پیشرفت این هفته: %d از %d\nجایزه: %d سکه و %d تجربه" % [int(weekly.progress),int(weekly.goal),int(weekly.reward),int(weekly.xp)],16)
 			if bool(weekly.claimed):
-				_add_label("✓ جایزه رقابت این هفته دریافت شده است.",15)
+				_add_label("✓ جایزه چالش این هفته را دریافت کرده‌ای.",15)
 			elif int(weekly.progress) >= int(weekly.goal):
 				_add_button("🏆 دریافت جایزه رقابت هفتگی",self,"claim_weekly_challenge")
 			var records = game.get_city_records()
-			_add_label("📊 بهترین رکوردها",19)
-			_add_label("بیشترین جمعیت: %d نفر | بیشترین خزانه: %d سکه" % [int(records.get("peak_population",0)),int(records.get("peak_money",0))],16)
-			_add_label("بالاترین سطح: %d | بیشترین رضایت: %d/۱۰۰ | بیشترین ساختمان: %d" % [int(records.get("peak_level",1)),int(records.get("peak_satisfaction",0)),int(records.get("most_buildings",0))],16)
+			_add_label("📊 رکوردهای ثبت‌شده شهر",19)
+			_add_label("بیشترین جمعیت ثبت‌شده: %d نفر\nبیشترین موجودی خزانه: %d سکه" % [int(records.get("peak_population",0)),int(records.get("peak_money",0))],16)
+			_add_label("بالاترین سطح شهر: %d\nبیشترین رضایت ثبت‌شده: %d از ۱۰۰\nبیشترین تعداد ساختمان: %d" % [int(records.get("peak_level",1)),int(records.get("peak_satisfaction",0)),int(records.get("most_buildings",0))],16)
 			var achievement_list = game.get_achievements()
 			var unlocked_achievements = 0
 			for achievement in achievement_list:
 				if bool(achievement.unlocked):
 					unlocked_achievements += 1
-			_add_label("نشان‌های بازشده: %d از %d" % [unlocked_achievements,achievement_list.size()],17)
+			_add_label("افتخارات به‌دست‌آمده: %d از %d" % [unlocked_achievements,achievement_list.size()],17)
 			for achievement in achievement_list:
-				var achievement_status = "🏅 دریافت‌شده" if bool(achievement.unlocked) else "🔒 قفل"
+				var achievement_status = "🏅 بازشده" if bool(achievement.unlocked) else "🔒 هنوز باز نشده"
 				_add_label(achievement_status+" | "+str(achievement.title),18)
 				_add_label(str(achievement.description),15)
 		"missions":
