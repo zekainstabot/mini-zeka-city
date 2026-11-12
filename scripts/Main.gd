@@ -188,6 +188,8 @@ func _update_construction_time_labels():
 			label.text = PersianText.reshaper("%s | زمان باقی‌مانده: " % str(project.name)) + _format_time_display(int(seconds_left / 60), seconds_left % 60)
 
 func _apply_offline_progress():
+	# Keep offline digest keys initialized even when no full offline day elapsed.
+	game.state["pending_offline_digest"] = game.state.get("pending_offline_digest", [])
 	var now = OS.get_unix_time()
 	var last = int(game.state.get("clock_last_unix", now))
 	var elapsed = max(0, now - last)
@@ -201,9 +203,9 @@ func _apply_offline_progress():
 		for digest_line in digest:
 			var clean_line = str(digest_line).strip_edges()
 			if clean_line != "" and (clean_line.find("رویداد") >= 0 or clean_line.find("تصمیم") >= 0 or clean_line.find("رقبا") >= 0 or clean_line.find("درخواست") >= 0 or clean_line.find("تبریک") >= 0 or clean_line.find("تولید") >= 0):
-				game.state.pending_offline_digest.append(clean_line)
-	while game.state.pending_offline_digest.size() > 8:
-		game.state.pending_offline_digest.pop_front()
+				game.state["pending_offline_digest"].append(clean_line)
+	while game.state["pending_offline_digest"].size() > 8:
+		game.state["pending_offline_digest"].pop_front()
 	var offline_net = int(game.state.get("money", money_before)) - money_before
 	# Positive net earnings are held separately until the player explicitly collects them.
 	if offline_net > 0:
