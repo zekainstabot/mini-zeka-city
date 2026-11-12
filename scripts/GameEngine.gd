@@ -261,7 +261,7 @@ var state = {}
 
 func new_game():
 	state = {
-		"version": 17,
+		"version": 18,
 		"districts": [],
 		"day": 1,
 		"clock_last_unix": OS.get_unix_time(),
@@ -305,7 +305,11 @@ func new_game():
 		"city_records": {},
 		"long_term_project_claimed": [],
 		"weekly_challenge": {},
-		"rival_cities": [],
+		"rival_cities": [
+			{"id":"mehrabad_rival","name":"مهرآباد","population":18,"level":2,"buildings":7,"wealth":6500,"satisfaction":62,"score":330},
+			{"id":"navid_rival","name":"نویدشهر","population":26,"level":3,"buildings":10,"wealth":9200,"satisfaction":68,"score":520},
+			{"id":"golestan_rival","name":"گلستان","population":14,"level":2,"buildings":6,"wealth":4800,"satisfaction":58,"score":280}
+		],
 		"mystery_active": {},
 		"mystery_completed": [],
 		"mystery_next_day": 4,
