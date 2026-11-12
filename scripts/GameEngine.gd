@@ -1248,7 +1248,6 @@ func _update_city_services(report):
 		var decay = int(daily_decay.get(need_id, 2))
 		var recovery = int(round(float(coverage) * 0.12))
 		needs[need_id] = int(clamp(current - decay + recovery, 0, 100))
-		total_need += int(needs[need_id])
 	# A staffed police station provides a modest night-patrol safety benefit.
 	var night_patrol_active = false
 	for building_index in range(state.buildings.size()):
@@ -1258,6 +1257,9 @@ func _update_city_services(report):
 	if night_patrol_active:
 		needs["safety"] = int(min(100, int(needs.get("safety", 0)) + 2))
 		report.append("گشت شبانه کلانتری فعال بود؛ امنیت شهر ۲ واحد بهبود یافت.")
+	total_need = 0
+	for need_id in need_ids:
+		total_need += int(needs.get(need_id, 0))
 	state.needs = needs
 	state.services = service_state
 	var average = int(round(float(total_need) / float(need_ids.size())))
