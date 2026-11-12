@@ -1766,6 +1766,9 @@ func end_day(is_offline=false):
 		else:
 			state["consecutive_active_game_days"] = 0
 		state["active_play_seconds_today"] = 0.0
+	else:
+		# Offline day advancement cannot bank active minutes for a later day.
+		state["active_play_seconds_today"] = 0.0
 	state.day += 1
 	state.transport_used_today = 0
 	_process_trade_arrivals(report)
