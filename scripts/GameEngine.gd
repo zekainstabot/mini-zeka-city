@@ -1739,6 +1739,7 @@ func end_day(is_offline=false):
 		state.buildings[profit_index] = profit_building
 		business_profit_remaining -= transferred
 	if automatic_business_profit_transferred > 0:
+		state["business_profit_collections_total"] = int(state.get("business_profit_collections_total", 0)) + 1
 		report.append("سود کسب‌وکارها به‌صورت خودکار به خزانه منتقل شد: %d سکه." % automatic_business_profit_transferred)
 	if automatic_business_profit_transferred < automatic_business_profit:
 		report.append("به‌دلیل پر بودن ظرفیت خزانه، %d سکه سود در حساب کسب‌وکارها باقی ماند." % (automatic_business_profit - automatic_business_profit_transferred))
