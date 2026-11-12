@@ -8,6 +8,13 @@ func _init():
 	get_root().add_child(main)
 	main.game = EngineScript.new()
 	main.game.new_game()
+	assert(main._get_geographic_rank_name(1) == "آبادی کوچک")
+	assert(main._get_geographic_rank_name(3) == "آبادی کوچک")
+	assert(main._get_geographic_rank_name(4) == "آبادی")
+	assert(main._get_geographic_rank_name(6) == "آبادی")
+	assert(main._get_geographic_rank_name(7) == "آبادی بزرگ")
+	assert(main._get_geographic_rank_name(9) == "آبادی بزرگ")
+	assert(main._get_geographic_rank_name(10) == "روستای کوچک")
 	for page in ["home","buildings","citizens","bank","municipality","private_economy","commerce","transport","imports","storage","report","missions","progress","help"]:
 		main.show_page(page)
 		if page == "help":
