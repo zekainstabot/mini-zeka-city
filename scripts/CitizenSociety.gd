@@ -425,9 +425,19 @@ func _process_private_businesses(engine, report):
 		var workers = employee_ids.size()
 		var revenue_per_worker = int(business.get("revenue_per_worker", 50))
 		var revenue = revenue_per_worker * workers
-		var wage = int(business.get("wage", 15)) * workers
-		var cash = int(business.get("balance", 0))
-		var wage_paid = min(wage, cash + revenue)
+		var wage_budget = min(int(business.get("wage", 15)) * workers, cash + revenue)
+		var wage_paid = 0
+		for citizen_index in range(state.citizens.size()):
+			var citizen = state.citizens[citizen_index]
+			if int(citizen.get("id", 0)) not in employee_ids or wage_budget <= 0:
+				continue
+			var wallet_room = max(0, 2000 - int(citizen.get("wallet", 0)))
+			var payment = min(int(business.get("wage", 15)), min(wallet_room, wage_budget))
+			if payment > 0:
+				citizen["wallet"] = int(citizen.get("wallet", 0)) + payment
+				wage_paid += payment
+				wage_budget -= payment
+				state.citizens[citizen_index] = citizen
 		var tax_due = int(floor(float(revenue) * float(state.get("business_tax_rate", 8)) / 100.0))
 		var credit = min(tax_due, int(business.get("tax_credit", 0)))
 		var tax_paid = tax_due - credit
@@ -438,12 +448,6 @@ func _process_private_businesses(engine, report):
 		business["last_tax"] = tax_paid
 		business["employees"] = employee_ids
 		tax_total += tax_paid
-		for citizen_index in range(state.citizens.size()):
-			var citizen = state.citizens[citizen_index]
-			if int(citizen.get("id", 0)) in employee_ids:
-				var payment = int(business.get("wage", 15))
-				citizen["wallet"] = int(clamp(int(citizen.get("wallet", 0)) + payment, 0, 2000))
-				state.citizens[citizen_index] = citizen
 		var owner_index = _find_citizen_index(state, int(business.get("owner_citizen_id", 0)))
 		if owner_index >= 0 and int(business.get("balance", 0)) > 0:
 			var dividend = min(10, int(business.balance))
@@ -455,9 +459,11 @@ func _process_private_businesses(engine, report):
 		state.private_businesses[business_index] = business
 		if workers > 0:
 			report.append("%s خصوصی: فروش %d، حقوق %d، مالیات %d سکه؛ %d کارمند." % [str(data.name), revenue, wage_paid, tax_paid, workers])
+	var accepted_tax = 0
 	if tax_total > 0:
-		var accepted = engine._add_money(tax_total)
-		report.append("مالیات کسب‌وکارهای خصوصی: %d سکه به خزانه شهرداری واریز شد." % accepted)
+		accepted_tax = engine._add_money(tax_total)
+		report.append("مالیات کسب‌وکارهای خصوصی: %d از %d سکه به خزانه شهرداری واریز شد." % [accepted_tax, tax_total])
+	return accepted_tax
 
 func _complete_civic_projects(engine, report):
 	var state = engine.state
@@ -484,7 +490,7 @@ func _complete_civic_projects(engine, report):
 		engine._sync_population()
 		engine.assign_jobs()
 
-func _process_citizen_bank_loans(engine, citizen, report):
+func _process_citizen_bank_loans(engine, citizen, report, summary):
 	var loans = citizen.get("bank_loans", [])
 	if typeof(loans) != TYPE_ARRAY:
 		loans = []
@@ -495,11 +501,14 @@ func _process_citizen_bank_loans(engine, citizen, report):
 			continue
 		active_count += 1
 		var due = min(int(loan.get("remaining", 0)), int(loan.get("daily_installment", 0)))
-		var payment = min(due, int(citizen.get("wallet", 0)))
+		var treasury_room = max(0, engine.get_treasury_capacity() - int(engine.state.get("money", 0)))
+		var payment = min(due, min(int(citizen.get("wallet", 0)), treasury_room))
 		if payment > 0:
 			citizen["wallet"] = int(citizen.get("wallet", 0)) - payment
 			loan["remaining"] = int(loan.get("remaining", 0)) - payment
-			engine._record_bank_transaction("citizen_repayment", payment, "قسط وام شهروند شماره %d" % int(citizen.get("id", 0)))
+			var accepted_repayment = engine._add_money(payment)
+			summary["citizen_loan_repayments"] = int(summary.get("citizen_loan_repayments", 0)) + accepted_repayment
+			engine._record_bank_transaction("citizen_repayment", accepted_repayment, "قسط وام شهروند شماره %d" % int(citizen.get("id", 0)))
 			loan["missed_days"] = 0
 			if int(loan.get("remaining", 0)) <= 0:
 				loan["status"] = "paid"
@@ -518,36 +527,34 @@ func _process_citizen_bank_loans(engine, citizen, report):
 		var principal = 500
 		var interest = 50
 		var total_due = principal + interest
-		engine._spend_money(principal)
-		citizen["wallet"] = min(2000, int(citizen.get("wallet", 0)) + principal)
-		loans.append({"id":int(citizen.get("id", 0)) * 1000 + day,"principal":principal,"interest":interest,"remaining":total_due,"daily_installment":int(ceil(float(total_due) / 14.0)),"duration":14,"days_left":14,"status":"active","missed_days":0,"start_day":day})
-		citizen["bank_loans"] = loans
-		citizen["last_bank_loan_day"] = day
-		active_count += 1
-		engine._record_bank_transaction("citizen_loan", principal, "وام ۱۴ روزه شهروند شماره %d" % int(citizen.get("id", 0)))
-		report.append("بانک مرکزی به شهروند %d وام ۵۰۰ سکه‌ای با بازپرداخت روزانه داد." % int(citizen.get("id", 0)))
+		if engine._spend_money(principal):
+			citizen["wallet"] = min(2000, int(citizen.get("wallet", 0)) + principal)
+			summary["citizen_loan_disbursements"] = int(summary.get("citizen_loan_disbursements", 0)) + principal
+			loans.append({"id":int(citizen.get("id", 0)) * 1000 + day,"principal":principal,"interest":interest,"remaining":total_due,"daily_installment":int(ceil(float(total_due) / 14.0)),"duration":14,"days_left":14,"status":"active","missed_days":0,"start_day":day})
+			citizen["bank_loans"] = loans
+			citizen["last_bank_loan_day"] = day
+			active_count += 1
+			engine._record_bank_transaction("citizen_loan", principal, "وام ۱۴ روزه شهروند شماره %d" % int(citizen.get("id", 0)))
+			report.append("بانک مرکزی به شهروند %d وام ۵۰۰ سکه‌ای با بازپرداخت روزانه داد." % int(citizen.get("id", 0)))
 	return citizen
 
 func process_day(engine, report):
 	ensure_state(engine)
 	var state = engine.state
+	var summary = {"private_business_tax":0,"citizen_loan_repayments":0,"citizen_loan_disbursements":0}
 	_expire_rentals(engine, report)
 	_complete_civic_projects(engine, report)
 	for citizen_index in range(state.citizens.size()):
 		var citizen = state.citizens[citizen_index]
-		citizen = _process_citizen_bank_loans(engine, citizen, report)
-		if str(citizen.get("job", "")) == "" and int(citizen.get("private_job_id", 0)) <= 0:
-			var saving_income = 10 + int(int(citizen.get("saving_habit", 50)) / 5)
-			citizen["wallet"] = int(clamp(int(citizen.get("wallet", 0)) + saving_income, 0, 2000))
-			state.citizens[citizen_index] = citizen
-		else:
-			state.citizens[citizen_index] = citizen
-	_process_private_businesses(engine, report)
+		citizen = _process_citizen_bank_loans(engine, citizen, report, summary)
+		state.citizens[citizen_index] = citizen
+	summary["private_business_tax"] = _process_private_businesses(engine, report)
 	_queue_land_or_permit_requests(engine)
 	_queue_public_project_requests(engine)
 	if not state.business_requests.empty():
 		report.append("%d درخواست شهروندان برای زمین، مجوز یا پروژه عمرانی در شهرداری منتظر بررسی است." % state.business_requests.size())
 	engine.state = state
+	return summary
 
 func resolve_request(engine, request_id, approved):
 	ensure_state(engine)
