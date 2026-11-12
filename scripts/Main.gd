@@ -607,6 +607,10 @@ func show_page(page):
 			clock_label = _add_label("روز | زمان باقی‌مانده: 00:07", 18)
 			_add_label("خزانه: %d / %d سکه  |  پول قفل‌شده: %d" % [s.money,game.get_treasury_capacity(),game.get_locked_money()], 20)
 			_add_label("جمعیت: %d نفر  |  شاغل: %d  |  بیکار: %d" % [s.population,game.get_employed_count(),game.get_unemployed_count()], 19)
+			var municipal_economy = s.get("last_economy", {})
+			var municipal_daily_income = int(municipal_economy.get("tax_income",0)) + int(municipal_economy.get("consumer_tax_income",0)) + int(municipal_economy.get("station_income",0)) + int(municipal_economy.get("road_income",0))
+			var municipal_income_per_minute = int(floor(float(municipal_daily_income) / 10.0))
+			_add_label("درآمد شهرداری: %d سکه در دقیقه" % municipal_income_per_minute, 18)
 			_add_label("اعتبار شهر: %d  |  رضایت: %d/۱۰۰" % [s.reputation,int(s.get("satisfaction",50))], 18)
 
 			var details_toggle = _add_button(("▼ " if home_city_details_expanded else "▶ ") + "خدمات و زیرساخت شهر", self, "toggle_home_city_details")
