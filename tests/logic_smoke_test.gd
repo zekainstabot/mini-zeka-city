@@ -13,12 +13,13 @@ func _init():
 	assert(PersianTextScript.reshaper("بازی Godot").find("Godot") >= 0)
 	assert(PersianTextScript.reshaper("دانلود YouTube").find("YouTube") >= 0)
 
-	# Main missions are sequential; side missions stay independently available.
+	# Every active mission is sequential; completed missions disappear after claiming.
 	var mission_game = EngineScript.new()
 	mission_game.new_game()
 	assert(mission_game.state.missions.size() == 61)
 	assert(bool(mission_game.state.missions[0].unlocked))
-	assert(bool(mission_game.state.missions[20].unlocked))
+	assert(not bool(mission_game.state.missions[1].unlocked))
+	assert(not bool(mission_game.state.missions[20].unlocked))
 	mission_game.state.land_owned = 11
 	mission_game.state.money = 9000
 	mission_game._update_missions()
@@ -39,10 +40,16 @@ func _init():
 	assert(int(mission_game.state.money) == mission_money_before + 300)
 	assert(bool(mission_game.state.missions[1].unlocked))
 	assert(not bool(mission_game.state.missions[1].completed))
+	assert(bool(mission_game.state.missions[0].claimed))
 	assert(int(mission_game._get_mission_progress("build_house_tutorial")) == 0)
 	mission_game.state.buildings.append({"id":"small_house","workers":0,"balance":0})
 	assert(int(mission_game._get_mission_progress("build_house_tutorial")) == 1)
 	assert(not bool(mission_game.state.missions[2].unlocked))
+	# A side mission unlocks only after every preceding active mission is claimed.
+	for prior_index in range(1, 20):
+		mission_game.state.missions[prior_index]["claimed"] = true
+	mission_game._update_missions()
+	assert(bool(mission_game.state.missions[20].unlocked))
 	mission_game.state.population = 12
 	mission_game.state.buildings.append({"id":"water_tower","workers":0,"balance":0})
 	mission_game._update_missions()
