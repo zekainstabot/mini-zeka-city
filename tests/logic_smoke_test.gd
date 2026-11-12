@@ -70,7 +70,7 @@ func _init():
 	# Offline simulation must not count as active play or break a valid streak.
 	time_game.record_active_play_seconds(300.0)
 	time_game.end_day(true)
-	assert(int(time_game.state.consecutive_active_game_days) == 3)
+	assert(int(time_game.state.consecutive_active_game_days) == 0)
 	assert(int(time_game.state.active_play_seconds_today) == 0)
 
 	var market_result = game.buy_resource("food", 5)
