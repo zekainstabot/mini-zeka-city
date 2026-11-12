@@ -797,29 +797,28 @@ func _get_geographic_rank_name(district_count):
 func _load_ui_font():
 	var font_data = DynamicFontData.new()
 	font_data.font_path = "res://assets/fonts/Vazirmatn.ttf"
-	# Render the UI font at higher resolution so newly-created labels stay sharp
-	# on high-DPI mobile screens and when the HTML5 canvas is scaled.
 	font_data.antialiased = true
 	font_data.hinting = DynamicFontData.HINTING_NORMAL
+	# Re-rasterize glyphs at 2x resolution instead of stretching a low-resolution
+	# glyph texture when the game is displayed on mobile or in the HTML5 canvas.
+	font_data.override_oversampling = 2.0
 	ui_font = DynamicFont.new()
 	ui_font.font_data = font_data
 	ui_font.size = 20
-	# Avoid texture filtering: it softens glyph edges and makes small UI text look blurry.
 	ui_font.use_filter = false
-	ui_font.use_mipmaps = false
+	ui_font.use_mipmaps = true
 
 func _apply_font(control, size=18):
 	if ui_font == null:
 		return
 	var font = DynamicFont.new()
 	font.font_data = ui_font.font_data
-	# Keep the rendered glyph edges crisp instead of smoothing the font texture.
 	font.use_filter = false
-	font.use_mipmaps = false
-	# A thin, high-contrast outline adds visual weight without enlarging glyphs.
+	font.use_mipmaps = true
+	# Keep the existing readable mobile sizing, but avoid the extra outline
+	# that made small Persian letter details look heavy.
 	font.size = int(size) + (5 if get_viewport_rect().size.x < 900 else 4)
-	font.outline_size = 1
-	font.outline_color = Color("#111827")
+	font.outline_size = 0
 	control.add_font_override("font", font)
 	return font
 
