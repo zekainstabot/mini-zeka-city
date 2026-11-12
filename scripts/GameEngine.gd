@@ -38,7 +38,7 @@ const MISSION_DEFINITIONS = [
 	{"id":"side_wood","type":"side","title":"تولید منابع داخلی","description":"یک چوب‌بری بساز تا تولید یکی از منابع پایه شهر را راه‌اندازی کنی.","goal":1,"reward":300,"xp":25,"hint":"چوب‌بری در دسته کارخانه‌هاست و به کارگر نیاز دارد."},
 	{"id":"side_bank","type":"side","title":"آشنایی با بانکداری","description":"بانک شهری بساز تا امکان استفاده از خدمات مالی و سپرده را داشته باشی.","goal":1,"reward":550,"xp":45,"hint":"بانک شهری در خدمات شهری قرار دارد؛ قبل از ساخت خزانه را بررسی کن."},
 	{"id":"side_population","type":"side","title":"محله پرجمعیت","description":"جمعیت شهر را به ۱۲ نفر برسان و برای خدمات و اشتغال برنامه‌ریزی کن.","goal":12,"reward":600,"xp":45,"hint":"خانه کافی بساز و نیازهای شهروندان را زیر نظر بگیر."},
-	{"id":"side_reserve","type":"side","title":"ذخیره مالی مطمئن","description":"موجودی خزانه را به ۵۰۰۰ سکه برسان؛ بدون گرفتن وام.","goal":5000,"reward":500,"xp":40,"hint":"هزینه‌های ثابت را کنترل کن و از مالیات، تولید و تجارت درآمد بگیر."}
+	{"id":"side_reserve","type":"side","title":"ذخیره مالی مطمئن","description":"موجودی خزانه را به ۵۰۰۰ سکه برسان؛ بدون گرفتن وام.","goal":15000,"reward":500,"xp":40,"hint":"هزینه‌های ثابت را کنترل کن و از مالیات، تولید و تجارت درآمد بگیر."}
 ]
 
 const RESOURCES = {
@@ -1282,14 +1282,12 @@ func claim_mission(mission_index):
 			xp_reward = int(definition.get("xp", 0))
 			break
 	var accepted = _add_money(reward)
-	if accepted < reward:
-		return {"ok":false,"message":"ظرفیت خزانه برای دریافت کامل پاداش کافی نیست."}
 	mission.claimed = true
 	state.missions[mission_index] = mission
 	var xp_message = _award_xp(xp_reward)
 	_update_missions()
 	save_game()
-	return {"ok":true,"message":"پاداش دریافت شد: %d سکه و %d تجربه. %s" % [reward, xp_reward, xp_message]}
+	return {"ok":true,"message":"پاداش دریافت شد: %d از %d سکه و %d تجربه. %s" % [accepted, reward, xp_reward, xp_message]}
 
 
 func get_civic_overview():
