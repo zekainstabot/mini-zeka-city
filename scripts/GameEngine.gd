@@ -1258,6 +1258,41 @@ func collect_offline_income():
 		return {"ok":false,"amount":0,"message":"ظرفیت خزانه پر است؛ ابتدا ظرفیت خزانه را افزایش بده."}
 	return {"ok":true,"amount":accepted,"message":"درآمد آفلاین دریافت شد: %d سکه." % accepted}
 
+func _calculate_transport_income(report):
+	var station_income = 0
+	var road_income = 0
+	var passenger_pool = max(0, int(floor(float(state.get("population", 0)) * 0.7)))
+	for building_index in range(state.buildings.size()):
+		var building = state.buildings[building_index]
+		if int(building.get("rented_to", 0)) > 0:
+			continue
+		var building_id = str(building.get("id", ""))
+		var workers = _workers_for_building(building_index)
+		if workers <= 0:
+			continue
+		if building_id == "taxi_station" or building_id == "bus_station":
+			var passenger_capacity = workers * (5 if building_id == "taxi_station" else 9)
+			var passengers = min(passenger_pool, passenger_capacity)
+			var fare = 5 if building_id == "taxi_station" else 3
+			var revenue = passengers * fare
+			passenger_pool -= passengers
+			station_income += revenue
+			if revenue > 0:
+				var station_name = str(BUILDINGS[building_id].name)
+				report.append("%s: جابه‌جایی %d مسافر و درآمد %d سکه." % [station_name, passengers, revenue])
+	if get_building_count("transport_depot") > 0:
+		var active_trucks = get_transport_truck_count()
+		var depot_income = active_trucks * 25
+		station_income += depot_income
+		if depot_income > 0:
+			report.append("پایانه حمل‌ونقل: خدمات %d کامیون فعال، درآمد %d سکه." % [active_trucks, depot_income])
+	var freight_units = int(state.get("transport_used_today", 0))
+	if freight_units > 0:
+		road_income = freight_units * max(1, int(state.get("road_level", 1)))
+		report.append("عوارض جاده‌ای برای عبور %d واحد بار: %d سکه." % [freight_units, road_income])
+	return {"station_income":station_income, "road_income":road_income}
+
+
 func end_day():
 	var report = []
 	assign_jobs()
@@ -1303,6 +1338,10 @@ func end_day():
 	var citizen_market = _process_citizen_purchases(report)
 	var consumer_tax_income = int(citizen_market.tax)
 	var income = tax_income + consumer_tax_income
+	var transport_income = _calculate_transport_income(report)
+	var station_income = int(transport_income.station_income)
+	var road_income = int(transport_income.road_income)
+	income += station_income + road_income
 	if tax_income > 0:
 		report.append("مالیات شهری دریافت شد: "+str(tax_income)+" سکه.")
 	for building_index in range(state.buildings.size()):
@@ -1395,6 +1434,8 @@ func end_day():
 		"food_stock": int(state.resources.get("food",0)),
 		"business_income": business_income_total,
 		"resource_income": resource_income_total,
+		"station_income": station_income,
+		"road_income": road_income,
 		"gross_income": income,
 		"accepted_income": accepted_income,
 		"wages_due": total_wages,
