@@ -177,6 +177,9 @@ func new_game():
 		"clock_cycle_seconds": 0,
 		"pending_offline_income": 0,
 		"pending_offline_days": 0,
+		"daily_trade_city_ids": [],
+		"daily_trade_city_day": 0,
+		"daily_trade_city_level": 0,
 		"money": 10000,
 		"population": 4,
 		"citizen_recruitment_mode": "auto",
@@ -309,6 +312,12 @@ func _normalize_state():
 		state["pending_offline_income"] = 0
 	if not state.has("pending_offline_days"):
 		state["pending_offline_days"] = 0
+	if typeof(state.get("daily_trade_city_ids", null)) != TYPE_ARRAY:
+		state["daily_trade_city_ids"] = []
+	if not state.has("daily_trade_city_day"):
+		state["daily_trade_city_day"] = 0
+	if not state.has("daily_trade_city_level"):
+		state["daily_trade_city_level"] = 0
 	if not state.has("road_level"):
 		state["road_level"] = 1
 	if not state.has("transport_used_today"):
@@ -1684,6 +1693,44 @@ func get_market_price(id, action):
 
 func get_trade_cities():
 	return TRADE_CITIES
+
+func get_daily_trade_city_ids():
+	var current_day = int(state.get("day", 1))
+	var current_level = int(state.get("level", 1))
+	var saved_ids = state.get("daily_trade_city_ids", [])
+	if int(state.get("daily_trade_city_day", 0)) == current_day and int(state.get("daily_trade_city_level", 0)) == current_level and saved_ids.size() > 0:
+		var valid_saved = true
+		for saved_id in saved_ids:
+			if not TRADE_CITIES.has(str(saved_id)):
+				valid_saved = false
+				break
+		if valid_saved:
+			return saved_ids.duplicate()
+	var available_ids = TRADE_CITIES.keys()
+	var rng = RandomNumberGenerator.new()
+	rng.seed = int(current_day * 7919 + current_level * 104729)
+	for index in range(available_ids.size() - 1, 0, -1):
+		var swap_index = rng.randi_range(0, index)
+		var temp = available_ids[index]
+		available_ids[index] = available_ids[swap_index]
+		available_ids[swap_index] = temp
+	var visible_count = 3
+	if current_level >= 30:
+		visible_count = 22
+	elif current_level >= 20:
+		visible_count = 16
+	elif current_level >= 15:
+		visible_count = 12
+	elif current_level >= 10:
+		visible_count = 8
+	elif current_level >= 6:
+		visible_count = 5
+	var selected = available_ids.slice(0, min(visible_count, available_ids.size()))
+	state["daily_trade_city_ids"] = selected
+	state["daily_trade_city_day"] = current_day
+	state["daily_trade_city_level"] = current_level
+	save_game()
+	return selected.duplicate()
 
 func get_trade_export_price(city_id, resource_id):
 	if not TRADE_CITIES.has(city_id) or not RESOURCES.has(resource_id):
