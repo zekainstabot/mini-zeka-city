@@ -29,13 +29,13 @@ func _init():
 	construction_limit_game.state.constructions.pop_back()
 	assert(construction_limit_game.get_active_construction_count() == 1)
 
-	# Every active mission is sequential; completed missions disappear after claiming.
+	# Main missions stay sequential; side missions are independently available.
 	var mission_game = EngineScript.new()
 	mission_game.new_game()
 	assert(mission_game.state.missions.size() == 61)
 	assert(bool(mission_game.state.missions[0].unlocked))
 	assert(not bool(mission_game.state.missions[1].unlocked))
-	assert(not bool(mission_game.state.missions[20].unlocked))
+	assert(bool(mission_game.state.missions[20].unlocked))
 	mission_game.state.land_owned = 11
 	mission_game.state.money = 9000
 	mission_game._update_missions()
@@ -61,11 +61,13 @@ func _init():
 	mission_game.state.buildings.append({"id":"small_house","workers":0,"balance":0})
 	assert(int(mission_game._get_mission_progress("build_house_tutorial")) == 1)
 	assert(not bool(mission_game.state.missions[2].unlocked))
-	# A side mission unlocks only after every preceding active mission is claimed.
-	for prior_index in range(1, 20):
-		mission_game.state.missions[prior_index]["claimed"] = true
-	mission_game._update_missions()
+	# Side missions do not wait for the main mission chain.
 	assert(bool(mission_game.state.missions[20].unlocked))
+	var initially_unlocked_sides = 0
+	for side_index in range(20, mission_game.state.missions.size()):
+		if bool(mission_game.state.missions[side_index].get("unlocked", false)):
+			initially_unlocked_sides += 1
+	assert(initially_unlocked_sides > 5)
 	mission_game.state.population = 12
 	mission_game.state.buildings.append({"id":"water_tower","workers":0,"balance":0})
 	mission_game._update_missions()
