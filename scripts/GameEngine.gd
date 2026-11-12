@@ -9,7 +9,7 @@ const DISTRICT_HOUSE_LIMIT = 20
 const DISTRICT_OTHER_LIMIT = 20
 const DISTRICT_EXPANSION_STEP = 10
 const DISTRICT_BUILDING_TYPE_LIMIT = 2
-const OUTSIDE_CITY_BUILDINGS = ["woodcutter","sawmill","carpenter","stone_mine","iron_mine","factory","power_station","sewage_plant","waste_facility"]
+const OUTSIDE_CITY_BUILDINGS = ["woodcutter","sawmill","carpenter","stone_mine","iron_mine","factory","fish_processing_plant","power_station","sewage_plant","waste_facility"]
 const FORESTRY_RESERVES = {"wood": 20, "lumber": 10, "furniture": 0}
 
 const SERVICE_GROUPS = {
@@ -39,7 +39,9 @@ const RESOURCES = {
 	"wood": {"name": "چوب", "buy": 22, "sell": 15},
 	"lumber": {"name": "الوار", "buy": 50, "sell": 36},
 	"furniture": {"name": "مبلمان", "buy": 130, "sell": 95},
-	"food": {"name": "مواد غذایی", "buy": 10, "sell": 6}
+	"food": {"name": "مواد غذایی", "buy": 10, "sell": 6},
+	"fish": {"name": "ماهی تازه", "buy": 32, "sell": 24},
+	"processed_fish": {"name": "ماهی فرآوری‌شده", "buy": 58, "sell": 44}
 }
 
 var TRADE_CITIES = {
@@ -50,6 +52,11 @@ var TRADE_CITIES = {
 
 func _init():
 	_add_iran_provincial_capitals()
+	for city_id in TRADE_CITIES.keys():
+		TRADE_CITIES[city_id].demand["fish"] = 12 + int(TRADE_CITIES[city_id].daily_capacity % 9)
+		TRADE_CITIES[city_id].demand["processed_fish"] = 6 + int(TRADE_CITIES[city_id].daily_capacity % 7)
+		TRADE_CITIES[city_id].supply["fish"] = 10 + int(TRADE_CITIES[city_id].daily_capacity % 8)
+		TRADE_CITIES[city_id].supply["processed_fish"] = 5 + int(TRADE_CITIES[city_id].daily_capacity % 6)
 
 func _add_iran_provincial_capitals():
 	var capitals = [
@@ -121,6 +128,8 @@ const BUILDINGS = {
 	"taxi_station": {"name":"ایستگاه تاکسی","category":"حمل‌ونقل","cost":650,"unlock":5,"jobs":2,"wage":28},
 	"bus_station": {"name":"ایستگاه اتوبوس","category":"حمل‌ونقل","cost":900,"unlock":10,"jobs":3,"wage":32},
 	"farm": {"name":"مزرعه","category":"کشاورزی","cost":1200,"unlock":8,"jobs":4,"wage":35,"output":"food","amount":8,"level_unlock":2},
+	"fish_lake": {"name":"دریاچه ماهیگیری","category":"کشاورزی","cost":3200,"unlock":12,"jobs":6,"wage":42,"output":"fish","amount":8,"level_unlock":2},
+	"fishing_dock": {"name":"اسکله صیادی","category":"کشاورزی","cost":1800,"unlock":15,"jobs":4,"wage":38,"output":"fish","amount":5,"level_unlock":2},
 	"shopping_mall": {"name":"مرکز خرید","category":"کسب‌وکارها","cost":8000,"unlock":150,"jobs":30,"wage":65,"daily_revenue":2600,"level_unlock":6},
 	"small_warehouse": {"name":"انبار کوچک","category":"انبارها","cost":500,"unlock":0,"storage":100,"jobs":0,"wage":0},
 	"central_bank": {"name":"بانک مرکزی","category":"خدمات شهری","cost":5000,"unlock":100,"jobs":8,"wage":55,"level_unlock":4},
@@ -139,6 +148,8 @@ const BUILDINGS = {
 	"office": {"name":"ساختمان اداری","category":"کسب‌وکارها","cost":1800,"unlock":40,"jobs":20,"wage":60,"daily_revenue":1800},
 	"factory": {"name":"کارخانه","category":"کسب‌وکارها","cost":6000,"unlock":100,"jobs":25,"wage":55,"daily_revenue":1800,"level_unlock":6},
 	"mineral_market": {"name":"بازار مواد معدنی","category":"کسب‌وکارها","cost":500,"unlock":0,"jobs":1,"wage":35},
+	"fish_market": {"name":"بازار ماهی","category":"کسب‌وکارها","cost":1100,"unlock":12,"jobs":4,"wage":38,"daily_revenue":420,"level_unlock":2},
+	"fish_processing_plant": {"name":"کارخانه فرآوری ماهی","category":"کارخانه‌ها","cost":4200,"unlock":25,"jobs":8,"wage":48,"input":"fish","input_amount":3,"output":"processed_fish","amount":2,"level_unlock":3},
 	"water_tower": {"name":"برج آب","category":"خدمات شهری","cost":500,"unlock":5,"jobs":2,"wage":30,"service_need":"water","service_capacity":35},
 	"power_station": {"name":"نیروگاه","category":"خدمات شهری","cost":1000,"unlock":10,"jobs":4,"wage":40,"service_need":"power","service_capacity":40},
 	"sewage_plant": {"name":"تصفیه‌خانه فاضلاب","category":"خدمات شهری","cost":1800,"unlock":25,"jobs":3,"wage":42,"service_need":"sanitation","service_capacity":35},
@@ -159,7 +170,7 @@ var state = {}
 
 func new_game():
 	state = {
-		"version": 12,
+		"version": 13,
 		"districts": [],
 		"day": 1,
 		"clock_last_unix": OS.get_unix_time(),
@@ -187,8 +198,8 @@ func new_game():
 			{"id":"small_house","workers":0,"balance":0},
 			{"id":"small_warehouse","workers":0,"balance":0}
 		],
-		"resources": {"stone":0,"iron_ore":0,"wood":0,"lumber":0,"furniture":0,"food":0},
-		"market_stock": {"stone":60,"iron_ore":60,"wood":60,"lumber":60,"furniture":60,"food":60},
+		"resources": {"stone":0,"iron_ore":0,"wood":0,"lumber":0,"furniture":0,"food":0,"fish":0,"processed_fish":0},
+		"market_stock": {"stone":60,"iron_ore":60,"wood":60,"lumber":60,"furniture":60,"food":60,"fish":60,"processed_fish":60},
 		"trade_remaining": {"mehrabad":25,"navid":18,"golestan":30},
 		"trade_demand_remaining": {"mehrabad":{"stone":20,"iron_ore":10,"wood":25,"lumber":15,"furniture":8},"navid":{"stone":8,"iron_ore":25,"wood":10,"lumber":20,"furniture":18},"golestan":{"stone":15,"iron_ore":8,"wood":18,"lumber":12,"furniture":25}},
 		"last_trade_report": "هنوز معامله بین‌شهری انجام نشده است.",
@@ -215,7 +226,7 @@ func load_game():
 		return false
 	var parsed = parse_json(file.get_as_text())
 	file.close()
-	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 12:
+	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 13:
 		return false
 	state = parsed
 	_normalize_state()
@@ -321,7 +332,7 @@ func _normalize_state():
 	if typeof(state.get("mines", null)) != TYPE_ARRAY:
 		state["mines"] = []
 	# Save schema migration: add dynamic market, trade and shipping state.
-	state["version"] = 12
+	state["version"] = 13
 	if typeof(state.get("districts", null)) != TYPE_ARRAY:
 		state["districts"] = []
 	for id in RESOURCES.keys():
@@ -746,6 +757,7 @@ func get_land_size(id):
 	var sizes = {
 		"small_house":1,"normal_house":2,"low_apartment":3,"high_apartment":4,"residential_tower":5,
 		"small_warehouse":1,"medium_warehouse":2,"large_warehouse":3,"huge_warehouse":5,
+		"fish_lake":4,"fishing_dock":2,"fish_market":2,"fish_processing_plant":3,
 		"mineral_market":1,"small_park":1,"playground":1,"grocery_store":1,"bakery":1,"water_tower":1,
 		"farm":2,"woodcutter":2,"stone_mine":2,"transport_depot":2,"restaurant":2,"office":2,
 		"municipal_bank":2,"power_station":2,"sawmill":2,"sewage_plant":2,"waste_facility":2,
@@ -793,6 +805,10 @@ func build(id):
 		return {"ok":false,"message":"برای ساخت این ساختمان باید به سطح %d برسی." % int(data.get("level_unlock", 1))}
 	if id == "central_bank" and int(state.get("central_bank_rebuild_days_left", 0)) > 0:
 		return {"ok":false,"message":"برای ساخت دوباره بانک مرکزی باید %d روز صبر کنی." % int(state.central_bank_rebuild_days_left)}
+if id in ["fishing_dock","fish_market","fish_processing_plant"] and get_building_count("fish_lake") <= 0:
+		return {"ok":false,"message":"ابتدا باید یک دریاچه ماهیگیری بسازی."}
+	if id == "fish_processing_plant" and get_building_count("fishing_dock") <= 0:
+		return {"ok":false,"message":"برای کارخانه فرآوری، ابتدا اسکله صیادی بساز."}
 	var required_land = get_land_size(id)
 	if get_land_free() < required_land:
 		return {"ok":false,"message":"زمین کافی نداری؛ این ساختمان %d قطعه زمین می‌خواهد و فقط %d قطعه آزاد داری. ابتدا زمین بخر." % [required_land,get_land_free()]}
@@ -802,7 +818,7 @@ func build(id):
 		"small_house":60,"normal_house":120,"low_apartment":180,"high_apartment":240,"residential_tower":300,
 		"small_warehouse":60,"mineral_market":60,"small_park":60,"playground":60,"taxi_station":60,"bus_station":60,
 		"grocery_store":60,"bakery":60,"water_tower":60,
-		"farm":120,"woodcutter":120,"stone_mine":120,"transport_depot":120,
+		"farm":120,"fish_lake":180,"fishing_dock":120,"fish_market":120,"fish_processing_plant":240,"woodcutter":120,"stone_mine":120,"transport_depot":120,
 		"restaurant":120,"office":120,"municipal_bank":120,"power_station":120,
 		"medium_warehouse":120,"sawmill":120,"sewage_plant":120,"waste_facility":120,
 		"school":180,"clinic":180,"iron_mine":180,"carpenter":180,"sports_center":180,
