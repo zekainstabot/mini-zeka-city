@@ -13,9 +13,9 @@ func _init():
 	# Main missions are sequential; side missions stay independently available.
 	var mission_game = EngineScript.new()
 	mission_game.new_game()
-	assert(mission_game.state.missions.size() >= 15)
+	assert(mission_game.state.missions.size() == 50)
 	assert(bool(mission_game.state.missions[0].unlocked))
-	assert(bool(mission_game.state.missions[8].unlocked))
+	assert(bool(mission_game.state.missions[20].unlocked))
 	mission_game.state.land_owned = 11
 	mission_game._update_missions()
 	assert(bool(mission_game.state.missions[0].completed))
@@ -28,12 +28,25 @@ func _init():
 	assert(not bool(mission_game.state.missions[2].unlocked))
 	mission_game.state.buildings.append({"id":"water_tower","workers":0,"balance":0})
 	mission_game._update_missions()
-	assert(bool(mission_game.state.missions[8].completed))
-	var side_claim = mission_game.claim_mission(8)
+	assert(bool(mission_game.state.missions[20].completed))
+	var side_claim = mission_game.claim_mission(20)
 	assert(bool(side_claim.ok))
 	assert(int(mission_game.state.xp) == 45)
 	assert(int(mission_game.state.money) == mission_money_before + 520)
-	assert(not bool(mission_game.claim_mission(8).ok))
+	assert(not bool(mission_game.claim_mission(20).ok))
+	var mission_ids = []
+	for mission_definition in mission_game.MISSION_DEFINITIONS:
+		mission_ids.append(str(mission_definition.id))
+	assert(mission_ids.size() == 50)
+	for required_id in ["main_water","main_power","main_storage","main_school","main_clinic","main_wood","main_stone","main_sawmill","main_carpenter","main_city_bank","main_central_bank","main_level_five","side_sewage","side_waste","side_hospital","side_police","side_fire","side_university","side_cultural","side_iron_mine","side_fish_lake","side_fishing_dock","side_fish_market","side_fish_processing","side_grocery","side_bakery","side_restaurant","side_office"]:
+		assert(required_id in mission_ids)
+	var legacy_mission_game = EngineScript.new()
+	legacy_mission_game.state = {"version":15,"missions":[{"id":"side_water","claimed":true,"completed":true},{"id":"buy_land_tutorial","claimed":true,"completed":true}],"buildings":[],"citizens":[],"resources":{},"market_stock":{}}
+	legacy_mission_game._normalize_state()
+	assert(str(legacy_mission_game.state.missions[0].id) == "buy_land_tutorial")
+	assert(bool(legacy_mission_game.state.missions[0].claimed))
+	assert(str(legacy_mission_game.state.missions[20].id) == "side_water")
+	assert(bool(legacy_mission_game.state.missions[20].claimed))
 
 	var market_result = game.buy_resource("food", 5)
 	assert(bool(market_result.ok))
