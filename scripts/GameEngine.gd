@@ -32,13 +32,48 @@ const MISSION_DEFINITIONS = [
 	{"id":"market_tutorial","type":"main","title":"۶. بازار و منابع","description":"بازار مواد معدنی بساز و با خریدوفروش منابع و مدیریت انبار آشنا شو.","goal":1,"reward":700,"xp":50,"hint":"بازار مواد معدنی در دسته کسب‌وکارهاست؛ قیمت خرید و فروش را مقایسه کن."},
 	{"id":"transport_tutorial","type":"main","title":"۷. تجارت بین‌شهری","description":"پایانه حمل‌ونقل بساز تا مسیر تجارت و ظرفیت ارسال کالا را باز کنی.","goal":1,"reward":850,"xp":55,"hint":"پایانه حمل‌ونقل برای تجارت بین‌شهری و جابه‌جایی محموله‌ها کاربرد دارد."},
 	{"id":"level_tutorial","type":"main","title":"۸. شهردار باتجربه","description":"شهر را به سطح ۳ برسان؛ با تجربه گرفتن از فعالیت‌ها، ساختمان‌های تازه آزاد می‌شوند.","goal":3,"reward":1000,"xp":70,"hint":"نوار تجربه شهر را دنبال کن و توسعه را با توان مالی هماهنگ نگه دار."},
+	{"id":"main_water","type":"main","title":"۹. آب‌رسانی پایدار","description":"یک برج آب بساز و یاد بگیر خدمات پایه چگونه نیاز شهروندان را تأمین می‌کنند.","goal":1,"reward":450,"xp":35,"hint":"خدمات شهری ← برج آب؛ نیروی کار و هزینه روزانه را هم بررسی کن."},
+	{"id":"main_power","type":"main","title":"۱۰. تأمین انرژی","description":"یک نیروگاه بساز تا برق شهر را تأمین کنی و با خدمات زیربنایی آشنا شوی.","goal":1,"reward":550,"xp":40,"hint":"نیروگاه در خدمات شهری است و برای فعالیت به کارگر نیاز دارد."},
+	{"id":"main_storage","type":"main","title":"۱۱. مدیریت انبار","description":"یک انبار متوسط بساز تا ظرفیت ذخیره‌سازی منابع را افزایش بدهی.","goal":1,"reward":600,"xp":45,"hint":"انبارها ← انبار متوسط؛ ظرفیت و قوانین ذخیره‌سازی را بررسی کن."},
+	{"id":"main_school","type":"main","title":"۱۲. آموزش شهروندان","description":"یک مدرسه بساز و ظرفیت خدمت آموزشی شهر را افزایش بده.","goal":1,"reward":650,"xp":45,"hint":"خدمات شهری ← مدرسه؛ کیفیت آموزش به پوشش خدمات بستگی دارد."},
+	{"id":"main_clinic","type":"main","title":"۱۳. مراقبت سلامت","description":"یک درمانگاه بساز تا نیاز درمانی شهروندان بهتر پوشش داده شود.","goal":1,"reward":700,"xp":50,"hint":"درمانگاه را در خدمات شهری بساز و وضعیت سلامت را دنبال کن."},
+	{"id":"main_wood","type":"main","title":"۱۴. آغاز تولید داخلی","description":"یک چوب‌بری بساز تا تولید چوب در شهر آغاز شود.","goal":1,"reward":700,"xp":50,"hint":"چوب‌بری بیرون محدوده شهری ساخته می‌شود و به نیروی کار نیاز دارد."},
+	{"id":"main_stone","type":"main","title":"۱۵. استخراج مواد معدنی","description":"یک معدن سنگ بساز تا با استخراج منابع طبیعی آشنا شوی.","goal":1,"reward":750,"xp":55,"hint":"معدن سنگ در بخش معادن قرار دارد و نیروی کار آن را بررسی کن."},
+	{"id":"main_sawmill","type":"main","title":"۱۶. فرآوری چوب","description":"یک کارخانه الوارسازی بساز تا چوب خام را به الوار تبدیل کنی.","goal":1,"reward":850,"xp":60,"hint":"برای تولید الوار به چوب ورودی نیاز داری؛ زنجیره تأمین را مدیریت کن."},
+	{"id":"main_carpenter","type":"main","title":"۱۷. تولید کالای نهایی","description":"یک کارگاه مبلمان بساز تا زنجیره چوب و الوار را به محصول نهایی برسانی.","goal":1,"reward":950,"xp":65,"hint":"کارگاه مبلمان به الوار نیاز دارد؛ تولید و موجودی انبار را هماهنگ کن."},
+	{"id":"main_city_bank","type":"main","title":"۱۸. مدیریت مالی شهر","description":"یک بانک شهری بساز و با خدمات مالی و مدیریت نقدینگی آشنا شو.","goal":1,"reward":1000,"xp":70,"hint":"بانک شهری در خدمات شهری است؛ پیش از ساخت هزینه‌های روزانه را بسنج."},
+	{"id":"main_central_bank","type":"main","title":"۱۹. نظام بانکی پیشرفته","description":"پس از رسیدن به سطح لازم، بانک مرکزی بساز تا خدمات بانکی پیشرفته فعال شود.","goal":1,"reward":1200,"xp":80,"hint":"بانک مرکزی از سطح ۴ آزاد می‌شود؛ ابتدا سطح و خزانه را تقویت کن."},
+	{"id":"main_level_five","type":"main","title":"۲۰. شهردار باتجربه","description":"شهر را به سطح ۵ برسان؛ حالا آماده مدیریت خدمات و زیرساخت‌های پیشرفته هستی.","goal":5,"reward":1500,"xp":100,"hint":"تجربه را از فعالیت‌ها و مأموریت‌ها بگیر و توسعه را با توان مالی هماهنگ کن."},
 	{"id":"side_water","type":"side","title":"خدمات پایه شهر","description":"یک برج آب بساز تا بخشی از نیازهای اساسی شهروندان تأمین شود.","goal":1,"reward":220,"xp":20,"hint":"خدمات شهری ← برج آب؛ هزینه ساخت و حقوق روزانه را در نظر بگیر."},
 	{"id":"side_school","type":"side","title":"سرمایه‌گذاری آموزشی","description":"یک مدرسه بساز تا ظرفیت آموزش شهر افزایش پیدا کند.","goal":1,"reward":450,"xp":35,"hint":"مدرسه نیروی کار و هزینه نگهداری روزانه نیاز دارد."},
 	{"id":"side_clinic","type":"side","title":"سلامت شهروندان","description":"یک درمانگاه بساز تا نیاز درمانی شهر بهتر پوشش داده شود.","goal":1,"reward":420,"xp":35,"hint":"درمانگاه را در دسته خدمات شهری پیدا می‌کنی."},
 	{"id":"side_wood","type":"side","title":"تولید منابع داخلی","description":"یک چوب‌بری بساز تا تولید یکی از منابع پایه شهر را راه‌اندازی کنی.","goal":1,"reward":300,"xp":25,"hint":"چوب‌بری در دسته کارخانه‌هاست و به کارگر نیاز دارد."},
 	{"id":"side_bank","type":"side","title":"آشنایی با بانکداری","description":"بانک شهری بساز تا امکان استفاده از خدمات مالی و سپرده را داشته باشی.","goal":1,"reward":550,"xp":45,"hint":"بانک شهری در خدمات شهری قرار دارد؛ قبل از ساخت خزانه را بررسی کن."},
 	{"id":"side_population","type":"side","title":"محله پرجمعیت","description":"جمعیت شهر را به ۱۲ نفر برسان و برای خدمات و اشتغال برنامه‌ریزی کن.","goal":12,"reward":600,"xp":45,"hint":"خانه کافی بساز و نیازهای شهروندان را زیر نظر بگیر."},
-	{"id":"side_reserve","type":"side","title":"ذخیره مالی مطمئن","description":"موجودی خزانه را به ۵۰۰۰ سکه برسان؛ بدون گرفتن وام.","goal":15000,"reward":500,"xp":40,"hint":"هزینه‌های ثابت را کنترل کن و از مالیات، تولید و تجارت درآمد بگیر."}
+	{"id":"side_reserve","type":"side","title":"ذخیره مالی مطمئن","description":"موجودی خزانه را به ۱۵۰۰۰ سکه برسان.","goal":15000,"reward":500,"xp":40,"hint":"هزینه‌های ثابت را کنترل کن و از مالیات، تولید و تجارت درآمد بگیر."},
+	{"id":"side_power","type":"side","title":"برق‌رسانی شهر","description":"یک نیروگاه بساز و ظرفیت برق شهر را افزایش بده.","goal":1,"reward":350,"xp":25,"hint":"نیروگاه در خدمات شهری قرار دارد."},
+	{"id":"side_sewage","type":"side","title":"بهداشت فاضلاب","description":"یک تصفیه‌خانه فاضلاب بساز.","goal":1,"reward":450,"xp":30,"hint":"تصفیه‌خانه در خدمات شهری است و هزینه نگهداری دارد."},
+	{"id":"side_waste","type":"side","title":"مدیریت پسماند","description":"یک مرکز پسماند بساز تا خدمات بهداشت محیط کامل‌تر شود.","goal":1,"reward":420,"xp":30,"hint":"مرکز پسماند را در دسته خدمات شهری پیدا می‌کنی."},
+	{"id":"side_park","type":"side","title":"فضای سبز شهری","description":"یک پارک کوچک بساز تا نیاز تفریح شهروندان بهتر تأمین شود.","goal":1,"reward":250,"xp":20,"hint":"پارک کوچک در تفریح و فرهنگ قرار دارد."},
+	{"id":"side_playground","type":"side","title":"تفریح خانواده‌ها","description":"یک زمین بازی بساز و ظرفیت تفریحی شهر را افزایش بده.","goal":1,"reward":280,"xp":20,"hint":"زمین بازی هزینه کمی دارد اما به نیروی کار نیازمند است."},
+	{"id":"side_sports","type":"side","title":"ورزش همگانی","description":"یک مجموعه ورزشی بساز.","goal":1,"reward":650,"xp":45,"hint":"مجموعه ورزشی در سطح ۵ آزاد می‌شود."},
+	{"id":"side_hospital","type":"side","title":"درمان پیشرفته","description":"یک بیمارستان بساز تا ظرفیت درمان شهر افزایش پیدا کند.","goal":1,"reward":900,"xp":60,"hint":"بیمارستان در سطح ۶ آزاد می‌شود."},
+	{"id":"side_police","type":"side","title":"امنیت محله","description":"یک کلانتری بساز تا ظرفیت خدمات امنیتی بیشتر شود.","goal":1,"reward":650,"xp":45,"hint":"کلانتری از سطح ۵ قابل ساخت است."},
+	{"id":"side_fire","type":"side","title":"آمادگی در بحران","description":"یک ایستگاه آتش‌نشانی بساز.","goal":1,"reward":650,"xp":45,"hint":"آتش‌نشانی در خدمات شهری و ساختمان‌های اضطراری قرار دارد."},
+	{"id":"side_university","type":"side","title":"آموزش عالی","description":"یک دانشگاه بساز و ظرفیت آموزش عالی شهر را گسترش بده.","goal":1,"reward":1100,"xp":75,"hint":"دانشگاه در سطح ۷ آزاد می‌شود."},
+	{"id":"side_cultural","type":"side","title":"هویت فرهنگی شهر","description":"یک مرکز فرهنگی بساز تا خدمات فرهنگی و تفریحی توسعه یابد.","goal":1,"reward":1000,"xp":70,"hint":"مرکز فرهنگی در سطح ۸ آزاد می‌شود."},
+	{"id":"side_stone_mine","type":"side","title":"استخراج سنگ","description":"یک معدن سنگ بساز و تولید سنگ را راه‌اندازی کن.","goal":1,"reward":350,"xp":25,"hint":"معدن سنگ در بخش معادن است."},
+	{"id":"side_iron_mine","type":"side","title":"استخراج آهن","description":"یک معدن آهن بساز تا سنگ‌آهن تولید شود.","goal":1,"reward":600,"xp":40,"hint":"معدن آهن در سطح ۳ آزاد می‌شود."},
+	{"id":"side_sawmill","type":"side","title":"کارخانه الوارسازی","description":"یک کارخانه الوارسازی بساز و زنجیره چوب را توسعه بده.","goal":1,"reward":500,"xp":35,"hint":"برای تولید الوار باید چوب کافی داشته باشی."},
+	{"id":"side_carpenter","type":"side","title":"کارگاه مبلمان","description":"یک کارگاه مبلمان بساز و تولید کالای نهایی را آغاز کن.","goal":1,"reward":700,"xp":50,"hint":"کارگاه مبلمان به الوار نیاز دارد."},
+	{"id":"side_fish_lake","type":"side","title":"پرورش و صید ماهی","description":"یک دریاچه ماهیگیری بساز تا تولید ماهی افزایش یابد.","goal":1,"reward":700,"xp":45,"hint":"دریاچه ماهیگیری در سطح ۲ آزاد می‌شود."},
+	{"id":"side_fishing_dock","type":"side","title":"اسکله صیادی","description":"یک اسکله صیادی بساز و ظرفیت صید ماهی را بیشتر کن.","goal":1,"reward":500,"xp":35,"hint":"اسکله صیادی در دسته کشاورزی قرار دارد."},
+	{"id":"side_fish_market","type":"side","title":"بازار محصولات دریایی","description":"یک بازار ماهی بساز تا فروش ماهی در شهر فعال شود.","goal":1,"reward":450,"xp":30,"hint":"بازار ماهی در کسب‌وکارها قرار دارد."},
+	{"id":"side_fish_processing","type":"side","title":"فرآوری محصولات دریایی","description":"یک کارخانه فرآوری ماهی بساز تا محصول فرآوری‌شده تولید کنی.","goal":1,"reward":800,"xp":55,"hint":"برای فرآوری به ماهی خام نیاز داری."},
+	{"id":"side_grocery","type":"side","title":"دسترسی به مواد غذایی","description":"یک فروشگاه مواد غذایی بساز تا دسترسی شهروندان به خوراک بهتر شود.","goal":1,"reward":300,"xp":20,"hint":"فروشگاه مواد غذایی در کسب‌وکارها قرار دارد."},
+	{"id":"side_bakery","type":"side","title":"نان تازه شهر","description":"یک نانوایی بساز تا خدمات خوراکی شهر متنوع‌تر شود.","goal":1,"reward":350,"xp":25,"hint":"نانوایی به کارگر نیاز دارد."},
+	{"id":"side_restaurant","type":"side","title":"رونق رستوران‌داری","description":"یک رستوران بساز تا ظرفیت خدمات خوراکی افزایش یابد.","goal":1,"reward":550,"xp":35,"hint":"رستوران هزینه ساخت و حقوق روزانه بیشتری دارد."},
+	{"id":"side_office","type":"side","title":"اشتغال اداری","description":"یک ساختمان اداری بساز و فرصت شغلی جدید ایجاد کن.","goal":1,"reward":650,"xp":45,"hint":"ساختمان اداری ظرفیت شغلی بالایی دارد."}
 ]
 
 const RESOURCES = {
@@ -1237,6 +1272,68 @@ func _get_mission_progress(mission_id):
 			return int(state.population)
 		"side_reserve":
 			return int(state.get("money", 0))
+		"main_water", "side_water":
+			return get_building_count("water_tower")
+		"main_power", "side_power":
+			return get_building_count("power_station")
+		"main_storage":
+			return get_building_count("medium_warehouse")
+		"main_school", "side_school":
+			return get_building_count("school")
+		"main_clinic", "side_clinic":
+			return get_building_count("clinic")
+		"main_wood", "side_wood":
+			return get_building_count("woodcutter")
+		"main_stone", "side_stone_mine":
+			return get_building_count("stone_mine")
+		"main_sawmill", "side_sawmill":
+			return get_building_count("sawmill")
+		"main_carpenter", "side_carpenter":
+			return get_building_count("carpenter")
+		"main_city_bank", "side_bank":
+			return get_building_count("municipal_bank")
+		"main_central_bank":
+			return get_building_count("central_bank")
+		"main_level_five":
+			return int(state.level)
+		"side_sewage":
+			return get_building_count("sewage_plant")
+		"side_waste":
+			return get_building_count("waste_facility")
+		"side_park":
+			return get_building_count("small_park")
+		"side_playground":
+			return get_building_count("playground")
+		"side_sports":
+			return get_building_count("sports_center")
+		"side_hospital":
+			return get_building_count("hospital")
+		"side_police":
+			return get_building_count("police_station")
+		"side_fire":
+			return get_building_count("fire_station")
+		"side_university":
+			return get_building_count("university")
+		"side_cultural":
+			return get_building_count("cultural_center")
+		"side_iron_mine":
+			return get_building_count("iron_mine")
+		"side_fish_lake":
+			return get_building_count("fish_lake")
+		"side_fishing_dock":
+			return get_building_count("fishing_dock")
+		"side_fish_market":
+			return get_building_count("fish_market")
+		"side_fish_processing":
+			return get_building_count("fish_processing_plant")
+		"side_grocery":
+			return get_building_count("grocery_store")
+		"side_bakery":
+			return get_building_count("bakery")
+		"side_restaurant":
+			return get_building_count("restaurant")
+		"side_office":
+			return get_building_count("office")
 	return 0
 
 func _update_missions():
