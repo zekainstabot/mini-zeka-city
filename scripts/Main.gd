@@ -855,7 +855,10 @@ func show_page(page):
 				var loan = s.bank_loans[loan_index]
 				_add_label("وام #%d | اصل: %d | سود: %d | مانده: %d | وضعیت: %s" % [int(loan.get("id",loan_index+1)),int(loan.get("principal",0)),int(loan.get("interest",0)),int(loan.get("remaining",0)),"فعال" if str(loan.get("status","")) == "active" else "تسویه‌شده"],15)
 				if str(loan.get("status","")) == "active":
-					_add_button("تسویه زودهنگام وام #%d — %d سکه" % [int(loan.get("id",loan_index+1)),int(loan.get("remaining",0))],self,"repay_bank_loan",[loan_index])
+					var manual_button = _add_button("پرداخت دستی قسط وام #%d — تا %d سکه" % [int(loan.get("id",loan_index+1)),min(int(loan.get("remaining",0)),int(loan.get("daily_installment",0)))],self,"repay_bank_loan_manual",[loan_index])
+					manual_button.disabled = int(loan.get("last_manual_payment_day",0)) == int(s.get("day",1)) or game.get_available_money() <= 0
+					var full_button = _add_button("تسویه کامل وام #%d — %d سکه" % [int(loan.get("id",loan_index+1)),int(loan.get("remaining",0))],self,"repay_bank_loan",[loan_index])
+					full_button.disabled = game.get_available_money() < int(loan.get("remaining",0))
 			_add_label("🏧 سپرده‌گذاری",19)
 			_add_label("سود کل سپرده: ۷ روز ۳٪ | ۱۴ روز ۷٪ | ۳۰ روز ۱۵٪؛ برداشت پیش از سررسید بدون سود است.",14)
 			for deposit_option in [{"amount":500,"days":7},{"amount":1000,"days":14},{"amount":2500,"days":30}]:
@@ -1508,6 +1511,11 @@ func adjust_private_land_price(delta):
 
 func request_bank_loan(amount, days):
 	var result = game.take_bank_loan(int(amount),int(days))
+	show_page("bank")
+	_show_message(result.message)
+
+func repay_bank_loan_manual(index):
+	var result = game.repay_bank_loan_manual(int(index))
 	show_page("bank")
 	_show_message(result.message)
 
