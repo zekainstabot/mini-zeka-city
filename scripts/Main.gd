@@ -39,6 +39,7 @@ var restart_confirm_panel = null
 var municipality_section_expanded = {"land":false,"tax":false,"requests":false,"properties":false,"projects":false}
 var commerce_section_expanded = {"domestic":false,"export":false,"import":false,"shipments":false,"contracts":false}
 var storage_section_expanded = {}
+var current_district_expanded = {}
 var active_section_container = null
 var mission_reward_badge = null
 var mission_badge_refresh_timer = 0.0
@@ -715,15 +716,36 @@ func show_page(page):
 						if int(mine.get("remaining",0)) <= 0:
 							_add_button("شارژ معدن آهن — ۱۰۰۰ سکه", self, "refill_mine", [mine_index])
 					_add_label("%s — %s" % [game.get_resource_definitions()[str(mine.get("resource","stone"))].name,mine_status])
-			_add_label("ساختمان‌های فعلی:", 18)
-			for i in range(s.buildings.size()):
-				var id = s.buildings[i].id
-				var building_location = str(s.buildings[i].get("district_name", "منطقه صنعتی خارج شهر"))
-				_add_label("%s — محل: %s" % [str(game.get_building_definitions()[id].name), building_location], 15)
-				if int(s.buildings[i].get("balance",0)) > 0:
-					_add_label("حساب %s: %d سکه" % [str(game.get_building_definitions()[id].name),int(s.buildings[i].get("balance",0))])
-					_add_button(" برداشت سود %s: %d سکه" % [str(game.get_building_definitions()[id].name),int(s.buildings[i].get("balance",0))], self, "collect_profit", [i])
-				# Demolition is managed from the categorized city overview.
+			_add_label("ساختمان‌ها:", 18)
+			var district_ids = []
+			var district_names = {}
+			for building in s.buildings:
+				var district_id = str(building.get("district_id", ""))
+				var district_name = str(building.get("district_name", "منطقه صنعتی خارج شهر"))
+				var group_id = district_id if district_id != "" else "industrial"
+				if not district_ids.has(group_id):
+					district_ids.append(group_id)
+					district_names[group_id] = district_name
+			for district_id in district_ids:
+				var group_name = str(district_names.get(district_id, "منطقه صنعتی خارج شهر"))
+				var expanded = bool(current_district_expanded.get(district_id, false))
+				var district_button = _add_button(("▼ " if expanded else "▶ ") + group_name, self, "toggle_current_district", [district_id])
+				_style_button(district_button, false)
+				if expanded:
+					for i in range(s.buildings.size()):
+						var building = s.buildings[i]
+						var building_district_id = str(building.get("district_id", ""))
+						var building_group_id = building_district_id if building_district_id != "" else "industrial"
+						if building_group_id != district_id:
+							continue
+						var building_id = str(building.get("id", ""))
+						var building_definition = game.get_building_definitions().get(building_id, {})
+						_add_label("%s" % str(building_definition.get("name", "ساختمان")), 16)
+						if int(building.get("balance", 0)) > 0:
+							_add_label("حساب %s: %d سکه" % [str(building_definition.get("name", "ساختمان")), int(building.get("balance", 0))], 15)
+							_add_button("برداشت سود %s: %d سکه" % [str(building_definition.get("name", "ساختمان")), int(building.get("balance", 0))], self, "collect_profit", [i])
+			if district_ids.size() == 0:
+				_add_label("هنوز ساختمانی در محله‌ای ساخته نشده است.", 15)
 		"citizens":
 			_add_label(" جمعیت: %d | شاغل: %d | بیکار: %d" % [s.population,game.get_employed_count(),game.get_unemployed_count()], 20)
 			_add_label("ظرفیت مسکن: %d | ظرفیت شغلی: %d" % [game.get_housing_capacity(),game.get_job_capacity()])
@@ -1523,6 +1545,11 @@ func sell_item(id, amount):
 	show_page("market")
 	_show_message(result.message)
 
+
+func toggle_current_district(district_id):
+	var key = str(district_id)
+	current_district_expanded[key] = not bool(current_district_expanded.get(key, false))
+	show_page("buildings")
 
 func toggle_storage_section(resource_id):
 	var key = str(resource_id)
