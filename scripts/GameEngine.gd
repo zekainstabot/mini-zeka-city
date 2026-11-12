@@ -610,6 +610,18 @@ func get_districts_overview():
 			industrial_names.append(str(business.get("name", "کسب‌وکار خصوصی")))
 	return {"districts":result,"industrial_buildings":industrial_names,"district_count":result.size()}
 
+func get_district_capacity_summary(district_id):
+	_ensure_building_locations()
+	for district in state.get("districts", []):
+		if str(district.get("id", "")) == str(district_id):
+			return {
+				"house_count": int(district.get("house_count", 0)),
+				"other_count": int(district.get("other_count", 0)),
+				"emergency_count": int(district.get("emergency_count", 0)),
+				"building_type_counts": district.get("building_type_counts", {}).duplicate(true)
+			}
+	return {"house_count":0,"other_count":0,"emergency_count":0,"building_type_counts":{}}
+
 func get_building_definitions():
 	return BUILDINGS
 
