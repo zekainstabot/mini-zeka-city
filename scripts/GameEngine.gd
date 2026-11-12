@@ -170,11 +170,13 @@ var state = {}
 
 func new_game():
 	state = {
-		"version": 13,
+		"version": 14,
 		"districts": [],
 		"day": 1,
 		"clock_last_unix": OS.get_unix_time(),
 		"clock_cycle_seconds": 0,
+		"pending_offline_income": 0,
+		"pending_offline_days": 0,
 		"money": 10000,
 		"population": 4,
 		"citizen_recruitment_mode": "auto",
@@ -226,7 +228,7 @@ func load_game():
 		return false
 	var parsed = parse_json(file.get_as_text())
 	file.close()
-	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 13:
+	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 14:
 		return false
 	state = parsed
 	_normalize_state()
@@ -303,6 +305,10 @@ func _normalize_state():
 		state["clock_last_unix"] = OS.get_unix_time()
 	if not state.has("clock_cycle_seconds"):
 		state["clock_cycle_seconds"] = 0
+	if not state.has("pending_offline_income"):
+		state["pending_offline_income"] = 0
+	if not state.has("pending_offline_days"):
+		state["pending_offline_days"] = 0
 	if not state.has("road_level"):
 		state["road_level"] = 1
 	if not state.has("transport_used_today"):
@@ -1229,6 +1235,19 @@ func get_daily_xp_gain():
 	var population_bonus = int(sqrt(float(max(0, int(state.get("population", 0))))) * 2.0)
 	var building_bonus = min(10, state.get("buildings", []).size())
 	return int(clamp(5 + population_bonus + building_bonus, 5, 60))
+
+func collect_offline_income():
+	var pending = max(0, int(state.get("pending_offline_income", 0)))
+	if pending <= 0:
+		return {"ok":false,"amount":0,"message":"درآمد آفلاین قابل دریافتی وجود ندارد."}
+	var accepted = _add_money(pending)
+	state["pending_offline_income"] = pending - accepted
+	if int(state.pending_offline_income) <= 0:
+		state["pending_offline_days"] = 0
+	save_game()
+	if accepted <= 0:
+		return {"ok":false,"amount":0,"message":"ظرفیت خزانه پر است؛ ابتدا ظرفیت خزانه را افزایش بده."}
+	return {"ok":true,"amount":accepted,"message":"درآمد آفلاین دریافت شد: %d سکه." % accepted}
 
 func end_day():
 	var report = []
