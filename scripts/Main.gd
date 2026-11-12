@@ -2,7 +2,10 @@ extends Control
 
 const EngineScript = preload("res://scripts/GameEngine.gd")
 const PersianText = preload("res://scripts/PersianText.gd")
+const AudioManagerScript = preload("res://scripts/AudioManager.gd")
 var game = null
+var audio_manager = null
+var last_audio_night_mode = false
 var current_page = "home"
 var message_label = null
 var content = null
@@ -308,6 +311,8 @@ func _notification(what):
 
 func _ready():
 	_load_ui_font()
+	audio_manager = AudioManagerScript.new()
+	add_child(audio_manager)
 	game = EngineScript.new()
 	if not game.load_game():
 		game.new_game()
@@ -392,6 +397,7 @@ func _build_ui():
 	menu_panel.add_constant_override("separation", 7)
 	root.add_child(menu_panel)
 	menu_pause_button = _create_menu_action("⏸ توقف بازی", "toggle_pause")
+	_create_menu_action("🔊 صدا و موسیقی", "open_audio_settings")
 	_create_menu_action("💾 ذخیره بازی", "save_from_menu")
 	_create_menu_action("🔄 شروع دوباره شهر", "confirm_restart_from_menu")
 	_create_menu_action("🏙️ بازگشت به شهر من", "return_home_from_menu")
@@ -554,6 +560,8 @@ func _create_menu_action(title, callback):
 	_apply_font(button, 18 if get_viewport_rect().size.x < 900 else 16)
 	_style_button(button, false)
 	button.connect("pressed", self, callback)
+	if audio_manager != null:
+		button.connect("pressed", audio_manager, "play_sfx", ["click"])
 	menu_panel.add_child(button)
 	return button
 
@@ -751,6 +759,8 @@ func _add_button(text, button_target, callback, args=[]):
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_button(button, false)
 	button.connect("pressed", button_target, callback, args)
+	if audio_manager != null:
+		button.connect("pressed", audio_manager, "play_sfx", ["click"])
 	var parent = active_section_container if active_section_container != null else content
 	parent.add_child(button)
 	return button
@@ -802,6 +812,40 @@ func _show_welcome_mission_hint():
 	go_button.connect("pressed", self, "_open_missions_from_welcome")
 	layout.add_child(go_button)
 
+
+func open_audio_settings():
+	if menu_panel != null:
+		menu_panel.visible = false
+	show_page("audio")
+
+func toggle_music_enabled():
+	audio_manager.set_music_enabled(not audio_manager.is_music_enabled())
+	show_page("audio")
+
+func toggle_effects_enabled():
+	audio_manager.set_effects_enabled(not audio_manager.is_effects_enabled())
+	show_page("audio")
+
+func _add_audio_slider(kind):
+	var slider = HSlider.new()
+	slider.min_value = 0.0
+	slider.max_value = 1.0
+	slider.step = 0.05
+	slider.rect_min_size = Vector2(0, 42)
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if kind == "music":
+		slider.value = audio_manager.get_music_volume()
+		slider.connect("value_changed", self, "_on_music_volume_changed")
+	else:
+		slider.value = audio_manager.get_effects_volume()
+		slider.connect("value_changed", self, "_on_effects_volume_changed")
+	content.add_child(slider)
+
+func _on_music_volume_changed(value):
+	audio_manager.set_music_volume(value)
+
+func _on_effects_volume_changed(value):
+	audio_manager.set_effects_volume(value)
 
 func _open_help():
 	show_page("help")
@@ -1517,6 +1561,19 @@ func show_page(page):
 					var time_text = "%02d/%02d - %02d:%02d" % [int(stamp.get("day", 1)), int(stamp.get("month", 1)), int(stamp.get("hour", 0)), int(stamp.get("minute", 0))]
 					_add_label("[%s] روز %d | %s" % [time_text, int(event.get("day", 1)), str(event.get("message", ""))], 17)
 
+		"audio":
+			_add_label("🔊 تنظیمات صدا و موسیقی", 24)
+			_add_label("تمام موسیقی‌ها و افکت‌های فعلی به‌صورت اختصاصی و درون بازی تولید می‌شوند؛ هیچ فایل صوتی شخص ثالثی استفاده نشده است.", 16)
+			_add_button(("🔇 خاموش‌کردن موسیقی" if audio_manager.is_music_enabled() else "🎵 روشن‌کردن موسیقی"), self, "toggle_music_enabled")
+			_add_label("بلندی موسیقی", 17)
+			_add_audio_slider("music")
+			_add_button(("🔕 خاموش‌کردن افکت‌ها" if audio_manager.is_effects_enabled() else "🔔 روشن‌کردن افکت‌ها"), self, "toggle_effects_enabled")
+			_add_label("بلندی افکت‌ها", 17)
+			_add_audio_slider("effects")
+			_add_button("▶️ آزمایش صدای دکمه", audio_manager, "play_sfx", ["click"])
+			_add_button("🏗️ آزمایش صدای ساخت‌وساز", audio_manager, "play_sfx", ["construction"])
+			_add_button("🎁 آزمایش صدای جایزه", audio_manager, "play_sfx", ["reward"])
+			_add_button("⬅️ بازگشت به شهر", self, "return_home_from_menu")
 		"help":
 			_add_label("❔ راهنمای کامل مینی زکا سیتی", 25)
 			_add_label("اینجا هر زمان گیر کردی برگرد؛ از شروع بازی تا اقتصاد، ساختمان‌ها و رقابت شهرها را قدم‌به‌قدم توضیح داده‌ایم.", 17)
