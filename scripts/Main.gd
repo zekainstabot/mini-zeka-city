@@ -164,7 +164,11 @@ func _check_city_audio_warnings():
 			critical_need = true
 			break
 	if money <= 800 or critical_need:
-		audio_manager.play_sfx("warning")
+		var safety_need = int(needs.get("safety", 60))
+		if safety_need <= 12:
+			audio_manager.play_sfx("siren")
+		else:
+			audio_manager.play_sfx("warning")
 		audio_warning_cooldown = 90.0
 
 func _format_time_display(minutes, seconds):
