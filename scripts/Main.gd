@@ -45,6 +45,7 @@ var active_section_container = null
 var mission_reward_badge = null
 var mission_badge_refresh_timer = 0.0
 var last_activity_ticks = 0
+var offline_summary_popup = null
 
 func _input(event):
 	if game != null:
@@ -175,20 +176,83 @@ func _show_offline_summary():
 	if days <= 0:
 		return
 	var income = int(game.state.get("pending_offline_income", 0))
-	var dialog = ConfirmationDialog.new()
-	dialog.window_title = PersianText.reshaper("گزارش بازگشت به شهر")
+	var compact = get_viewport_rect().size.x < 900
+	var popup = PopupPanel.new()
+	offline_summary_popup = popup
+	popup.name = "OfflineIncomePopup"
+	var card = PanelContainer.new()
+	card.rect_min_size = Vector2(300 if compact else 440, 0)
+	var card_style = StyleBoxFlat.new()
+	card_style.bg_color = Color("#172235")
+	card_style.border_color = Color("#64748b")
+	card_style.set_border_width_all(2)
+	card_style.set_corner_radius_all(14)
+	card_style.content_margin_left = 18
+	card_style.content_margin_right = 18
+	card_style.content_margin_top = 18
+	card_style.content_margin_bottom = 18
+	card.add_stylebox_override("panel", card_style)
+	popup.add_child(card)
+	var layout = VBoxContainer.new()
+	layout.add_constant_override("separation", 12)
+	card.add_child(layout)
+
+	var title = Label.new()
+	title.text = PersianText.reshaper("گزارش بازگشت به شهر")
+	title.align = Label.ALIGN_CENTER
+	title.autowrap = true
+	_apply_font(title, 23 if compact else 21)
+	title.add_color_override("font_color", Color("#ffffff"))
+	layout.add_child(title)
+
+	var details = Label.new()
+	details.align = Label.ALIGN_CENTER
+	details.autowrap = true
+	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	details.rect_min_size = Vector2(0, 86 if compact else 76)
 	if income > 0:
-		dialog.dialog_text = PersianText.reshaper("در مدت غیبت تو، شهر %d روز پیشرفت کرد.\nدرآمد خالص آماده دریافت: %d سکه\nبا تأیید، مبلغ به خزانه اضافه می‌شود." % [days, income])
-		dialog.get_ok().text = PersianText.reshaper("دریافت درآمد آفلاین")
+		details.text = PersianText.reshaper("در زمان نبودنت، شهر %d روز فعالیت کرده است.\nدرآمد خالص قابل دریافت:" % days)
 	else:
-		dialog.dialog_text = PersianText.reshaper("در مدت غیبت تو، شهر %d روز پیشرفت کرد.\nپس از محاسبه درآمد و هزینه‌ها، درآمد خالصی برای دریافت باقی نمانده است." % days)
-		dialog.get_ok().text = PersianText.reshaper("متوجه شدم")
-	dialog.get_cancel().text = PersianText.reshaper("بعداً")
-	dialog.connect("confirmed", self, "_claim_offline_income")
-	add_child(dialog)
-	dialog.popup_centered(Vector2(520, 300))
+		details.text = PersianText.reshaper("در زمان نبودنت، شهر %d روز فعالیت کرده است.\nدرآمد و هزینه‌ها محاسبه شدند، اما درآمد خالصی برای دریافت باقی نمانده است." % days)
+	_apply_font(details, 18 if compact else 17)
+	details.add_color_override("font_color", Color("#e2e8f0"))
+	layout.add_child(details)
+
+	if income > 0:
+		var amount = Label.new()
+		amount.text = PersianText.reshaper("%d سکه" % income)
+		amount.align = Label.ALIGN_CENTER
+		amount.autowrap = true
+		amount.rect_min_size = Vector2(0, 44)
+		_apply_font(amount, 26 if compact else 24)
+		amount.add_color_override("font_color", Color("#86efac"))
+		layout.add_child(amount)
+
+		var claim_button = Button.new()
+		claim_button.text = PersianText.reshaper("دریافت درآمد در خزانه")
+		claim_button.rect_min_size = Vector2(0, 58 if compact else 52)
+		claim_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_apply_font(claim_button, 19 if compact else 17)
+		_style_button(claim_button, false)
+		claim_button.connect("pressed", self, "_claim_offline_income")
+		layout.add_child(claim_button)
+
+	var later_button = Button.new()
+	later_button.text = PersianText.reshaper("بعداً")
+	later_button.rect_min_size = Vector2(0, 54 if compact else 48)
+	later_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_font(later_button, 18 if compact else 16)
+	_style_button(later_button, true)
+	later_button.connect("pressed", popup, "hide")
+	layout.add_child(later_button)
+
+	add_child(popup)
+	popup.popup_centered(Vector2(360 if compact else 500, 320 if compact else 300))
 
 func _claim_offline_income():
+	if offline_summary_popup != null and is_instance_valid(offline_summary_popup):
+		offline_summary_popup.queue_free()
+	offline_summary_popup = null
 	var pending = int(game.state.get("pending_offline_income", 0))
 	var message = "گزارش آفلاین بسته شد."
 	if pending > 0:
