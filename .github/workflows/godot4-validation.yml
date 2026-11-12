@@ -32,19 +32,6 @@ jobs:
           chmod +x /tmp/godot/Godot_v4.4.1-stable_linux.x86_64
           /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --version
 
-      - name: Convert Godot 3 project
-        shell: bash
-        run: |
-          set -o pipefail
-          /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --editor --path . --convert-3to4 40000 1000000 2>&1 | tee /tmp/godot-convert.log
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          if ! git diff --cached --quiet; then
-            git commit -m "Apply Godot 4 automated project conversion"
-            git push origin HEAD:godot4-migration
-          fi
-
       - name: Import converted project
         if: always()
         shell: bash
@@ -55,13 +42,40 @@ jobs:
             if grep -E "SCRIPT ERROR|Parse Error|Compile Error" /tmp/godot-import.log; then exit 1; fi
           fi
 
+      - name: Run game logic smoke tests
+        shell: bash
+        timeout-minutes: 1
+        run: |
+          set -o pipefail
+          timeout 25s /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --audio-driver Dummy --path . --script res://tests/logic_smoke_test.gd 2>&1 | tee /tmp/godot-tests.log
+          grep -q "Mini ZekaCity logic smoke tests passed." /tmp/godot-tests.log
+          if grep -E "SCRIPT ERROR|Parse Error|Compile Error" /tmp/godot-tests.log; then exit 1; fi
+
+      - name: Exercise every menu page
+        shell: bash
+        timeout-minutes: 1
+        run: |
+          set -o pipefail
+          timeout 25s /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --audio-driver Dummy --path . --script res://tests/ui_smoke_test.gd 2>&1 | tee /tmp/godot-ui-tests.log
+          grep -q "Mini ZekaCity UI smoke tests passed." /tmp/godot-ui-tests.log
+          if grep -E "SCRIPT ERROR|Parse Error|Compile Error" /tmp/godot-ui-tests.log; then exit 1; fi
+
+      - name: Launch the actual main scene
+        shell: bash
+        run: |
+          set -o pipefail
+          timeout 15s /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --path . --audio-driver Dummy --quit 2>&1 | tee /tmp/godot-main-scene.log
+          if grep -E "SCRIPT ERROR|Parse Error|Compile Error" /tmp/godot-main-scene.log; then exit 1; fi
+
       - name: Preserve conversion diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: godot4-conversion-diagnostics
           path: |
-            /tmp/godot-convert.log
             /tmp/godot-import.log
+            /tmp/godot-tests.log
+            /tmp/godot-ui-tests.log
+            /tmp/godot-main-scene.log
           if-no-files-found: ignore
           retention-days: 14
