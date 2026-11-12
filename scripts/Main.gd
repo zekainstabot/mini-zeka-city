@@ -158,7 +158,7 @@ func _apply_offline_progress():
 	var offline_days = min(10, int(floor(float(elapsed) / 3600.0)))
 	var money_before = int(game.state.get("money", 0))
 	for day_index in range(offline_days):
-		game.end_day()
+		game.end_day(true)
 	var offline_net = int(game.state.get("money", money_before)) - money_before
 	# Positive net earnings are held separately until the player explicitly collects them.
 	if offline_net > 0:
