@@ -225,6 +225,7 @@ const BUILDINGS = {
 	"small_warehouse": {"name":"انبار کوچک","category":"انبارها","cost":500,"unlock":0,"storage":100,"jobs":0,"wage":0},
 	"central_bank": {"name":"بانک مرکزی","category":"خدمات شهری","cost":5000,"unlock":100,"jobs":8,"wage":55,"level_unlock":4},
 	"municipal_bank": {"name":"بانک شهری","category":"خدمات شهری","cost":1500,"unlock":40,"jobs":3,"wage":42,"level_unlock":3},
+	"municipal_hall": {"name":"ساختمان شهرداری","category":"خدمات شهری","cost":800,"unlock":4,"jobs":2,"wage":30},
 	"medium_warehouse": {"name":"انبار متوسط","category":"انبارها","cost":2000,"unlock":0,"storage":500,"jobs":0,"wage":0,"level_unlock":2},
 	"large_warehouse": {"name":"انبار بزرگ","category":"انبارها","cost":6000,"unlock":0,"storage":2000,"jobs":0,"wage":0,"level_unlock":4},
 	"huge_warehouse": {"name":"انبار عظیم","category":"انبارها","cost":20000,"unlock":0,"storage":10000,"jobs":0,"wage":0,"level_unlock":7},
@@ -1674,6 +1675,9 @@ func get_storage_used():
 func get_free_storage():
 	return max(0, get_storage_capacity() - get_storage_used())
 
+func has_municipal_hall():
+	return get_building_count("municipal_hall") > 0
+
 func get_building_count(id):
 	var count = 0
 	for building in state.buildings:
@@ -1708,7 +1712,7 @@ func get_land_size(id):
 		"fish_lake":4,"fishing_dock":2,"fish_market":2,"fish_processing_plant":3,
 		"mineral_market":1,"small_park":1,"playground":1,"grocery_store":1,"bakery":1,"water_tower":1,
 		"farm":2,"woodcutter":2,"stone_mine":2,"transport_depot":2,"restaurant":2,"office":2,
-		"municipal_bank":2,"power_station":2,"sawmill":2,"sewage_plant":2,"waste_facility":2,
+		"municipal_bank":2,"municipal_hall":2,"power_station":2,"sawmill":2,"sewage_plant":2,"waste_facility":2,
 		"school":3,"clinic":3,"iron_mine":3,"carpenter":3,"sports_center":3,"fire_station":3,"police_station":3,
 		"central_bank":4,"factory":4,"hospital":4,"university":5,"shopping_mall":5,"cultural_center":4,"taxi_station":1,"bus_station":2
 	}
@@ -1769,7 +1773,7 @@ func build(id):
 		"small_warehouse":60,"mineral_market":60,"small_park":60,"playground":60,"taxi_station":60,"bus_station":60,
 		"grocery_store":60,"bakery":60,"water_tower":60,
 		"farm":120,"fish_lake":180,"fishing_dock":120,"fish_market":120,"fish_processing_plant":240,"woodcutter":120,"stone_mine":120,"transport_depot":120,
-		"restaurant":120,"office":120,"municipal_bank":120,"power_station":120,
+		"restaurant":120,"office":120,"municipal_bank":120,"municipal_hall":120,"power_station":120,
 		"medium_warehouse":120,"sawmill":120,"sewage_plant":120,"waste_facility":120,
 		"school":180,"clinic":180,"iron_mine":180,"carpenter":180,"sports_center":180,
 		"large_warehouse":180,"fire_station":180,"police_station":180,
