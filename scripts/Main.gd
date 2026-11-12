@@ -1729,8 +1729,8 @@ func _add_building_category_items(category):
 		var level_unlocked = int(s.level) >= required_level
 		var unlocked = population_unlocked and level_unlocked
 		var label = "%s | هزینه: %d | زمین: %d قطعه | جمعیت: %d | سطح: %d" % [data.name,data.cost,game.get_land_size(id),data.unlock,required_level]
-		if not population_unlocked or not level_unlocked:
-			label += " | 🔒 قفل"
+		if not level_unlocked:
+			label += " | 🔒 قفل سطح"
 		var building_button = _add_button(label, self, "build_building", [id])
 		building_button.disabled = not level_unlocked
 	if visible_buildings == 0:
