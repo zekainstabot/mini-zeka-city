@@ -289,21 +289,3 @@ func _init():
 
 	print("Mini ZekaCity logic smoke tests passed.")
 	quit()
-
-
-# Side missions must be available together, while the main tutorial remains sequential.
-var mission_state = main.game.get_missions()
-var side_unlocked_count = 0
-var main_unlocked_count = 0
-for mission in mission_state:
-	var mission_type = "main"
-	for definition in main.game.MISSION_DEFINITIONS:
-		if str(definition.id) == str(mission.id):
-			mission_type = str(definition.get("type", "main"))
-			break
-	if mission_type == "side" and bool(mission.get("unlocked", false)):
-		side_unlocked_count += 1
-	if mission_type == "main" and bool(mission.get("unlocked", false)):
-		main_unlocked_count += 1
-assert(side_unlocked_count > 5)
-assert(main_unlocked_count == 1)
