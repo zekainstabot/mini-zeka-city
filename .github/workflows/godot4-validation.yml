@@ -13,7 +13,7 @@ on:
       - '.github/workflows/godot4-validation.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   validate:
@@ -37,6 +37,13 @@ jobs:
         run: |
           set -o pipefail
           /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --editor --path . --convert-3to4 40000 1000000 2>&1 | tee /tmp/godot-convert.log
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Apply Godot 4 automated project conversion"
+            git push origin HEAD:godot4-migration
+          fi
 
       - name: Import converted project
         if: always()
@@ -45,6 +52,7 @@ jobs:
           set -o pipefail
           if [ -x /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 ]; then
             /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --editor --path . --quit 2>&1 | tee /tmp/godot-import.log
+            if grep -E "SCRIPT ERROR|Parse Error|Compile Error" /tmp/godot-import.log; then exit 1; fi
           fi
 
       - name: Preserve conversion diagnostics
