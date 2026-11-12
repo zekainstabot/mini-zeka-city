@@ -351,10 +351,10 @@ func new_game():
 	return state
 
 func load_game():
-	var file = File.new()
-	if not file.file_exists(SAVE_PATH):
+	if not FileAccess.file_exists(SAVE_PATH):
 		return false
-	if file.open(SAVE_PATH, File.READ) != OK:
+	var file = FileAccess.open(SAVE_PATH, FileAccess.READ)
+	if file == null:
 		return false
 	var test_json_conv = JSON.new()
 	test_json_conv.parse(file.get_as_text())
@@ -373,7 +373,7 @@ func load_game():
 
 # Convert the local calendar date to a monotonic day number without relying on UTC.
 func _get_local_calendar_day_serial():
-	var date = OS.get_date()
+	var date = Time.get_date_dict_from_system()
 	var year = int(date.get("year", 1970))
 	var month = int(date.get("month", 1))
 	var day = int(date.get("day", 1))
@@ -1128,8 +1128,8 @@ func add_report_event(message, persist=true):
 		save_game()
 
 func save_game():
-	var file = File.new()
-	if file.open(SAVE_PATH, File.WRITE) != OK:
+	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if file == null:
 		return false
 	file.store_string(JSON.new().stringify(state))
 	file.close()
