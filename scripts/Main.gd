@@ -132,7 +132,7 @@ func _process(delta):
 		var remaining = max(0, int(600.0 - clock_cycle_seconds))
 		var phase = "روز" if clock_cycle_seconds < 420.0 else "شب"
 		var phase_remaining = int(420.0 - clock_cycle_seconds) if phase == "روز" else int(600.0 - clock_cycle_seconds)
-		clock_label.text = PersianText.reshaper("%s | زمان باقی‌مانده: %02d:%02d" % [phase, phase_remaining % 60, int(phase_remaining / 60)])
+		clock_label.text = PersianText.reshaper("%s | زمان باقی‌مانده: %02d:%02d" % [phase, int(phase_remaining / 60), phase_remaining % 60])
 	if clock_save_accumulator >= 15.0:
 		clock_save_accumulator = 0.0
 		game.state["clock_last_unix"] = OS.get_unix_time()
