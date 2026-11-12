@@ -1292,19 +1292,43 @@ func _active_mine_count():
 			count += 1
 	return count
 
+func _sort_building_ids_by_unlock_priority(a, b):
+	var definitions = game.get_building_definitions()
+	var first = definitions[str(a)]
+	var second = definitions[str(b)]
+	var first_level = int(first.get("level_unlock", 1))
+	var second_level = int(second.get("level_unlock", 1))
+	if first_level != second_level:
+		return first_level < second_level
+	var first_population = int(first.get("unlock", 0))
+	var second_population = int(second.get("unlock", 0))
+	if first_population != second_population:
+		return first_population < second_population
+	var first_cost = int(first.get("cost", 0))
+	var second_cost = int(second.get("cost", 0))
+	if first_cost != second_cost:
+		return first_cost < second_cost
+	return str(first.get("name", a)) < str(second.get("name", b))
+
 func _add_building_category_items(category):
 	var visible_buildings = 0
-	for id in game.get_building_definitions().keys():
-		var data = game.get_building_definitions()[id]
+	var definitions = game.get_building_definitions()
+	var building_ids = []
+	for id in definitions.keys():
+		var data = definitions[id]
 		if category == "همه" and str(data.get("category","")) == "حمل‌ونقل":
 			continue
 		if category == "ماهیگیری" and not str(id) in ["fish_lake","fishing_dock","fish_market","fish_processing_plant"]:
 			continue
 		if category != "همه" and category != "ماهیگیری" and str(data.get("category","")) != category:
 			continue
+		building_ids.append(str(id))
+	building_ids.sort_custom(self, "_sort_building_ids_by_unlock_priority")
+	for id in building_ids:
+		var data = definitions[id]
 		visible_buildings += 1
 		var s = game.state
-		var population_unlocked = s.population >= int(data.unlock)
+		var population_unlocked = int(s.population) >= int(data.get("unlock", 0))
 		var required_level = int(data.get("level_unlock", 1))
 		var level_unlocked = int(s.level) >= required_level
 		var unlocked = population_unlocked and level_unlocked
