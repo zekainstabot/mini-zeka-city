@@ -131,7 +131,7 @@ func _expire_rentals(engine, report):
 		for request_index in range(state.business_requests.size() - 1, -1, -1):
 			var pending_request = state.business_requests[request_index]
 			if int(pending_request.get("citizen_id", 0)) == owner_id:
-				state.business_requests.remove(request_index)
+				state.business_requests.remove_at(request_index)
 		for citizen_index in range(state.citizens.size()):
 			var citizen = state.citizens[citizen_index]
 			if int(citizen.get("private_job_id", 0)) == business_id:
@@ -145,7 +145,7 @@ func _expire_rentals(engine, report):
 		if building_index >= 0 and building_index < state.buildings.size():
 			state.buildings[building_index]["rented_to"] = 0
 			state.buildings[building_index]["rent_until_day"] = 0
-		state.private_businesses.remove(business_index)
+		state.private_businesses.remove_at(business_index)
 		report.append("قرارداد اجاره ملک شهرداری پایان یافت؛ ملک برای درخواست‌های جدید آزاد شد.")
 
 func _choose_business(engine, citizen):
@@ -575,11 +575,11 @@ func resolve_request(engine, request_id, approved):
 	var request = state.business_requests[request_index]
 	var citizen_index = _find_citizen_index(state, int(request.get("citizen_id", 0)))
 	if citizen_index < 0:
-		state.business_requests.remove(request_index)
+		state.business_requests.remove_at(request_index)
 		return {"ok":false,"message":"شهروند متقاضی دیگر در شهر حضور ندارد."}
 	var citizen = state.citizens[citizen_index]
 	if not approved:
-		state.business_requests.remove(request_index)
+		state.business_requests.remove_at(request_index)
 		citizen["civic_request_pending"] = false
 		citizen["next_civic_request_day"] = int(state.day) + 3
 		state.citizens[citizen_index] = citizen
@@ -600,7 +600,7 @@ func resolve_request(engine, request_id, approved):
 		citizen["civic_request_pending"] = false
 		citizen["next_civic_request_day"] = int(state.day) + 1
 		state.citizens[citizen_index] = citizen
-		state.business_requests.remove(request_index)
+		state.business_requests.remove_at(request_index)
 		engine.state = state
 		engine.save_game()
 		return {"ok":true,"message":"فروش %d قطعه زمین به شهروند شماره %d تأیید شد؛ درآمد فروش زمین جدا از مالیات ثبت شد." % [plots, int(citizen.id)]}
@@ -651,7 +651,7 @@ func resolve_request(engine, request_id, approved):
 		})
 		state["municipal_rent_income_total"] = int(state.get("municipal_rent_income_total", 0)) + lease_cost
 		engine._add_money(lease_cost)
-		state.business_requests.remove(request_index)
+		state.business_requests.remove_at(request_index)
 		engine.state = state
 		engine.assign_jobs()
 		engine.save_game()
@@ -694,7 +694,7 @@ func resolve_request(engine, request_id, approved):
 			"created_day":int(state.day)
 		})
 		engine._add_money(int(state.get("business_permit_fee", 50)))
-		state.business_requests.remove(request_index)
+		state.business_requests.remove_at(request_index)
 		engine.state = state
 		engine.save_game()
 		return {"ok":true,"message":"مجوز %s صادر شد؛ کسب‌وکار خصوصی شهروند شماره %d در %s آغاز به کار کرد." % [str(data.name), int(citizen.id), str(business_location.district_name)]}
@@ -721,7 +721,7 @@ func resolve_request(engine, request_id, approved):
 			"municipal_contribution":municipal_amount,
 			"tax_credit":0
 		})
-		state.business_requests.remove(request_index)
+		state.business_requests.remove_at(request_index)
 		engine.state = state
 		engine.save_game()
 		return {"ok":true,"message":"مشارکت شهروند شماره %d تأیید شد؛ %d سکه مردم و %d سکه شهرداری برای ساخت %s اختصاص یافت. تحویل ۲ روز دیگر." % [int(citizen.id),contribution,municipal_amount,str(data.name)]}
@@ -745,7 +745,7 @@ func resolve_request(engine, request_id, approved):
 		})
 		citizen["civic_request_pending"] = false
 		state.citizens[citizen_index] = citizen
-		state.business_requests.remove(request_index)
+		state.business_requests.remove_at(request_index)
 		engine.state = state
 		engine.save_game()
 		return {"ok":true,"message":"پروژه %s تأیید شد؛ پس از تحویل، %d سکه اعتبار مالیاتی به کسب‌وکار تعلق می‌گیرد." % [str(engine.get_building_definitions()[building_id].name), cost]}
