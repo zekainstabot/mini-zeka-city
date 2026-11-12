@@ -75,7 +75,17 @@ const MISSION_DEFINITIONS = [
 	{"id":"side_positive_cashflow","type":"side","title":"انضباط مالی","description":"تراز خالص خزانه را برای ۳ روز متوالی مثبت نگه دار.","goal":3,"reward":250,"xp":20,"hint":"در گزارش مالی، درآمدها را با حقوق، نگهداری و اقساط مقایسه کن."},
 	{"id":"side_high_satisfaction","type":"side","title":"شهروندان راضی","description":"میانگین رضایت شهروندان را برای ۳ روز متوالی به حداقل ۷۵ برسان.","goal":3,"reward":300,"xp":22,"hint":"نیازهای خوراک، آب، برق، درمان، آموزش، امنیت، تفریح و بهداشت را متعادل نگه دار."},
 	{"id":"side_expand_districts","type":"side","title":"گسترش محله‌ها","description":"ساختمان‌های شهر را به دست‌کم ۲ محله گسترش بده.","goal":2,"reward":350,"xp":25,"hint":"با پر شدن ظرفیت ساخت محله فعلی، ساختمان‌های بعدی در محله تازه قرار می‌گیرند."},
-	{"id":"side_private_tax","type":"side","title":"درآمد مالیاتی پایدار","description":"از فعالیت کسب‌وکارهای خصوصی، در مجموع ۱۰۰ سکه مالیات دریافت کن.","goal":100,"reward":200,"xp":16,"hint":"درخواست‌های کسب‌وکار شهروندان را مدیریت کن تا فعالیت اقتصادی و پرداخت مالیات شکل بگیرد."}
+	{"id":"side_private_tax","type":"side","title":"درآمد مالیاتی پایدار","description":"از فعالیت کسب‌وکارهای خصوصی، در مجموع ۱۰۰ سکه مالیات دریافت کن.","goal":100,"reward":200,"xp":16,"hint":"درخواست‌های کسب‌وکار شهروندان را مدیریت کن تا فعالیت اقتصادی و پرداخت مالیات شکل بگیرد."},
+	# Archived duplicate missions stay claimable in old saves, but are hidden for new cities.
+	{"id":"side_water","type":"legacy","legacy":true,"title":"خدمات پایه شهر (نسخه قبلی)","description":"پاداش این مأموریت از نسخه قبلی باقی مانده است.","goal":1,"reward":220,"xp":20,"hint":"پاداش ذخیره‌شده نسخه قبلی را دریافت کن."},
+	{"id":"side_school","type":"legacy","legacy":true,"title":"سرمایه‌گذاری آموزشی (نسخه قبلی)","description":"پاداش این مأموریت از نسخه قبلی باقی مانده است.","goal":1,"reward":450,"xp":35,"hint":"پاداش ذخیره‌شده نسخه قبلی را دریافت کن."},
+	{"id":"side_clinic","type":"legacy","legacy":true,"title":"سلامت شهروندان (نسخه قبلی)","description":"پاداش این مأموریت از نسخه قبلی باقی مانده است.","goal":1,"reward":420,"xp":35,"hint":"پاداش ذخیره‌شده نسخه قبلی را دریافت کن."},
+	{"id":"side_wood","type":"legacy","legacy":true,"title":"تولید منابع داخلی (نسخه قبلی)","description":"پاداش این مأموریت از نسخه قبلی باقی مانده است.","goal":1,"reward":300,"xp":25,"hint":"پاداش ذخیره‌شده نسخه قبلی را دریافت کن."},
+	{"id":"side_bank","type":"legacy","legacy":true,"title":"آشنایی با بانکداری (نسخه قبلی)","description":"پاداش این مأموریت از نسخه قبلی باقی مانده است.","goal":1,"reward":550,"xp":45,"hint":"پاداش ذخیره‌شده نسخه قبلی را دریافت کن."},
+	{"id":"side_power","type":"legacy","legacy":true,"title":"برق‌رسانی شهر (نسخه قبلی)","description":"پاداش این مأموریت از نسخه قبلی باقی مانده است.","goal":1,"reward":350,"xp":25,"hint":"پاداش ذخیره‌شده نسخه قبلی را دریافت کن."},
+	{"id":"side_stone_mine","type":"legacy","legacy":true,"title":"استخراج سنگ (نسخه قبلی)","description":"پاداش این مأموریت از نسخه قبلی باقی مانده است.","goal":1,"reward":350,"xp":25,"hint":"پاداش ذخیره‌شده نسخه قبلی را دریافت کن."},
+	{"id":"side_sawmill","type":"legacy","legacy":true,"title":"کارخانه الوارسازی (نسخه قبلی)","description":"پاداش این مأموریت از نسخه قبلی باقی مانده است.","goal":1,"reward":500,"xp":35,"hint":"پاداش ذخیره‌شده نسخه قبلی را دریافت کن."},
+	{"id":"side_carpenter","type":"legacy","legacy":true,"title":"کارگاه مبلمان (نسخه قبلی)","description":"پاداش این مأموریت از نسخه قبلی باقی مانده است.","goal":1,"reward":700,"xp":50,"hint":"پاداش ذخیره‌شده نسخه قبلی را دریافت کن."}
 ]
 
 const RESOURCES = {
@@ -1417,21 +1427,25 @@ func _update_missions():
 	for i in range(state.missions.size()):
 		var mission = state.missions[i]
 		var mission_id = str(mission.get("id", ""))
-		mission["unlocked"] = previous_claimed
-		for definition in MISSION_DEFINITIONS:
-			if str(definition.id) != mission_id:
-				continue
-			var progress = min(int(definition.goal), _get_mission_progress(mission_id))
-			mission["progress"] = progress
-			mission["completed"] = progress >= int(definition.goal)
-			state.missions[i] = mission
-			previous_claimed = bool(mission.get("claimed", false))
-			break
-		for definition in MISSION_DEFINITIONS:
-			if str(definition.id) == mission_id and str(definition.get("type","main")) == "side":
-				mission["unlocked"] = true
-				state.missions[i] = mission
+		var definition = {}
+		for candidate in MISSION_DEFINITIONS:
+			if str(candidate.id) == mission_id:
+				definition = candidate
 				break
+		if definition.empty():
+			continue
+		if bool(definition.get("legacy", false)):
+			mission["unlocked"] = bool(mission.get("completed", false)) and not bool(mission.get("claimed", false))
+			state.missions[i] = mission
+			continue
+		mission["unlocked"] = previous_claimed
+		var progress = min(int(definition.goal), _get_mission_progress(mission_id))
+		mission["progress"] = progress
+		mission["completed"] = progress >= int(definition.goal)
+		previous_claimed = bool(mission.get("claimed", false))
+		if str(definition.get("type", "main")) == "side":
+			mission["unlocked"] = true
+		state.missions[i] = mission
 
 func get_missions():
 	_update_missions()
