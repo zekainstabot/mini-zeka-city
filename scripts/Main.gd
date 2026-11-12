@@ -355,6 +355,37 @@ func _build_ui():
 	_apply_font(menu_button, 20 if compact_layout else 18)
 	_style_button(menu_button, true)
 	menu_row.add_child(menu_button)
+
+	var help_button = Button.new()
+	help_button.text = PersianText.reshaper("؟")
+	help_button.hint_tooltip = "راهنمای کامل بازی"
+	help_button.rect_min_size = Vector2(58 if compact_layout else 50, 58 if compact_layout else 46)
+	help_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_apply_font(help_button, 29 if compact_layout else 25)
+	var help_normal = StyleBoxFlat.new()
+	help_normal.bg_color = Color("#0f766e")
+	help_normal.border_color = Color("#99f6e4")
+	help_normal.set_border_width_all(2)
+	help_normal.set_corner_radius_all(24)
+	var help_hover = StyleBoxFlat.new()
+	help_hover.bg_color = Color("#115e59")
+	help_hover.border_color = Color("#ccfbf1")
+	help_hover.set_border_width_all(2)
+	help_hover.set_corner_radius_all(24)
+	var help_pressed = StyleBoxFlat.new()
+	help_pressed.bg_color = Color("#134e4a")
+	help_pressed.border_color = Color("#5eead4")
+	help_pressed.set_border_width_all(2)
+	help_pressed.set_corner_radius_all(24)
+	help_button.add_stylebox_override("normal", help_normal)
+	help_button.add_stylebox_override("hover", help_hover)
+	help_button.add_stylebox_override("focus", help_hover)
+	help_button.add_stylebox_override("pressed", help_pressed)
+	help_button.add_color_override("font_color", Color("#ffffff"))
+	help_button.add_color_override("font_color_hover", Color("#ffffff"))
+	help_button.add_color_override("font_color_pressed", Color("#ffffff"))
+	help_button.connect("pressed", self, "_open_help")
+	menu_row.add_child(help_button)
 	menu_panel = VBoxContainer.new()
 	menu_panel.visible = false
 	menu_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -738,6 +769,54 @@ func _show_welcome_mission_hint():
 	_style_button(go_button, false)
 	go_button.connect("pressed", self, "_open_missions_from_welcome")
 	layout.add_child(go_button)
+
+
+func _open_help():
+	show_page("help")
+	if game_scroll_container != null and is_instance_valid(game_scroll_container):
+		game_scroll_container.scroll_vertical = 0
+
+func _add_help_section(title, description, target_page=""):
+	var panel = PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var panel_style = StyleBoxFlat.new()
+	panel_style.bg_color = Color("#1e293b")
+	panel_style.border_color = Color("#475569")
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(10)
+	panel_style.content_margin_left = 12
+	panel_style.content_margin_right = 12
+	panel_style.content_margin_top = 10
+	panel_style.content_margin_bottom = 10
+	panel.add_stylebox_override("panel", panel_style)
+	content.add_child(panel)
+	var body = VBoxContainer.new()
+	body.add_constant_override("separation", 5)
+	panel.add_child(body)
+	var heading = Label.new()
+	heading.text = PersianText.reshaper(title)
+	heading.align = Label.ALIGN_RIGHT
+	heading.autowrap = true
+	_apply_font(heading, 18 if get_viewport_rect().size.x < 900 else 17)
+	heading.add_color_override("font_color", Color("#fbbf24"))
+	body.add_child(heading)
+	var details = Label.new()
+	details.text = PersianText.reshaper(description)
+	details.align = Label.ALIGN_RIGHT
+	details.autowrap = true
+	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_font(details, 16 if get_viewport_rect().size.x < 900 else 15)
+	details.add_color_override("font_color", Color("#e2e8f0"))
+	body.add_child(details)
+	if str(target_page) != "":
+		var jump = Button.new()
+		jump.text = PersianText.reshaper("رفتن به بخش مربوط  ←")
+		jump.rect_min_size = Vector2(0, 48 if get_viewport_rect().size.x < 900 else 42)
+		jump.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_apply_font(jump, 16 if get_viewport_rect().size.x < 900 else 15)
+		_style_button(jump, false)
+		jump.connect("pressed", self, "show_page", [str(target_page)])
+		body.add_child(jump)
 
 func _open_missions_from_welcome():
 	show_page("missions")
@@ -1405,6 +1484,48 @@ func show_page(page):
 					var stamp = OS.get_datetime_from_unix_time(int(event.get("timestamp", 0)))
 					var time_text = "%02d/%02d - %02d:%02d" % [int(stamp.get("day", 1)), int(stamp.get("month", 1)), int(stamp.get("hour", 0)), int(stamp.get("minute", 0))]
 					_add_label("[%s] روز %d | %s" % [time_text, int(event.get("day", 1)), str(event.get("message", ""))], 17)
+
+		"help":
+			_add_label("❔ راهنمای کامل مینی زکا سیتی", 25)
+			_add_label("اینجا هر زمان گیر کردی برگرد؛ از شروع بازی تا اقتصاد، ساختمان‌ها و رقابت شهرها را قدم‌به‌قدم توضیح داده‌ایم.", 17)
+			_add_button("🏙️ برگشت به شهر من", self, "return_home_from_menu")
+			_add_label("🚀 شروع سریع برای بازیکن تازه‌وارد", 21)
+			_add_help_section("۱. اول مأموریت‌ها را انجام بده", "از دکمه مأموریت‌ها شروع کن. مأموریت‌های آموزشی به‌ترتیب خرید زمین، ساخت خانه، ساخت مزرعه، استخدام شهروند و توسعه خدمات را یاد می‌دهند. هر مأموریت را بخوان؛ اگر دکمه رفتن داشت، از همان برای رفتن مستقیم به بخش مربوط استفاده کن.", "missions")
+			_add_help_section("۲. زمین و ساختمان بساز", "در ساختمان‌ها زمین تازه بخر و بعد ساختمان مناسب را انتخاب کن. قبل از ساخت، هزینه، زمان ساخت، ظرفیت و نیاز به نیروی کار را بررسی کن. همه ساختمان‌ها فوری آماده نمی‌شوند؛ پروژه‌های در حال ساخت و زمان باقی‌مانده بالای صفحه دیده می‌شود.", "buildings")
+			_add_help_section("۳. شهروند و شغل را مدیریت کن", "خانه ظرفیت سکونت ایجاد می‌کند؛ اما برای تولید و درآمد، بعضی ساختمان‌ها به کارگر نیاز دارند. از بخش شهروندان تعداد شاغل، بیکار و وضعیت گروه‌های شهروندی را بررسی کن. بدون نیروی انسانی کافی، توسعه اقتصادی متوقف می‌شود.", "citizens")
+			_add_label("💰 پول، درآمد و اقتصاد", 21)
+			_add_help_section("خزانه و درآمد شهرداری", "در شهر من موجودی خزانه، ظرفیت خزانه، پول قفل‌شده و درآمد روزانه شهرداری را می‌بینی. درآمد شهرداری با درآمد کسب‌وکارهای خصوصی یکی نیست. ظرفیت خزانه محدود است؛ اگر پر شود ممکن است نتوانی جایزه یا درآمد تازه‌ای دریافت کنی. پول قفل‌شده را با پول آزاد اشتباه نگیر.", "home")
+			_add_help_section("بانک، وام و امور مالی", "قبل از گرفتن وام، مبلغ دریافتی، بهره، زمان بازپرداخت و قسط را با درآمد پایدار شهر مقایسه کن. برای پرداخت هزینه‌های روزمره روی وام تکیه نکن؛ ابتدا درآمد و تولید منظم بساز.", "bank")
+			_add_help_section("اقتصاد خصوصی و کسب‌وکارها", "کسب‌وکارها می‌توانند از فعالیت شهروندان و تقاضای شهر درآمد بسازند. تعداد ساختمان، نیروی کار، رضایت و دسترسی به کالا روی نتیجه اثر می‌گذارند. درآمد خصوصی را با مالیات و درآمد شهرداری جداگانه بررسی کن.", "private_economy")
+			_add_help_section("بازار، تجارت و منابع", "در بازار می‌توانی کالا و منابع را بخری یا صادر کنی. قیمت خرید و فروش را مقایسه کن و همه ذخایر ضروری را نفروش؛ مواد اولیه برای زنجیره تولید و توسعه بعدی لازم می‌شوند. سفارش‌ها و محموله‌های در حال ارسال را پیگیری کن.", "commerce")
+			_add_help_section("انبار و مدیریت موجودی", "انبار برای نگهداری منابع است. ظرفیت انبار محدود است؛ موجودی کالاها را بررسی کن و فضای کافی برای تولید بعدی نگه دار. اگر یک منبع کم است، زنجیره تولید وابسته به آن هم ممکن است متوقف شود.", "storage")
+			_add_label("🏗️ توسعه، خدمات و زمان", 21)
+			_add_help_section("خدمات شهری و رضایت", "آب، برق، خوراک، درمان، آموزش، امنیت، تفریح و بهداشت محیط نیازهای جداگانه‌اند. در شهر من میانگین پوشش خدمات را ببین و برای نیازهای ضعیف، ساختمان مناسب بساز. جمعیت بیشتر یعنی نیاز بیشتر به خدمات و زیرساخت.", "home")
+			_add_help_section("شهرداری، زمین و محله‌ها", "در شهرداری زمین‌ها، مالیات، درخواست‌ها و پروژه‌های شهری را مدیریت کن. ظرفیت ساخت هر محله و سهمیه ساختمان‌ها محدود است؛ پیش از خرید یا ساخت، محدودیت همان محله را بررسی کن و برای خدمات ضروری جا نگه دار.", "municipality")
+			_add_help_section("روز، شب و ساخت‌وساز", "هر روز بازی ۱۰ دقیقه زمان واقعی دارد؛ ۷ دقیقه روز و ۳ دقیقه شب است. پایان روز، درآمدها، هزینه‌ها، تولید و رویدادها محاسبه می‌شوند. هم‌زمان حداکثر دو پروژه ساخت فعال می‌توانی داشته باشی؛ زمان ساخت را از بالای صفحه دنبال کن.", "home")
+			_add_help_section("جاده و ناوگان", "جاده و ناوگان برای جابه‌جایی و پشتیبانی تجارت کاربرد دارند و می‌توانند هزینه نگهداری داشته باشند. پیش از توسعه مسیرها، درآمد و توان پرداخت هزینه‌های نگهداری را بررسی کن.", "transport")
+			_add_label("🎯 مأموریت‌ها و سرگرمی‌های بلندمدت", 21)
+			_add_help_section("مأموریت‌های روزانه و هفتگی", "مأموریت‌های روزانه با گذر روز عوض می‌شوند و مأموریت هفتگی هدف بزرگ‌تری دارد. انجام مأموریت همیشه به معنی دریافت جایزه نیست؛ اگر دکمه دریافت جایزه نمایش داده شد، آن را بزن. علامت هدیه بالای دکمه مأموریت‌ها یعنی جایزه آماده دریافت داری.", "missions")
+			_add_help_section("ورود روزانه و زنجیره ورود", "با ورود در روزهای مختلف، زنجیره ورودت را حفظ کن و هدیه روزانه را از شهر من دریافت کن. جایزه روزانه را باید دستی دریافت کنی؛ اگر ظرفیت خزانه پر باشد، ابتدا باید برای دریافت آن فضا ایجاد کنی.", "home")
+			_add_help_section("شهرهای رقیب و رتبه‌بندی", "شهرهای همسایه در گذر روزها رشد می‌کنند. امتیاز توسعه شهر تو با امتیاز آن‌ها مقایسه می‌شود؛ برای بهتر شدن رتبه، جمعیت، سطح و توسعه شهر را بالا ببر. این رتبه‌بندی فعلاً در همین ذخیره بازی محاسبه می‌شود.", "progress")
+			_add_help_section("رازهای مخفی", "گاهی با گذر روزها یک سرنخ پنهان پیدا می‌کنی. سرنخ و هدفش را در پیشرفت شهر بخوان. وقتی نوار پیشرفت به هدف رسید، جایزه را از همان صفحه دستی دریافت کن.", "progress")
+			_add_help_section("پروژه‌های عظیم", "برج بزرگ، مرکز تجارت و فرودگاه پروژه‌های چندمرحله‌ای هستند. هر مرحله به سطح، جمعیت، ساختمان یا صادرات مشخص و هزینه جداگانه نیاز دارد. فقط یک پروژه عظیم را هم‌زمان می‌توانی پیش ببری؛ پیش از سرمایه‌گذاری، شرایط و موجودی آزاد خزانه را بررسی کن.", "progress")
+			_add_help_section("اتفاقات شهر و تصمیم‌های مهم", "رویدادهای تصادفی و تصمیم‌های شورای شهر می‌توانند روی پول، رضایت، اعتبار و نیازهای شهر اثر بگذارند. متن هر گزینه و هزینه‌اش را با دقت بخوان؛ بعضی تصمیم‌ها رایگان نیستند و پیامد انتخاب‌ها متفاوت است.", "home")
+			_add_help_section("درخواست شهروندان", "گاهی شهروندان برای ساخت یک خدمت یا زیرساخت درخواست می‌دهند. درخواست را بخوان، در صورت توان قبول کن و ساختمان پیشنهادی را بساز. پس از تکمیل شرط، پاداش درخواست را دریافت کن؛ درخواست را فقط وقتی قبول کن که امکان انجامش را داری.", "citizens")
+			_add_help_section("افتخارات و رکوردهای شهر", "در صفحه پیشرفت شهر، دستاوردهای بازشده، رکوردهای شخصی، چالش هفتگی و پروژه‌های بلندمدت را دنبال کن. بعضی افتخارات فقط با رسیدن به سطح، جمعیت یا رکورد مشخص باز می‌شوند.", "progress")
+			_add_label("🌙 وقتی از بازی خارج می‌شوی", 21)
+			_add_help_section("درآمد و گزارش زمان غیبت", "وقتی برمی‌گردی، بازی حداکثر ۱۰ روز غیبت را محاسبه می‌کند. درآمد خالص مثبت جدا نگه داشته می‌شود و تا وقتی خودت دکمه دریافت را نزنی وارد خزانه نمی‌شود. اگر درآمدی باقی نمانده باشد، ممکن است هزینه‌ها درآمد را خنثی کرده باشند.", "home")
+			_add_help_section("ذخیره، توقف و شروع دوباره", "از منو می‌توانی بازی را متوقف کنی، ذخیره کنی یا به شهر من برگردی. شروع دوباره شهر، پیشرفت شهر فعلی را پاک می‌کند؛ قبل از تأیید این گزینه مطمئن شو واقعاً شهر تازه می‌خواهی.", "home")
+			_add_label("💡 چند نکته برای پیشرفت بهتر", 21)
+			_add_label("• اول مأموریت‌های آموزشی را انجام بده تا مسیر بازی را یاد بگیری.", 16)
+			_add_label("• قبل از خرج بزرگ، درآمد روزانه، پول آزاد و ظرفیت خزانه را بررسی کن.", 16)
+			_add_label("• خانه بساز، اما خدمات و شغل متناسب با جمعیت را فراموش نکن.", 16)
+			_add_label("• همه منابع را نفروش؛ برای تولید و ساخت‌وساز ذخیره نگه دار.", 16)
+			_add_label("• قبل از قبول درخواست شهروند یا شروع پروژه عظیم، هزینه و شرط‌ها را بخوان.", 16)
+			_add_label("• جایزه مأموریت، هدیه ورود و درآمد آفلاین را در صورت آماده بودن دستی دریافت کن.", 16)
+			_add_label("• هر روز گزارش شهر، رویداد هفتگی و رتبه رقبا را بررسی کن.", 16)
+			_add_button("🏙️ حالا برگردیم به شهر!", self, "return_home_from_menu")
+
 		"progress":
 			_add_label("🏗️ پروژه‌های بلندمدت شهر",23)
 			_add_label("این هدف‌ها برای توسعه چندمرحله‌ای شهر هستند؛ پیشرفتشان ذخیره می‌شود و جایزه را فقط یک‌بار می‌توانی بگیری.",16)
