@@ -10,6 +10,15 @@ func _init():
 	main.game.new_game()
 	for page in ["home","buildings","citizens","bank","municipality","private_economy","commerce","transport","imports","storage","report","missions"]:
 		main.show_page(page)
+	main.home_city_details_expanded = true
+	main.show_page("home")
+	assert(main.content.get_child_count() > 0)
+	var service_panel_found = false
+	for child in main.content.get_children():
+		if child is PanelContainer:
+			service_panel_found = true
+			break
+	assert(service_panel_found)
 	main.game.state["pending_offline_days"] = 2
 	main.game.state["pending_offline_income"] = 350
 	main._show_offline_summary()
