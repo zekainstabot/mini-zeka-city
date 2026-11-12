@@ -281,6 +281,7 @@ func new_game():
 		"reputation": 50,
 		"satisfaction": 50,
 		"last_login_day_serial": -1,
+		"next_resident_request_day": 4,
 		"login_streak": 0,
 		"active_play_seconds_today": 0.0,
 		"consecutive_active_game_days": 0,
@@ -294,6 +295,14 @@ func new_game():
 		"services": {},
 		"missions": [],
 		"daily_missions": {},
+		"login_reward_claimed_day_serial": -1,
+		"city_event_history": [],
+		"city_event_next_day": 3,
+		"resident_requests": [],
+		"next_resident_request_id": 1,
+		"achievements": {},
+		"city_records": {},
+		"long_term_project_claimed": [],
 		"central_bank_rebuild_days_left": 0,
 		"bank_loans": [],
 		"bank_deposits": [],
@@ -409,6 +418,295 @@ func claim_daily_mission(mission_id):
 		return {"ok":true,"message":"جایزه روزانه دریافت شد: %d سکه و %d تجربه. %s" % [reward, int(mission.xp), xp_message]}
 	return {"ok":false,"message":"مأموریت روزانه پیدا نشد."}
 
+
+func get_login_reward_status():
+	var today = _get_local_calendar_day_serial()
+	var streak = max(1, int(state.get("login_streak", 1)))
+	var reward = min(400, 100 + (streak - 1) * 25)
+	return {
+		"streak":streak,
+		"reward":reward,
+		"claimed":int(state.get("login_reward_claimed_day_serial", -1)) == today,
+		"logged_in":int(state.get("last_login_day_serial", -1)) == today
+	}
+
+func claim_login_reward():
+	var status = get_login_reward_status()
+	if not bool(status.logged_in):
+		return {"ok":false,"message":"برای دریافت هدیه، ابتدا امروز وارد شهر شو."}
+	if bool(status.claimed):
+		return {"ok":false,"message":"هدیه ورود امروز را قبلاً دریافت کرده‌ای."}
+	var reward = int(status.reward)
+	if get_treasury_capacity() - int(state.get("money", 0)) < reward:
+		return {"ok":false,"message":"ظرفیت خالی خزانه برای دریافت هدیه کافی نیست؛ ابتدا کمی از موجودی خرج کن."}
+	_add_money(reward)
+	state["login_reward_claimed_day_serial"] = _get_local_calendar_day_serial()
+	var xp_message = _award_xp(5)
+	save_game()
+	return {"ok":true,"message":"هدیه ورود امروز: %d سکه + ۵ تجربه. %s" % [reward, xp_message]}
+
+func _process_city_event(report):
+	var current_day = int(state.get("day", 1))
+	if current_day < int(state.get("city_event_next_day", current_day + 1)):
+		return
+	state["city_event_next_day"] = current_day + 2 + int(randi() % 3)
+	if int(randi() % 100) >= 38:
+		return
+	var events = [
+		{"id":"market_fair","title":"بازار پررونق","description":"بازار شهر شلوغ شد و فروش کسب‌وکارها رونق گرفت."},
+		{"id":"city_festival","title":"جشن محلی","description":"جشن محلی حال‌وهوای شهر را بهتر کرد."},
+		{"id":"volunteer_day","title":"روز همیاری شهروندان","description":"گروهی از شهروندان برای پاکیزگی و زیباسازی شهر داوطلب شدند."},
+		{"id":"water_warning","title":"هشدار کم‌آبی","description":"مصرف آب بالا رفت؛ مدیریت منابع آب اهمیت بیشتری پیدا کرد."},
+		{"id":"investor_visit","title":"بازدید سرمایه‌گذار","description":"یک سرمایه‌گذار از ظرفیت رشد شهر استقبال کرد."},
+		{"id":"small_fire","title":"حادثه آتش‌سوزی","description":"در یکی از محله‌ها آتش‌سوزی کوچکی گزارش شد."}
+	]
+	var event = events[int(randi() % events.size())]
+	var message = str(event.description)
+	match str(event.id):
+		"market_fair":
+			var bonus = min(450, int(state.get("population", 0)) * 12)
+			var accepted = _add_money(bonus)
+			state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) + 2, 0, 100))
+			message += " درآمد ویژه بازار: %d سکه." % accepted
+		"city_festival":
+			state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) + 5, 0, 100))
+			state["reputation"] = int(clamp(int(state.get("reputation", 50)) + 2, 0, 100))
+			state["needs"]["leisure"] = int(clamp(int(state.needs.get("leisure", 50)) + 6, 0, 100))
+		"volunteer_day":
+			state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) + 3, 0, 100))
+			state["needs"]["sanitation"] = int(clamp(int(state.needs.get("sanitation", 50)) + 7, 0, 100))
+			state["reputation"] = int(clamp(int(state.get("reputation", 50)) + 1, 0, 100))
+		"water_warning":
+			var impact = 3 if get_building_count("water_tower") > 0 else 6
+			state["needs"]["water"] = int(clamp(int(state.needs.get("water", 50)) - impact, 0, 100))
+			state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) - 2, 0, 100))
+		"investor_visit":
+			var investment = min(500, 100 + int(state.get("level", 1)) * 35)
+			var accepted_investment = _add_money(investment)
+			state["reputation"] = int(clamp(int(state.get("reputation", 50)) + 2, 0, 100))
+			message += " کمک سرمایه‌گذار: %d سکه." % accepted_investment
+		"small_fire":
+			if get_building_count("fire_station") > 0:
+				state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) - 1, 0, 100))
+				message += " ایستگاه آتش‌نشانی حادثه را سریع مهار کرد."
+			else:
+				state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) - 4, 0, 100))
+				state["reputation"] = int(clamp(int(state.get("reputation", 50)) - 2, 0, 100))
+				message += " نبود ایستگاه آتش‌نشانی خسارت اجتماعی را بیشتر کرد؛ ساختمانی تخریب نشد."
+	var history = state.get("city_event_history", [])
+	history.append({"day":current_day,"id":str(event.id),"title":str(event.title),"message":message})
+	while history.size() > 20:
+		history.pop_front()
+	state["city_event_history"] = history
+	report.append("🎲 رویداد شهر | %s: %s" % [str(event.title), message])
+
+func _process_resident_requests(report):
+	var requests = state.get("resident_requests", [])
+	for index in range(requests.size() - 1, -1, -1):
+		var request = requests[index]
+		if bool(request.get("accepted", false)):
+			if get_building_count(str(request.get("building_id", ""))) > 0:
+				var reward = int(request.get("reward", 80))
+				_add_money(reward)
+				state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) + 3, 0, 100))
+				report.append("درخواست شهروندان انجام شد؛ %d سکه پاداش و رضایت بیشتر دریافت کردی." % reward)
+				requests.remove(index)
+				continue
+		if int(state.get("day", 1)) - int(request.get("day", 1)) >= 7:
+			if bool(request.get("accepted", false)):
+				state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) - 1, 0, 100))
+			requests.remove(index)
+	state["resident_requests"] = requests
+	var next_day = int(state.get("next_resident_request_day", 1))
+	if int(state.get("day", 1)) < next_day or requests.size() >= 2:
+		return
+	var candidates = [
+		{"need":"water","building":"water_tower","name":"برج آب","threshold":65},
+		{"need":"power","building":"power_station","name":"نیروگاه","threshold":65},
+		{"need":"health","building":"clinic","name":"درمانگاه","threshold":65},
+		{"need":"education","building":"school","name":"مدرسه","threshold":60},
+		{"need":"safety","building":"police_station","name":"کلانتری","threshold":65},
+		{"need":"leisure","building":"small_park","name":"پارک کوچک","threshold":65},
+		{"need":"sanitation","building":"waste_facility","name":"مرکز پسماند","threshold":65}
+	]
+	var selected = {}
+	var lowest = 101
+	for candidate in candidates:
+		var need_value = int(state.get("needs", {}).get(str(candidate.need), 100))
+		var building_data = BUILDINGS.get(str(candidate.building), {})
+		if need_value >= int(candidate.threshold) or building_data.empty():
+			continue
+		if int(state.get("level", 1)) < int(building_data.get("level_unlock", 1)) or int(state.get("population", 0)) < int(building_data.get("unlock", 0)):
+			continue
+		if get_land_free() < get_land_size(str(candidate.building)):
+			continue
+		var duplicate_request = false
+		for existing in requests:
+			if str(existing.get("building_id", "")) == str(candidate.building):
+				duplicate_request = true
+				break
+		if duplicate_request:
+			continue
+		if need_value < lowest:
+			lowest = need_value
+			selected = candidate
+	if selected.empty():
+		state["next_resident_request_day"] = int(state.get("day", 1)) + 3
+		return
+	var citizen_id = 0
+	if not state.get("citizens", []).empty():
+		var citizen = state.citizens[int(randi() % state.citizens.size())]
+		citizen_id = int(citizen.get("id", 0))
+	var request_id = int(state.get("next_resident_request_id", 1))
+	state["next_resident_request_id"] = request_id + 1
+	requests.append({
+		"id":request_id,
+		"citizen_id":citizen_id,
+		"day":int(state.get("day", 1)),
+		"need":str(selected.need),
+		"building_id":str(selected.building),
+		"title":"درخواست ساخت %s" % str(selected.name),
+		"description":"پوشش خدمت «%s» پایین است. شهروندان خواستار ساخت %s هستند." % [str(selected.need), str(selected.name)],
+		"reward":80,
+		"accepted":false
+	})
+	state["resident_requests"] = requests
+	state["next_resident_request_day"] = int(state.get("day", 1)) + 3 + int(randi() % 3)
+	report.append("درخواست تازه شهروندان ثبت شد: ساخت %s." % str(selected.name))
+
+func resolve_resident_request(request_id, accepted):
+	var requests = state.get("resident_requests", [])
+	for index in range(requests.size()):
+		if int(requests[index].get("id", 0)) != int(request_id):
+			continue
+		if bool(requests[index].get("accepted", false)):
+			return {"ok":false,"message":"این درخواست قبلاً پذیرفته شده است."}
+		if bool(accepted):
+			requests[index]["accepted"] = true
+			state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) + 1, 0, 100))
+			state["resident_requests"] = requests
+			save_game()
+			return {"ok":true,"message":"درخواست پذیرفته شد؛ با ساخت ساختمان پیشنهادی، پاداش و رضایت شهروندان را می‌گیری."}
+		requests.remove(index)
+		state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) - 1, 0, 100))
+		state["resident_requests"] = requests
+		save_game()
+		return {"ok":true,"message":"درخواست رد شد؛ رضایت شهروندان کمی کاهش یافت."}
+	return {"ok":false,"message":"درخواست شهروند پیدا نشد."}
+
+const ACHIEVEMENT_DEFINITIONS = [
+	{"id":"first_expansion","title":"شهر در حال رشد","description":"تعداد ساختمان‌های شهر را به ۵ برسان."},
+	{"id":"population_20","title":"شهر پرجمعیت","description":"جمعیت شهر را به ۲۰ نفر برسان."},
+	{"id":"level_5","title":"شهردار باتجربه","description":"به سطح ۵ شهر برس."},
+	{"id":"treasury_20000","title":"خزانه‌دار موفق","description":"موجودی خزانه را به ۲۰٬۰۰۰ سکه برسان."},
+	{"id":"happy_city","title":"شهروندان خوشحال","description":"رضایت شهر را به ۸۵ برسان."},
+	{"id":"login_streak_7","title":"حضور منظم","description":"۷ روز تقویمی پشت سر هم وارد بازی شو."},
+	{"id":"trade_50","title":"بازرگان حرفه‌ای","description":"در مجموع ۵۰ واحد کالا صادر کن."},
+	{"id":"two_districts","title":"گسترش محله‌ها","description":"در دست‌کم ۲ محله ساختمان داشته باش."},
+	{"id":"production_chain","title":"زنجیره تولید","description":"چوب‌بری، الوارسازی و کارگاه مبلمان را بساز."}
+]
+
+func _update_city_records():
+	var records = state.get("city_records", {})
+	records["peak_population"] = max(int(records.get("peak_population", 0)), int(state.get("population", 0)))
+	records["peak_money"] = max(int(records.get("peak_money", 0)), int(state.get("money", 0)))
+	records["peak_level"] = max(int(records.get("peak_level", 1)), int(state.get("level", 1)))
+	records["peak_satisfaction"] = max(int(records.get("peak_satisfaction", 0)), int(state.get("satisfaction", 0)))
+	records["most_buildings"] = max(int(records.get("most_buildings", 0)), state.get("buildings", []).size())
+	state["city_records"] = records
+
+func _update_achievements():
+	_update_city_records()
+	var unlocked = state.get("achievements", {})
+	for achievement in ACHIEVEMENT_DEFINITIONS:
+		var id = str(achievement.id)
+		if bool(unlocked.get(id, false)):
+			continue
+		var done = false
+		match id:
+			"first_expansion":
+				done = state.get("buildings", []).size() >= 5
+			"population_20":
+				done = int(state.get("population", 0)) >= 20
+			"level_5":
+				done = int(state.get("level", 1)) >= 5
+			"treasury_20000":
+				done = int(state.get("money", 0)) >= 20000
+			"happy_city":
+				done = int(state.get("satisfaction", 0)) >= 85
+			"login_streak_7":
+				done = int(state.get("login_streak", 0)) >= 7
+			"trade_50":
+				done = int(state.get("trade_exported_units_total", 0)) >= 50
+			"two_districts":
+				done = state.get("districts", []).size() >= 2
+			"production_chain":
+				done = get_building_count("woodcutter") > 0 and get_building_count("sawmill") > 0 and get_building_count("carpenter") > 0
+		if done:
+			unlocked[id] = true
+	state["achievements"] = unlocked
+
+func get_achievements():
+	_update_achievements()
+	var result = []
+	for definition in ACHIEVEMENT_DEFINITIONS:
+		var item = definition.duplicate(true)
+		item["unlocked"] = bool(state.get("achievements", {}).get(str(definition.id), false))
+		result.append(item)
+	return result
+
+func get_city_records():
+	_update_city_records()
+	return state.get("city_records", {}).duplicate(true)
+
+func get_city_league():
+	var score = int(state.get("level", 1)) * 100 + int(state.get("population", 0)) * 5 + state.get("buildings", []).size() * 12 + int(state.get("satisfaction", 0)) * 2 + int(state.get("reputation", 0)) * 2
+	var leagues = [
+		{"name":"روستای نوپا","min":0,"next":300},
+		{"name":"شهرک در حال رشد","min":300,"next":650},
+		{"name":"شهر پویا","min":650,"next":1100},
+		{"name":"کلان‌شهر","min":1100,"next":1700},
+		{"name":"کلان‌شهر پیشرفته","min":1700,"next":0}
+	]
+	var selected = leagues[0]
+	for league in leagues:
+		if score >= int(league.min):
+			selected = league
+	return {"score":score,"name":str(selected.name),"next":int(selected.next)}
+
+func get_long_term_projects():
+	var claimed = state.get("long_term_project_claimed", [])
+	var public_count = 0
+	for building_id in ["water_tower","power_station","school","clinic","police_station","fire_station","sewage_plant","waste_facility","small_park"]:
+		public_count += get_building_count(building_id)
+	var industry_count = get_building_count("woodcutter") + get_building_count("sawmill") + get_building_count("carpenter")
+	return [
+		{"id":"population_25","title":"شهر ۲۵ نفره","description":"جمعیت شهر را به ۲۵ نفر برسان.","progress":min(25,int(state.get("population",0))),"goal":25,"reward":1200,"xp":90,"claimed":"population_25" in claimed},
+		{"id":"public_services_5","title":"زیرساخت پایدار","description":"حداقل ۵ ساختمان خدمات عمومی بساز.","progress":min(5,public_count),"goal":5,"reward":1000,"xp":75,"claimed":"public_services_5" in claimed},
+		{"id":"industry_chain","title":"قطب تولیدی","description":"هر سه حلقه چوب‌بری، الوارسازی و کارگاه مبلمان را بساز.","progress":min(3,industry_count),"goal":3,"reward":1400,"xp":100,"claimed":"industry_chain" in claimed},
+		{"id":"level_8","title":"پایتخت منطقه","description":"شهر را به سطح ۸ برسان.","progress":min(8,int(state.get("level",1))),"goal":8,"reward":2000,"xp":150,"claimed":"level_8" in claimed}
+	]
+
+func claim_long_term_project(project_id):
+	for project in get_long_term_projects():
+		if str(project.id) != str(project_id):
+			continue
+		if bool(project.claimed):
+			return {"ok":false,"message":"جایزه این پروژه قبلاً دریافت شده است."}
+		if int(project.progress) < int(project.goal):
+			return {"ok":false,"message":"این پروژه هنوز تکمیل نشده است."}
+		var reward = int(project.reward)
+		if get_treasury_capacity() - int(state.get("money", 0)) < reward:
+			return {"ok":false,"message":"ظرفیت خالی خزانه برای دریافت جایزه کافی نیست."}
+		var claimed = state.get("long_term_project_claimed", [])
+		claimed.append(str(project_id))
+		state["long_term_project_claimed"] = claimed
+		_add_money(reward)
+		var xp_message = _award_xp(int(project.xp))
+		save_game()
+		return {"ok":true,"message":"پروژه بلندمدت تکمیل شد: %d سکه و %d تجربه. %s" % [reward,int(project.xp),xp_message]}
+	return {"ok":false,"message":"پروژه پیدا نشد."}
+
 func register_login_today():
 	return register_login_day_serial(_get_local_calendar_day_serial())
 
@@ -424,6 +722,7 @@ func register_login_day_serial(day_serial):
 		state["login_streak"] = 1
 	state["last_login_day_serial"] = today
 	_update_missions()
+	_update_achievements()
 	save_game()
 	return true
 
@@ -545,6 +844,21 @@ func _normalize_state():
 		state["missions"] = []
 	if typeof(state.get("daily_missions", null)) != TYPE_DICTIONARY:
 		state["daily_missions"] = {}
+	state["login_reward_claimed_day_serial"] = int(state.get("login_reward_claimed_day_serial", -1))
+	if typeof(state.get("city_event_history", null)) != TYPE_ARRAY:
+		state["city_event_history"] = []
+	while state.city_event_history.size() > 20:
+		state.city_event_history.pop_front()
+	state["city_event_next_day"] = max(int(state.get("day", 1)) + 1, int(state.get("city_event_next_day", int(state.get("day", 1)) + 2)))
+	if typeof(state.get("resident_requests", null)) != TYPE_ARRAY:
+		state["resident_requests"] = []
+	if typeof(state.get("achievements", null)) != TYPE_DICTIONARY:
+		state["achievements"] = {}
+	if typeof(state.get("city_records", null)) != TYPE_DICTIONARY:
+		state["city_records"] = {}
+	if typeof(state.get("long_term_project_claimed", null)) != TYPE_ARRAY:
+		state["long_term_project_claimed"] = []
+	state["next_resident_request_id"] = max(1, int(state.get("next_resident_request_id", 1)))
 	state["last_login_day_serial"] = int(state.get("last_login_day_serial", -1))
 	state["login_streak"] = max(0, int(state.get("login_streak", 0)))
 	state["active_play_seconds_today"] = max(0.0, float(state.get("active_play_seconds_today", 0.0)))
@@ -1873,6 +2187,8 @@ func end_day(is_offline=false):
 			else:
 				report.append("مهلت بازسازی بانک مرکزی تمام شد؛ ظرفیت عادی خزانه فعال شد.")
 	_update_city_services(report)
+	_process_city_event(report)
+	_process_resident_requests(report)
 	if not is_offline:
 		var active_seconds = int(state.get("active_play_seconds_today", 0))
 		if active_seconds >= 300:
@@ -1914,6 +2230,7 @@ func end_day(is_offline=false):
 		if newly_unlocked.size() > 0:
 			report.append("ساختمان‌های تازه در دسترس: " + "، ".join(newly_unlocked))
 	_update_missions()
+	_update_achievements()
 	state.last_economy["treasury_opening"] = treasury_opening
 	state.last_economy["treasury_closing"] = int(state.get("money", 0))
 	state.last_economy["net_cashflow"] = int(state.get("money", 0)) - treasury_opening
