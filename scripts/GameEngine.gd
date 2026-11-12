@@ -1423,6 +1423,8 @@ func _get_mission_progress(mission_id):
 	return 0
 
 func _update_missions():
+	# All active missions form one guided sequence: only the first unclaimed
+	# mission is visible. Claiming its reward unlocks the next mission.
 	var previous_claimed = true
 	for i in range(state.missions.size()):
 		var mission = state.missions[i]
@@ -1435,6 +1437,8 @@ func _update_missions():
 		if definition.empty():
 			continue
 		if bool(definition.get("legacy", false)):
+			# Preserve unclaimed rewards from older versions without adding
+			# archived missions back into the new progression.
 			mission["unlocked"] = bool(mission.get("completed", false)) and not bool(mission.get("claimed", false))
 			state.missions[i] = mission
 			continue
@@ -1443,8 +1447,6 @@ func _update_missions():
 		mission["progress"] = progress
 		mission["completed"] = progress >= int(definition.goal)
 		previous_claimed = bool(mission.get("claimed", false))
-		if str(definition.get("type", "main")) == "side":
-			mission["unlocked"] = true
 		state.missions[i] = mission
 
 func get_missions():
