@@ -1487,10 +1487,12 @@ func end_day():
 		report.append(data.name+" تولید کرد: "+str(amount)+" "+RESOURCES[output].name+".")
 
 	# Apply each warehouse threshold after today's production.
+	var treasury_before_storage_rules = int(state.get("money", 0))
 	for storage_resource_id in RESOURCES.keys():
 		var storage_result = apply_storage_rule(str(storage_resource_id), false)
 		if bool(storage_result.get("ok",false)) and str(storage_result.get("message","")).find("خریداری شد") >= 0:
 			report.append(str(storage_result.message))
+	var storage_rule_cashflow = int(state.get("money", 0)) - treasury_before_storage_rules
 
 	var has_market = get_building_count("mineral_market") > 0
 	if has_market:
@@ -1550,6 +1552,7 @@ func end_day():
 		"development_support": development_support_paid,
 		"automatic_business_profit": automatic_business_profit_transferred,
 		"resource_income": resource_income_total,
+		"storage_rule_cashflow": storage_rule_cashflow,
 		"station_income": station_income,
 		"road_income": road_income,
 		"gross_income": income + development_support_paid,
@@ -1577,10 +1580,6 @@ func end_day():
 	state.last_economy["citizen_loan_disbursements"] = citizen_loan_disbursements
 	state.last_economy["gross_income"] = int(state.last_economy.get("gross_income", 0)) + private_tax_accepted + citizen_loan_repayments
 	state.last_economy["accepted_income"] = int(state.last_economy.get("accepted_income", 0)) + private_tax_accepted + citizen_loan_repayments
-	state.last_economy["treasury_opening"] = treasury_opening
-	state.last_economy["treasury_closing"] = int(state.get("money", 0))
-	state.last_economy["net_cashflow"] = int(state.get("money", 0)) - treasury_opening
-	report.append("خلاصه مالی: درآمد ثبت‌شده %d | حقوق %d | نگهداری %d | اقساط شهرداری %d | اقساط شهروندان %d | وام پرداختی به شهروندان %d | تغییر خالص خزانه %d سکه." % [int(state.last_economy.accepted_income), paid_wages, maintenance_paid, bank_repayment_paid, citizen_loan_repayments, citizen_loan_disbursements, int(state.last_economy.net_cashflow)])
 	if not has_central_bank() and int(state.central_bank_rebuild_days_left) > 0:
 		state.central_bank_rebuild_days_left -= 1
 		if int(state.central_bank_rebuild_days_left) == 0:
@@ -1622,6 +1621,10 @@ func end_day():
 		if newly_unlocked.size() > 0:
 			report.append("ساختمان‌های تازه در دسترس: " + "، ".join(newly_unlocked))
 	_update_missions()
+	state.last_economy["treasury_opening"] = treasury_opening
+	state.last_economy["treasury_closing"] = int(state.get("money", 0))
+	state.last_economy["net_cashflow"] = int(state.get("money", 0)) - treasury_opening
+	report.append("خلاصه مالی: درآمد ثبت‌شده %d | حقوق %d | نگهداری %d | اقساط شهرداری %d | اقساط شهروندان %d | وام پرداختی به شهروندان %d | تغییر خالص خزانه %d سکه." % [int(state.last_economy.accepted_income), paid_wages, maintenance_paid, bank_repayment_paid, citizen_loan_repayments, citizen_loan_disbursements, int(state.last_economy.net_cashflow)])
 	for report_message in report:
 		add_report_event(str(report_message), false)
 	state.last_report = "\n".join(report)
