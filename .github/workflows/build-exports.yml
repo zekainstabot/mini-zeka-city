@@ -7,7 +7,7 @@ concurrency:
 on:
   workflow_dispatch:
   push:
-    branches: [main, godot4-migration]
+    branches: [godot4-migration]
     paths:
       - 'scripts/**'
       - 'assets/**'
@@ -46,18 +46,6 @@ jobs:
           mkdir -p "$HOME/.local/share/godot/export_templates/4.4.1.stable"
           unzip -q /tmp/templates.tpz -d /tmp/godot-templates
           cp -a /tmp/godot-templates/templates/. "$HOME/.local/share/godot/export_templates/4.4.1.stable/"
-
-      - name: Convert the complete Godot 3 project to Godot 4
-        run: |
-          set -o pipefail
-          /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --editor --path . --convert-3to4 40000 1000000 2>&1 | tee /tmp/godot-convert.log
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          if ! git diff --cached --quiet; then
-            git commit -m "Convert Mini ZekaCity project to Godot 4"
-            git push origin HEAD:godot4-migration
-          fi
 
       - name: Import and validate converted Godot 4 project
         run: |
