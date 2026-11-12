@@ -717,6 +717,7 @@ func get_weekly_challenge():
 			"claimed":false
 		}
 		state["weekly_challenge"] = challenge
+		save_game()
 	var rotation = int(week_serial % 4)
 	var progress = 0
 	var goal = 1
