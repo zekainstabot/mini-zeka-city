@@ -856,6 +856,13 @@ func toggle_environment_enabled():
 	audio_manager.set_environment_enabled(not audio_manager.is_environment_enabled())
 	show_page("audio")
 
+func set_environment_mode(mode):
+	audio_manager.set_environment_mode(str(mode))
+	show_page("audio")
+
+func preview_city_sound(kind):
+	audio_manager.play_sfx(str(kind))
+
 func _add_audio_slider(kind):
 	var slider = HSlider.new()
 	slider.min_value = 0.0
@@ -1599,16 +1606,33 @@ func show_page(page):
 
 		"audio":
 			_add_label("🔊 تنظیمات صدا و موسیقی", 24)
-			_add_label("تمام موسیقی‌ها و افکت‌های فعلی به‌صورت اختصاصی و درون بازی تولید می‌شوند؛ هیچ فایل صوتی شخص ثالثی استفاده نشده است.", 16)
+			_add_label("تمام صداها و موسیقی‌ها اختصاصی و به‌صورت ریاضی درون بازی ساخته می‌شوند؛ فایل صوتی دارای حق‌نشر استفاده نشده است.", 16)
 			_add_button(("🔇 خاموش‌کردن موسیقی" if audio_manager.is_music_enabled() else "🎵 روشن‌کردن موسیقی"), self, "toggle_music_enabled")
 			_add_label("بلندی موسیقی", 17)
 			_add_audio_slider("music")
 			_add_button(("🔕 خاموش‌کردن افکت‌ها" if audio_manager.is_effects_enabled() else "🔔 روشن‌کردن افکت‌ها"), self, "toggle_effects_enabled")
 			_add_label("بلندی افکت‌ها", 17)
 			_add_audio_slider("effects")
-			_add_button("▶️ آزمایش صدای دکمه", audio_manager, "play_sfx", ["click"])
-			_add_button("🏗️ آزمایش صدای ساخت‌وساز", audio_manager, "play_sfx", ["construction"])
-			_add_button("🎁 آزمایش صدای جایزه", audio_manager, "play_sfx", ["reward"])
+			_add_label("🌦️ صدای محیط شهر", 21)
+			_add_label("یک فضای صوتی انتخاب کن. هر زمان خواستی می‌توانی آن را عوض یا خاموش کنی.", 15)
+			_add_button(("🔇 خاموش‌کردن صدای محیط" if audio_manager.is_environment_enabled() else "🌿 روشن‌کردن صدای محیط"), self, "toggle_environment_enabled")
+			_add_label("بلندی صدای محیط", 17)
+			_add_audio_slider("environment")
+			var environment_mode = audio_manager.get_environment_mode()
+			_add_label("انتخاب فضای محیطی", 17)
+			_add_button(("🏙️ شهر ✓" if environment_mode == "city" else "🏙️ شهر"), self, "set_environment_mode", ["city"])
+			_add_button(("🌧️ باران ✓" if environment_mode == "rain" else "🌧️ باران"), self, "set_environment_mode", ["rain"])
+			_add_button(("🌳 طبیعت و پرندگان ✓" if environment_mode == "nature" else "🌳 طبیعت و پرندگان"), self, "set_environment_mode", ["nature"])
+			_add_button(("🚗 ترافیک ✓" if environment_mode == "traffic" else "🚗 ترافیک"), self, "set_environment_mode", ["traffic"])
+			_add_label("🎧 آزمایش صداهای اختصاصی", 21)
+			_add_button("▶️ صدای کلیک", audio_manager, "play_sfx", ["click"])
+			_add_button("🏗️ صدای ساخت‌وساز", audio_manager, "play_sfx", ["construction"])
+			_add_button("🎁 صدای دریافت جایزه", audio_manager, "play_sfx", ["reward"])
+			_add_button("💧 صدای آب", audio_manager, "play_sfx", ["water"])
+			_add_button("🐦 صدای پرندگان", audio_manager, "play_sfx", ["birds"])
+			_add_button("🚨 صدای آژیر اضطراری", audio_manager, "play_sfx", ["siren"])
+			_add_button("⚠️ هشدار کمبود منابع", audio_manager, "play_sfx", ["warning"])
+			_add_button("🎉 صدای رویداد شهر", audio_manager, "play_sfx", ["event"])
 			_add_button("⬅️ بازگشت به شهر", self, "return_home_from_menu")
 		"help":
 			_add_label("❔ راهنمای کامل مینی زکا سیتی", 25)
