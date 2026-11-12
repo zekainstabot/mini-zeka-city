@@ -2191,7 +2191,7 @@ func _add_home_services_panel(city_state):
 	header.text = PersianText.reshaper(("%s  🏙️  خدمات و زیرساخت شهر" % ("▼" if home_city_details_expanded else "▶")) + "     میانگین پوشش: %d%%" % average_coverage)
 	header.custom_minimum_size = Vector2(0, 62 if compact else 54)
 	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	header.text_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_apply_font(header, 19 if compact else 17)
 	_style_button(header, false)
 	header.connect("pressed", Callable(self, "toggle_home_city_details"))
