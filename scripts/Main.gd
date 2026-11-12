@@ -48,6 +48,8 @@ var current_district_expanded = {}
 var active_section_container = null
 var mission_reward_badge = null
 var mission_badge_refresh_timer = 0.0
+var mission_target_building_id = ""
+var mission_target_building_button = null
 var last_activity_ticks = 0
 var offline_summary_popup = null
 
@@ -2372,6 +2374,10 @@ func _add_building_category_items(category):
 			label += " | 🔒 قفل سطح"
 		var building_button = _add_button(label, self, "build_building", [id])
 		building_button.disabled = not level_unlocked
+		if id == mission_target_building_id:
+			building_button.modulate = Color("#fde68a")
+			building_button.name = "MissionTargetBuilding"
+			mission_target_building_button = building_button
 	if visible_buildings == 0:
 		_add_label("در این دسته ساختمانی تعریف نشده است.", 16)
 
@@ -2625,6 +2631,8 @@ func run_storage_rule(resource_id):
 func go_to_mission_target(mission_id):
 	var target_page = "home"
 	selected_building_category = ""
+	mission_target_building_id = ""
+	mission_target_building_button = null
 	match str(mission_id):
 		"daily_build", "daily_land":
 			target_page = "buildings"
@@ -2683,10 +2691,61 @@ func go_to_mission_target(mission_id):
 			selected_building_category = "تفریح و فرهنگ"
 		_:
 			target_page = "home"
+
+	# مأموریت‌های ساخت‌وساز را به کارت دقیق همان ساختمان هدایت کن.
+	match str(mission_id):
+		"build_house_tutorial": mission_target_building_id = "small_house"
+		"build_farm_tutorial": mission_target_building_id = "farm"
+		"market_tutorial": mission_target_building_id = "mineral_market"
+		"transport_tutorial": mission_target_building_id = "transport_depot"
+		"main_water", "side_water": mission_target_building_id = "water_tower"
+		"main_power", "side_power": mission_target_building_id = "power_station"
+		"main_school", "side_school": mission_target_building_id = "school"
+		"main_clinic", "side_clinic": mission_target_building_id = "clinic"
+		"main_wood", "side_wood": mission_target_building_id = "woodcutter"
+		"main_stone", "side_stone_mine": mission_target_building_id = "stone_mine"
+		"main_sawmill", "side_sawmill": mission_target_building_id = "sawmill"
+		"main_carpenter", "side_carpenter": mission_target_building_id = "carpenter"
+		"main_city_bank", "side_bank": mission_target_building_id = "municipal_bank"
+		"main_central_bank": mission_target_building_id = "central_bank"
+		"side_sewage": mission_target_building_id = "sewage_plant"
+		"side_waste": mission_target_building_id = "waste_facility"
+		"side_park": mission_target_building_id = "small_park"
+		"side_playground": mission_target_building_id = "playground"
+		"side_sports": mission_target_building_id = "sports_center"
+		"side_hospital": mission_target_building_id = "hospital"
+		"side_police": mission_target_building_id = "police_station"
+		"side_fire": mission_target_building_id = "fire_station"
+		"side_university": mission_target_building_id = "university"
+		"side_cultural": mission_target_building_id = "cultural_center"
+		"side_iron_mine": mission_target_building_id = "iron_mine"
+		"side_fish_lake": mission_target_building_id = "fish_lake"
+		"side_fishing_dock": mission_target_building_id = "fishing_dock"
+		"side_fish_market": mission_target_building_id = "fish_market"
+		"side_fish_processing": mission_target_building_id = "fish_processing_plant"
+		"side_grocery": mission_target_building_id = "grocery_store"
+		"side_bakery": mission_target_building_id = "bakery"
+		"side_restaurant": mission_target_building_id = "restaurant"
+		"side_office": mission_target_building_id = "office"
+
+	if mission_target_building_id != "":
+		target_page = "buildings"
+		var target_definition = game.get_building_definitions().get(mission_target_building_id, {})
+		selected_building_category = "ماهیگیری" if mission_target_building_id in ["fish_lake", "fishing_dock", "fish_market", "fish_processing_plant"] else str(target_definition.get("category", ""))
 	show_page(target_page)
 	if game_scroll_container != null and is_instance_valid(game_scroll_container):
 		game_scroll_container.scroll_vertical = 0
-	_show_message("به بخش مربوط به این مأموریت رفتی.")
+		if mission_target_building_id != "":
+			call_deferred("_scroll_to_mission_target_building")
+	_show_message("به ساختمان موردنیاز این مأموریت رفتی.")
+
+func _scroll_to_mission_target_building():
+	if game_scroll_container == null or not is_instance_valid(game_scroll_container):
+		return
+	if mission_target_building_button == null or not is_instance_valid(mission_target_building_button):
+		return
+	var target_y = mission_target_building_button.get_global_position().y - game_scroll_container.get_global_position().y + game_scroll_container.scroll_vertical
+	game_scroll_container.scroll_vertical = max(0, int(target_y - 24))
 
 func claim_login_reward():
 	var result = game.claim_login_reward()
