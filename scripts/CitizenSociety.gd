@@ -429,7 +429,7 @@ func _process_private_businesses(engine, report):
 		var wage_paid = 0
 		for citizen_index in range(state.citizens.size()):
 			var citizen = state.citizens[citizen_index]
-			if int(citizen.get("id", 0)) not in employee_ids or wage_budget <= 0:
+			if not (int(citizen.get("id", 0)) in employee_ids) or wage_budget <= 0:
 				continue
 			var wallet_room = max(0, 2000 - int(citizen.get("wallet", 0)))
 			var payment = min(int(business.get("wage", 15)), min(wallet_room, wage_budget))
