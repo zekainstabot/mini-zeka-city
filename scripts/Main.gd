@@ -1381,6 +1381,14 @@ func show_page(page):
 			if int(league.next) > 0:
 				_add_label("برای رتبه بعدی به %d امتیاز نیاز داری." % max(0,int(league.next)-int(league.score)),15)
 			_add_label("این رتبه‌بندی بر اساس ذخیره همین شهر محاسبه می‌شود؛ جدول جهانی آنلاین نیست.",14)
+			var weekly = game.get_weekly_challenge()
+			_add_label("🏁 رقابت هفتگی | "+str(weekly.title),19)
+			_add_label(str(weekly.description),15)
+			_add_label("پیشرفت: %d از %d | جایزه: %d سکه + %d تجربه" % [int(weekly.progress),int(weekly.goal),int(weekly.reward),int(weekly.xp)],16)
+			if bool(weekly.claimed):
+				_add_label("✓ جایزه رقابت این هفته دریافت شده است.",15)
+			elif int(weekly.progress) >= int(weekly.goal):
+				_add_button("🏆 دریافت جایزه رقابت هفتگی",self,"claim_weekly_challenge")
 			var records = game.get_city_records()
 			_add_label("📊 بهترین رکوردها",19)
 			_add_label("بیشترین جمعیت: %d نفر | بیشترین خزانه: %d سکه" % [int(records.get("peak_population",0)),int(records.get("peak_money",0))],16)
@@ -2210,6 +2218,11 @@ func resolve_resident_request(request_id, accepted):
 func claim_long_term_project(project_id):
 	var result = game.claim_long_term_project(str(project_id))
 	show_page("projects")
+	_show_message(str(result.message))
+
+func claim_weekly_challenge():
+	var result = game.claim_weekly_challenge()
+	show_page("achievements")
 	_show_message(str(result.message))
 
 func _add_daily_claim_button(parent, mission_id):
