@@ -37,10 +37,12 @@ jobs:
 
       - name: Download Godot 4.4.1 editor and export templates
         run: |
-          wget -q https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip -O /tmp/godot.zip
+          set -euxo pipefail
+          mkdir -p /tmp/godot /tmp/godot-templates
+          curl -fL --retry 5 --retry-all-errors --retry-delay 3 https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip -o /tmp/godot.zip 2>&1 | tee /tmp/godot-download-editor.log
           unzip -q /tmp/godot.zip -d /tmp/godot
           chmod +x /tmp/godot/Godot_v4.4.1-stable_linux.x86_64
-          wget -q https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz -O /tmp/templates.tpz
+          curl -fL --retry 5 --retry-all-errors --retry-delay 3 https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz -o /tmp/templates.tpz 2>&1 | tee /tmp/godot-download-templates.log
           mkdir -p "$HOME/.local/share/godot/export_templates/4.4.1.stable"
           unzip -q /tmp/templates.tpz -d /tmp/godot-templates
           cp -a /tmp/godot-templates/templates/. "$HOME/.local/share/godot/export_templates/4.4.1.stable/"
@@ -126,6 +128,8 @@ jobs:
         with:
           name: godot4-migration-diagnostics
           path: |
+            /tmp/godot-download-editor.log
+            /tmp/godot-download-templates.log
             /tmp/godot-convert.log
             /tmp/godot-import.log
             /tmp/godot-tests.log
