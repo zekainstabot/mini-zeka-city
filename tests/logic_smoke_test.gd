@@ -1,6 +1,7 @@
 extends SceneTree
 
 const EngineScript = preload("res://scripts/GameEngine.gd")
+const CitizenSocietyScript = preload("res://scripts/CitizenSociety.gd")
 
 func _init():
 	var game = EngineScript.new()
@@ -58,7 +59,7 @@ func _init():
 	citizen_loan_game.state.citizens = [{"id":1,"job":"","job_building_index":-1,"wallet":100,"bank_loans":[{"id":1,"principal":500,"interest":50,"remaining":100,"daily_installment":50,"status":"active","missed_days":0}],"civic_profile_initialized":true}]
 	citizen_loan_game.assign_jobs()
 	var citizen_treasury_before = int(citizen_loan_game.state.money)
-	var citizen_day_summary = CitizenSociety.new().process_day(citizen_loan_game, [])
+	var citizen_day_summary = CitizenSocietyScript.new().process_day(citizen_loan_game, [])
 	assert(int(citizen_loan_game.state.citizens[0].wallet) == 50)
 	assert(int(citizen_loan_game.state.citizens[0].bank_loans[0].remaining) == 50)
 	assert(int(citizen_loan_game.state.money) == citizen_treasury_before + 50)
