@@ -71,6 +71,7 @@ func _init():
 	time_game.record_active_play_seconds(300.0)
 	time_game.end_day(true)
 	assert(int(time_game.state.consecutive_active_game_days) == 3)
+	assert(int(time_game.state.active_play_seconds_today) == 0)
 
 	var market_result = game.buy_resource("food", 5)
 	assert(bool(market_result.ok))
