@@ -304,6 +304,7 @@ func new_game():
 		"achievements": {},
 		"city_records": {},
 		"long_term_project_claimed": [],
+		"weekly_challenge": {},
 		"central_bank_rebuild_days_left": 0,
 		"bank_loans": [],
 		"bank_deposits": [],
@@ -702,6 +703,84 @@ func get_city_league():
 			selected = league
 	return {"score":score,"name":str(selected.name),"next":int(selected.next)}
 
+func get_weekly_challenge():
+	var today = _get_local_calendar_day_serial()
+	var week_serial = int(floor(float(today) / 7.0))
+	var challenge = state.get("weekly_challenge", {})
+	if int(challenge.get("week_serial", -1)) != week_serial:
+		challenge = {
+			"week_serial":week_serial,
+			"baseline_buildings":state.get("buildings", []).size(),
+			"baseline_population":int(state.get("population", 0)),
+			"baseline_exports":int(state.get("trade_exported_units_total", 0)),
+			"claimed":false
+		}
+		state["weekly_challenge"] = challenge
+	var rotation = int(week_serial % 4)
+	var progress = 0
+	var goal = 1
+	var title = ""
+	var description = ""
+	var reward = 700
+	var xp = 50
+	match rotation:
+		0:
+			title = "هفته سازندگی"
+			description = "این هفته حداقل ۲ ساختمان جدید بساز."
+			progress = max(0, state.get("buildings", []).size() - int(challenge.get("baseline_buildings", 0)))
+			goal = 2
+			reward = 800
+			xp = 55
+		1:
+			title = "هفته تجارت"
+			description = "این هفته ۱۰ واحد کالا به شهرهای همسایه صادر کن."
+			progress = max(0, int(state.get("trade_exported_units_total", 0)) - int(challenge.get("baseline_exports", 0)))
+			goal = 10
+			reward = 900
+			xp = 60
+		2:
+			title = "هفته رشد جمعیت"
+			description = "این هفته جمعیت شهر را ۵ نفر افزایش بده."
+			progress = max(0, int(state.get("population", 0)) - int(challenge.get("baseline_population", 0)))
+			goal = 5
+			reward = 850
+			xp = 55
+		3:
+			title = "هفته اقتصاد سالم"
+			description = "تراز مالی شهر را ۳ روز متوالی مثبت نگه دار."
+			progress = min(3, int(state.get("profitable_day_streak", 0)))
+			goal = 3
+			reward = 1000
+			xp = 70
+	return {
+		"id":"weekly_" + str(rotation),
+		"title":title,
+		"description":description,
+		"progress":min(goal,progress),
+		"goal":goal,
+		"reward":reward,
+		"xp":xp,
+		"claimed":bool(challenge.get("claimed", false)),
+		"week_serial":week_serial
+	}
+
+func claim_weekly_challenge():
+	var challenge = get_weekly_challenge()
+	if bool(challenge.claimed):
+		return {"ok":false,"message":"جایزه رقابت این هفته قبلاً دریافت شده است."}
+	if int(challenge.progress) < int(challenge.goal):
+		return {"ok":false,"message":"هدف هفتگی هنوز کامل نشده است."}
+	var reward = int(challenge.reward)
+	if get_treasury_capacity() - int(state.get("money", 0)) < reward:
+		return {"ok":false,"message":"ظرفیت خالی خزانه برای دریافت جایزه کافی نیست."}
+	var saved = state.get("weekly_challenge", {})
+	saved["claimed"] = true
+	state["weekly_challenge"] = saved
+	_add_money(reward)
+	var xp_message = _award_xp(int(challenge.xp))
+	save_game()
+	return {"ok":true,"message":"رقابت هفتگی را بردی! %d سکه و %d تجربه دریافت کردی. %s" % [reward,int(challenge.xp),xp_message]}
+
 func get_long_term_projects():
 	var claimed = state.get("long_term_project_claimed", [])
 	var public_count = 0
@@ -886,6 +965,8 @@ func _normalize_state():
 		state["city_records"] = {}
 	if typeof(state.get("long_term_project_claimed", null)) != TYPE_ARRAY:
 		state["long_term_project_claimed"] = []
+	if typeof(state.get("weekly_challenge", null)) != TYPE_DICTIONARY:
+		state["weekly_challenge"] = {}
 	state["next_resident_request_id"] = max(1, int(state.get("next_resident_request_id", 1)))
 	state["next_resident_request_day"] = max(int(state.get("day", 1)) + 1, int(state.get("next_resident_request_day", int(state.get("day", 1)) + 3)))
 	state["last_login_day_serial"] = int(state.get("last_login_day_serial", -1))
