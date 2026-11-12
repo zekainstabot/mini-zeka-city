@@ -143,12 +143,12 @@ static func invert_letters(string: String) -> String:
 		return _reverse_characters(string)
 	var parts = []
 	var cursor = 0
-	for match in matches:
-		var match_start = match.get_start()
+	for match_result in matches:
+		var match_start = match_result.get_start()
 		if match_start > cursor:
 			parts.append({"text":string.substr(cursor, match_start - cursor),"latin":false})
-		parts.append({"text":match.get_string(),"latin":true})
-		cursor = match.get_end()
+		parts.append({"text":match_result.get_string(),"latin":true})
+		cursor = match_result.get_end()
 	if cursor < string.length():
 		parts.append({"text":string.substr(cursor),"latin":false})
 	var result = ""
