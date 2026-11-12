@@ -136,10 +136,36 @@ static func invert_numbers(string: String) -> String:
 
 
 static func invert_letters(string: String) -> String:
-	var strg := ""
+	var regex = RegEx.new()
+	regex.compile("[A-Za-z][A-Za-z0-9_./:+-]*(?: +[A-Za-z][A-Za-z0-9_./:+-]*)*")
+	var matches = regex.search_all(string)
+	if matches.empty():
+		return _reverse_characters(string)
+	var parts = []
+	var cursor = 0
+	for match in matches:
+		var match_start = match.get_start()
+		if match_start > cursor:
+			parts.append({"text":string.substr(cursor, match_start - cursor),"latin":false})
+		parts.append({"text":match.get_string(),"latin":true})
+		cursor = match.get_end()
+	if cursor < string.length():
+		parts.append({"text":string.substr(cursor),"latin":false})
+	var result = ""
+	for index in range(parts.size() - 1, -1, -1):
+		var part = parts[index]
+		if bool(part.latin):
+			result += str(part.text)
+		else:
+			result += _reverse_characters(str(part.text))
+	return result
+
+
+static func _reverse_characters(string: String) -> String:
+	var result := ""
 	for letter in string:
-		strg = letter + strg
-	return strg
+		result = letter + result
+	return result
 
 
 static func reshape(string: String) -> String:
