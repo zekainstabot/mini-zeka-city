@@ -15,8 +15,10 @@ func _init():
 	assert(main._get_geographic_rank_name(7) == "آبادی بزرگ")
 	assert(main._get_geographic_rank_name(9) == "آبادی بزرگ")
 	assert(main._get_geographic_rank_name(10) == "روستای کوچک")
-	for page in ["home","buildings","citizens","bank","municipality","private_economy","commerce","transport","imports","storage","report","missions","progress","help"]:
+	for page in ["home","buildings","citizens","bank","municipality","private_economy","commerce","transport","imports","storage","report","missions","progress","audio","help"]:
 		main.show_page(page)
+		if page == "audio":
+			assert(main.content.get_child_count() >= 10)
 		if page == "help":
 			assert(main.content.get_child_count() > 30)
 	main.home_city_details_expanded = true
