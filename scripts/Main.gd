@@ -730,8 +730,8 @@ func show_page(page):
 				construction_time_labels.append({"label":time_label,"name":str(project.name)})
 	match page:
 		"home":
-			_show_welcome_mission_hint()
 			_add_label("وضعیت کلی شهر", 22)
+			_show_welcome_mission_hint()
 			_add_label("روز %d  |  سطح شهر %d" % [s.day,s.level], 19)
 			clock_label = _add_label("روز | زمان باقی‌مانده: 00:07", 18)
 			_add_label("خزانه: %d / %d سکه  |  پول قفل‌شده: %d" % [s.money,game.get_treasury_capacity(),game.get_locked_money()], 20)
