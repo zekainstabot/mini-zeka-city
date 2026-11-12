@@ -5,6 +5,7 @@ const CitizenSociety = preload("res://scripts/CitizenSociety.gd")
 
 const SAVE_PATH = "user://mini_zeka_city_save.json"
 const STORAGE_RESERVE = 50
+const MAX_CONCURRENT_CONSTRUCTIONS = 2
 const DISTRICT_HOUSE_LIMIT = 20
 const DISTRICT_OTHER_LIMIT = 20
 const DISTRICT_EMERGENCY_LIMIT = 10
@@ -978,6 +979,8 @@ func buy_land(plots=1):
 func build(id):
 	if not BUILDINGS.has(id):
 		return {"ok":false,"message":"این ساختمان تعریف نشده است."}
+	if get_active_construction_count() >= MAX_CONCURRENT_CONSTRUCTIONS:
+		return {"ok":false,"message":"ظرفیت ساخت‌وساز تکمیل است؛ حداکثر ۲ ساختمان می‌توانند هم‌زمان در حال ساخت باشند. پس از تکمیل یکی از پروژه‌ها دوباره اقدام کن."}
 	var data = BUILDINGS[id]
 	if int(state.population) < int(data.get("unlock", 0)):
 		return {"ok":false,"message":"برای ساخت این ساختمان جمعیت کافی نیست."}
@@ -1053,6 +1056,9 @@ func process_constructions():
 		save_game()
 		return true
 	return false
+
+func get_active_construction_count():
+	return state.get("constructions", []).size()
 
 func get_construction_status():
 	var result = []
