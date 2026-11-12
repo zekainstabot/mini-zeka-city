@@ -31,7 +31,10 @@ var game_scroll_container = null
 var touch_scroll_active = false
 var touch_scroll_start = Vector2()
 var touch_scroll_last_y = 0.0
+var touch_scroll_last_position = Vector2()
 var touch_scroll_dragging = false
+var touch_scroll_axis = ""
+var horizontal_scroll_velocity = 0.0
 var restart_confirm_panel = null
 var municipality_section_expanded = {"land":false,"tax":false,"requests":false,"properties":false,"projects":false}
 var commerce_section_expanded = {"domestic":false,"export":false,"import":false,"shipments":false,"contracts":false}
@@ -48,22 +51,44 @@ func _input(event):
 			touch_scroll_active = game_scroll_container.get_global_rect().has_point(event.position)
 			touch_scroll_start = event.position
 			touch_scroll_last_y = event.position.y
+			touch_scroll_last_position = event.position
+			touch_scroll_axis = ""
 			touch_scroll_dragging = false
 		else:
 			touch_scroll_active = false
 			touch_scroll_dragging = false
+			touch_scroll_axis = ""
 	elif event is InputEventScreenDrag and touch_scroll_active:
-		var distance = abs(event.position.y - touch_scroll_start.y)
-		if distance > 8.0:
+		var moved = event.position - touch_scroll_start
+		if not touch_scroll_dragging and moved.length() > 9.0:
 			touch_scroll_dragging = true
+			if abs(moved.x) > abs(moved.y) * 1.15:
+				touch_scroll_axis = "horizontal"
+			else:
+				touch_scroll_axis = "vertical"
 		if touch_scroll_dragging:
-			var delta_y = event.position.y - touch_scroll_last_y
-			var bar = game_scroll_container.get_v_scrollbar()
-			var max_scroll = max(0.0, bar.max_value - bar.page)
-			game_scroll_container.scroll_vertical = int(clamp(float(game_scroll_container.scroll_vertical) - delta_y * 1.6, 0.0, max_scroll))
+			var delta_position = event.position - touch_scroll_last_position
+			if touch_scroll_axis == "horizontal":
+				var horizontal_bar = game_scroll_container.get_h_scrollbar()
+				var max_horizontal = max(0.0, horizontal_bar.max_value - horizontal_bar.page)
+				game_scroll_container.scroll_horizontal = int(clamp(float(game_scroll_container.scroll_horizontal) - delta_position.x * 1.25, 0.0, max_horizontal))
+				horizontal_scroll_velocity = -delta_position.x * 13.0
+			elif touch_scroll_axis == "vertical":
+				var delta_y = event.position.y - touch_scroll_last_y
+				var bar = game_scroll_container.get_v_scrollbar()
+				var max_scroll = max(0.0, bar.max_value - bar.page)
+				game_scroll_container.scroll_vertical = int(clamp(float(game_scroll_container.scroll_vertical) - delta_y * 1.35, 0.0, max_scroll))
 		touch_scroll_last_y = event.position.y
+		touch_scroll_last_position = event.position
 
 func _process(delta):
+	if not touch_scroll_dragging and abs(horizontal_scroll_velocity) > 8.0 and game_scroll_container != null and is_instance_valid(game_scroll_container):
+		var horizontal_bar = game_scroll_container.get_h_scrollbar()
+		var max_horizontal = max(0.0, horizontal_bar.max_value - horizontal_bar.page)
+		game_scroll_container.scroll_horizontal = int(clamp(float(game_scroll_container.scroll_horizontal) + horizontal_scroll_velocity * delta, 0.0, max_horizontal))
+		horizontal_scroll_velocity = lerp(horizontal_scroll_velocity, 0.0, min(1.0, delta * 7.5))
+	else:
+		horizontal_scroll_velocity = 0.0
 	if game == null or game_paused:
 		return
 	clock_cycle_seconds += delta
