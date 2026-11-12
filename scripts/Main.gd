@@ -693,15 +693,7 @@ func show_page(page):
 			_add_label("درآمد روزانه شهرداری: %d سکه" % municipal_daily_total, 18)
 			_add_label("اعتبار شهر: %d  |  رضایت: %d/۱۰۰" % [s.reputation,int(s.get("satisfaction",50))], 18)
 
-			var details_toggle = _add_button(("▼ " if home_city_details_expanded else "▶ ") + "خدمات و زیرساخت شهر", self, "toggle_home_city_details")
-			_style_button(details_toggle, false)
-			if home_city_details_expanded:
-				_add_label("پوشش خدمات: " + _service_summary(), 15)
-				_add_label("نیازهای شهروندان: " + _needs_summary(), 15)
-				_add_label("تعداد ساختمان‌ها: %d  |  ظرفیت انبار: %d" % [s.buildings.size(),game.get_storage_capacity()], 16)
-				var central_bank_status = "فعال" if game.has_central_bank() else ("بازسازی تا %d روز دیگر" % int(s.get("central_bank_rebuild_days_left",0)) if int(s.get("central_bank_rebuild_days_left",0)) > 0 else "ندارد")
-				_add_label("بانک مرکزی: %s  |  بانک شهری: %d" % [central_bank_status,game.get_building_count("municipal_bank")], 16)
-				_add_label("درختان جنگل: %d از ۱۰۰  |  معادن فعال: %d" % [game.get_forest_tree_count(),_active_mine_count()], 16)
+			_add_home_services_panel(s)
 
 			var buildings_toggle = _add_button(("▼ " if home_buildings_expanded else "▶ ") + "ساختمان‌های ساخته‌شده", self, "toggle_home_buildings")
 			_style_button(buildings_toggle, false)
@@ -1521,6 +1513,151 @@ func toggle_municipality_section(section_id):
 	var key = str(section_id)
 	municipality_section_expanded[key] = not bool(municipality_section_expanded.get(key, false))
 	show_page("municipality")
+
+func _add_home_services_panel(city_state):
+	var compact = get_viewport_rect().size.x < 900
+	var panel = PanelContainer.new()
+	var panel_style = StyleBoxFlat.new()
+	panel_style.bg_color = Color("#172235")
+	panel_style.border_color = Color("#475569")
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(12)
+	panel_style.content_margin_left = 12
+	panel_style.content_margin_right = 12
+	panel_style.content_margin_top = 10
+	panel_style.content_margin_bottom = 10
+	panel.add_stylebox_override("panel", panel_style)
+	content.add_child(panel)
+	var body = VBoxContainer.new()
+	body.add_constant_override("separation", 9)
+	panel.add_child(body)
+
+	var total_coverage = 0
+	var service_count = game.SERVICE_GROUPS.size()
+	for service_id in game.SERVICE_GROUPS.keys():
+		total_coverage += int(city_state.get("services", {}).get(service_id, 0))
+	var average_coverage = int(round(float(total_coverage) / float(max(1, service_count))))
+	var header = Button.new()
+	header.text = PersianText.reshaper(("%s  🏙️  خدمات و زیرساخت شهر" % ("▼" if home_city_details_expanded else "▶")) + "     میانگین پوشش: %d%%" % average_coverage)
+	header.rect_min_size = Vector2(0, 62 if compact else 54)
+	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.align = Button.ALIGN_RIGHT
+	_apply_font(header, 19 if compact else 17)
+	_style_button(header, false)
+	header.connect("pressed", self, "toggle_home_city_details")
+	body.add_child(header)
+
+	var hint = Label.new()
+	hint.text = PersianText.reshaper("وضعیت آب، برق، درمان، امنیت و امکانات شهر را یک‌جا ببین.")
+	hint.align = Label.ALIGN_RIGHT
+	hint.autowrap = true
+	_apply_font(hint, 15 if compact else 14)
+	hint.add_color_override("font_color", Color("#cbd5e1"))
+	body.add_child(hint)
+
+	if not home_city_details_expanded:
+		return
+
+	var section_line = HSeparator.new()
+	body.add_child(section_line)
+	var section_title = Label.new()
+	section_title.text = PersianText.reshaper("شاخص خدمات شهری")
+	section_title.align = Label.ALIGN_RIGHT
+	_apply_font(section_title, 18)
+	section_title.add_color_override("font_color", Color("#f8fafc"))
+	body.add_child(section_title)
+
+	var grid = GridContainer.new()
+	grid.columns = 2
+	grid.add_constant_override("hseparation", 8)
+	grid.add_constant_override("vseparation", 8)
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_child(grid)
+	var service_order = ["food","water","power","health","education","safety","leisure","sanitation"]
+	for service_id in service_order:
+		if not game.SERVICE_GROUPS.has(service_id):
+			continue
+		var service_data = game.SERVICE_GROUPS[service_id]
+		var coverage = int(clamp(int(city_state.get("services", {}).get(service_id, 0)), 0, 100))
+		var need = int(clamp(int(city_state.get("needs", {}).get(service_id, 60)), 0, 100))
+		var building_total = 0
+		for building_id in service_data.get("buildings", []):
+			building_total += game.get_building_count(str(building_id))
+		_add_service_metric_card(grid, str(service_data.get("name", service_id)), coverage, need, building_total, compact)
+
+	var infra_title = Label.new()
+	infra_title.text = PersianText.reshaper("زیرساخت‌های پشتیبان")
+	infra_title.align = Label.ALIGN_RIGHT
+	_apply_font(infra_title, 18)
+	infra_title.add_color_override("font_color", Color("#f8fafc"))
+	body.add_child(infra_title)
+	var central_bank_status = "فعال" if game.has_central_bank() else ("بازسازی: %d روز" % int(city_state.get("central_bank_rebuild_days_left", 0)) if int(city_state.get("central_bank_rebuild_days_left", 0)) > 0 else "ساخته نشده")
+	var infrastructure_text = "ساختمان‌ها: %d   |   ظرفیت انبار: %d\nبانک مرکزی: %s   |   بانک شهری: %d\nجنگل: %d/۱۰۰ درخت   |   معادن فعال: %d" % [city_state.buildings.size(), game.get_storage_capacity(), central_bank_status, game.get_building_count("municipal_bank"), game.get_forest_tree_count(), _active_mine_count()]
+	var infra_label = Label.new()
+	infra_label.text = PersianText.reshaper(infrastructure_text)
+	infra_label.align = Label.ALIGN_RIGHT
+	infra_label.autowrap = true
+	infra_label.rect_min_size = Vector2(0, 76 if compact else 64)
+	_apply_font(infra_label, 16 if compact else 15)
+	infra_label.add_color_override("font_color", Color("#dbeafe"))
+	body.add_child(infra_label)
+
+func _add_service_metric_card(parent, title_text, coverage, need, building_count, compact):
+	var card = PanelContainer.new()
+	var card_style = StyleBoxFlat.new()
+	card_style.bg_color = Color("#202f43")
+	card_style.border_color = Color("#3b4b61")
+	card_style.set_border_width_all(1)
+	card_style.set_corner_radius_all(9)
+	card_style.content_margin_left = 8
+	card_style.content_margin_right = 8
+	card_style.content_margin_top = 8
+	card_style.content_margin_bottom = 8
+	card.add_stylebox_override("panel", card_style)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	parent.add_child(card)
+	var stack = VBoxContainer.new()
+	stack.add_constant_override("separation", 4)
+	card.add_child(stack)
+
+	var title = Label.new()
+	title.text = PersianText.reshaper("%s  (%d ساختمان)" % [title_text, building_count])
+	title.align = Label.ALIGN_RIGHT
+	title.autowrap = true
+	title.rect_min_size = Vector2(0, 38 if compact else 32)
+	_apply_font(title, 16 if compact else 15)
+	title.add_color_override("font_color", Color("#f8fafc"))
+	stack.add_child(title)
+
+	var coverage_label = Label.new()
+	coverage_label.text = PersianText.reshaper("پوشش خدمات: %d٪" % coverage)
+	coverage_label.align = Label.ALIGN_RIGHT
+	_apply_font(coverage_label, 15)
+	coverage_label.add_color_override("font_color", Color("#86efac") if coverage >= 70 else (Color("#fcd34d") if coverage >= 40 else Color("#fca5a5")))
+	stack.add_child(coverage_label)
+
+	var coverage_bar = ProgressBar.new()
+	coverage_bar.min_value = 0
+	coverage_bar.max_value = 100
+	coverage_bar.value = coverage
+	coverage_bar.percent_visible = false
+	coverage_bar.rect_min_size = Vector2(0, 9)
+	var fill = StyleBoxFlat.new()
+	fill.bg_color = Color("#22c55e") if coverage >= 70 else (Color("#f59e0b") if coverage >= 40 else Color("#ef4444"))
+	fill.set_corner_radius_all(4)
+	coverage_bar.add_stylebox_override("fg", fill)
+	var track = StyleBoxFlat.new()
+	track.bg_color = Color("#334155")
+	track.set_corner_radius_all(4)
+	coverage_bar.add_stylebox_override("bg", track)
+	stack.add_child(coverage_bar)
+
+	var need_label = Label.new()
+	need_label.text = PersianText.reshaper("رضایت از این نیاز: %d٪" % need)
+	need_label.align = Label.ALIGN_RIGHT
+	_apply_font(need_label, 14)
+	need_label.add_color_override("font_color", Color("#cbd5e1"))
+	stack.add_child(need_label)
 
 func _service_summary():
 	var parts = []
