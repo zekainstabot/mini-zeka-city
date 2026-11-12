@@ -1165,7 +1165,7 @@ func show_page(page):
 				if facility.empty():
 					continue
 				var facility_button = _add_button("ساخت "+str(facility.get("name","ایستگاه"))+" — %d سکه | زمین: %d قطعه" % [int(facility.get("cost",0)),game.get_land_size(facility_id)],self,"build_transport_facility",[facility_id])
-				facility_button.disabled = game.get_active_construction_count() >= game.MAX_CONCURRENT_CONSTRUCTIONS or int(s.population) < int(facility.get("unlock",0)) or int(s.level) < int(facility.get("level_unlock",1)) or game.get_available_money() < int(facility.get("cost",0)) or game.get_land_free() < game.get_land_size(facility_id)
+				facility_button.disabled = int(s.level) < int(facility.get("level_unlock",1))
 			_add_label("🚚 پایانه و ناوگان کامیون",19)
 			_add_label("پایانه حمل‌ونقل: %d | کامیون فعال: %d | ظرفیت روزانه: %d واحد" % [game.get_building_count("transport_depot"),game.get_transport_truck_count(),game.get_transport_daily_capacity()],17)
 			_add_label("ظرفیت مصرف‌شده امروز: %d | ظرفیت باقی‌مانده: %d" % [int(s.get("transport_used_today",0)),game.get_transport_capacity_remaining()],16)
@@ -1174,7 +1174,7 @@ func show_page(page):
 			var depot = game.get_building_definitions().get("transport_depot",{})
 			if not depot.empty():
 				var depot_button = _add_button("ساخت پایانه حمل‌ونقل — %d سکه | زمین: %d قطعه" % [int(depot.get("cost",0)),game.get_land_size("transport_depot")],self,"build_transport_facility",["transport_depot"])
-				depot_button.disabled = game.get_active_construction_count() >= game.MAX_CONCURRENT_CONSTRUCTIONS or int(s.population) < int(depot.get("unlock",0)) or int(s.level) < int(depot.get("level_unlock",1)) or game.get_available_money() < int(depot.get("cost",0)) or game.get_land_free() < game.get_land_size("transport_depot")
+				depot_button.disabled = int(s.level) < int(depot.get("level_unlock",1))
 			_add_label("ظرفیت کامیون‌ها بین واردات، قراردادهای تأمین و صادرات مشترک است.",15)
 		"imports":
 			_add_label(" واردات و حمل‌ونقل بین‌شهری", 22)
@@ -1732,7 +1732,7 @@ func _add_building_category_items(category):
 		if not population_unlocked or not level_unlocked:
 			label += " | 🔒 قفل"
 		var building_button = _add_button(label, self, "build_building", [id])
-		building_button.disabled = game.get_active_construction_count() >= game.MAX_CONCURRENT_CONSTRUCTIONS or not unlocked or game.get_available_money() < int(data.cost) or game.get_land_free() < game.get_land_size(id) or (id == "central_bank" and int(s.get("central_bank_rebuild_days_left",0)) > 0)
+		building_button.disabled = not level_unlocked
 	if visible_buildings == 0:
 		_add_label("در این دسته ساختمانی تعریف نشده است.", 16)
 
