@@ -90,6 +90,8 @@ func _apply_effects():
 	effects_player.volume_db = linear2db(max(0.001, effects_volume))
 
 func play_sfx(kind="click"):
+	if music_enabled and music_player != null and not music_player.playing:
+		_apply_music()
 	if not effects_enabled or effects_volume <= 0.001 or effects_player == null:
 		return
 	var tones = []
