@@ -622,7 +622,9 @@ func _build_ui():
 			_apply_font(mission_reward_badge, 17)
 			nav_item.add_child(mission_reward_badge)
 		var b = Button.new()
-		b.text = PersianText.reshaper(item.t + "  ")
+		var civic_page_locked = item.p in ["municipality", "private_economy"] and not game.has_municipal_hall()
+		b.text = PersianText.reshaper(item.t + (" 🔒" if civic_page_locked else "") + "  ")
+		b.disabled = civic_page_locked
 		b.rect_min_size = Vector2(0, 64 if compact_layout else 58)
 		b.flat = false
 		_apply_font(b, 21 if compact_layout else 18)
@@ -1049,11 +1051,16 @@ func _open_missions_from_welcome():
 		game_scroll_container.scroll_vertical = 0
 
 func show_page(page):
+	var civic_page_locked = page in ["municipality", "private_economy"] and not game.has_municipal_hall()
+	if civic_page_locked:
+		page = "home"
 	current_page = page
 	# Never let labels/buttons from a previous collapsible section attach to an old page.
 	active_section_container = null
 	_clear_content()
 	_show_message("")
+	if civic_page_locked:
+		_show_message("برای باز شدن شهرداری و اقتصاد خصوصی، ابتدا ساختمان شهرداری را از بخش ساختمان‌ها بساز و منتظر تکمیل آن بمان.")
 	var s = game.state
 	_update_progress_hud()
 	_update_mission_reward_badge()
@@ -1755,7 +1762,7 @@ func show_page(page):
 			_add_help_section("انبار و مدیریت موجودی", "انبار برای نگهداری منابع است. ظرفیت انبار محدود است؛ موجودی کالاها را بررسی کن و فضای کافی برای تولید بعدی نگه دار. اگر یک منبع کم است، زنجیره تولید وابسته به آن هم ممکن است متوقف شود.", "storage")
 			_add_label("🏗️ توسعه، خدمات و زمان", 21)
 			_add_help_section("خدمات شهری و رضایت", "آب، برق، خوراک، درمان، آموزش، امنیت، تفریح و بهداشت محیط نیازهای جداگانه‌اند. در شهر من میانگین پوشش خدمات را ببین و برای نیازهای ضعیف، ساختمان مناسب بساز. جمعیت بیشتر یعنی نیاز بیشتر به خدمات و زیرساخت.", "home")
-			_add_help_section("شهرداری، زمین و محله‌ها", "در شهرداری زمین‌ها، مالیات، درخواست‌ها و پروژه‌های شهری را مدیریت کن. ظرفیت ساخت هر محله و سهمیه ساختمان‌ها محدود است؛ پیش از خرید یا ساخت، محدودیت همان محله را بررسی کن و برای خدمات ضروری جا نگه دار.", "municipality")
+			_add_help_section("شهرداری، زمین و محله‌ها", "پس از ساخت و تکمیل ساختمان شهرداری، بخش شهرداری باز می‌شود و می‌توانی زمین‌های خصوصی، مالیات، مجوزها، درخواست‌ها و پروژه‌های شهری را مدیریت کنی. ظرفیت ساخت هر محله و سهمیه ساختمان‌ها محدود است؛ پیش از خرید یا ساخت، محدودیت همان محله را بررسی کن و برای خدمات ضروری جا نگه دار.", "municipality")
 			_add_help_section("روز، شب و ساخت‌وساز", "هر روز بازی ۱۰ دقیقه زمان واقعی دارد؛ ۷ دقیقه روز و ۳ دقیقه شب است. پایان روز، درآمدها، هزینه‌ها، تولید و رویدادها محاسبه می‌شوند. هم‌زمان حداکثر دو پروژه ساخت فعال می‌توانی داشته باشی؛ زمان ساخت را از بالای صفحه دنبال کن.", "home")
 			_add_help_section("جاده و ناوگان", "جاده و ناوگان برای جابه‌جایی و پشتیبانی تجارت کاربرد دارند و می‌توانند هزینه نگهداری داشته باشند. پیش از توسعه مسیرها، درآمد و توان پرداخت هزینه‌های نگهداری را بررسی کن.", "transport")
 			_add_label("🎯 مأموریت‌ها و سرگرمی‌های بلندمدت", 21)
