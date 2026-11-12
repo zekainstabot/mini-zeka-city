@@ -13,6 +13,22 @@ func _init():
 	assert(PersianTextScript.reshaper("بازی Godot").find("Godot") >= 0)
 	assert(PersianTextScript.reshaper("دانلود YouTube").find("YouTube") >= 0)
 
+	# No more than two construction projects may run at the same time.
+	var construction_limit_game = EngineScript.new()
+	construction_limit_game.new_game()
+	construction_limit_game.state.constructions = [
+		{"id":"small_park","finish_at":OS.get_unix_time()+120},
+		{"id":"bakery","finish_at":OS.get_unix_time()+180}
+	]
+	assert(construction_limit_game.get_active_construction_count() == 2)
+	var construction_money_before = int(construction_limit_game.state.money)
+	var blocked_construction = construction_limit_game.build("farm")
+	assert(not bool(blocked_construction.ok))
+	assert(construction_limit_game.state.constructions.size() == 2)
+	assert(int(construction_limit_game.state.money) == construction_money_before)
+	construction_limit_game.state.constructions.pop_back()
+	assert(construction_limit_game.get_active_construction_count() == 1)
+
 	# Every active mission is sequential; completed missions disappear after claiming.
 	var mission_game = EngineScript.new()
 	mission_game.new_game()
