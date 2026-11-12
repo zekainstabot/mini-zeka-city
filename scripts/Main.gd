@@ -1777,8 +1777,10 @@ func go_to_mission_target(mission_id):
 			target_page = "transport"
 		"level_tutorial", "main_level_five":
 			target_page = "home"
-		"main_city_bank", "main_central_bank", "side_reserve", "side_loan_paid", "side_private_tax":
+		"main_city_bank", "main_central_bank", "side_reserve", "side_loan_paid":
 			target_page = "bank"
+		"side_private_tax":
+			target_page = "private_economy"
 		"side_export_eight":
 			target_page = "transport"
 		"side_collect_profit":
