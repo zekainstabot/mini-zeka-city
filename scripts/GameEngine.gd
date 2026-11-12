@@ -231,6 +231,9 @@ func new_game():
 		"services": {},
 		"missions": [],
 		"central_bank_rebuild_days_left": 0,
+		"bank_loans": [],
+		"bank_deposits": [],
+		"bank_transactions": [],
 		"forest_trees": 100,
 		"mines": [],
 		"buildings": [
@@ -347,6 +350,14 @@ func _normalize_state():
 		state["pending_offline_income"] = 0
 	if not state.has("pending_offline_days"):
 		state["pending_offline_days"] = 0
+	if typeof(state.get("bank_loans", null)) != TYPE_ARRAY:
+		state["bank_loans"] = []
+	if typeof(state.get("bank_deposits", null)) != TYPE_ARRAY:
+		state["bank_deposits"] = []
+	if typeof(state.get("bank_transactions", null)) != TYPE_ARRAY:
+		state["bank_transactions"] = []
+	while state.bank_transactions.size() > 100:
+		state.bank_transactions.pop_front()
 	if typeof(state.get("daily_trade_city_ids", null)) != TYPE_ARRAY:
 		state["daily_trade_city_ids"] = []
 	if not state.has("daily_trade_city_day"):
@@ -1497,6 +1508,7 @@ func end_day():
 	if automatic_business_profit > 0:
 		income += automatic_business_profit
 	var accepted_income = _add_money(income)
+	var bank_repayment_paid = _process_bank_day(report)
 	var non_business_income = max(0, income - automatic_business_profit)
 	var business_profit_remaining = min(automatic_business_profit, max(0, accepted_income - min(accepted_income, non_business_income)))
 	var automatic_business_profit_transferred = business_profit_remaining
@@ -1538,10 +1550,11 @@ func end_day():
 		"fleet_maintenance": fleet_maintenance,
 		"road_maintenance": road_maintenance,
 		"maintenance_paid": maintenance_paid,
-		"net_cashflow": accepted_income + development_support_paid - paid_wages - maintenance_paid
+		"bank_repayment": bank_repayment_paid,
+		"net_cashflow": accepted_income + development_support_paid - paid_wages - maintenance_paid - bank_repayment_paid
 	}
 	var total_accepted_income = accepted_income + development_support_paid
-	report.append("خلاصه مالی: درآمد %d | حقوق %d | تغییر خالص خزانه %d سکه." % [total_accepted_income, paid_wages, total_accepted_income - paid_wages - maintenance_paid])
+	report.append("خلاصه مالی: درآمد %d | حقوق %d | نگهداری %d | اقساط %d | تغییر خالص خزانه %d سکه." % [total_accepted_income, paid_wages, maintenance_paid, bank_repayment_paid, total_accepted_income - paid_wages - maintenance_paid - bank_repayment_paid])
 	for restock_id in RESOURCES.keys():
 		state.market_stock[restock_id] = min(100, int(state.market_stock.get(restock_id, 0)) + 5)
 	_refresh_trade_capacity()
@@ -1817,6 +1830,137 @@ func _dispatch_import_contracts(report):
 		if int(contract.days_left) <= 0:
 			contract["active"] = false
 		state.import_contracts[contract_index] = contract
+
+func _record_bank_transaction(kind, amount, description):
+	if typeof(state.get("bank_transactions", null)) != TYPE_ARRAY:
+		state["bank_transactions"] = []
+	state.bank_transactions.append({"day":int(state.get("day",1)),"kind":str(kind),"amount":int(amount),"description":str(description)})
+	while state.bank_transactions.size() > 100:
+		state.bank_transactions.pop_front()
+
+func get_bank_loan_limit():
+	var capacity_room = max(0, get_treasury_capacity() - int(state.get("money",0)))
+	var city_limit = 5000 + int(state.get("level",1)) * 2000 + int(state.get("population",0)) * 100
+	return min(capacity_room, city_limit)
+
+func take_bank_loan(amount, duration_days):
+	if not has_central_bank():
+		return {"ok":false,"message":"برای دریافت وام ابتدا بانک مرکزی بساز."}
+	var active_loans = 0
+	for loan in state.get("bank_loans", []):
+		if str(loan.get("status","active")) == "active":
+			active_loans += 1
+	if active_loans > 0:
+		return {"ok":false,"message":"تا تسویه وام فعلی، وام جدید داده نمی‌شود."}
+	var term = int(duration_days)
+	var rates = {7:8,14:14,30:25}
+	if not rates.has(term):
+		return {"ok":false,"message":"مدت وام باید ۷، ۱۴ یا ۳۰ روز باشد."}
+	var principal = int(amount)
+	if principal < 1000 or principal > get_bank_loan_limit():
+		return {"ok":false,"message":"مبلغ وام باید حداقل ۱۰۰۰ و حداکثر %d سکه باشد." % get_bank_loan_limit()}
+	var interest = int(ceil(float(principal * int(rates[term])) / 100.0))
+	var total_due = principal + interest
+	var accepted = _add_money(principal)
+	if accepted != principal:
+		return {"ok":false,"message":"ظرفیت خزانه برای پرداخت کامل وام کافی نیست."}
+	var loan = {"id":state.get("bank_loans",[]).size()+1,"principal":principal,"interest":interest,"total_due":total_due,"remaining":total_due,"daily_installment":int(ceil(float(total_due)/float(term))),"duration":term,"days_left":term,"status":"active","missed_days":0}
+	state.bank_loans.append(loan)
+	_record_bank_transaction("loan",principal,"دریافت وام %d روزه با سود %d درصد" % [term,int(rates[term])])
+	save_game()
+	return {"ok":true,"message":"وام %d سکه‌ای با سود %d سکه ثبت شد؛ بازپرداخت روزانه حدود %d سکه به مدت %d روز." % [principal,interest,loan.daily_installment,term]}
+
+func repay_bank_loan_early(loan_index):
+	if loan_index < 0 or loan_index >= state.get("bank_loans",[]).size():
+		return {"ok":false,"message":"وام پیدا نشد."}
+	var loan = state.bank_loans[loan_index]
+	if str(loan.get("status","")) != "active":
+		return {"ok":false,"message":"این وام فعال نیست."}
+	var due = int(loan.get("remaining",0))
+	if get_available_money() < due:
+		return {"ok":false,"message":"برای تسویه کامل وام، %d سکه پول آزاد لازم داری." % due}
+	_spend_money(due)
+	loan["remaining"] = 0
+	loan["status"] = "paid"
+	state.bank_loans[loan_index] = loan
+	_record_bank_transaction("repayment",due,"تسویه زودهنگام وام شماره %d" % int(loan.get("id",loan_index+1)))
+	save_game()
+	return {"ok":true,"message":"وام با پرداخت %d سکه تسویه شد." % due}
+
+func create_bank_deposit(amount, duration_days):
+	if game_has_no_municipal_bank():
+		return {"ok":false,"message":"برای سپرده‌گذاری ابتدا بانک شهری بساز."}
+	var term = int(duration_days)
+	var rates = {7:3,14:7,30:15}
+	var principal = int(amount)
+	if not rates.has(term):
+		return {"ok":false,"message":"مدت سپرده باید ۷، ۱۴ یا ۳۰ روز باشد."}
+	if principal < 500 or get_available_money() < principal:
+		return {"ok":false,"message":"مبلغ سپرده حداقل ۵۰۰ سکه است و باید پول آزاد کافی داشته باشی."}
+	if not _spend_money(principal):
+		return {"ok":false,"message":"برداشت مبلغ سپرده از خزانه انجام نشد."}
+	var interest = int(floor(float(principal * int(rates[term])) / 100.0))
+	var deposit = {"id":state.get("bank_deposits",[]).size()+1,"principal":principal,"interest":interest,"duration":term,"maturity_day":int(state.day)+term,"status":"active"}
+	state.bank_deposits.append(deposit)
+	_record_bank_transaction("deposit",principal,"افتتاح سپرده %d روزه با سود %d درصد" % [term,int(rates[term])])
+	save_game()
+	return {"ok":true,"message":"سپرده %d سکه‌ای ثبت شد؛ سود سررسید %d سکه است." % [principal,interest]}
+
+func withdraw_bank_deposit(deposit_index):
+	if deposit_index < 0 or deposit_index >= state.get("bank_deposits",[]).size():
+		return {"ok":false,"message":"سپرده پیدا نشد."}
+	var deposit = state.bank_deposits[deposit_index]
+	if str(deposit.get("status","")) == "withdrawn":
+		return {"ok":false,"message":"این سپرده قبلاً برداشت شده است."}
+	var matured = int(state.day) >= int(deposit.get("maturity_day",0))
+	var payout = int(deposit.get("principal",0)) + (int(deposit.get("interest",0)) if matured else 0)
+	if get_treasury_capacity() - int(state.money) < payout:
+		return {"ok":false,"message":"ظرفیت خالی خزانه برای پرداخت %d سکه کافی نیست." % payout}
+	_add_money(payout)
+	deposit["status"] = "withdrawn"
+	deposit["withdrawn_day"] = int(state.day)
+	state.bank_deposits[deposit_index] = deposit
+	_record_bank_transaction("withdrawal",payout,"برداشت سپرده شماره %d%s" % [int(deposit.get("id",deposit_index+1))," با سود" if matured else " پیش از سررسید؛ بدون سود"])
+	save_game()
+	return {"ok":true,"message":"%d سکه به خزانه برگشت%s." % [payout,"؛ سود هم دریافت شد" if matured else "؛ چون زودتر برداشت کردی سودی تعلق نگرفت"]}
+
+func _process_bank_day(report):
+	var total_paid = 0
+	for index in range(state.get("bank_loans",[]).size()):
+		var loan = state.bank_loans[index]
+		if str(loan.get("status","")) != "active":
+			continue
+		var due = min(int(loan.get("remaining",0)),int(loan.get("daily_installment",0)))
+		var payment = min(due,get_available_money())
+		if payment > 0:
+			_spend_money(payment)
+			loan["remaining"] = int(loan.get("remaining",0)) - payment
+			loan["days_left"] = max(0,int(loan.get("days_left",0))-1)
+			loan["missed_days"] = 0
+			total_paid += payment
+			_record_bank_transaction("repayment",payment,"قسط روزانه وام شماره %d" % int(loan.get("id",index+1)))
+			if int(loan.remaining) <= 0:
+				loan["status"] = "paid"
+				report.append("وام شماره %d به‌طور کامل تسویه شد." % int(loan.get("id",index+1)))
+			else:
+				report.append("قسط وام: %d سکه؛ مانده بدهی: %d سکه." % [payment,int(loan.remaining)])
+		else:
+			loan["missed_days"] = int(loan.get("missed_days",0)) + 1
+			loan["days_left"] = int(loan.get("days_left",0)) + 1
+			report.append("قسط وام پرداخت نشد؛ به‌دلیل کمبود پول، سررسید یک روز تمدید شد و جریمه‌ای نگرفت.")
+		state.bank_loans[index] = loan
+	for index in range(state.get("bank_deposits",[]).size()):
+		var deposit = state.bank_deposits[index]
+		if str(deposit.get("status","")) == "active" and int(state.day) + 1 >= int(deposit.get("maturity_day",0)):
+			deposit["status"] = "matured"
+			report.append("سپرده شماره %d سررسید شد؛ اصل و %d سکه سود آماده برداشت است." % [int(deposit.get("id",index+1)),int(deposit.get("interest",0))])
+		state.bank_deposits[index] = deposit
+	if total_paid > 0:
+		state["bank_daily_repayment"] = total_paid
+	return total_paid
+
+func game_has_no_municipal_bank():
+	return get_building_count("municipal_bank") <= 0
 
 func get_market_price(id, action):
 	if not RESOURCES.has(id):
