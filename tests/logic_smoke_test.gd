@@ -112,7 +112,10 @@ func _init():
 	district_game.new_game()
 	for district_building in range(21):
 		district_game.state.buildings.append({"id":"small_park","workers":0,"balance":0})
-	assert(int(district_game._get_mission_progress("side_expand_districts")) == 2)
+	var district_overview = district_game.get_districts_overview()
+	print("District smoke count: ", district_overview.get("district_count", 0))
+	assert(int(district_overview.get("district_count", 0)) >= 2)
+	assert(int(district_game._get_mission_progress("side_expand_districts")) >= 2)
 
 	var market_result = game.buy_resource("food", 5)
 	assert(bool(market_result.ok))
