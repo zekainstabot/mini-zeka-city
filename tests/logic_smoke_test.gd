@@ -2,6 +2,7 @@ extends SceneTree
 
 const EngineScript = preload("res://scripts/GameEngine.gd")
 const CitizenSocietyScript = preload("res://scripts/CitizenSociety.gd")
+const PersianTextScript = preload("res://scripts/PersianText.gd")
 
 func _init():
 	var game = EngineScript.new()
@@ -9,6 +10,8 @@ func _init():
 	assert(int(game.state.version) == 17)
 	assert(game.state.resources.has("food"))
 	assert(game.get_resource_definitions().has("food"))
+	assert(PersianTextScript.reshaper("بازی Godot").find("Godot") >= 0)
+	assert(PersianTextScript.reshaper("دانلود YouTube").find("YouTube") >= 0)
 
 	# Main missions are sequential; side missions stay independently available.
 	var mission_game = EngineScript.new()
