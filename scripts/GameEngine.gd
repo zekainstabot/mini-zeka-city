@@ -1839,6 +1839,8 @@ func _record_bank_transaction(kind, amount, description):
 		state.bank_transactions.pop_front()
 
 func get_bank_loan_limit():
+	if not has_central_bank():
+		return 0
 	var capacity_room = max(0, get_treasury_capacity() - int(state.get("money",0)))
 	var city_limit = 5000 + int(state.get("level",1)) * 2000 + int(state.get("population",0)) * 100
 	return min(capacity_room, city_limit)
