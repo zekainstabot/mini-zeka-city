@@ -1862,9 +1862,11 @@ func show_page(page):
 		"missions":
 			_add_label("📅 مأموریت‌های روزانه", 23)
 			_add_label("هر روز سه هدف تازه برای توسعه شهر؛ پیشرفت و جایزه‌ها جدا از مأموریت‌های اصلی ذخیره می‌شوند.", 16)
+			var shown_daily_missions = 0
 			for daily_mission in game.get_daily_missions():
-				if bool(daily_mission.get("claimed", false)):
+				if bool(daily_mission.get("claimed", false)) or shown_daily_missions >= 1:
 					continue
+				shown_daily_missions += 1
 				var daily_card = PanelContainer.new()
 				daily_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				var daily_style = StyleBoxFlat.new()
@@ -1995,6 +1997,10 @@ func show_page(page):
 					if mission_is_claimed or not bool(mission.get("completed", false)):
 						continue
 				elif mission_is_claimed or not mission_is_unlocked:
+					continue
+				# Show at most one active progression mission; the daily section
+				# above can show one more, keeping the visible total to two.
+				if visible_missions >= 1:
 					continue
 				visible_missions += 1
 				var mission_type = "legacy" if is_legacy_mission else str(definition.get("type","main"))
