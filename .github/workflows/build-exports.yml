@@ -71,8 +71,10 @@ jobs:
 
       - name: Export HTML5 build
         run: |
+          set -o pipefail
           mkdir -p build/web
-          /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --path . --export-debug "Web" build/web/index.html
+          /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --path . --export-debug "Web" build/web/index.html 2>&1 | tee /tmp/godot-export.log
+          test -s build/web/index.html
           touch build/web/.nojekyll
           python3 - <<'PY'
           from pathlib import Path
@@ -98,6 +100,7 @@ jobs:
             /tmp/godot-tests.log
             /tmp/godot-ui-tests.log
             /tmp/godot-main-scene.log
+            /tmp/godot-export.log
           if-no-files-found: ignore
           retention-days: 14
 
