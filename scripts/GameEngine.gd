@@ -1852,8 +1852,8 @@ func take_bank_loan(amount, duration_days):
 	for loan in state.get("bank_loans", []):
 		if str(loan.get("status","active")) == "active":
 			active_loans += 1
-	if active_loans > 0:
-		return {"ok":false,"message":"تا تسویه وام فعلی، وام جدید داده نمی‌شود."}
+	if active_loans >= 2:
+		return {"ok":false,"message":"حداکثر ۲ وام فعال می‌توانی داشته باشی؛ ابتدا یکی را تسویه کن."}
 	var term = int(duration_days)
 	var rates = {7:8,14:14,30:25}
 	if not rates.has(term):
