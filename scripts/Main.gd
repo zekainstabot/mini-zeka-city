@@ -411,7 +411,7 @@ func _build_ui():
 	nav.add_constant_override("hseparation", 8)
 	nav.add_constant_override("vseparation", 8)
 	root.add_child(nav)
-	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بانک و امور مالی","p":"bank"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار و تجارت","p":"commerce"},{"t":"جاده و ناوگان","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش","p":"report"},{"t":"ماموریت‌ها","p":"missions"},{"t":"پروژه‌های ویژه","p":"projects"},{"t":"افتخارات شهر","p":"achievements"}]:
+	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بانک و امور مالی","p":"bank"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار و تجارت","p":"commerce"},{"t":"جاده و ناوگان","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش","p":"report"},{"t":"ماموریت‌ها","p":"missions"},{"t":"پیشرفت شهر","p":"progress"}]:
 		var nav_item = VBoxContainer.new()
 		nav_item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		nav_item.add_constant_override("separation", 2)
@@ -1355,7 +1355,7 @@ func show_page(page):
 					var stamp = OS.get_datetime_from_unix_time(int(event.get("timestamp", 0)))
 					var time_text = "%02d/%02d - %02d:%02d" % [int(stamp.get("day", 1)), int(stamp.get("month", 1)), int(stamp.get("hour", 0)), int(stamp.get("minute", 0))]
 					_add_label("[%s] روز %d | %s" % [time_text, int(event.get("day", 1)), str(event.get("message", ""))], 17)
-		"projects":
+		"progress":
 			_add_label("🏗️ پروژه‌های بلندمدت شهر",23)
 			_add_label("این هدف‌ها برای توسعه چندمرحله‌ای شهر هستند؛ پیشرفتشان ذخیره می‌شود و جایزه را فقط یک‌بار می‌توانی بگیری.",16)
 			for project in game.get_long_term_projects():
@@ -1376,7 +1376,6 @@ func show_page(page):
 					_add_button("🎁 دریافت جایزه پروژه",self,"claim_long_term_project",[str(project.id)])
 				else:
 					_add_label("● در حال پیشرفت",15)
-		"achievements":
 			_add_label("🏆 افتخارات و رکوردهای شهر",23)
 			var league = game.get_city_league()
 			_add_label("رتبه شهر: %s | امتیاز توسعه: %d" % [str(league.name),int(league.score)],19)
@@ -2220,12 +2219,12 @@ func resolve_resident_request(request_id, accepted):
 
 func claim_long_term_project(project_id):
 	var result = game.claim_long_term_project(str(project_id))
-	show_page("projects")
+	show_page("progress")
 	_show_message(str(result.message))
 
 func claim_weekly_challenge():
 	var result = game.claim_weekly_challenge()
-	show_page("achievements")
+	show_page("progress")
 	_show_message(str(result.message))
 
 func _add_daily_claim_button(parent, mission_id):
