@@ -35,6 +35,7 @@ var touch_scroll_dragging = false
 var restart_confirm_panel = null
 var municipality_section_expanded = {"land":false,"tax":false,"requests":false,"properties":false,"projects":false}
 var commerce_section_expanded = {"domestic":false,"export":false,"import":false,"shipments":false,"contracts":false}
+var storage_section_expanded = {}
 var active_section_container = null
 
 func _input(event):
@@ -947,43 +948,62 @@ func show_page(page):
 			_add_label("برای هر ماده حداقل و حداکثر موجودی تعیین کن. تنظیمات در پایان هر روز اجرا می‌شوند.",15)
 			_add_label("اگر موجودی از حداقل کمتر شود، می‌توانی خرید از بازار یا افزایش تولید کارخانه را انتخاب کنی؛ اگر از حداکثر بیشتر شود، فروش خودکار انجام می‌شود.",15)
 			for id in game.get_resource_definitions().keys():
+				var resource_name = str(game.get_resource_definitions()[id].name)
 				var rule = game.get_storage_rule(id)
-				_add_label("📦 "+str(game.get_resource_definitions()[id].name)+" | موجودی: %d | بازار: %d" % [int(s.resources.get(id,0)),int(s.market_stock.get(id,0))],18)
+				var current_amount = int(s.resources.get(id,0))
+				var market_amount = int(s.market_stock.get(id,0))
+				var is_expanded = bool(storage_section_expanded.get(str(id), false))
+				var section_button = _add_button(("▼ " if is_expanded else "▶ ") + resource_name + " | موجودی: %d" % current_amount,self,"toggle_storage_section",[str(id)])
+				_style_button(section_button,false)
+				if not is_expanded:
+					continue
+				var section_body = VBoxContainer.new()
+				section_body.add_constant_override("separation",5)
+				section_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				content.add_child(section_body)
+				active_section_container = section_body
+				_add_label("موجودی انبار: %d | موجودی بازار: %d" % [current_amount,market_amount],16)
 				_add_label("حداقل موجودی: %d | حداکثر موجودی: %d" % [int(rule.get("minimum",10)),int(rule.get("maximum",40))],16)
 				var controls = HBoxContainer.new()
 				controls.add_constant_override("separation",6)
+				controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				content.add_child(controls)
 				var low_down = Button.new()
-				low_down.text = "حداقل −"
+				low_down.text = PersianText.reshaper("حداقل −")
 				_style_button(low_down,false)
 				_apply_font(low_down,16)
+				low_down.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				low_down.connect("pressed",self,"adjust_storage_rule",[id,"minimum",-5])
 				controls.add_child(low_down)
 				var low_up = Button.new()
-				low_up.text = "حداقل +"
+				low_up.text = PersianText.reshaper("حداقل +")
 				_style_button(low_up,false)
 				_apply_font(low_up,16)
+				low_up.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				low_up.connect("pressed",self,"adjust_storage_rule",[id,"minimum",5])
 				controls.add_child(low_up)
 				var high_down = Button.new()
-				high_down.text = "حداکثر −"
+				high_down.text = PersianText.reshaper("حداکثر −")
 				_style_button(high_down,false)
 				_apply_font(high_down,16)
+				high_down.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				high_down.connect("pressed",self,"adjust_storage_rule",[id,"maximum",-5])
 				controls.add_child(high_down)
 				var high_up = Button.new()
-				high_up.text = "حداکثر +"
+				high_up.text = PersianText.reshaper("حداکثر +")
 				_style_button(high_up,false)
 				_apply_font(high_up,16)
+				high_up.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				high_up.connect("pressed",self,"adjust_storage_rule",[id,"maximum",5])
 				controls.add_child(high_up)
-				_add_label("وقتی کم شد: "+("خرید از بازار" if str(rule.get("low_action","market")) == "market" else "افزایش تولید کارخانه"),15)
+				_add_label("وقتی موجودی کم شد: "+("خرید از بازار" if str(rule.get("low_action","market")) == "market" else "افزایش تولید کارخانه"),15)
 				_add_button("تغییر روش تأمین",self,"toggle_storage_low_action",[id])
-				_add_label("وقتی زیاد شد: "+("فروش به بازار" if str(rule.get("high_action","market")) == "market" else "فروش از فروشگاه‌ها"),15)
+				_add_label("وقتی موجودی زیاد شد: "+("فروش به بازار" if str(rule.get("high_action","market")) == "market" else "فروش از فروشگاه‌ها"),15)
 				_add_button("تغییر روش فروش",self,"toggle_storage_high_action",[id])
 				_add_button("اجرای تنظیمات همین ماده",self,"run_storage_rule",[id])
-			_add_label(" ",8)
+				active_section_container = null
 			_add_label("ذخیره درختان جنگل: %d / ۱۰۰" % game.get_forest_tree_count())
+
 		"report":
 			_add_label("گزارش وقایع شهر", 22)
 			var events = s.get("report_events", [])
@@ -1408,6 +1428,11 @@ func sell_item(id, amount):
 	show_page("market")
 	_show_message(result.message)
 
+
+func toggle_storage_section(resource_id):
+	var key = str(resource_id)
+	storage_section_expanded[key] = not bool(storage_section_expanded.get(key, false))
+	show_page("storage")
 
 func adjust_storage_rule(resource_id, field, delta):
 	var rule = game.get_storage_rule(str(resource_id))
