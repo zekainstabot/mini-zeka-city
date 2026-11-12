@@ -1872,6 +1872,29 @@ func take_bank_loan(amount, duration_days):
 	save_game()
 	return {"ok":true,"message":"وام %d سکه‌ای با سود %d سکه ثبت شد؛ بازپرداخت روزانه حدود %d سکه به مدت %d روز." % [principal,interest,loan.daily_installment,term]}
 
+func repay_bank_loan_manual(loan_index):
+	if loan_index < 0 or loan_index >= state.get("bank_loans",[]).size():
+		return {"ok":false,"message":"وام پیدا نشد."}
+	var loan = state.bank_loans[loan_index]
+	if str(loan.get("status","")) != "active":
+		return {"ok":false,"message":"این وام فعال نیست."}
+	if int(loan.get("last_manual_payment_day", 0)) == int(state.get("day", 1)):
+		return {"ok":false,"message":"قسط این وام امروز یک‌بار دستی پرداخت شده است."}
+	var due = min(int(loan.get("remaining",0)),int(loan.get("daily_installment",0)))
+	var payment = min(due,get_available_money())
+	if payment <= 0:
+		return {"ok":false,"message":"برای پرداخت قسط، موجودی آزاد خزانه کافی نیست."}
+	_spend_money(payment)
+	loan["remaining"] = int(loan.get("remaining",0)) - payment
+	loan["days_left"] = max(0,int(loan.get("days_left",0))-1)
+	loan["last_manual_payment_day"] = int(state.get("day",1))
+	if int(loan.get("remaining",0)) <= 0:
+		loan["status"] = "paid"
+	state.bank_loans[loan_index] = loan
+	_record_bank_transaction("repayment",payment,"پرداخت دستی قسط وام شماره %d" % int(loan.get("id",loan_index+1)))
+	save_game()
+	return {"ok":true,"message":"قسط دستی به مبلغ %d سکه پرداخت شد؛ مانده وام: %d سکه." % [payment,int(loan.get("remaining",0))]}
+
 func repay_bank_loan_early(loan_index):
 	if loan_index < 0 or loan_index >= state.get("bank_loans",[]).size():
 		return {"ok":false,"message":"وام پیدا نشد."}
@@ -1931,6 +1954,9 @@ func _process_bank_day(report):
 	for index in range(state.get("bank_loans",[]).size()):
 		var loan = state.bank_loans[index]
 		if str(loan.get("status","")) != "active":
+			continue
+		if int(loan.get("last_manual_payment_day", 0)) == int(state.get("day", 1)):
+			report.append("قسط وام شماره %d امروز دستی پرداخت شده است؛ برداشت خودکار تکرار نشد." % int(loan.get("id",index+1)))
 			continue
 		var due = min(int(loan.get("remaining",0)),int(loan.get("daily_installment",0)))
 		var payment = min(due,get_available_money())
