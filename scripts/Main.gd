@@ -424,8 +424,6 @@ func _load_ui_font():
 	# on high-DPI mobile screens and when the HTML5 canvas is scaled.
 	font_data.antialiased = true
 	font_data.hinting = DynamicFontData.HINTING_NORMAL
-	# Rasterize glyphs above their display size so mobile/browser scaling stays crisp.
-	font_data.override_oversampling = 2.0
 	ui_font = DynamicFont.new()
 	ui_font.font_data = font_data
 	ui_font.size = 20
