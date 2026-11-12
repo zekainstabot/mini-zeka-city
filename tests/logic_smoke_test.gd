@@ -35,6 +35,10 @@ func _init():
 	assert(int(mission_game.state.xp) == 25)
 	assert(int(mission_game.state.money) == mission_money_before + 300)
 	assert(bool(mission_game.state.missions[1].unlocked))
+	assert(not bool(mission_game.state.missions[1].completed))
+	assert(int(mission_game._get_mission_progress("build_house_tutorial")) == 0)
+	mission_game.state.buildings.append({"id":"small_house","workers":0,"balance":0})
+	assert(int(mission_game._get_mission_progress("build_house_tutorial")) == 1)
 	assert(not bool(mission_game.state.missions[2].unlocked))
 	mission_game.state.population = 12
 	mission_game.state.buildings.append({"id":"water_tower","workers":0,"balance":0})
