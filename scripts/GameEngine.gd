@@ -2346,10 +2346,26 @@ func _get_mission_progress(mission_id):
 			return private_tax_total
 	return 0
 
+func _is_side_mission_available(mission_id):
+	# Side missions are independent from the tutorial chain. Only missions
+	# tied to explicitly level-gated buildings wait for the required city level.
+	var required_level = 1
+	match mission_id:
+		"side_iron_mine":
+			required_level = 3
+		"side_sports", "side_police":
+			required_level = 5
+		"side_hospital":
+			required_level = 6
+		"side_university":
+			required_level = 7
+		"side_cultural":
+			required_level = 8
+	return int(state.get("level", 1)) >= required_level
+
 func _update_missions():
-	# All active missions form one guided sequence: only the first unclaimed
-	# mission is visible. Claiming its reward unlocks the next mission.
-	var previous_claimed = true
+	# Main missions remain a guided sequence; side missions unlock independently.
+	var previous_main_claimed = true
 	for i in range(state.missions.size()):
 		var mission = state.missions[i]
 		var mission_id = str(mission.get("id", ""))
@@ -2366,13 +2382,15 @@ func _update_missions():
 			mission["unlocked"] = bool(mission.get("completed", false)) and not bool(mission.get("claimed", false))
 			state.missions[i] = mission
 			continue
-		# Main and side missions share one ordered progression. A mission becomes
-		# visible only after the previous mission's reward has been claimed.
-		mission["unlocked"] = previous_claimed
+		var mission_type = str(definition.get("type", "main"))
+		if mission_type == "side":
+			mission["unlocked"] = _is_side_mission_available(mission_id)
+		else:
+			mission["unlocked"] = previous_main_claimed
+			previous_main_claimed = bool(mission.get("claimed", false))
 		var progress = min(int(definition.goal), _get_mission_progress(mission_id))
 		mission["progress"] = progress
 		mission["completed"] = progress >= int(definition.goal)
-		previous_claimed = bool(mission.get("claimed", false))
 		state.missions[i] = mission
 
 func get_missions():
