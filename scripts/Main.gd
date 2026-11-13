@@ -25,6 +25,8 @@ var home_buildings_expanded = false
 var home_city_details_expanded = false
 var home_economy_expanded = false
 var clock_cycle_seconds = 0.0
+var ambient_background = null
+var ambient_background_color = Color("#172536")
 var clock_label = null
 var clock_save_accumulator = 0.0
 var construction_check_accumulator = 0.0
@@ -103,6 +105,7 @@ func _input(event):
 		touch_scroll_last_position = event.position
 
 func _process(delta):
+	_update_ambient_background(delta)
 	if not touch_scroll_dragging and abs(horizontal_scroll_velocity) > 8.0 and game_scroll_container != null and is_instance_valid(game_scroll_container):
 		var horizontal_bar = game_scroll_container.get_h_scroll_bar()
 		var max_horizontal = max(0.0, horizontal_bar.max_value - horizontal_bar.page)
@@ -511,12 +514,43 @@ func _ready():
 	show_page("home")
 	_show_offline_summary()
 
+func _get_ambient_background_target():
+	# Muted colors keep the time-of-day atmosphere gentle and readable.
+	var day_color = Color("#24394b")
+	var dusk_color = Color("#3a3540")
+	var night_color = Color("#151f31")
+	var t = float(clock_cycle_seconds)
+	if t < 30.0:
+		return night_color.lerp(day_color, smoothstep(0.0, 30.0, t))
+	if t < 360.0:
+		return day_color
+	if t < 420.0:
+		return day_color.lerp(dusk_color, smoothstep(360.0, 420.0, t))
+	if t < 570.0:
+		return night_color
+	return night_color.lerp(day_color, smoothstep(570.0, 600.0, t))
+
+func _update_ambient_background(delta, immediate=false):
+	if ambient_background == null or not is_instance_valid(ambient_background):
+		return
+	var target = _get_ambient_background_target()
+	if immediate:
+		ambient_background_color = target
+	else:
+		# Slow interpolation avoids abrupt flashes and distracting changes.
+		ambient_background_color = ambient_background_color.lerp(target, clamp(float(delta) * 0.045, 0.0, 1.0))
+	ambient_background.color = ambient_background_color
+
 func _build_ui():
-	var background = ColorRect.new()
-	background.color = Color("#101827")
-	background.anchor_right = 1
-	background.anchor_bottom = 1
-	add_child(background)
+	ambient_background = ColorRect.new()
+	ambient_background.name = "SoftDayNightBackground"
+	ambient_background.color = Color("#172536")
+	ambient_background.anchor_right = 1
+	ambient_background.anchor_bottom = 1
+	ambient_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ambient_background.z_index = -100
+	add_child(ambient_background)
+	_update_ambient_background(0.0, true)
 	var root = VBoxContainer.new()
 	root.anchor_right = 1
 	root.anchor_bottom = 1
