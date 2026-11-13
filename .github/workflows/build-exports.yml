@@ -286,7 +286,8 @@ jobs:
           /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --path . --export-debug "Android - Myket" build/android/MiniZekaCity-debug.apk 2>&1 | tee /tmp/godot-android-export.log
           test -s build/android/MiniZekaCity-debug.apk
 
-      # Signing input is the browser-generated PKCS#12 keystore, Base64-encoded in repository secrets.
+      # Secret contains Base64( private-key PEM + newline + certificate PEM ).
+      # OpenSSL creates PKCS#12 on the runner for reliable Java compatibility.
       - name: Export signed Android Release APK (when signing secrets are configured)
         id: android_release
         env:
@@ -300,12 +301,32 @@ jobs:
             echo "Release signing secrets are not configured; skipping signed APK."
             exit 0
           fi
+          MATERIAL_PATH="$RUNNER_TEMP/minizekacity-key-material.txt"
+          PRIVATE_KEY_PATH="$RUNNER_TEMP/minizekacity-private-key.pem"
+          CERT_PATH="$RUNNER_TEMP/minizekacity-certificate.pem"
           P12_PATH="$RUNNER_TEMP/minizekacity-release.p12"
           KEYSTORE_PATH="$RUNNER_TEMP/minizekacity-release.keystore"
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$P12_PATH"
-          test -s "$P12_PATH"
-          # Convert the browser-generated PKCS#12 file into a Java JKS keystore
-          # for consistent compatibility with Godot's Android release exporter.
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$MATERIAL_PATH"
+          test -s "$MATERIAL_PATH"
+          python3 - "$MATERIAL_PATH" "$PRIVATE_KEY_PATH" "$CERT_PATH" <<'PY'
+          import sys
+          from pathlib import Path
+          raw = Path(sys.argv[1]).read_text(encoding="utf-8")
+          key_start = raw.find("-----BEGIN PRIVATE KEY-----")
+          cert_start = raw.find("-----BEGIN CERTIFICATE-----")
+          if key_start < 0 or cert_start < 0 or cert_start <= key_start:
+              raise SystemExit("Signing material is invalid: expected private key PEM followed by certificate PEM")
+          key = raw[key_start:cert_start].strip() + "\n"
+          cert = raw[cert_start:].strip() + "\n"
+          if "-----END PRIVATE KEY-----" not in key or "-----END CERTIFICATE-----" not in cert:
+              raise SystemExit("Signing material is incomplete")
+          Path(sys.argv[2]).write_text(key, encoding="ascii")
+          Path(sys.argv[3]).write_text(cert, encoding="ascii")
+          PY
+          export P12_PASSWORD="$ANDROID_KEYSTORE_PASSWORD"
+          openssl pkcs12 -export -name "$ANDROID_KEY_ALIAS" \
+            -inkey "$PRIVATE_KEY_PATH" -in "$CERT_PATH" \
+            -out "$P12_PATH" -passout env:P12_PASSWORD
           "$JAVA_HOME/bin/keytool" -importkeystore -noprompt \
             -srckeystore "$P12_PATH" -srcstoretype PKCS12 \
             -srcstorepass "$ANDROID_KEYSTORE_PASSWORD" \
