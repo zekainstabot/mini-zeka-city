@@ -159,6 +159,9 @@ func _process(delta):
 		clock_label.text = PersianText.reshaper("%s | زمان باقی‌مانده: " % phase) + _format_time_display(int(phase_remaining / 60), phase_remaining % 60)
 	if clock_save_accumulator >= 15.0:
 		clock_save_accumulator = 0.0
+		var citizen_reports_changed = game.check_citizen_reports()
+		if citizen_reports_changed and current_page == "report":
+			show_page("report")
 		game.state["clock_last_unix"] = Time.get_unix_time_from_system()
 		game.state["clock_cycle_seconds"] = int(clock_cycle_seconds)
 		game.save_game()
@@ -1025,6 +1028,12 @@ func _show_message(text):
 		return
 	if game != null and report_text != "" and game.has_method("add_report_event"):
 		game.add_report_event(report_text)
+
+func review_report_event(event_id):
+	if game.review_report_event(event_id):
+		show_page("report")
+	else:
+		_show_message("این گزارش قبلاً بررسی شده یا وجود ندارد.")
 
 func _show_welcome_mission_hint():
 	# Show the onboarding hint until the first tutorial mission is completed.
@@ -1926,15 +1935,17 @@ func show_page(page):
 		"report":
 			_add_label("گزارش وقایع شهر", 22)
 			var events = s.get("report_events", [])
-			_add_label("جدیدترین رویدادها بالا نمایش داده می‌شوند | سقف ذخیره: ۱۰۰ پیام | تعداد فعلی: %d" % events.size(), 15)
+			_add_label("گزارش‌ها تا زمان بررسی و زدن دکمه مربوطه باقی می‌مانند | تعداد فعلی: %d" % events.size(), 15)
 			if events.is_empty():
-				_add_label("هنوز رویدادی ثبت نشده است.", 18)
+				_add_label("گزارش بررسی‌نشده‌ای وجود ندارد.", 18)
 			else:
 				for event_index in range(events.size() - 1, -1, -1):
 					var event = events[event_index]
 					var stamp = Time.get_datetime_dict_from_unix_time(int(event.get("timestamp", 0)))
 					var time_text = "%02d/%02d - %02d:%02d" % [int(stamp.get("day", 1)), int(stamp.get("month", 1)), int(stamp.get("hour", 0)), int(stamp.get("minute", 0))]
-					_add_label("[%s] روز %d | %s" % [time_text, int(event.get("day", 1)), str(event.get("message", ""))], 17)
+					var status_text = " | حل شده" if bool(event.get("resolved", false)) else ""
+					_add_label("[%s] روز %d | %s%s" % [time_text, int(event.get("day", 1)), str(event.get("message", "")), status_text], 17)
+					_add_button("✓ بررسی و بستن گزارش", self, "review_report_event", [int(event.get("id", -1))])
 
 		"settings":
 			_add_label("⚙️ تنظیمات بازی", 24)
