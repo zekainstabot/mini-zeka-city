@@ -374,7 +374,7 @@ func _show_offline_summary():
 	else:
 		var shown_news = 0
 		for news_item in unique_digest_items:
-			if shown_news >= 5:
+			if shown_news >= 8:
 				break
 			var news_row = PanelContainer.new()
 			news_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
