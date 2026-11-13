@@ -397,6 +397,34 @@ func _queue_public_project_requests(engine):
 func _sort_civic_candidates(a, b):
 	return int(a.get("score",0)) > int(b.get("score",0))
 
+func _get_business_market_multiplier(state, business):
+	var building_id = str(business.get("building_id", ""))
+	var market_group = "other"
+	if building_id in ["grocery_store", "bakery", "restaurant"]:
+		market_group = "food"
+	elif building_id in ["woodcutter", "sawmill", "carpenter", "factory"]:
+		market_group = "industry"
+	elif building_id in ["office", "shopping_mall"]:
+		market_group = "services"
+	var competitors = 0
+	for other in state.get("private_businesses", []):
+		if int(other.get("id", 0)) == int(business.get("id", 0)):
+			continue
+		var other_id = str(other.get("building_id", ""))
+		var other_group = "other"
+		if other_id in ["grocery_store", "bakery", "restaurant"]:
+			other_group = "food"
+		elif other_id in ["woodcutter", "sawmill", "carpenter", "factory"]:
+			other_group = "industry"
+		elif other_id in ["office", "shopping_mall"]:
+			other_group = "services"
+		if market_group != "other" and other_group == market_group:
+			competitors += 1
+	var population_factor = clamp(0.7 + float(state.get("population", 0)) / 20.0, 0.8, 1.5)
+	var satisfaction_factor = clamp(0.75 + float(state.get("satisfaction", 50)) / 200.0, 0.85, 1.2)
+	var competition_factor = max(0.55, 1.0 - float(competitors) * 0.12)
+	return float(clamp(population_factor * satisfaction_factor * competition_factor, 0.55, 1.65))
+
 func _process_private_businesses(engine, report):
 	var state = engine.state
 	var tax_total = 0
@@ -424,7 +452,10 @@ func _process_private_businesses(engine, report):
 			employee_ids.append(int(citizen.get("id", 0)))
 		var workers = employee_ids.size()
 		var revenue_per_worker = int(business.get("revenue_per_worker", 50))
-		var revenue = revenue_per_worker * workers
+		var market_multiplier = _get_business_market_multiplier(state, business)
+		var revenue = int(round(float(revenue_per_worker * workers) * market_multiplier))
+		business["market_multiplier"] = market_multiplier
+		business["market_competition"] = market_multiplier
 		var cash = int(business.get("balance", 0))
 		var wage_budget = min(int(business.get("wage", 15)) * workers, cash + revenue)
 		var wage_paid = 0
@@ -459,7 +490,8 @@ func _process_private_businesses(engine, report):
 			state.citizens[owner_index] = owner
 		state.private_businesses[business_index] = business
 		if workers > 0:
-			report.append("%s خصوصی: فروش %d، حقوق %d، مالیات %d سکه؛ %d کارمند." % [str(data.name), revenue, wage_paid, tax_paid, workers])
+			var market_percent = int(round(market_multiplier * 100.0))
+			report.append("%s خصوصی: فروش %d، حقوق %d، مالیات %d سکه؛ %d کارمند؛ وضعیت بازار %d%%." % [str(data.name), revenue, wage_paid, tax_paid, workers, market_percent])
 	var accepted_tax = 0
 	if tax_total > 0:
 		accepted_tax = engine._add_money(tax_total)
