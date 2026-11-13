@@ -32,7 +32,7 @@ func _init():
 	# Main and side missions share one ordered progression.
 	var mission_game = EngineScript.new()
 	mission_game.new_game()
-	assert(mission_game.state.missions.size() == 61)
+	assert(mission_game.state.missions.size() == 60)
 	assert(bool(mission_game.state.missions[0].unlocked))
 	assert(not bool(mission_game.state.missions[1].unlocked))
 	assert(not bool(mission_game.state.missions[20].unlocked))
@@ -83,13 +83,13 @@ func _init():
 	var mission_ids = []
 	for mission_definition in mission_game.MISSION_DEFINITIONS:
 		mission_ids.append(str(mission_definition.id))
-	assert(mission_ids.size() == 61)
+	assert(mission_ids.size() == 60)
 	var active_mission_count = 0
 	for mission_definition in mission_game.MISSION_DEFINITIONS:
 		if not bool(mission_definition.get("legacy", false)):
 			active_mission_count += 1
-	assert(active_mission_count == 52)
-	for required_id in ["main_water","main_power","main_storage","main_school","main_clinic","main_wood","main_stone","main_sawmill","main_carpenter","main_city_bank","main_central_bank","main_level_five","side_sewage","side_waste","side_hospital","side_police","side_fire","side_university","side_cultural","side_iron_mine","side_fish_lake","side_fishing_dock","side_fish_market","side_fish_processing","side_grocery","side_bakery","side_restaurant","side_office","side_loan_paid","side_export_eight","side_collect_profit","side_positive_cashflow","side_high_satisfaction","side_expand_districts","side_private_tax"]:
+	assert(active_mission_count == 51)
+	for required_id in ["main_water","main_power","main_storage","main_school","main_clinic","main_wood","main_stone","main_sawmill","main_carpenter","main_city_bank","main_central_bank","main_level_five","side_sewage","side_waste","side_hospital","side_police","side_fire","side_university","side_cultural","side_iron_mine","side_fishing_dock","side_fish_market","side_fish_processing","side_grocery","side_bakery","side_restaurant","side_office","side_loan_paid","side_export_eight","side_collect_profit","side_positive_cashflow","side_high_satisfaction","side_expand_districts","side_private_tax"]:
 		assert(required_id in mission_ids)
 	var legacy_mission_game = EngineScript.new()
 	legacy_mission_game.state = {"version":16,"money":9700,"missions":[{"id":"side_population","claimed":true,"completed":true},{"id":"side_water","claimed":false,"completed":true,"progress":1},{"id":"buy_land_tutorial","claimed":true,"completed":true}],"buildings":[],"citizens":[],"resources":{},"market_stock":{}}
