@@ -1227,23 +1227,43 @@ func check_citizen_reports():
 		var residents = int(district_population.get(district_id, 0))
 		if residents <= 0:
 			continue
+		# Keep at most one active service request per district so the report
+		# inbox stays useful instead of flooding the player with eight items.
+		var selected_need = ""
 		for need_id in need_names.keys():
-			var coverage_data = service_snapshot[need_id]
-			var coverage = int(coverage_data.get("coverage", {}).get(district_id, 0))
-			var issue_key = "service_%s_%s" % [need_id, district_id]
-			if coverage < 65:
-				current_keys.append(issue_key)
-				if not active_keys.has(issue_key):
-					var message = "شهروندان %s گزارش داده‌اند: پوشش خدمات %s برای جمعیت این محله کافی نیست (%d%%). پیشنهاد: %s." % [str(district.get("name", "این محله")), need_names[need_id], coverage, need_advice[need_id]]
-					add_report_event(message, false, {"citizen_id":0,"district_id":district_id,"service_need":need_id,"issue_key":issue_key,"resolved":false})
+			var existing_key = "service_%s_%s" % [need_id, district_id]
+			var existing_coverage = int(service_snapshot[need_id].get("coverage", {}).get(district_id, 0))
+			if active_keys.has(existing_key) and existing_coverage < 65:
+				selected_need = need_id
+				break
+		if selected_need == "":
+			var best_priority = 999
+			for need_id in need_names.keys():
+				var coverage = int(service_snapshot[need_id].get("coverage", {}).get(district_id, 0))
+				var need_level = int(state.get("needs", {}).get(need_id, 60))
+				if coverage >= 65 or need_level > 75:
+					continue
+				var priority = need_level + int(coverage / 4)
+				if priority < best_priority:
+					best_priority = priority
+					selected_need = need_id
+		if selected_need != "":
+			var issue_key = "service_%s_%s" % [selected_need, district_id]
+			current_keys.append(issue_key)
+			if not active_keys.has(issue_key):
+				var coverage = int(service_snapshot[selected_need].get("coverage", {}).get(district_id, 0))
+				var message = "شهروندان %s گزارش داده‌اند: پوشش خدمات %s برای جمعیت این محله کافی نیست (%d%%). پیشنهاد: %s." % [str(district.get("name", "این محله")), need_names[selected_need], coverage, need_advice[selected_need]]
+				add_report_event(message, false, {"citizen_id":0,"district_id":district_id,"service_need":selected_need,"issue_key":issue_key,"resolved":false})
+				changed = true
+		for previous_key in active_keys:
+			if not str(previous_key).ends_with("_" + district_id) or current_keys.has(str(previous_key)):
+				continue
+			for event_index in range(state.report_events.size() - 1, -1, -1):
+				var event = state.report_events[event_index]
+				if str(event.get("issue_key", "")) == str(previous_key) and str(event.get("district_id", "")) == district_id and not bool(event.get("resolved", false)):
+					event["resolved"] = true
+					state.report_events[event_index] = event
 					changed = true
-			elif active_keys.has(issue_key):
-				for event_index in range(state.report_events.size() - 1, -1, -1):
-					var event = state.report_events[event_index]
-					if str(event.get("issue_key", "")) == issue_key and str(event.get("district_id", "")) == district_id and not bool(event.get("resolved", false)):
-						event["resolved"] = true
-						state.report_events[event_index] = event
-						changed = true
 	state["active_service_report_keys"] = current_keys
 	if changed:
 		save_game()
@@ -2294,11 +2314,15 @@ func _calculate_district_service_coverage(need_id):
 		if required_workers > 0 and workers <= 0:
 			continue
 		var capacity = int(data.get("service_capacity", 0))
-		if required_workers > 0:
-			capacity = int(round(float(capacity) * min(1.0, float(workers) / float(required_workers))))
 		var origin_index = _find_district_index(str(building.get("district_id", "")))
+		var radius = _get_service_radius(building_id)
+		# Infrastructure outside the city serves every district rather than
+		# losing its capacity because it has no district_id.
+		if origin_index < 0 and str(building.get("zone", "")) == "industrial" and not state.get("districts", []).is_empty():
+			origin_index = 0
+			radius = state.districts.size() - 1
 		if capacity > 0 and origin_index >= 0:
-			providers.append({"origin":origin_index,"capacity":capacity,"radius":_get_service_radius(building_id)})
+			providers.append({"origin":origin_index,"capacity":capacity,"radius":radius})
 	for business in state.get("private_businesses", []):
 		if bool(business.get("rented_municipal", false)):
 			continue
