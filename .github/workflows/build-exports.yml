@@ -311,9 +311,9 @@ jobs:
           start = lines.index('[preset.1.options]') + 1
           end = next((i for i in range(start, len(lines)) if lines[i].startswith('[preset.')), len(lines))
           values = {
-              'package/keystore': keystore,
-              'package/keystore_user': alias,
-              'package/keystore_password': password,
+              'keystore/release': keystore,
+              'keystore/release_user': alias,
+              'keystore/release_password': password,
           }
           for key, value in values.items():
               replacement = key + '=' + json.dumps(value)
