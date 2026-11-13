@@ -181,6 +181,26 @@ func _init():
 	assert(int(profit_game._get_mission_progress("side_collect_profit")) == 1)
 
 
+	# Private business revenue responds to population, satisfaction and same-sector competition.
+	var market_test_society = CitizenSocietyScript.new()
+	var market_state = {"population":20,"satisfaction":80,"private_businesses":[
+		{"id":1,"building_id":"grocery_store"},
+		{"id":2,"building_id":"bakery"},
+		{"id":3,"building_id":"restaurant"}
+	]}
+	var grocery_market = market_test_society._get_business_market_multiplier(market_state, market_state.private_businesses[0])
+	market_state.private_businesses = [{"id":1,"building_id":"grocery_store"}]
+	var monopoly_market = market_test_society._get_business_market_multiplier(market_state, market_state.private_businesses[0])
+	assert(grocery_market < monopoly_market)
+	market_state.population = 4
+	var small_city_market = market_test_society._get_business_market_multiplier(market_state, market_state.private_businesses[0])
+	market_state.population = 20
+	assert(monopoly_market > small_city_market)
+	market_state.satisfaction = 20
+	var low_satisfaction_market = market_test_society._get_business_market_multiplier(market_state, market_state.private_businesses[0])
+	market_state.satisfaction = 80
+	assert(monopoly_market > low_satisfaction_market)
+
 	# Engagement systems: rival cities, weekly city events, secrets, civic choices and landmarks.
 	var engagement_game = EngineScript.new()
 	engagement_game.new_game()
