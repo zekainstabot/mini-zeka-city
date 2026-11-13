@@ -69,6 +69,32 @@ jobs:
           timeout 15s /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --path . --audio-driver Dummy --quit 2>&1 | tee /tmp/godot-main-scene.log
           if grep -E "SCRIPT ERROR|Parse Error" /tmp/godot-main-scene.log; then exit 1; fi
 
+      - name: Set up Java 17 and Android SDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android build dependencies
+        run: |
+          set -euxo pipefail
+          sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0" "cmdline-tools;latest" "ndk;23.2.8568313" "cmake;3.10.2.4988404"
+
+      - name: Install Godot Android build template
+        run: |
+          set -euxo pipefail
+          /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --path . --install-android-build-template
+
+      - name: Export Android APK for device testing
+        run: |
+          set -o pipefail
+          mkdir -p build/android
+          /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --path . --export-debug "Android - Myket" build/android/MiniZekaCity-debug.apk 2>&1 | tee /tmp/godot-android-export.log
+          test -s build/android/MiniZekaCity-debug.apk
+
       - name: Export HTML5 build
         run: |
           set -o pipefail
@@ -101,6 +127,7 @@ jobs:
             /tmp/godot-ui-tests.log
             /tmp/godot-main-scene.log
             /tmp/godot-export.log
+            /tmp/godot-android-export.log
           if-no-files-found: ignore
           retention-days: 14
 
@@ -112,6 +139,13 @@ jobs:
           publish_dir: build/web
           force_orphan: true
           commit_message: "Deploy Mini ZekaCity web build: ${{ github.sha }}"
+
+      - name: Archive Android APK for testing
+        uses: actions/upload-artifact@v4
+        with:
+          name: mini-zeka-city-android-debug-apk
+          path: build/android/MiniZekaCity-debug.apk
+          retention-days: 14
 
       - name: Archive validated browser build
         uses: actions/upload-artifact@v4
