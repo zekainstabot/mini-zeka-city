@@ -658,7 +658,7 @@ func _build_ui():
 	nav.add_theme_constant_override("h_separation", 8)
 	nav.add_theme_constant_override("v_separation", 8)
 	root.add_child(nav)
-	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بانک و امور مالی","p":"bank"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار و تجارت","p":"commerce"},{"t":"جاده و ناوگان","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش","p":"report"},{"t":"ماموریت‌ها","p":"missions"},{"t":"پیشرفت شهر","p":"progress"}]:
+	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بانک و امور مالی","p":"bank"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار و تجارت","p":"commerce"},{"t":"زیرساخت و توسعه شهر","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش","p":"report"},{"t":"ماموریت‌ها","p":"missions"},{"t":"پیشرفت شهر","p":"progress"}]:
 		var nav_item = VBoxContainer.new()
 		nav_item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		nav_item.add_theme_constant_override("separation", 2)
@@ -680,7 +680,7 @@ func _build_ui():
 				"bank": nav_title = "بانک"
 				"private_economy": nav_title = "اقتصاد"
 				"commerce": nav_title = "بازار"
-				"transport": nav_title = "حمل‌ونقل"
+				"transport": nav_title = "زیرساخت"
 				"progress": nav_title = "پیشرفت"
 		var b = Button.new()
 		var civic_page_locked = item.p in ["municipality", "private_economy"] and not game.has_municipal_hall()
@@ -1319,10 +1319,6 @@ func show_page(page):
 			_style_button(save_city_button, false)
 		"buildings":
 			_add_label("ساخت‌وساز شهر", 22)
-			_add_label("زمین شهر: %d قطعه | اشغال‌شده: %d | آزاد: %d" % [int(s.get("land_owned",10)),game.get_land_used(),game.get_land_free()], 19)
-			_add_label("برای گسترش شهر باید زمین بخری؛ هر ساختمان چند قطعه از زمین را اشغال می‌کند.", 15)
-			var land_button = _add_button("خرید ۱ قطعه زمین | قیمت: %d سکه" % game.get_land_unit_price(), self, "buy_land")
-			land_button.disabled = game.get_available_money() < game.get_land_unit_price()
 			var building_groups = {
 				"مسکونی":["خانه‌ها"],
 				"انبارها":["انبارها"],
@@ -1746,7 +1742,13 @@ func show_page(page):
 					var import_city = game.get_import_cities()[import_city_id]
 					_add_button("قرارداد ۷ روزه: ۲ واحد چوب از "+import_city.name,self,"make_import_contract",[import_city_id,"wood",2,7])
 		"transport":
-			_add_label("🛣️ جاده‌ها و حمل‌ونقل شهری و بین‌شهری",22)
+			_add_label("🚧 زیرساخت و توسعه شهر",22)
+			_add_label("🗺️ زمین و گسترش محدوده شهر",19)
+			_add_label("زمین شهر: %d قطعه | اشغال‌شده: %d | آزاد: %d" % [int(s.get("land_owned",10)),game.get_land_used(),game.get_land_free()],17)
+			_add_label("برای گسترش شهر زمین بخر؛ هر ساختمان چند قطعه از زمین را اشغال می‌کند.",15)
+			var land_button = _add_button("خرید ۱ قطعه زمین | قیمت: %d سکه" % game.get_land_unit_price(), self, "buy_land")
+			land_button.disabled = game.get_available_money() < game.get_land_unit_price()
+			_add_label("🛣️ جاده‌ها و مسیرهای حمل‌ونقل",19)
 			_add_label("جاده‌های اصلی شهر و مسیرهای بین‌شهری",19)
 			_add_label("سطح جاده‌های بین‌شهری: %d از ۳" % int(s.get("road_level",1)),17)
 			var road_level = int(s.get("road_level",1))
@@ -2684,7 +2686,7 @@ func withdraw_bank_savings(index):
 
 func buy_land():
 	var result = game.buy_land(1)
-	show_page("buildings")
+	show_page("transport")
 	_show_message(result.message)
 
 func build_building(id):
@@ -2908,9 +2910,11 @@ func go_to_mission_target(mission_id):
 			selected_building_category = "کسب‌وکارها"
 		"daily_day":
 			target_page = "home"
-		"buy_land_tutorial", "build_house_tutorial":
+		"buy_land_tutorial":
+			target_page = "transport"
+		"build_house_tutorial":
 			target_page = "buildings"
-			selected_building_category = "خانه‌ها" if str(mission_id) == "build_house_tutorial" else ""
+			selected_building_category = "خانه‌ها"
 		"build_farm_tutorial", "side_fish_lake", "side_fishing_dock":
 			target_page = "buildings"
 			selected_building_category = "کشاورزی"
