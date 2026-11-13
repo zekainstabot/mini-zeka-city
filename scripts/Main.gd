@@ -1346,7 +1346,7 @@ func show_page(page):
 				group_button.add_theme_color_override("font_color_hover", Color("#ffffff"))
 				if group_expanded:
 					var subgroup_panel = PanelContainer.new()
-				subgroup_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+					subgroup_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 					var subgroup_style = StyleBoxFlat.new()
 					subgroup_style.bg_color = Color("#172536")
 					subgroup_style.border_color = Color("#60a5fa")
