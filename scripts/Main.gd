@@ -950,7 +950,7 @@ func _show_message(text):
 	message_label.text = PersianText.reshaper(text)
 	var report_text = str(text).strip_edges()
 	# Keep temporary construction-blocking feedback out of the permanent city report.
-	if report_text == "برای ساخت این ساختمان جمعیت کافی نیست.":
+	if report_text in ["برای ساخت این ساختمان جمعیت کافی نیست.", "به ساختمان موردنیاز این مأموریت رفتی."]:
 		return
 	if game != null and report_text != "" and game.has_method("add_report_event"):
 		game.add_report_event(report_text)
@@ -2868,7 +2868,7 @@ func go_to_mission_target(mission_id):
 		game_scroll_container.scroll_vertical = 0
 		if mission_target_building_id != "":
 			call_deferred("_scroll_to_mission_target_building")
-	# انتقال به ساختمان مأموریت بدون پیام اضافی انجام می‌شود.
+	_show_message("به ساختمان موردنیاز این مأموریت رفتی.")
 
 func _scroll_to_mission_target_building():
 	if game_scroll_container == null or not is_instance_valid(game_scroll_container):
