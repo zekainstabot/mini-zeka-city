@@ -1324,6 +1324,24 @@ func _next_citizen_request_id():
 		highest = max(highest, int(request.get("id", 0)))
 	return highest + 1
 
+func _create_house_citizen_requests(building_id):
+	var definition = BUILDINGS.get(str(building_id), {})
+	var new_capacity = int(definition.get("capacity", 0))
+	if new_capacity <= 0:
+		return 0
+	var free_slots = max(0, get_housing_capacity() - int(state.get("population", 0)) - state.get("citizen_requests", []).size())
+	var request_count = min(new_capacity, free_slots)
+	for request_number in range(request_count):
+		var request_id = _next_citizen_request_id()
+		state.citizen_requests.append({
+			"id": request_id,
+			"day": int(state.get("day", 1)),
+			"source": "new_house",
+			"building_id": str(building_id),
+			"building_name": str(definition.get("name", "خانه"))
+		})
+	return request_count
+
 func set_citizen_recruitment_mode(mode):
 	if str(mode) != "auto" and str(mode) != "manual":
 		return {"ok":false,"message":"حالت جذب نامعتبر است."}
@@ -1354,7 +1372,7 @@ func reject_citizen_request(request_index):
 
 func _process_citizen_recruitment(report):
 	var housing = get_housing_capacity()
-	var pending_requests = state.citizen_requests.size() if str(state.get("citizen_recruitment_mode", "auto")) == "manual" else 0
+	var pending_requests = state.citizen_requests.size()
 	var available_slots = max(0, housing - int(state.population) - pending_requests)
 	# A city receives 5 to 10 potential residents per game day, limited by free housing.
 	if available_slots <= 0 or int(state.reputation) < 25:
@@ -1798,15 +1816,18 @@ func build(id):
 	if id in ["stone_mine", "iron_mine"]:
 		_register_mine(new_index, id)
 	_sync_population()
+	var new_citizen_requests = _create_house_citizen_requests(id)
 	assign_jobs()
 	_update_missions()
 	save_game()
-	return {"ok":true,"message":data.name+" با موفقیت در %s ساخته شد. +%d تجربه. %s" % [location_label,earned_xp,xp_message]}
+	var resident_message = (" %d درخواست مهاجرت ثبت شد؛ از بخش شهروندان بررسی‌شان کن." % new_citizen_requests) if new_citizen_requests > 0 else ""
+	return {"ok":true,"message":data.name+" با موفقیت در %s ساخته شد. +%d تجربه. %s%s" % [location_label,earned_xp,xp_message,resident_message]}
 
 func process_constructions():
 	var now = Time.get_unix_time_from_system()
 	var remaining = []
 	var completed = []
+	var completed_building_ids = []
 	for construction in state.get("constructions", []):
 		if int(construction.get("finish_at", 0)) > now:
 			remaining.append(construction)
@@ -1820,12 +1841,18 @@ func process_constructions():
 			if id == "central_bank":
 				state.central_bank_rebuild_days_left = 0
 			completed.append(str(BUILDINGS[id].name)+" ("+str(construction.get("district_name","منطقه صنعتی خارج شهر"))+")")
+			completed_building_ids.append(id)
 	state["constructions"] = remaining
 	if completed.size() > 0:
 		_sync_population()
+		var new_citizen_requests = 0
+		for completed_id in completed_building_ids:
+			new_citizen_requests += _create_house_citizen_requests(completed_id)
 		assign_jobs()
 		_update_missions()
 		state["last_report"] = "ساخت‌وساز تکمیل شد: " + "، ".join(completed)
+		if new_citizen_requests > 0:
+			state["last_report"] += " | %d درخواست مهاجرت ثبت شد؛ از بخش شهروندان بررسی‌شان کن." % new_citizen_requests
 		save_game()
 		return true
 	return false
