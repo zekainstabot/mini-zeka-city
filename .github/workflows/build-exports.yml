@@ -118,7 +118,11 @@ jobs:
               });
               const errors = [];
               page.on("console", (message) => {
-                if (message.type() === "error") errors.push(message.text());
+                if (message.type() === "error") {
+                  const text = message.text();
+                  // Headless Linux has no physical display orientation; this Godot warning is expected in CI.
+                  if (!text.includes("Orientation not supported by this display server")) errors.push(text);
+                }
               });
               page.on("pageerror", (error) => errors.push(error.message));
               await page.goto("http://127.0.0.1:8765/", {
