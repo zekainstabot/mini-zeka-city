@@ -274,6 +274,7 @@ func new_game():
 		"money": 10000,
 		"population": 4,
 		"citizen_recruitment_mode": "auto",
+		"citizen_recruitment_timer": 0.0,
 		"citizen_requests": [],
 		"constructions": [],
 		"land_owned": 10,
@@ -1152,6 +1153,7 @@ func _normalize_state():
 	state["land_owned"] = max(3, int(state.get("land_owned", 10)))
 	if not (str(state.get("citizen_recruitment_mode", "auto")) in ["auto", "manual"]):
 		state["citizen_recruitment_mode"] = "auto"
+	state["citizen_recruitment_timer"] = max(0.0, float(state.get("citizen_recruitment_timer", 0.0)))
 	if typeof(state.get("resources", null)) != TYPE_DICTIONARY:
 		state.resources = {}
 	if typeof(state.get("storage_rules", null)) != TYPE_DICTIONARY:
@@ -1424,6 +1426,46 @@ func _process_citizen_recruitment(report):
 		state.citizens.append({"id":_next_citizen_id(),"job":"","job_building_index":-1,"wallet":100})
 	report.append("%d شهروند جدید به‌صورت خودکار به شهر مهاجرت کردند." % arrivals)
 	assign_jobs()
+
+func process_citizen_recruitment_interval(delta):
+	if delta <= 0.0:
+		return 0
+	var timer = float(state.get("citizen_recruitment_timer", 0.0)) + float(delta)
+	var completed_intervals = int(floor(timer / 60.0))
+	state["citizen_recruitment_timer"] = fmod(timer, 60.0)
+	if completed_intervals <= 0:
+		return 0
+	var total_added = 0
+	var changed = false
+	for interval_index in range(completed_intervals):
+		if int(state.get("reputation", 0)) < 25:
+			continue
+		var pending = state.get("citizen_requests", [])
+		var free_slots = max(0, get_housing_capacity() - int(state.get("population", 0)) - pending.size())
+		var batch_size = min(3, free_slots)
+		if batch_size <= 0:
+			continue
+		if str(state.get("citizen_recruitment_mode", "auto")) == "manual":
+			for request_number in range(batch_size):
+				state.citizen_requests.append({
+					"id": _next_citizen_request_id(),
+					"day": int(state.get("day", 1)),
+					"source": "periodic_recruitment"
+				})
+		else:
+			for arrival_number in range(batch_size):
+				state.population += 1
+				state.citizens.append({"id":_next_citizen_id(),"job":"","job_building_index":-1,"wallet":100})
+			total_added += batch_size
+			changed = true
+			continue
+		total_added += batch_size
+		changed = true
+	if changed:
+		if str(state.get("citizen_recruitment_mode", "auto")) == "auto":
+			assign_jobs()
+		save_game()
+	return total_added
 
 func _next_citizen_id():
 	var highest = 0
@@ -2651,7 +2693,6 @@ func end_day(is_offline=false):
 		state.market_stock[restock_id] = min(100, int(state.market_stock.get(restock_id, 0)) + 5)
 	_refresh_trade_capacity()
 
-	_process_citizen_recruitment(report)
 	var citizen_economy = CitizenSociety.new().process_day(self, report)
 	var private_tax_accepted = int(citizen_economy.get("private_business_tax", 0))
 	var citizen_loan_repayments = int(citizen_economy.get("citizen_loan_repayments", 0))
