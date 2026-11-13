@@ -17,8 +17,8 @@ button:disabled{opacity:.5;cursor:wait}.status{margin-top:14px;padding:10px;bord
 <body>
 <main>
 <h1>ساخت کلید امضای مینی زکا سیتی</h1>
-<p>این ابزار یک فایل کلید اندروید با فرمت PKCS#12 می‌سازد تا برای امضای نسخه‌های بعدی بازی از همان کلید استفاده شود.</p>
-<div class="warn"><b>مهم:</b> رمز را خودت انتخاب کن و در جای امن نگه دار. فایل کلید و رمز را گم نکن؛ بدون آن‌ها انتشار آپدیت با امضای قبلی ممکن نیست. رمز را در چت یا کد عمومی GitHub نفرست.</div>
+<p>این ابزار کلید خصوصی و گواهی امضای اندروید را می‌سازد و تطابق آن‌ها را قبل از دانلود بررسی می‌کند. فایل PKCS#12 در GitHub Actions ساخته می‌شود تا با Java سازگار باشد.</p>
+<div class="warn"><b>مهم:</b> رمز را خودت انتخاب کن و در جای امن نگه دار. فایل متنی و رمز را گم نکن؛ بدون آن‌ها انتشار آپدیت با امضای قبلی ممکن نیست. رمز را در چت یا کد عمومی GitHub نفرست.</div>
 <label for="pw">رمز دلخواه (حداقل ۱۲ نویسه)</label>
 <input id="pw" type="password" minlength="12" autocomplete="new-password" placeholder="ترکیبی از حروف و اعداد">
 <label for="pw2">تکرار رمز</label>
@@ -53,16 +53,21 @@ button.addEventListener('click',()=>{
     cert.setSubject(attrs);cert.setIssuer(attrs);
     cert.setExtensions([{name:'basicConstraints',cA:false},{name:'keyUsage',digitalSignature:true,keyEncipherment:true},{name:'subjectKeyIdentifier'}]);
     cert.sign(keys.privateKey,forge.md.sha256.create());
-    const p12=forge.pkcs12.toPkcs12Asn1(keys.privateKey,cert,password,{algorithm:'3des',friendlyName:'minizekacity',generateLocalKeyId:true});
-    const der=forge.asn1.toDer(p12).getBytes();
-    const bytes=new Uint8Array(der.length);
-    for(let i=0;i<der.length;i++)bytes[i]=der.charCodeAt(i);
-    const blob=new Blob([bytes],{type:'application/x-pkcs12'});
-    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='minizekacity-release.p12';a.click();
-    const b64=forge.util.encode64(der);
+    const privatePem=forge.pki.privateKeyToPem(keys.privateKey);
+    const certPem=forge.pki.certificateToPem(cert);
+    const parsedKey=forge.pki.privateKeyFromPem(privatePem);
+    const parsedCert=forge.pki.certificateFromPem(certPem);
+    const message='Mini Zeka City signing key validation';
+    const sign=forge.md.sha256.create();sign.update(message);
+    const proof=forge.pki.rsa.sign(parsedKey,sign);
+    const check=forge.md.sha256.create();check.update(message);
+    if(!parsedCert.publicKey.verify(check.digest().bytes(),proof)) throw new Error('کلید خصوصی و گواهی با هم تطابق ندارند.');
+    const material=privatePem+'\n'+certPem;
+    const b64=forge.util.encode64(forge.util.encodeUtf8(material));
     const txt=new Blob([b64],{type:'text/plain;charset=utf-8'});
-    const b=document.createElement('a');b.href=URL.createObjectURL(txt);b.download='minizekacity-release-base64.txt';b.click();
-    statusBox.textContent='ساخت انجام شد. دو فایل دانلود شد:\n۱) minizekacity-release.p12 — فایل کلید\n۲) minizekacity-release-base64.txt — متن لازم برای GitHub Secret\n\nرمز انتخابی و هر دو فایل را در جای امن نگه دار. محتوای فایل‌ها را برای کسی نفرست.';
+    const a=document.createElement('a');const url=URL.createObjectURL(txt);a.href=url;a.download='minizekacity-release-base64.txt';a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+    statusBox.textContent='کلید ساخته و تطابق کلید خصوصی و گواهی بررسی شد.\nفقط یک فایل دانلود شد: minizekacity-release-base64.txt\n\nمحتوای آن را در Secret با نام ANDROID_KEYSTORE_BASE64 بگذار. رمز انتخابی در Secret با نام ANDROID_KEYSTORE_PASSWORD و alias همان minizekacity است.\n\nفایل و رمز را در جای امن نگه دار و برای کسی نفرست.';
    }catch(e){statusBox.textContent='ساخت فایل ناموفق بود: '+(e&&e.message?e.message:String(e));}
    finally{button.disabled=false;}
   });
