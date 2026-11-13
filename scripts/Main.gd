@@ -227,7 +227,23 @@ func _show_offline_summary():
 	var viewport_size = get_viewport_rect().size
 	var compact = viewport_size.x < 700
 	var popup_width = max(280.0, min(viewport_size.x - 28.0, 540.0))
-	var popup_height = max(360.0, min(viewport_size.y - 28.0, 650.0))
+
+	# Remove repeated offline events before sizing and displaying the report.
+	var digest_items = game.state.get("pending_offline_digest", [])
+	var unique_digest_items: Array = []
+	var seen_digest_items: Dictionary = {}
+	for digest_item in digest_items:
+		var digest_text = str(digest_item).strip_edges()
+		if digest_text.is_empty() or seen_digest_items.has(digest_text):
+			continue
+		seen_digest_items[digest_text] = true
+		unique_digest_items.append(digest_item)
+
+	# Keep the dialog compact on phones; long reports scroll inside the news area.
+	var news_count = min(unique_digest_items.size(), 5)
+	var desired_height = 285.0 + news_count * 38.0
+	var max_popup_height = min(viewport_size.y * 0.78, 480.0 if compact else 560.0)
+	var popup_height = clamp(desired_height, 320.0, max_popup_height)
 	var popup = PopupPanel.new()
 	offline_summary_popup = popup
 	popup.name = "OfflineIncomePopup"
@@ -338,7 +354,7 @@ func _show_offline_summary():
 
 	var news_scroll = ScrollContainer.new()
 	news_scroll.name = "OfflineNewsScroll"
-	news_scroll.custom_minimum_size = Vector2(0, 70 if compact else 110)
+	news_scroll.custom_minimum_size = Vector2(0, 90 if compact else 120)
 	news_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	news_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	layout.add_child(news_scroll)
@@ -347,8 +363,7 @@ func _show_offline_summary():
 	news_list.add_theme_constant_override("separation", 5)
 	news_scroll.add_child(news_list)
 
-	var digest_items = game.state.get("pending_offline_digest", [])
-	if digest_items.is_empty():
+	if unique_digest_items.is_empty():
 		var empty_news = Label.new()
 		empty_news.text = PersianText.reshaper("اتفاق مهمی ثبت نشده؛ شهر آرام بوده است.")
 		empty_news.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -358,8 +373,8 @@ func _show_offline_summary():
 		news_list.add_child(empty_news)
 	else:
 		var shown_news = 0
-		for news_item in digest_items:
-			if shown_news >= 8:
+		for news_item in unique_digest_items:
+			if shown_news >= 5:
 				break
 			var news_row = PanelContainer.new()
 			news_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
