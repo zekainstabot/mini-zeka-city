@@ -17,8 +17,8 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
           set -euo pipefail
-          if [ -z "$KEYSTORE_PASSWORD" ]; then
-            echo "Missing repository secret ANDROID_KEYSTORE_PASSWORD." >&2
+          if [ -z "$KEYSTORE_PASSWORD" ] || [ "${#KEYSTORE_PASSWORD}" -lt 24 ]; then
+            echo "Set ANDROID_KEYSTORE_PASSWORD to a new password with at least 24 characters before generating the key." >&2
             exit 1
           fi
           if [ -z "$KEY_ALIAS" ]; then
