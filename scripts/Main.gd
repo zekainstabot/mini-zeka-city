@@ -264,14 +264,20 @@ func _show_offline_summary():
 	# the actual controls instead of reserving a guessed, oversized height.
 	var shown_news_count = min(unique_digest_items.size(), 8)
 	var visible_news_rows = min(shown_news_count, 4)
-	var news_area_height = 42.0 * max(1, visible_news_rows)
+	# Give the popup a deliberate, viewport-bounded size. The report itself
+	# takes the remaining space and scrolls, so wrapped news cannot stretch
+	# the dialog or leave an oversized empty area below the actions.
+	var popup_height = min(viewport_size.y - 32.0, 350.0 + 42.0 * max(1, visible_news_rows))
+	popup_height = max(300.0, popup_height)
 	var popup = PopupPanel.new()
 	offline_summary_popup = popup
 	popup.name = "OfflineIncomePopup"
 
 	var card = PanelContainer.new()
-	card.custom_minimum_size = Vector2(popup_width, 0)
-	card.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	card.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	card.custom_minimum_size = Vector2(popup_width, popup_height)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var card_style = StyleBoxFlat.new()
 	card_style.bg_color = Color("#111c2e")
 	card_style.border_color = Color("#475569")
@@ -286,8 +292,9 @@ func _show_offline_summary():
 
 	var layout = VBoxContainer.new()
 	layout.name = "OfflineSummaryLayout"
+	layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	layout.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	layout.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	layout.add_theme_constant_override("separation", 7 if compact else 10)
 	card.add_child(layout)
 
@@ -376,9 +383,9 @@ func _show_offline_summary():
 
 	var news_scroll = ScrollContainer.new()
 	news_scroll.name = "OfflineNewsScroll"
-	news_scroll.custom_minimum_size = Vector2(0, news_area_height if shown_news_count > 0 else 42.0)
+	news_scroll.custom_minimum_size = Vector2(0, 72.0)
 	news_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	news_scroll.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	news_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	news_scroll.scroll_deadzone = 8
 	news_scroll.gui_input.connect(_on_offline_news_gui_input.bind(news_scroll))
 	layout.add_child(news_scroll)
@@ -449,11 +456,8 @@ func _show_offline_summary():
 	layout.add_child(later_button)
 
 	add_child(popup)
-	# Width is fixed for a tidy mobile layout; height is content-driven so the
-	# native window cannot retain a large empty area below the buttons.
-	card.custom_minimum_size.x = popup_width
-	popup.reset_size()
-	popup.popup_centered()
+	popup.min_size = Vector2i(int(popup_width), int(popup_height))
+	popup.popup_centered(Vector2i(int(popup_width), int(popup_height)))
 
 func _claim_offline_income():
 	if offline_summary_popup != null and is_instance_valid(offline_summary_popup):
