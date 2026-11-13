@@ -454,5 +454,19 @@ func _init():
 	assert(not district_type_limit_game._district_can_accept(first_district, "small_park"))
 	assert(district_type_limit_game._district_can_accept(first_district, "playground"))
 
+	# Citizens independently select roles that fit their personal career interests.
+	var independent_jobs_game = EngineScript.new()
+	independent_jobs_game.new_game()
+	independent_jobs_game.state.population = 2
+	independent_jobs_game.state.citizens = [
+		{"id":1,"job":"","job_building_index":-1,"business_interest":"industry","career_sector":"industry","education":35,"creativity":30,"initiative":75},
+		{"id":2,"job":"","job_building_index":-1,"business_interest":"food","career_sector":"food","education":35,"creativity":75,"initiative":45}
+	]
+	independent_jobs_game.state.buildings.append({"id":"farm","workers":0,"balance":0})
+	independent_jobs_game.state.buildings.append({"id":"factory","workers":0,"balance":0})
+	independent_jobs_game.assign_jobs()
+	assert(str(independent_jobs_game.state.citizens[0].get("job","")) == "factory")
+	assert(str(independent_jobs_game.state.citizens[1].get("job","")) == "farm")
+
 	print("Mini ZekaCity logic smoke tests passed.")
 	quit()
