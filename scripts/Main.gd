@@ -450,12 +450,15 @@ func _ready():
 		game.new_game()
 		game.save_game()
 	var saved_orientation = str(game.state.get("screen_orientation", "landscape"))
-	if saved_orientation == "portrait":
-		DisplayServer.screen_set_orientation(DisplayServer.SCREEN_PORTRAIT)
-	else:
+	if saved_orientation != "portrait":
 		game.state["screen_orientation"] = "landscape"
-		DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
 		game.save_game()
+	# Orientation changes are supported on mobile, not in browser/desktop builds.
+	if OS.get_name() in ["Android", "iOS"]:
+		if saved_orientation == "portrait":
+			DisplayServer.screen_set_orientation(DisplayServer.SCREEN_PORTRAIT)
+		else:
+			DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
 	game.register_login_today()
 	game.get_daily_missions()
 	game.get_weekly_challenge()
@@ -1076,10 +1079,12 @@ func set_screen_orientation(mode):
 	var selected_mode = "portrait" if str(mode) == "portrait" else "landscape"
 	game.state["screen_orientation"] = selected_mode
 	game.save_game()
-	if selected_mode == "portrait":
-		DisplayServer.screen_set_orientation(DisplayServer.SCREEN_PORTRAIT)
-	else:
-		DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
+	# Save the preference everywhere; apply it only on native mobile devices.
+	if OS.get_name() in ["Android", "iOS"]:
+		if selected_mode == "portrait":
+			DisplayServer.screen_set_orientation(DisplayServer.SCREEN_PORTRAIT)
+		else:
+			DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
 	show_page("settings")
 
 func toggle_music_enabled():
