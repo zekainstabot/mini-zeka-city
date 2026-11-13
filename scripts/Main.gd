@@ -449,6 +449,13 @@ func _ready():
 	if not game.load_game():
 		game.new_game()
 		game.save_game()
+	var saved_orientation = str(game.state.get("screen_orientation", "landscape"))
+	if saved_orientation == "portrait":
+		DisplayServer.screen_set_orientation(DisplayServer.SCREEN_PORTRAIT)
+	else:
+		game.state["screen_orientation"] = "landscape"
+		DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
+		game.save_game()
 	game.register_login_today()
 	game.get_daily_missions()
 	game.get_weekly_challenge()
@@ -566,6 +573,7 @@ func _build_ui():
 	root.add_child(menu_panel)
 	menu_pause_button = _create_menu_action("⏸ توقف بازی", "toggle_pause")
 	_create_menu_action("🔊 صدا و موسیقی", "open_audio_settings")
+	_create_menu_action("⚙️ تنظیمات بازی", "open_game_settings")
 	_create_menu_action("💾 ذخیره بازی", "save_from_menu")
 	_create_menu_action("🔄 شروع دوباره شهر", "confirm_restart_from_menu")
 	_create_menu_action("🏙️ بازگشت به شهر من", "return_home_from_menu")
@@ -1057,6 +1065,21 @@ func open_audio_settings():
 	if menu_panel != null:
 		menu_panel.visible = false
 	show_page("audio")
+
+func open_game_settings():
+	if menu_panel != null:
+		menu_panel.visible = false
+	show_page("settings")
+
+func set_screen_orientation(mode):
+	var selected_mode = "portrait" if str(mode) == "portrait" else "landscape"
+	game.state["screen_orientation"] = selected_mode
+	game.save_game()
+	if selected_mode == "portrait":
+		DisplayServer.screen_set_orientation(DisplayServer.SCREEN_PORTRAIT)
+	else:
+		DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
+	show_page("settings")
 
 func toggle_music_enabled():
 	audio_manager.set_music_enabled(not audio_manager.is_music_enabled())
@@ -1849,6 +1872,12 @@ func show_page(page):
 					var time_text = "%02d/%02d - %02d:%02d" % [int(stamp.get("day", 1)), int(stamp.get("month", 1)), int(stamp.get("hour", 0)), int(stamp.get("minute", 0))]
 					_add_label("[%s] روز %d | %s" % [time_text, int(event.get("day", 1)), str(event.get("message", ""))], 17)
 
+		"settings":
+			_add_label("⚙️ تنظیمات بازی", 24)
+			_add_label("جهت نمایش بازی را متناسب با گوشی خود انتخاب کن. تغییر جهت بلافاصله اعمال و ذخیره می‌شود.", 16)
+			var current_orientation = str(game.state.get("screen_orientation", "landscape"))
+			_add_button(("📱 افقی ✓" if current_orientation == "landscape" else "📱 افقی"), self, "set_screen_orientation", ["landscape"])
+			_add_button(("📱 عمودی ✓" if current_orientation == "portrait" else "📱 عمودی"), self, "set_screen_orientation", ["portrait"])
 		"audio":
 			_add_label("🔊 تنظیمات صدا و موسیقی", 24)
 			_add_label("تمام صداها و موسیقی‌ها اختصاصی و به‌صورت ریاضی درون بازی ساخته می‌شوند؛ فایل صوتی دارای حق‌نشر استفاده نشده است.", 16)
