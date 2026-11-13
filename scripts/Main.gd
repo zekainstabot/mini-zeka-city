@@ -2868,7 +2868,7 @@ func go_to_mission_target(mission_id):
 		game_scroll_container.scroll_vertical = 0
 		if mission_target_building_id != "":
 			call_deferred("_scroll_to_mission_target_building")
-	_show_message("به ساختمان موردنیاز این مأموریت رفتی.")
+	# انتقال به ساختمان مأموریت بدون پیام اضافی انجام می‌شود.
 
 func _scroll_to_mission_target_building():
 	if game_scroll_container == null or not is_instance_valid(game_scroll_container):
