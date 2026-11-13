@@ -242,27 +242,37 @@ func _init():
 	assert(manual_recruitment_game.state.citizen_requests.is_empty())
 	assert(manual_recruitment_game.state.citizens.size() == 6)
 
-	# Three residents/requests are generated per real-time minute, bounded by housing.
+	# Citizen growth follows city satisfaction, reputation and available housing.
 	var timed_auto_game = EngineScript.new()
 	timed_auto_game.new_game()
 	timed_auto_game.state.buildings.append({"id":"small_house","workers":0,"balance":0})
 	timed_auto_game.state.buildings.append({"id":"small_house","workers":0,"balance":0})
 	assert(timed_auto_game.process_citizen_recruitment_interval(59.0) == 0)
-	assert(timed_auto_game.process_citizen_recruitment_interval(1.0) == 3)
-	assert(int(timed_auto_game.state.population) == 7)
+	assert(timed_auto_game.process_citizen_recruitment_interval(1.0) == 2)
+	assert(int(timed_auto_game.state.population) == 6)
 	assert(timed_auto_game.state.citizen_requests.is_empty())
-	assert(timed_auto_game.process_citizen_recruitment_interval(60.0) == 1)
+	timed_auto_game.state.satisfaction = 75
+	assert(timed_auto_game.process_citizen_recruitment_interval(60.0) == 2)
 	assert(int(timed_auto_game.state.population) == 8)
+
+	var low_satisfaction_game = EngineScript.new()
+	low_satisfaction_game.new_game()
+	low_satisfaction_game.state.buildings.append({"id":"small_house","workers":0,"balance":0})
+	low_satisfaction_game.state.satisfaction = 20
+	assert(low_satisfaction_game.process_citizen_recruitment_interval(60.0) == 0)
+	low_satisfaction_game.state.satisfaction = 35
+	assert(low_satisfaction_game.process_citizen_recruitment_interval(60.0) == 1)
 
 	var timed_manual_game = EngineScript.new()
 	timed_manual_game.new_game()
 	timed_manual_game.set_citizen_recruitment_mode("manual")
 	timed_manual_game.state.buildings.append({"id":"small_house","workers":0,"balance":0})
 	timed_manual_game.state.buildings.append({"id":"small_house","workers":0,"balance":0})
-	assert(timed_manual_game.process_citizen_recruitment_interval(60.0) == 3)
+	assert(timed_manual_game.process_citizen_recruitment_interval(60.0) == 2)
 	assert(int(timed_manual_game.state.population) == 4)
-	assert(timed_manual_game.state.citizen_requests.size() == 3)
-	assert(timed_manual_game.process_citizen_recruitment_interval(60.0) == 1)
+	assert(timed_manual_game.state.citizen_requests.size() == 2)
+	timed_manual_game.state.satisfaction = 75
+	assert(timed_manual_game.process_citizen_recruitment_interval(60.0) == 2)
 	assert(timed_manual_game.state.citizen_requests.size() == 4)
 
 	var market_result = game.buy_resource("food", 5)
