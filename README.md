@@ -97,6 +97,35 @@ Open `project.godot` in Godot 3.6.x and run the project.
 - مزرعه با ۴ کارمند فعال روزانه ۸ واحد غذا تولید می‌کند؛ بخشی از ذخیره غذا برای مصرف شهر حفظ می‌شود و فروش خودکار آن را خالی نمی‌کند.
 - داده‌های ذخیره قدیمی به نسخه ۸ مهاجرت می‌کنند و منبع جدید غذا با مقدار صفر مقداردهی می‌شود.
 
+## به‌روزرسانی اندروید بدون حذف بازی
+
+- شناسه بسته اندروید باید در تمام نسخه‌ها دقیقاً `com.zekainstabot.minizekacity` باقی بماند؛ آن را تغییر نده.
+- ذخیره شهر در `user://mini_zeka_city_save.json` نگهداری می‌شود؛ نصب نسخه جدید با همان شناسه و همان کلید امضا، اطلاعات برنامه را حفظ می‌کند.
+- گردش کار GitHub Actions در هر اجرا `version/code` را به‌صورت افزایشی و `version/name` را به شکل `1.0.RUN_NUMBER` تنظیم می‌کند.
+- برای ساخت نسخه انتشار، یک کلید امضای دائمی بساز و سه GitHub Actions Secret زیر را در Settings → Secrets and variables → Actions مخفیانه ثبت کن:
+  - `ANDROID_KEYSTORE_BASE64`: محتوای فایل keystore با کدگذاری Base64
+  - `ANDROID_KEYSTORE_PASSWORD`: رمز keystore
+  - `ANDROID_KEY_ALIAS`: نام alias کلید
+- فایل keystore و رمز آن را هرگز در GitHub، کد پروژه یا پیام عمومی قرار نده؛ چند نسخه پشتیبان امن و آفلاین از فایل keystore نگه دار. گم‌شدن کلید، انتشار آپدیت سازگار را غیرممکن می‌کند.
+- پس از ثبت Secrets، اجرای بعدی Actions علاوه بر APK آزمایشی، آرتیفکت `mini-zeka-city-android-release-apk` را نیز می‌سازد. تا قبل از ثبت Secrets، فقط APK آزمایشی Debug ساخته می‌شود.
+
+### ساخت کلید امضای دائمی در ویندوز
+
+در ترمینال ویندوز که Java نصب است اجرا کن؛ رمز را خودت انتخاب کن و آن را در جای امن نگه دار:
+
+```powershell
+keytool -genkeypair -v -keystore minizekacity-release.keystore -alias minizekacity -keyalg RSA -keysize 2048 -validity 10000
+```
+
+برای ساخت مقدار Base64 و کپی آن در کلیپ‌بورد:
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes(".\minizekacity-release.keystore")) | Set-Clipboard
+```
+
+سپس سه Secret بالا را در تنظیمات مخزن GitHub ثبت کن. مقدار alias در این نمونه `minizekacity` است. هنگام ساخت کلید، رمز کلید و رمز keystore را یکسان انتخاب کن.
+
+**نکته انتشار اول:** APKهای Debug فعلی با کلید Debug امضا شده‌اند و با Release امضای متفاوتی دارند؛ بنابراین برای جایگزینی نصب آزمایشی فعلی با نسخه Release ممکن است یک بار حذف و نصب لازم شود. پس از نصب اولین Release، تمام آپدیت‌های بعدی با همان keystore بدون حذف بازی نصب می‌شوند.
 ## خروجی اندروید و HTML5
 - فایل export_presets.cfg دو خروجی آماده دارد: Android APK و HTML5.
 - با اجرای GitHub Actions به نام Build and publish Mini ZekaCity، بازی با Godot 4.4.1 برای هر دو بستر ساخته می‌شود.
