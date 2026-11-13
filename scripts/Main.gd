@@ -274,20 +274,17 @@ func _show_offline_summary():
 		seen_digest_items[digest_text] = true
 		unique_digest_items.append(digest_item)
 
-	# Keep the report viewport compact inside a predictable dialog size.
+	# The news area gets only the height its visible rows need. The dialog
+	# itself is measured from its real contents below, not a fixed tall guess.
 	var shown_news_count = min(unique_digest_items.size(), 8)
-	var visible_news_rows = min(shown_news_count, 4)
-	# Give the popup a deliberate, viewport-bounded size. The report itself
-	# takes the remaining space and scrolls, so wrapped news cannot stretch
-	# the dialog or leave an oversized empty area below the actions.
-	var popup_height = max(200.0, min(viewport_size.y - 32.0, 350.0 + 42.0 * max(1, visible_news_rows)))
+	var visible_news_rows = min(max(1, shown_news_count), 4)
 	var popup = PopupPanel.new()
 	offline_summary_popup = popup
 	popup.name = "OfflineIncomePopup"
 
 	var card = PanelContainer.new()
 	card.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	card.custom_minimum_size = Vector2(popup_width, popup_height)
+	card.custom_minimum_size = Vector2(popup_width, 1.0)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var card_style = StyleBoxFlat.new()
@@ -395,9 +392,10 @@ func _show_offline_summary():
 
 	var news_scroll = ScrollContainer.new()
 	news_scroll.name = "OfflineNewsScroll"
-	news_scroll.custom_minimum_size = Vector2(0, 72.0)
+	news_scroll.custom_minimum_size = Vector2(0, min(168.0, max(42.0, float(visible_news_rows) * 42.0)))
 	news_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	news_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# Do not let an empty/short report stretch to fill an oversized dialog.
+	news_scroll.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	news_scroll.scroll_deadzone = 8
 	news_scroll.gui_input.connect(_on_offline_news_gui_input.bind(news_scroll))
 	layout.add_child(news_scroll)
@@ -468,6 +466,13 @@ func _show_offline_summary():
 	layout.add_child(later_button)
 
 	add_child(popup)
+	# Wait for Godot to calculate wrapped Persian labels and their true heights.
+	await get_tree().process_frame
+	var content_height = layout.get_combined_minimum_size().y
+	var vertical_margins = card_style.content_margin_top + card_style.content_margin_bottom + 8.0
+	var max_popup_height = max(200.0, viewport_size.y - 32.0)
+	var popup_height = clamp(content_height + vertical_margins, 200.0, max_popup_height)
+	card.custom_minimum_size = Vector2(popup_width, popup_height)
 	popup.min_size = Vector2i(int(popup_width), int(popup_height))
 	popup.popup_centered(Vector2i(int(popup_width), int(popup_height)))
 
