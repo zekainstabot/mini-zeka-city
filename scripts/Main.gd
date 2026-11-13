@@ -717,12 +717,36 @@ func _update_mission_reward_badge():
 	if mission_reward_badge == null or not is_instance_valid(mission_reward_badge) or game == null:
 		return
 	var ready_count = 0
-	for mission in game.get_missions():
-		if bool(mission.get("completed", false)) and not bool(mission.get("claimed", false)) and bool(mission.get("unlocked", false)):
-			ready_count += 1
+
+	# Count only the first unclaimed daily mission, matching the mission page.
 	for daily_mission in game.get_daily_missions():
-		if int(daily_mission.get("progress", 0)) >= int(daily_mission.get("goal", 1)) and not bool(daily_mission.get("claimed", false)):
+		if bool(daily_mission.get("claimed", false)):
+			continue
+		if int(daily_mission.get("progress", 0)) >= int(daily_mission.get("goal", 1)):
 			ready_count += 1
+		break
+
+	# Count only the first mission that is actually visible in the progression list.
+	for mission in game.get_missions():
+		var definition = {}
+		for item in game.MISSION_DEFINITIONS:
+			if str(item.id) == str(mission.get("id", "")):
+				definition = item
+				break
+		if definition.is_empty():
+			continue
+		var is_legacy = bool(definition.get("legacy", false))
+		var is_claimed = bool(mission.get("claimed", false))
+		var is_unlocked = bool(mission.get("unlocked", false))
+		if is_legacy:
+			if is_claimed or not bool(mission.get("completed", false)):
+				continue
+		elif is_claimed or not is_unlocked:
+			continue
+		if bool(mission.get("completed", false)):
+			ready_count += 1
+		break
+
 	mission_reward_badge.text = PersianText.reshaper("🎁 %d جایزه آماده" % ready_count if ready_count > 0 else "")
 	mission_reward_badge.visible = ready_count > 0
 
