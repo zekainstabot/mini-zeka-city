@@ -948,8 +948,12 @@ func _toggle_commerce_section(section_id):
 
 func _show_message(text):
 	message_label.text = PersianText.reshaper(text)
-	if game != null and str(text).strip_edges() != "" and game.has_method("add_report_event"):
-		game.add_report_event(str(text))
+	var report_text = str(text).strip_edges()
+	# Keep temporary construction-blocking feedback out of the permanent city report.
+	if report_text == "برای ساخت این ساختمان جمعیت کافی نیست.":
+		return
+	if game != null and report_text != "" and game.has_method("add_report_event"):
+		game.add_report_event(report_text)
 
 func _show_welcome_mission_hint():
 	# Show the onboarding hint until the first tutorial mission is completed.
