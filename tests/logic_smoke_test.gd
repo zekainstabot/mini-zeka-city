@@ -247,6 +247,9 @@ func _init():
 	assert(bool(engagement_game.start_landmark_project("grand_tower").get("ok", false)))
 	var first_landmark_stage = engagement_game.get_landmark_project_status()
 	assert(bool(first_landmark_stage.get("requirements_met", false)))
+	# Earlier mystery and emergency-decision checks spend from this same test city's treasury.
+	# Refill it here so the landmark test isolates stage progression rather than prior test costs.
+	engagement_game.state["money"] = 10000
 	assert(bool(engagement_game.invest_landmark_stage().get("ok", false)))
 	assert(int(engagement_game.get_landmark_project_status().get("stage", 0)) == 2)
 
