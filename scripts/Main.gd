@@ -1329,16 +1329,48 @@ func show_page(page):
 				"اقتصادی":["کشاورزی","ماهیگیری","معادن","کارخانه‌ها","کسب‌وکارها"],
 				"عمومی":["خدمات شهری","تفریح و فرهنگ"]
 			}
-			_add_label("ابتدا یکی از چهار گروه اصلی را انتخاب کن:", 18)
+			_add_label("گروه ساختمان‌ها | برای دیدن زیرگروه‌ها انتخاب کن", 19)
+			var building_group_icons = {"مسکونی":"🏠", "انبارها":"📦", "اقتصادی":"🏭", "عمومی":"🏛️"}
 			for group_name in ["مسکونی","انبارها","اقتصادی","عمومی"]:
 				var group_expanded = selected_building_group == group_name
-				_add_button(("▼ " if group_expanded else "▶ ") + group_name, self, "select_building_group", [group_name])
+				var group_button = _add_button(("▼  " if group_expanded else "＋  ") + building_group_icons[group_name] + "  " + group_name + ("  |  انتخاب‌شده" if group_expanded else ""), self, "select_building_group", [group_name])
+				group_button.custom_minimum_size.y = 76 if get_viewport_rect().size.x < 900 else 66
+				var group_normal = Color("#263b52") if group_expanded else Color("#30343a")
+				var group_hover = Color("#345574") if group_expanded else Color("#454b53")
+				var group_pressed = Color("#1d3043") if group_expanded else Color("#20252b")
+				group_button.add_theme_stylebox_override("normal", _button_style(group_normal, Color("#fbbf24") if group_expanded else Color("#7b8794")))
+				group_button.add_theme_stylebox_override("hover", _button_style(group_hover, Color("#fcd34d") if group_expanded else Color("#cbd5e1")))
+				group_button.add_theme_stylebox_override("focus", _button_style(group_hover, Color("#fcd34d") if group_expanded else Color("#cbd5e1")))
+				group_button.add_theme_stylebox_override("pressed", _button_style(group_pressed, Color("#fbbf24")))
+				group_button.add_theme_color_override("font_color", Color("#ffffff"))
+				group_button.add_theme_color_override("font_color_hover", Color("#ffffff"))
 				if group_expanded:
+					var subgroup_panel = PanelContainer.new()
+				subgroup_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+					var subgroup_style = StyleBoxFlat.new()
+					subgroup_style.bg_color = Color("#172536")
+					subgroup_style.border_color = Color("#60a5fa")
+					subgroup_style.set_border_width_all(2)
+					subgroup_style.set_corner_radius_all(12)
+					subgroup_style.content_margin_left = 12
+					subgroup_style.content_margin_right = 12
+					subgroup_style.content_margin_top = 12
+					subgroup_style.content_margin_bottom = 12
+					subgroup_panel.add_theme_stylebox_override("panel", subgroup_style)
+					content.add_child(subgroup_panel)
+					var subgroup_list = VBoxContainer.new()
+					subgroup_list.add_theme_constant_override("separation", 12)
+					subgroup_panel.add_child(subgroup_list)
+					var previous_section_container = active_section_container
+					active_section_container = subgroup_list
+					_add_label("زیرگروه‌های " + group_name, 18)
 					for category in building_groups[group_name]:
 						var category_expanded = selected_building_category == category
-						_add_button(("  ▾ " if category_expanded else "  › ") + category, self, "select_building_category", [category])
+						var category_button = _add_button(("▼  " if category_expanded else "›  ") + category, self, "select_building_category", [category])
+						category_button.custom_minimum_size.y = 64 if get_viewport_rect().size.x < 900 else 54
 						if category_expanded:
 							_add_building_category_items(category)
+					active_section_container = previous_section_container
 			if selected_building_category == "معادن":
 				_add_label("مدیریت معادن:", 18)
 				for mine_index in range(game.get_mines().size()):
