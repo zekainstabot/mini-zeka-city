@@ -209,6 +209,28 @@ jobs:
           set -euxo pipefail
           sdkmanager --sdk_root="$ANDROID_HOME" --install "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;23.2.8568313" "cmake;3.10.2.4988404"
 
+      - name: Configure Godot to use Java 17 and Android SDK
+        run: |
+          set -euxo pipefail
+          test -d "$JAVA_HOME/bin"
+          test -d "$ANDROID_HOME/platform-tools"
+          mkdir -p "$HOME/.config/godot" "$HOME/.android"
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            "$JAVA_HOME/bin/keytool" -genkeypair -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey -keypass android -dname "CN=Android Debug,O=Android,C=US" -validity 10000 -keyalg RSA -keysize 2048
+          fi
+          cat > "$HOME/.config/godot/editor_settings-4.tres" <<EOF
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/java_sdk_path = "$JAVA_HOME"
+          export/android/android_sdk_path = "$ANDROID_HOME"
+          export/android/debug_keystore = "$HOME/.android/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          EOF
+          "$JAVA_HOME/bin/java" -version
+          cat "$HOME/.config/godot/editor_settings-4.tres"
+
       - name: Install Android build template into the project
         timeout-minutes: 5
         run: |
@@ -222,7 +244,13 @@ jobs:
           chmod +x android/build/gradlew
           test -s android/build/build.gradle
           test -x android/build/gradlew
-          echo "Godot Android Gradle template installed in android/build."
+          touch android/build/gradle.properties
+          if grep -q '^org.gradle.java.home=' android/build/gradle.properties; then
+            sed -i "s|^org.gradle.java.home=.*|org.gradle.java.home=$JAVA_HOME|" android/build/gradle.properties
+          else
+            printf '\norg.gradle.java.home=%s\n' "$JAVA_HOME" >> android/build/gradle.properties
+          fi
+          echo "Godot Android Gradle template installed in android/build with Java 17."
 
       - name: Export Android APK for device testing
         timeout-minutes: 30
