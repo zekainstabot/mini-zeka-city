@@ -2891,6 +2891,14 @@ func resolve_resident_request(request_id, accepted):
 func go_to_resident_request_building(building_id):
 	var definition = game.get_building_definitions().get(str(building_id),{})
 	selected_building_category = str(definition.get("category","خدمات شهری"))
+	if selected_building_category == "خانه‌ها":
+		selected_building_group = "مسکونی"
+	elif selected_building_category == "انبارها":
+		selected_building_group = "انبارها"
+	elif selected_building_category in ["کشاورزی","ماهیگیری","معادن","کارخانه‌ها","کسب‌وکارها"]:
+		selected_building_group = "اقتصادی"
+	else:
+		selected_building_group = "عمومی"
 	show_page("buildings")
 	_show_message("دسته ساختمان پیشنهادی شهروندان باز شد.")
 
