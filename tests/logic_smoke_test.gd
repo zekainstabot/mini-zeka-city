@@ -208,6 +208,18 @@ func _init():
 	var decision_result = engagement_game.resolve_city_decision("volunteer")
 	assert(bool(decision_result.get("ok", false)))
 	assert(int(engagement_game.state.satisfaction) == decision_satisfaction_before + 2)
+	# Emergency decisions must charge the selected cost and apply consequences.
+	engagement_game.state["money"] = 1800
+	engagement_game.state["pending_city_decision"] = {"id":"test_fire","options":[{"id":"respond","effect":"fire_paid","cost":400}]}
+	var fire_money_before = int(engagement_game.state.money)
+	var fire_result = engagement_game.resolve_city_decision("respond")
+	assert(bool(fire_result.get("ok", false)))
+	assert(int(engagement_game.state.money) == fire_money_before - 400)
+	assert(int(engagement_game.state.reputation) >= 52)
+	engagement_game.state["pending_city_decision"] = {"id":"test_illness","options":[{"id":"treat","effect":"health_paid","cost":350}]}
+	var health_before = int(engagement_game.state.needs.health)
+	assert(bool(engagement_game.resolve_city_decision("treat").get("ok", false)))
+	assert(int(engagement_game.state.needs.health) > health_before)
 
 	engagement_game.state.level = 2
 	engagement_game.state.population = 12
