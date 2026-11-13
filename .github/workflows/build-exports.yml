@@ -337,6 +337,9 @@ jobs:
             -destkeypass "$ANDROID_KEYSTORE_PASSWORD" \
             -destalias "$ANDROID_KEY_ALIAS"
           test -s "$KEYSTORE_PATH"
+          "$JAVA_HOME/bin/keytool" -list -keystore "$KEYSTORE_PATH" \
+            -storetype JKS -storepass "$ANDROID_KEYSTORE_PASSWORD" \
+            -alias "$ANDROID_KEY_ALIAS"
           python3 - "$KEYSTORE_PATH" "$ANDROID_KEY_ALIAS" "$ANDROID_KEYSTORE_PASSWORD" <<'PY'
           import json, sys
           from pathlib import Path
