@@ -2187,8 +2187,6 @@ func _get_mission_progress(mission_id):
 		"side_fish_lake", "side_fishing_dock":
 			return get_building_count("fishing_dock")
 		"side_fish_market":
-			return get_building_count("fishing_dock")
-		"side_fish_market":
 			return get_building_count("fish_market")
 		"side_fish_processing":
 			return get_building_count("fish_processing_plant")
