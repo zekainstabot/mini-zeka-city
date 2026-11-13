@@ -2208,9 +2208,28 @@ func _update_city_services(report):
 		state.reputation = min(100, int(state.reputation) + 1)
 	var names = {"food":"خوراک","water":"آب","power":"برق","health":"سلامت","education":"آموزش","safety":"امنیت","leisure":"تفریح","sanitation":"بهداشت"}
 	var summaries = []
+	var citizen_problems = []
+	var recommendations = {
+		"food":"ذخیره مواد غذایی و ظرفیت فروشگاه‌های خوراک را افزایش بده",
+		"water":"برج آب و ظرفیت آبرسانی را بررسی کن",
+		"power":"ظرفیت نیروگاه و تأمین برق را افزایش بده",
+		"health":"درمانگاه یا بیمارستان و نیروی درمانی را تقویت کن",
+		"education":"مدرسه و پوشش آموزشی شهر را توسعه بده",
+		"safety":"کلانتری و پوشش امنیت محله‌ها را بررسی کن",
+		"leisure":"پارک و مراکز تفریحی بیشتری بساز",
+		"sanitation":"خدمات پسماند و بهداشت محیط را تقویت کن"
+	}
 	for need_id in need_ids:
-		summaries.append("%s %d%%" % [names[need_id], int(needs[need_id])])
+		var need_value = int(needs.get(need_id, 0))
+		summaries.append("%s %d%%" % [names[need_id], need_value])
+		if need_value < 55:
+			var urgency = "بحرانی" if need_value < 30 else "ضعیف" if need_value < 45 else "نیازمند رسیدگی"
+			citizen_problems.append("%s: %s (%d%%)؛ پیشنهاد: %s" % [urgency, names[need_id], need_value, recommendations[need_id]])
 	report.append("نیاز شهروندان: " + " | ".join(summaries))
+	if not citizen_problems.is_empty():
+		report.append("📨 گزارش شورای شهروندان: مردم از این مشکلات خبر داده‌اند: " + "؛ ".join(citizen_problems) + ".")
+	else:
+		report.append("📨 گزارش شورای شهروندان: نیازهای اصلی شهر در وضعیت قابل‌قبول است؛ شکایت فوری ثبت نشده است.")
 	report.append("رضایت میانگین: %d از ۱۰۰" % average)
 
 func _sync_missions():
