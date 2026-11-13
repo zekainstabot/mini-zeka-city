@@ -11,7 +11,7 @@ const DISTRICT_OTHER_LIMIT = 20
 const DISTRICT_EMERGENCY_LIMIT = 10
 const DISTRICT_BUILDING_TYPE_LIMIT = 2
 const DISTRICT_EMERGENCY_BUILDINGS = ["clinic","hospital","police_station","fire_station"]
-const OUTSIDE_CITY_BUILDINGS = ["woodcutter","sawmill","carpenter","stone_mine","iron_mine","factory","fish_processing_plant","power_station","sewage_plant","waste_facility"]
+const OUTSIDE_CITY_BUILDINGS = ["woodcutter","sawmill","carpenter","stone_mine","iron_mine","fishing_dock","factory","fish_processing_plant","power_station","sewage_plant","waste_facility"]
 const FORESTRY_RESERVES = {"wood": 20, "lumber": 10, "furniture": 0}
 
 const SERVICE_GROUPS = {
@@ -58,8 +58,7 @@ const MISSION_DEFINITIONS = [
 	{"id":"side_university","type":"side","title":"آموزش عالی","description":"یک دانشگاه بساز و ظرفیت آموزش عالی شهر را گسترش بده.","goal":1,"reward":1100,"xp":75,"hint":"دانشگاه در سطح ۷ آزاد می‌شود."},
 	{"id":"side_cultural","type":"side","title":"هویت فرهنگی شهر","description":"یک مرکز فرهنگی بساز تا خدمات فرهنگی و تفریحی توسعه یابد.","goal":1,"reward":1000,"xp":70,"hint":"مرکز فرهنگی در سطح ۸ آزاد می‌شود."},
 	{"id":"side_iron_mine","type":"side","title":"استخراج آهن","description":"یک معدن آهن بساز تا سنگ‌آهن تولید شود.","goal":1,"reward":600,"xp":40,"hint":"معدن آهن در سطح ۳ آزاد می‌شود."},
-	{"id":"side_fish_lake","type":"side","title":"پرورش و صید ماهی","description":"یک دریاچه ماهیگیری بساز تا تولید ماهی افزایش یابد.","goal":1,"reward":700,"xp":45,"hint":"دریاچه ماهیگیری در سطح ۲ آزاد می‌شود."},
-	{"id":"side_fishing_dock","type":"side","title":"اسکله صیادی","description":"یک اسکله صیادی بساز و ظرفیت صید ماهی را بیشتر کن.","goal":1,"reward":500,"xp":35,"hint":"اسکله صیادی در دسته کشاورزی قرار دارد."},
+	{"id":"side_fishing_dock","type":"side","title":"راه‌اندازی صید ماهی","description":"در کنار پهنه آبی طبیعی شهر یک اسکله صیادی بساز تا تولید ماهی آغاز شود.","goal":1,"reward":700,"xp":45,"hint":"دریاچه‌ها بخشی از طبیعت شهرند؛ برای صید، از بخش ماهیگیری اسکله صیادی بساز."},
 	{"id":"side_fish_market","type":"side","title":"بازار محصولات دریایی","description":"یک بازار ماهی بساز تا فروش ماهی در شهر فعال شود.","goal":1,"reward":450,"xp":30,"hint":"بازار ماهی در کسب‌وکارها قرار دارد."},
 	{"id":"side_fish_processing","type":"side","title":"فرآوری محصولات دریایی","description":"یک کارخانه فرآوری ماهی بساز تا محصول فرآوری‌شده تولید کنی.","goal":1,"reward":800,"xp":55,"hint":"برای فرآوری به ماهی خام نیاز داری."},
 	{"id":"side_grocery","type":"side","title":"دسترسی به مواد غذایی","description":"یک فروشگاه مواد غذایی بساز تا دسترسی شهروندان به خوراک بهتر شود.","goal":1,"reward":300,"xp":20,"hint":"فروشگاه مواد غذایی در کسب‌وکارها قرار دارد."},
@@ -1768,6 +1767,8 @@ func buy_land(plots=1):
 	return {"ok":true,"message":"%d قطعه زمین به قیمت %d سکه خریداری شد. زمین آزاد: %d قطعه." % [amount,total,get_land_free()]}
 
 func build(id):
+	if str(id) == "fish_lake":
+		return {"ok":false,"message":"دریاچه بخشی از طبیعت شهر است و نیازی به ساخت ندارد؛ برای شروع صید، اسکله صیادی بساز."}
 	if not BUILDINGS.has(id):
 		return {"ok":false,"message":"این ساختمان تعریف نشده است."}
 	if get_active_construction_count() >= MAX_CONCURRENT_CONSTRUCTIONS:
@@ -1779,8 +1780,6 @@ func build(id):
 		return {"ok":false,"message":"برای ساخت این ساختمان باید به سطح %d برسی." % int(data.get("level_unlock", 1))}
 	if id == "central_bank" and int(state.get("central_bank_rebuild_days_left", 0)) > 0:
 		return {"ok":false,"message":"برای ساخت دوباره بانک مرکزی باید %d روز صبر کنی." % int(state.central_bank_rebuild_days_left)}
-	if id in ["fishing_dock","fish_market","fish_processing_plant"] and get_building_count("fish_lake") <= 0:
-		return {"ok":false,"message":"ابتدا باید یک دریاچه ماهیگیری بسازی."}
 	if id == "fish_processing_plant" and get_building_count("fishing_dock") <= 0:
 		return {"ok":false,"message":"برای کارخانه فرآوری، ابتدا اسکله صیادی بساز."}
 	var required_land = get_land_size(id)
@@ -2185,9 +2184,9 @@ func _get_mission_progress(mission_id):
 			return get_building_count("cultural_center")
 		"side_iron_mine":
 			return get_building_count("iron_mine")
-		"side_fish_lake":
-			return get_building_count("fish_lake")
-		"side_fishing_dock":
+		"side_fish_lake", "side_fishing_dock":
+			return get_building_count("fishing_dock")
+		"side_fish_market":
 			return get_building_count("fishing_dock")
 		"side_fish_market":
 			return get_building_count("fish_market")
