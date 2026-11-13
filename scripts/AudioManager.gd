@@ -127,12 +127,12 @@ func set_night_mode(value):
 	night_mode = next_mode
 	if next_mode:
 		environment_mode = "night"
-	elif mode_changed or environment_mode == "night":
+	else:
 		environment_mode = _choose_day_environment()
 	_save_settings()
 	if music_enabled and (mode_changed or music_player.stream == null):
 		_apply_music(true)
-	if environment_enabled and (mode_changed or environment_player.stream == null):
+	if environment_enabled:
 		_apply_environment(true)
 
 func _apply_music(force_restart=false):
