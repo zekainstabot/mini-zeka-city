@@ -259,14 +259,11 @@ func _show_offline_summary():
 		seen_digest_items[digest_text] = true
 		unique_digest_items.append(digest_item)
 
-	# Size the popup from the number of visible news rows, not a large fixed height.
-	# The news area shows up to four rows; additional rows remain scrollable.
+	# Keep the report viewport compact. Let PopupPanel derive its height from
+	# the actual controls instead of reserving a guessed, oversized height.
 	var shown_news_count = min(unique_digest_items.size(), 8)
 	var visible_news_rows = min(shown_news_count, 4)
 	var news_area_height = 42.0 * max(1, visible_news_rows)
-	var desired_height = 255.0 + news_area_height
-	var max_popup_height = min(viewport_size.y * 0.72, 430.0 if compact else 520.0)
-	var popup_height = clamp(desired_height, 245.0, max_popup_height)
 	var popup = PopupPanel.new()
 	offline_summary_popup = popup
 	popup.name = "OfflineIncomePopup"
@@ -451,10 +448,11 @@ func _show_offline_summary():
 	layout.add_child(later_button)
 
 	add_child(popup)
-	# Explicitly constrain the native popup window; otherwise mobile stretch can
-	# expand the PopupPanel to the full available viewport height.
-	popup.size = Vector2i(roundi(popup_width), roundi(popup_height))
-	popup.popup_centered_clamped(Vector2i(roundi(popup_width), roundi(popup_height)))
+	# Width is fixed for a tidy mobile layout; height is content-driven so the
+	# native window cannot retain a large empty area below the buttons.
+	card.custom_minimum_size.x = popup_width
+	popup.reset_size()
+	popup.popup_centered()
 
 func _claim_offline_income():
 	if offline_summary_popup != null and is_instance_valid(offline_summary_popup):
