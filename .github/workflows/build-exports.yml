@@ -262,6 +262,149 @@ jobs:
           fi
           echo "Godot Android Gradle template installed in android/build with Java 17."
 
+      - name: Set monotonically increasing Android version
+        run: |
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          path = Path('export_presets.cfg')
+          data = path.read_text(encoding='utf-8')
+          run_number = int(os.environ['GITHUB_RUN_NUMBER'])
+          code = max(2, run_number)
+          data, code_count = re.subn(r'(?m)^version/code=\\d+        timeout-minutes: 30
+        run: |
+          set -o pipefail
+          mkdir -p build/android
+          /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --path . --export-debug "Android - Myket" build/android/MiniZekaCity-debug.apk 2>&1 | tee /tmp/godot-android-export.log
+          test -s build/android/MiniZekaCity-debug.apk
+
+      - name: Export signed Android Release APK (when signing secrets are configured)
+        id: android_release
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || [ -z "$ANDROID_KEY_ALIAS" ] || [ -z "$ANDROID_KEY_PASSWORD" ]; then
+            echo "release_ready=false" >> "$GITHUB_OUTPUT"
+            echo "Release signing secrets are not configured; skipping signed APK."
+            exit 0
+          fi
+          KEYSTORE_PATH="$RUNNER_TEMP/minizekacity-release.keystore"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          test -s "$KEYSTORE_PATH"
+          python3 - "$KEYSTORE_PATH" "$ANDROID_KEY_ALIAS" "$ANDROID_KEYSTORE_PASSWORD" "$ANDROID_KEY_PASSWORD" <<'PY'
+          import sys
+          from pathlib import Path
+          path, alias, store_password, key_password = sys.argv[1:]
+          config = Path('export_presets.cfg')
+          lines = config.read_text(encoding='utf-8').splitlines()
+          in_android = False
+          keys = {
+              'package/keystore': path,
+              'package/keystore_user': alias,
+              'package/keystore_password': store_password,
+              'package/signed': 'true',
+          }
+          found = set()
+          result = []
+          for line in lines:
+              if line.startswith('[preset.') and line.endswith('.options]'):
+                  in_android = line == '[preset.1.options]'
+              if in_android:
+                  key = line.split('=', 1)[0] if '=' in line else ''
+                  if key in keys:
+                      result.append(f'{key}={keys[key]!r}' if key != 'package/signed' else f'{key}=true')
+                      found.add(key)
+                      continue
+              result.append(line)
+          missing = set(keys) - found
+          if missing:
+              raise SystemExit('Missing Android signing options: ' + ', '.join(sorted(missing)))
+          config.write_text('\n'.join(result) + '\n', encoding='utf-8')
+          PY
+          mkdir -p build/android
+          /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --path . --export-release "Android - Myket" build/android/MiniZekaCity-release.apk 2>&1 | tee /tmp/godot-android-release-export.log
+          test -s build/android/MiniZekaCity-release.apk
+          echo "release_ready=true" >> "$GITHUB_OUTPUT"
+
+      - name: Archive signed Android Release APK
+        if: steps.android_release.outputs.release_ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mini-zeka-city-android-release-apk
+          path: build/android/MiniZekaCity-release.apk
+          retention-days: 30
+
+      - name: Preserve migration diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot4-migration-diagnostics
+          path: |
+            /tmp/godot-download-editor.log
+            /tmp/godot-download-templates.log
+            /tmp/godot-convert.log
+            /tmp/godot-import.log
+            /tmp/godot-tests.log
+            /tmp/godot-ui-tests.log
+            /tmp/godot-main-scene.log
+            /tmp/godot-export.log
+            /tmp/godot-android-template.log
+            /tmp/godot-android-export.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Archive Android APK for testing
+        uses: actions/upload-artifact@v4
+        with:
+          name: mini-zeka-city-android-debug-apk
+          path: build/android/MiniZekaCity-debug.apk
+          retention-days: 14
+
+, f'version/code={code}', data, count=1)
+          data, name_count = re.subn(r'(?m)^version/name="[^"]*"        timeout-minutes: 30
+        run: |
+          set -o pipefail
+          mkdir -p build/android
+          /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --path . --export-debug "Android - Myket" build/android/MiniZekaCity-debug.apk 2>&1 | tee /tmp/godot-android-export.log
+          test -s build/android/MiniZekaCity-debug.apk
+
+      - name: Preserve migration diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot4-migration-diagnostics
+          path: |
+            /tmp/godot-download-editor.log
+            /tmp/godot-download-templates.log
+            /tmp/godot-convert.log
+            /tmp/godot-import.log
+            /tmp/godot-tests.log
+            /tmp/godot-ui-tests.log
+            /tmp/godot-main-scene.log
+            /tmp/godot-export.log
+            /tmp/godot-android-template.log
+            /tmp/godot-android-export.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Archive Android APK for testing
+        uses: actions/upload-artifact@v4
+        with:
+          name: mini-zeka-city-android-debug-apk
+          path: build/android/MiniZekaCity-debug.apk
+          retention-days: 14
+
+, f'version/name="1.0.{run_number}"', data, count=1)
+          if code_count != 1 or name_count != 1:
+              raise SystemExit('Could not safely update Android version fields in export_presets.cfg')
+          path.write_text(data, encoding='utf-8')
+          print(f'Android version: 1.0.{run_number} (code {code})')
+          PY
+
       - name: Export Android APK for device testing
         timeout-minutes: 30
         run: |
