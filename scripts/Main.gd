@@ -360,7 +360,7 @@ func _show_offline_summary():
 	layout.add_child(news_title)
 
 	var news_scroll = ScrollContainer.new()
-	news_scroll.custom_minimum_size = Vector2(0, min(148.0, max(48.0, float(min(unique_digest_items.size(), 4)) * 38.0)))
+	news_scroll.custom_minimum_size = Vector2(0, min(112.0, max(42.0, float(min(unique_digest_items.size(), 3)) * 36.0)))
 	news_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	news_scroll.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	news_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
