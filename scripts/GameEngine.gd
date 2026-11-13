@@ -1440,9 +1440,14 @@ func process_citizen_recruitment_interval(delta):
 	for interval_index in range(completed_intervals):
 		if int(state.get("reputation", 0)) < 25:
 			continue
+		var satisfaction = int(state.get("satisfaction", 50))
+		# A welcoming city attracts more applicants; poor living conditions slow migration.
+		var growth_limit = 3 if satisfaction >= 70 else (2 if satisfaction >= 45 else (1 if satisfaction >= 30 else 0))
+		if growth_limit <= 0:
+			continue
 		var pending = state.get("citizen_requests", [])
 		var free_slots = max(0, get_housing_capacity() - int(state.get("population", 0)) - pending.size())
-		var batch_size = min(3, free_slots)
+		var batch_size = min(growth_limit, free_slots)
 		if batch_size <= 0:
 			continue
 		if str(state.get("citizen_recruitment_mode", "auto")) == "manual":
