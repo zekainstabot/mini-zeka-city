@@ -219,6 +219,26 @@ func _apply_offline_progress():
 	game.state["clock_cycle_seconds"] = int(game.state.get("clock_cycle_seconds", 0))
 	game.save_game()
 
+func _on_offline_news_gui_input(event: InputEvent, scroll: ScrollContainer):
+	if not event is InputEventMouseButton:
+		return
+	var mouse_event = event as InputEventMouseButton
+	if not mouse_event.pressed:
+		return
+	var direction = 0
+	if mouse_event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+		direction = 1
+	elif mouse_event.button_index == MOUSE_BUTTON_WHEEL_UP:
+		direction = -1
+	if direction == 0:
+		return
+	var target_scroll = clampi(scroll.scroll_vertical + direction * 110, 0, int(scroll.get_v_scroll_bar().max_value - scroll.size.y))
+	var tween = create_tween()
+	tween.set_trans(Tween.TRANS_CUBIC)
+	tween.set_ease(Tween.EASE_OUT)
+	tween.tween_property(scroll, "scroll_vertical", target_scroll, 0.24)
+	scroll.accept_event()
+
 func _show_offline_summary():
 	var days = int(game.state.get("pending_offline_days", 0))
 	if days <= 0:
@@ -361,6 +381,8 @@ func _show_offline_summary():
 	news_scroll.custom_minimum_size = Vector2(0, news_area_height if shown_news_count > 0 else 42.0)
 	news_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	news_scroll.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	news_scroll.scroll_deadzone = 8
+	news_scroll.gui_input.connect(_on_offline_news_gui_input.bind(news_scroll))
 	layout.add_child(news_scroll)
 	var news_list = VBoxContainer.new()
 	news_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
