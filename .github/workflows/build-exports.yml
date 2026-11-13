@@ -88,6 +88,82 @@ jobs:
           page.write_text(html, encoding="utf-8")
           PY
 
+      - name: Browser smoke test and capture Persian RTL screen
+        timeout-minutes: 10
+        run: |
+          set -euxo pipefail
+          mkdir -p /tmp/mini-zeka-playwright
+          npm install --prefix /tmp/mini-zeka-playwright playwright
+          /tmp/mini-zeka-playwright/node_modules/.bin/playwright install --with-deps chromium
+          python3 -m http.server 8765 --directory build/web >/tmp/godot-web-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          NODE_PATH=/tmp/mini-zeka-playwright/node_modules node <<'JS'
+          const { chromium } = require("playwright");
+          (async () => {
+            const browser = await chromium.launch({
+              headless: true,
+              args: [
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--enable-unsafe-swiftshader",
+                "--use-gl=angle",
+                "--use-angle=swiftshader-webgl"
+              ]
+            });
+            try {
+              const page = await browser.newPage({
+                viewport: { width: 390, height: 844 },
+                deviceScaleFactor: 1
+              });
+              const errors = [];
+              page.on("console", (message) => {
+                if (message.type() === "error") errors.push(message.text());
+              });
+              page.on("pageerror", (error) => errors.push(error.message));
+              await page.goto("http://127.0.0.1:8765/", {
+                waitUntil: "domcontentloaded",
+                timeout: 60000
+              });
+              await page.waitForFunction(
+                () => !document.querySelector("#status"),
+                null,
+                { timeout: 120000 }
+              );
+              await page.waitForTimeout(3000);
+              const canvas = await page.locator("#canvas").evaluate((element) => ({
+                width: element.width,
+                height: element.height,
+                cssWidth: element.getBoundingClientRect().width,
+                cssHeight: element.getBoundingClientRect().height
+              }));
+              if (canvas.width < 360 || canvas.height < 600 || canvas.cssWidth <= 0 || canvas.cssHeight <= 0) {
+                throw new Error("Godot Web canvas did not reach a usable rendered size: " + JSON.stringify(canvas));
+              }
+              await page.screenshot({
+                path: "build/mini-zeka-city-rtl-smoke.png",
+                fullPage: true
+              });
+              if (errors.length) {
+                throw new Error("Browser reported errors while loading the Godot Web game: " + errors.join(" | "));
+              }
+              console.log("Mini ZekaCity browser smoke test passed. Canvas: " + JSON.stringify(canvas));
+            } finally {
+              await browser.close();
+            }
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          JS
+
+      - name: Archive browser RTL screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: mini-zeka-city-web-rtl-screenshot
+          path: build/mini-zeka-city-rtl-smoke.png
+          retention-days: 14
+
       - name: Publish browser build for Render Static Site
         uses: peaceiris/actions-gh-pages@v4
         with:
