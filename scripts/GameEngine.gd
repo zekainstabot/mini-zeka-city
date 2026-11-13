@@ -342,6 +342,8 @@ func new_game():
 		"citizens": [],
 		"last_economy": {"tax_income":0,"business_income":0,"resource_income":0,"gross_income":0,"accepted_income":0,"wages_due":0,"wages_paid":0,"fleet_maintenance":0,"road_maintenance":0,"maintenance_paid":0,"net_cashflow":0},
 		"last_report": "شهر جدید ساخته شد. به مینی زکا سیتی خوش آمدی.",
+		"active_service_report_keys": [],
+		"district_service_coverage": {},
 		"report_events": [{"timestamp":Time.get_unix_time_from_system(),"day":1,"message":"شهر جدید ساخته شد. به مینی زکا سیتی خوش آمدی."}]
 	}
 	_sync_population()
@@ -1152,6 +1154,10 @@ func add_report_event(message, persist=true, metadata={}):
 		return
 	if typeof(state.get("report_events", null)) != TYPE_ARRAY:
 		state["report_events"] = []
+	if typeof(state.get("active_service_report_keys", null)) != TYPE_ARRAY:
+		state["active_service_report_keys"] = []
+	if typeof(state.get("district_service_coverage", null)) != TYPE_DICTIONARY:
+		state["district_service_coverage"] = {}
 	var event_id = int(state.get("next_report_event_id", 1))
 	state["next_report_event_id"] = event_id + 1
 	var event = {"id":event_id,"timestamp":Time.get_unix_time_from_system(),"day":int(state.get("day", 1)),"message":clean_message,"resolved":false}
@@ -1175,22 +1181,8 @@ func review_report_event(event_id):
 func check_citizen_reports():
 	if typeof(state.get("citizens", null)) != TYPE_ARRAY:
 		return false
-	var need_names = {
-		"food":"خوراک","water":"آب","power":"برق","health":"درمان",
-		"education":"آموزش","safety":"امنیت","leisure":"تفریح","sanitation":"بهداشت محیط"
-	}
-	var need_advice = {
-		"food":"فروشگاه و ذخیره مواد غذایی را تقویت کن",
-		"water":"ظرفیت آب‌رسانی را افزایش بده",
-		"power":"تأمین برق را بررسی کن",
-		"health":"درمانگاه و خدمات درمانی بیشتری فراهم کن",
-		"education":"دسترسی به مدرسه را بهتر کن",
-		"safety":"امنیت محله را تقویت کن",
-		"leisure":"فضای تفریحی بیشتری ایجاد کن",
-		"sanitation":"خدمات بهداشت محیط را توسعه بده"
-	}
+	_ensure_building_locations()
 	var changed = false
-	var needs = state.get("needs", {})
 	for citizen_index in range(state.citizens.size()):
 		var citizen = state.citizens[citizen_index]
 		var citizen_id = int(citizen.get("id", citizen_index + 1))
@@ -1199,11 +1191,6 @@ func check_citizen_reports():
 			concerns["unemployed"] = "شهروند شماره %d: هنوز شغلی پیدا نکرده‌ام و درآمد ثابتی ندارم." % citizen_id
 		if int(citizen.get("wallet", 0)) < 20:
 			concerns["low_wallet"] = "شهروند شماره %d: پول کافی برای خریدهای ضروری ندارم؛ فرصت کار یا درآمدم را بررسی کن." % citizen_id
-		for need_id in need_names.keys():
-			var need_value = int(needs.get(need_id, 60))
-			if need_value <= 25:
-				var issue_key = "need_" + str(need_id)
-				concerns[issue_key] = "شهروند شماره %d: نیاز من به %s برآورده نمی‌شود (%d%%). پیشنهاد: %s." % [citizen_id, need_names[need_id], need_value, need_advice[need_id]]
 		var previous_keys = citizen.get("active_report_keys", [])
 		if typeof(previous_keys) != TYPE_ARRAY:
 			previous_keys = []
@@ -1222,6 +1209,42 @@ func check_citizen_reports():
 					changed = true
 		citizen["active_report_keys"] = concerns.keys()
 		state.citizens[citizen_index] = citizen
+
+	# Service complaints are district-based: one active report per district and need,
+	# not one duplicate report from every resident.
+	var need_names = {"food":"خوراک","water":"آب‌رسانی","power":"برق","health":"درمان","education":"آموزش","safety":"امنیت","leisure":"تفریح","sanitation":"بهداشت محیط"}
+	var need_advice = {"food":"فروشگاه‌ها و ذخیره خوراک را تقویت کن","water":"ظرفیت آب‌رسانی را افزایش بده","power":"ظرفیت برق‌رسانی را افزایش بده","health":"درمانگاه یا بیمارستان بیشتری فراهم کن","education":"ظرفیت مدرسه و دانشگاه را افزایش بده","safety":"کلانتری یا آتش‌نشانی بیشتری فراهم کن","leisure":"فضای تفریحی بیشتری ایجاد کن","sanitation":"ظرفیت جمع‌آوری پسماند و فاضلاب را افزایش بده"}
+	var active_keys = state.get("active_service_report_keys", [])
+	if typeof(active_keys) != TYPE_ARRAY:
+		active_keys = []
+	var current_keys = []
+	var district_population = _get_district_population()
+	var service_snapshot = {}
+	for need_id in need_names.keys():
+		service_snapshot[need_id] = _calculate_district_service_coverage(need_id)
+	for district in state.get("districts", []):
+		var district_id = str(district.get("id", ""))
+		var residents = int(district_population.get(district_id, 0))
+		if residents <= 0:
+			continue
+		for need_id in need_names.keys():
+			var coverage_data = service_snapshot[need_id]
+			var coverage = int(coverage_data.get("coverage", {}).get(district_id, 0))
+			var issue_key = "service_%s_%s" % [need_id, district_id]
+			if coverage < 65:
+				current_keys.append(issue_key)
+				if not active_keys.has(issue_key):
+					var message = "شهروندان %s گزارش داده‌اند: پوشش خدمات %s برای جمعیت این محله کافی نیست (%d%%). پیشنهاد: %s." % [str(district.get("name", "این محله")), need_names[need_id], coverage, need_advice[need_id]]
+					add_report_event(message, false, {"citizen_id":0,"district_id":district_id,"service_need":need_id,"issue_key":issue_key,"resolved":false})
+					changed = true
+			elif active_keys.has(issue_key):
+				for event_index in range(state.report_events.size() - 1, -1, -1):
+					var event = state.report_events[event_index]
+					if str(event.get("issue_key", "")) == issue_key and str(event.get("district_id", "")) == district_id and not bool(event.get("resolved", false)):
+						event["resolved"] = true
+						state.report_events[event_index] = event
+						changed = true
+	state["active_service_report_keys"] = current_keys
 	if changed:
 		save_game()
 	return changed
@@ -2220,43 +2243,146 @@ func _advance_mines(report):
 		state.mines[i] = mine
 
 
-func _get_service_capacity(need_id):
-	var capacity = 0
-	for i in range(state.buildings.size()):
-		var building_id = str(state.buildings[i].get("id", ""))
-		if int(state.buildings[i].get("rented_to", 0)) > 0:
+func _get_service_radius(building_id):
+	var radii = {
+		"hospital":2,"university":2,"school":2,"power_station":2,
+		"sports_center":2,"cultural_center":2
+	}
+	return int(radii.get(str(building_id), 1))
+
+func _get_district_population():
+	var populations = {}
+	for district in state.get("districts", []):
+		populations[str(district.get("id", ""))] = 0
+	var remaining = min(max(0, int(state.get("population", 0))), state.get("citizens", []).size())
+	for building in state.get("buildings", []):
+		var building_id = str(building.get("id", ""))
+		var housing_capacity = int(BUILDINGS.get(building_id, {}).get("capacity", 0))
+		if housing_capacity <= 0 or remaining <= 0:
 			continue
+		var district_id = str(building.get("district_id", ""))
+		if district_id == "":
+			continue
+		var residents = min(remaining, housing_capacity)
+		populations[district_id] = int(populations.get(district_id, 0)) + residents
+		remaining -= residents
+	if remaining > 0 and not state.get("districts", []).is_empty():
+		var fallback_id = str(state.districts[0].get("id", ""))
+		populations[fallback_id] = int(populations.get(fallback_id, 0)) + remaining
+	return populations
+
+func _calculate_district_service_coverage(need_id):
+	var district_population = _get_district_population()
+	var served = {}
+	var coverage = {}
+	var total_population = 0
+	for district in state.get("districts", []):
+		var district_id = str(district.get("id", ""))
+		served[district_id] = 0
+		total_population += int(district_population.get(district_id, 0))
+	var providers = []
+	for building_index in range(state.get("buildings", []).size()):
+		var building = state.buildings[building_index]
+		if int(building.get("rented_to", 0)) > 0:
+			continue
+		var building_id = str(building.get("id", ""))
 		var data = BUILDINGS.get(building_id, {})
-		if str(data.get("service_need", "")) != need_id:
+		if str(data.get("service_need", "")) != str(need_id):
 			continue
-		var jobs = int(data.get("jobs", 0))
-		if jobs > 0 and _workers_for_building(i) <= 0:
+		var required_workers = int(data.get("jobs", 0))
+		var workers = _workers_for_building(building_index)
+		if required_workers > 0 and workers <= 0:
 			continue
-		capacity += int(data.get("service_capacity", 0))
+		var capacity = int(data.get("service_capacity", 0))
+		if required_workers > 0:
+			capacity = int(round(float(capacity) * min(1.0, float(workers) / float(required_workers))))
+		var origin_index = _find_district_index(str(building.get("district_id", "")))
+		if capacity > 0 and origin_index >= 0:
+			providers.append({"origin":origin_index,"capacity":capacity,"radius":_get_service_radius(building_id)})
 	for business in state.get("private_businesses", []):
-		var private_data = BUILDINGS.get(str(business.get("building_id", "")), {})
-		if str(private_data.get("service_need", "")) != need_id:
+		if bool(business.get("rented_municipal", false)):
 			continue
-		var private_jobs = max(1, int(private_data.get("jobs", 1)))
-		var private_workers = business.get("employees", []).size()
-		if private_workers > 0:
-			capacity += int(round(float(private_data.get("service_capacity", 0)) * float(private_workers) / float(private_jobs)))
-	return capacity
+		var building_id = str(business.get("building_id", ""))
+		var data = BUILDINGS.get(building_id, {})
+		if str(data.get("service_need", "")) != str(need_id):
+			continue
+		var required_workers = max(1, int(data.get("jobs", 1)))
+		var workers = business.get("employees", []).size()
+		var capacity = int(round(float(data.get("service_capacity", 0)) * min(1.0, float(workers) / float(required_workers))))
+		var origin_index = _find_district_index(str(business.get("district_id", "")))
+		if capacity > 0 and origin_index >= 0:
+			providers.append({"origin":origin_index,"capacity":capacity,"radius":_get_service_radius(building_id)})
+	for provider in providers:
+		var remaining_capacity = int(provider.capacity)
+		var origin = int(provider.origin)
+		var radius = int(provider.radius)
+		for distance in range(radius + 1):
+			var candidate_indices = []
+			if distance == 0:
+				candidate_indices.append(origin)
+			else:
+				candidate_indices.append(origin - distance)
+				candidate_indices.append(origin + distance)
+			for district_index in candidate_indices:
+				if remaining_capacity <= 0:
+					break
+				if district_index < 0 or district_index >= state.districts.size():
+					continue
+				var district_id = str(state.districts[district_index].get("id", ""))
+				var district_need = int(district_population.get(district_id, 0))
+				var available_need = max(0, district_need - int(served.get(district_id, 0)))
+				if available_need <= 0:
+					continue
+				var allocated = min(remaining_capacity, available_need)
+				served[district_id] = int(served.get(district_id, 0)) + allocated
+				remaining_capacity -= allocated
+	for district in state.get("districts", []):
+		var district_id = str(district.get("id", ""))
+		var residents = int(district_population.get(district_id, 0))
+		coverage[district_id] = int(round(float(served.get(district_id, 0)) * 100.0 / float(max(1, residents)))) if residents > 0 else 100
+	var total_served = 0
+	for district_id in served.keys():
+		total_served += int(served[district_id])
+	return {"served":served,"population":district_population,"coverage":coverage,"total_served":total_served,"total_population":total_population}
+
+func _get_service_capacity(need_id):
+	return int(_calculate_district_service_coverage(str(need_id)).get("total_served", 0))
 
 func _update_city_services(report):
+	_ensure_building_locations()
 	var population = max(1, int(state.population))
 	var service_state = {}
+	var district_status = {}
+	var district_population = _get_district_population()
 	var needs = state.get("needs", {})
 	var need_ids = ["food","water","power","health","education","safety","leisure","sanitation"]
 	var daily_decay = {"food":8,"water":10,"power":4,"health":3,"education":2,"safety":2,"leisure":4,"sanitation":3}
 	var total_need = 0
+	for district in state.get("districts", []):
+		var district_id = str(district.get("id", ""))
+		district_status[district_id] = {"population":int(district_population.get(district_id, 0)),"services":{}}
 	for need_id in need_ids:
-		var capacity = _get_service_capacity(need_id)
+		var service_data = _calculate_district_service_coverage(need_id)
+		var served = service_data.get("served", {})
+		var total_served = int(service_data.get("total_served", 0))
 		if need_id == "food":
 			var food_limit = int(floor(float(state.resources.get("food",0)) * 100.0 / float(population)))
-			capacity = min(capacity, food_limit)
-		var coverage = int(clamp(round(float(capacity) * 100.0 / float(population)), 0, 100))
+			if total_served > food_limit and total_served > 0:
+				var food_factor = float(food_limit) / float(total_served)
+				total_served = 0
+				for district in state.get("districts", []):
+					var district_id = str(district.get("id", ""))
+					var district_served = int(floor(float(served.get(district_id, 0)) * food_factor))
+					served[district_id] = district_served
+					total_served += district_served
+		var coverage = int(clamp(round(float(total_served) * 100.0 / float(population)), 0, 100))
 		service_state[need_id] = coverage
+		for district in state.get("districts", []):
+			var district_id = str(district.get("id", ""))
+			var residents = int(district_population.get(district_id, 0))
+			var district_served = int(served.get(district_id, 0))
+			var district_coverage = int(round(float(district_served) * 100.0 / float(max(1, residents)))) if residents > 0 else 100
+			district_status[district_id]["services"][need_id] = {"served":district_served,"capacity":residents,"coverage":district_coverage}
 		var current = int(needs.get(need_id, 60))
 		var decay = int(daily_decay.get(need_id, 2))
 		var recovery = int(round(float(coverage) * 0.12))
@@ -2275,6 +2401,7 @@ func _update_city_services(report):
 		total_need += int(needs.get(need_id, 0))
 	state.needs = needs
 	state.services = service_state
+	state["district_service_coverage"] = district_status
 	var average = int(round(float(total_need) / float(need_ids.size())))
 	state.satisfaction = average
 	if average < 30:
@@ -2286,16 +2413,7 @@ func _update_city_services(report):
 	var names = {"food":"خوراک","water":"آب","power":"برق","health":"سلامت","education":"آموزش","safety":"امنیت","leisure":"تفریح","sanitation":"بهداشت"}
 	var summaries = []
 	var citizen_problems = []
-	var recommendations = {
-		"food":"ذخیره مواد غذایی و ظرفیت فروشگاه‌های خوراک را افزایش بده",
-		"water":"برج آب و ظرفیت آبرسانی را بررسی کن",
-		"power":"ظرفیت نیروگاه و تأمین برق را افزایش بده",
-		"health":"درمانگاه یا بیمارستان و نیروی درمانی را تقویت کن",
-		"education":"مدرسه و پوشش آموزشی شهر را توسعه بده",
-		"safety":"کلانتری و پوشش امنیت محله‌ها را بررسی کن",
-		"leisure":"پارک و مراکز تفریحی بیشتری بساز",
-		"sanitation":"خدمات پسماند و بهداشت محیط را تقویت کن"
-	}
+	var recommendations = {"food":"ذخیره مواد غذایی و ظرفیت فروشگاه‌های خوراک را افزایش بده","water":"برج آب و ظرفیت آبرسانی را بررسی کن","power":"ظرفیت نیروگاه و تأمین برق را افزایش بده","health":"درمانگاه یا بیمارستان و نیروی درمانی را تقویت کن","education":"مدرسه و پوشش آموزشی شهر را توسعه بده","safety":"کلانتری و پوشش امنیت محله‌ها را بررسی کن","leisure":"پارک و مراکز تفریحی بیشتری بساز","sanitation":"خدمات پسماند و بهداشت محیط را تقویت کن"}
 	for need_id in need_ids:
 		var need_value = int(needs.get(need_id, 0))
 		summaries.append("%s %d%%" % [names[need_id], need_value])
