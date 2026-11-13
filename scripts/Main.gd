@@ -2867,7 +2867,6 @@ func go_to_mission_target(mission_id):
 		"build_house_tutorial": mission_target_building_id = "small_house"
 		"build_farm_tutorial": mission_target_building_id = "farm"
 		"market_tutorial": mission_target_building_id = "mineral_market"
-		"transport_tutorial": mission_target_building_id = "transport_depot"
 		"main_water", "side_water": mission_target_building_id = "water_tower"
 		"main_power", "side_power": mission_target_building_id = "power_station"
 		"main_school", "side_school": mission_target_building_id = "school"
