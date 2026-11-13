@@ -1,0 +1,49 @@
+name: Generate Mini ZekaCity Android signing key
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    steps:
+      - name: Generate a one-time PKCS12 signing keystore
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          if [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "Missing repository secret ANDROID_KEYSTORE_PASSWORD." >&2
+            exit 1
+          fi
+          if [ -z "$KEY_ALIAS" ]; then
+            echo "Missing repository secret ANDROID_KEY_ALIAS. Set it to minizekacity." >&2
+            exit 1
+          fi
+          mkdir -p output
+          keytool -genkeypair \
+            -keystore output/minizekacity-release.p12 \
+            -storetype PKCS12 \
+            -storepass "$KEYSTORE_PASSWORD" \
+            -keypass "$KEYSTORE_PASSWORD" \
+            -alias "$KEY_ALIAS" \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Mini Zeka City, O=ZekaInstabot, C=US"
+          keytool -list -keystore output/minizekacity-release.p12 \
+            -storetype PKCS12 -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS"
+          base64 -w 0 output/minizekacity-release.p12 > output/minizekacity-release-base64.txt
+          echo "Keystore generated and validated. Password was not written to the artifact or logs."
+
+      - name: Upload encrypted keystore and Base64 text
+        uses: actions/upload-artifact@v4
+        with:
+          name: mini-zeka-city-signing-key
+          path: |
+            output/minizekacity-release.p12
+            output/minizekacity-release-base64.txt
+          retention-days: 7
