@@ -1329,8 +1329,18 @@ func _create_house_citizen_requests(building_id):
 	if new_capacity <= 0:
 		return 0
 	var free_slots = max(0, get_housing_capacity() - int(state.get("population", 0)) - state.get("citizen_requests", []).size())
-	var request_count = min(new_capacity, free_slots)
-	for request_number in range(request_count):
+	var arrival_count = min(new_capacity, free_slots)
+	if arrival_count <= 0:
+		return 0
+	if str(state.get("citizen_recruitment_mode", "auto")) == "auto":
+		if int(state.get("reputation", 0)) < 25:
+			return 0
+		for arrival_number in range(arrival_count):
+			state.population += 1
+			state.citizens.append({"id":_next_citizen_id(),"job":"","job_building_index":-1,"wallet":100})
+		assign_jobs()
+		return arrival_count
+	for request_number in range(arrival_count):
 		var request_id = _next_citizen_request_id()
 		state.citizen_requests.append({
 			"id": request_id,
@@ -1339,14 +1349,35 @@ func _create_house_citizen_requests(building_id):
 			"building_id": str(building_id),
 			"building_name": str(definition.get("name", "خانه"))
 		})
-	return request_count
+	return arrival_count
+
+func _accept_pending_citizen_requests_automatically():
+	if int(state.get("reputation", 0)) < 25:
+		return 0
+	var requests = state.get("citizen_requests", [])
+	var free_slots = max(0, get_housing_capacity() - int(state.get("population", 0)))
+	var arrivals = min(requests.size(), free_slots)
+	if arrivals <= 0:
+		return 0
+	for arrival_number in range(arrivals):
+		state.population += 1
+		state.citizens.append({"id":_next_citizen_id(),"job":"","job_building_index":-1,"wallet":100})
+	state["citizen_requests"] = requests.slice(arrivals)
+	assign_jobs()
+	return arrivals
 
 func set_citizen_recruitment_mode(mode):
 	if str(mode) != "auto" and str(mode) != "manual":
 		return {"ok":false,"message":"حالت جذب نامعتبر است."}
 	state["citizen_recruitment_mode"] = str(mode)
+	var arrivals = 0
+	if str(mode) == "auto":
+		arrivals = _accept_pending_citizen_requests_automatically()
 	save_game()
-	return {"ok":true,"message":"حالت جذب شهروندان: "+("خودکار" if str(mode) == "auto" else "دستی")}
+	var message = "حالت جذب شهروندان: "+("خودکار" if str(mode) == "auto" else "دستی")
+	if arrivals > 0:
+		message += "؛ %d متقاضی به‌صورت خودکار پذیرفته شد." % arrivals
+	return {"ok":true,"message":message}
 
 func accept_citizen_request(request_index):
 	if request_index < 0 or request_index >= state.citizen_requests.size():
@@ -1370,6 +1401,10 @@ func reject_citizen_request(request_index):
 	return {"ok":true,"message":"درخواست متقاضی شماره %d رد شد." % int(request.get("id",0))}
 
 func _process_citizen_recruitment(report):
+	if str(state.get("citizen_recruitment_mode", "auto")) == "auto":
+		var accepted_pending = _accept_pending_citizen_requests_automatically()
+		if accepted_pending > 0:
+			report.append("%d متقاضی قبلی به‌صورت خودکار پذیرفته شدند." % accepted_pending)
 	var housing = get_housing_capacity()
 	var pending_requests = state.citizen_requests.size()
 	var available_slots = max(0, housing - int(state.population) - pending_requests)
@@ -1819,7 +1854,12 @@ func build(id):
 	assign_jobs()
 	_update_missions()
 	save_game()
-	var resident_message = (" %d درخواست مهاجرت ثبت شد؛ از بخش شهروندان بررسی‌شان کن." % new_citizen_requests) if new_citizen_requests > 0 else ""
+	var resident_message = ""
+	if new_citizen_requests > 0:
+		if str(state.get("citizen_recruitment_mode", "auto")) == "auto":
+			resident_message = " %d شهروند جدید به‌صورت خودکار وارد شهر شدند." % new_citizen_requests
+		else:
+			resident_message = " %d درخواست مهاجرت ثبت شد؛ از بخش شهروندان بررسی‌شان کن." % new_citizen_requests
 	return {"ok":true,"message":data.name+" با موفقیت در %s ساخته شد. +%d تجربه. %s%s" % [location_label,earned_xp,xp_message,resident_message]}
 
 func process_constructions():
@@ -1851,7 +1891,10 @@ func process_constructions():
 		_update_missions()
 		state["last_report"] = "ساخت‌وساز تکمیل شد: " + "، ".join(completed)
 		if new_citizen_requests > 0:
-			state["last_report"] += " | %d درخواست مهاجرت ثبت شد؛ از بخش شهروندان بررسی‌شان کن." % new_citizen_requests
+			if str(state.get("citizen_recruitment_mode", "auto")) == "auto":
+				state["last_report"] += " | %d شهروند جدید به‌صورت خودکار وارد شهر شدند." % new_citizen_requests
+			else:
+				state["last_report"] += " | %d درخواست مهاجرت ثبت شد؛ از بخش شهروندان بررسی‌شان کن." % new_citizen_requests
 		save_game()
 		return true
 	return false
