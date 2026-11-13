@@ -246,13 +246,14 @@ func _show_offline_summary():
 	var news_area_height = 42.0 * max(1, visible_news_rows)
 	var desired_height = 255.0 + news_area_height
 	var max_popup_height = min(viewport_size.y * 0.72, 430.0 if compact else 520.0)
-	var popup_height = clamp(desired_height, 275.0, max_popup_height)
+	var popup_height = clamp(desired_height, 245.0, max_popup_height)
 	var popup = PopupPanel.new()
 	offline_summary_popup = popup
 	popup.name = "OfflineIncomePopup"
 
 	var card = PanelContainer.new()
-	card.custom_minimum_size = Vector2(popup_width, popup_height)
+	card.custom_minimum_size = Vector2(popup_width, 0)
+	card.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	var card_style = StyleBoxFlat.new()
 	card_style.bg_color = Color("#111c2e")
 	card_style.border_color = Color("#475569")
@@ -428,7 +429,10 @@ func _show_offline_summary():
 	layout.add_child(later_button)
 
 	add_child(popup)
-	popup.popup_centered(Vector2(popup_width, popup_height))
+	# Explicitly constrain the native popup window; otherwise mobile stretch can
+	# expand the PopupPanel to the full available viewport height.
+	popup.size = Vector2i(roundi(popup_width), roundi(popup_height))
+	popup.popup_centered_clamped(Vector2i(roundi(popup_width), roundi(popup_height)))
 
 func _claim_offline_income():
 	if offline_summary_popup != null and is_instance_valid(offline_summary_popup):
