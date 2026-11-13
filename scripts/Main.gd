@@ -217,8 +217,8 @@ func _apply_offline_progress():
 	if offline_net > 0:
 		game.state["money"] = money_before
 		game.state["pending_offline_income"] = int(game.state.get("pending_offline_income", 0)) + offline_net
-	if offline_days > 0:
-		game.state["pending_offline_days"] = int(game.state.get("pending_offline_days", 0)) + offline_days
+	if elapsed_offline_days > 0:
+		game.state["pending_offline_days"] = int(game.state.get("pending_offline_days", 0)) + elapsed_offline_days
 	# Only request the welcome-back dialog after a single absence longer than
 	# ten in-game days. Short visits/returns never trigger it.
 	if elapsed_offline_days > 10:
