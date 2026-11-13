@@ -1,13 +1,13 @@
 ; Project was converted by built-in tool to Godot 4
 ; Engine configuration file.
-; Mini ZekaCity - Godot 3.6
+; Mini ZekaCity - Godot 4.4.1
 
 config_version=5
 
 [application]
 config/name="Mini ZekaCity"
 run/main_scene="res://Main.tscn"
-config/icon=""
+config/icon="res://assets/minizekacity-icon.svg"
 
 [display]
 window/size/viewport_width=720
