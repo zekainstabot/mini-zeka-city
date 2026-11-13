@@ -2530,9 +2530,13 @@ func _add_building_category_items(category):
 		var unlocked = population_unlocked and level_unlocked
 		var label = "%s | هزینه: %d | زمین: %d قطعه | جمعیت: %d | سطح: %d" % [data.name,data.cost,game.get_land_size(id),data.unlock,required_level]
 		if not level_unlocked:
-			label += " | 🔒 قفل سطح"
+			label = "%s 🔒 | هزینه: %d | زمین: %d قطعه | جمعیت: %d | سطح: %d" % [data.name,data.cost,game.get_land_size(id),data.unlock,required_level]
 		var building_button = _add_button(label, self, "build_building", [id])
 		building_button.disabled = not level_unlocked
+		if not level_unlocked:
+			# Keep locked building text readable on mobile; the lock icon carries the status.
+			building_button.add_theme_stylebox_override("disabled", _button_style(Color("#FFFFFF"), Color("#73777D")))
+			building_button.add_theme_color_override("font_disabled_color", Color("#111111"))
 		if id == mission_target_building_id:
 			building_button.modulate = Color("#fde68a")
 			building_button.name = "MissionTargetBuilding"
