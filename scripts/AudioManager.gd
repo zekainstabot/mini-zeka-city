@@ -106,20 +106,33 @@ func set_environment_volume(value):
 
 func set_environment_mode(value):
 	var requested = str(value)
-	if not requested in ["city", "rain", "nature", "traffic"]:
+	if night_mode:
+		requested = "night"
+	elif not requested in ["city", "rain", "nature", "traffic"]:
 		requested = "city"
 	environment_mode = requested
 	_save_settings()
 	_apply_environment(true)
 
+func _choose_day_environment():
+	var day_modes = ["city", "rain", "nature", "traffic"]
+	var choices = day_modes.filter(func(mode): return mode != environment_mode)
+	if choices.is_empty():
+		choices = day_modes
+	return str(choices[randi() % choices.size()])
+
 func set_night_mode(value):
 	var next_mode = bool(value)
-	if night_mode == next_mode:
-		return
+	var mode_changed = night_mode != next_mode
 	night_mode = next_mode
-	if music_enabled:
+	if next_mode:
+		environment_mode = "night"
+	elif mode_changed or environment_mode == "night":
+		environment_mode = _choose_day_environment()
+	_save_settings()
+	if music_enabled and (mode_changed or music_player.stream == null):
 		_apply_music(true)
-	if environment_enabled:
+	if environment_enabled and (mode_changed or environment_player.stream == null):
 		_apply_environment(true)
 
 func _apply_music(force_restart=false):
@@ -203,7 +216,19 @@ func _make_environment_stream(mode, is_night):
 	for i in range(sample_count):
 		var t = float(i) / float(SAMPLE_RATE)
 		var sample = 0.0
-		if mode == "rain":
+		if mode == "night":
+			# Quiet nighttime soundscape: crickets, a distant owl-like call, and soft night air.
+			var cricket_phase = fposmod(t, 0.42)
+			if cricket_phase < 0.055:
+				sample += sin(2.0 * PI * 2850.0 * t) * 0.055
+			if cricket_phase > 0.12 and cricket_phase < 0.17:
+				sample += sin(2.0 * PI * 3150.0 * t) * 0.045
+			var owl_phase = fposmod(t, 3.8)
+			if owl_phase < 0.55:
+				var owl_fade = sin(PI * owl_phase / 0.55)
+				sample += sin(2.0 * PI * (520.0 - owl_phase * 150.0) * t) * 0.035 * owl_fade
+			sample += sin(2.0 * PI * 68.0 * t) * 0.012
+		elif mode == "rain":
 			var noise = sin(t * 1731.0) * sin(t * 997.0) + sin(t * 2711.0) * 0.45 + sin(t * 419.0) * 0.35
 			sample += noise * 0.075
 			sample += sin(2.0 * PI * 92.0 * t) * 0.025
