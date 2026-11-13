@@ -1700,8 +1700,10 @@ func show_page(page):
 				var facility = game.get_building_definitions().get(facility_id,{})
 				if facility.is_empty():
 					continue
-				var facility_button = _add_button("ساخت "+str(facility.get("name","ایستگاه"))+" — %d سکه | زمین: %d قطعه" % [int(facility.get("cost",0)),game.get_land_size(facility_id)],self,"build_transport_facility",[facility_id])
-				facility_button.disabled = int(s.level) < int(facility.get("level_unlock",1))
+				var facility_population = int(facility.get("unlock",0))
+				var facility_level = int(facility.get("level_unlock",1))
+				var facility_button = _add_button("ساخت "+str(facility.get("name","ایستگاه"))+" — %d سکه | زمین: %d قطعه | جمعیت لازم: %d نفر | سطح: %d" % [int(facility.get("cost",0)),game.get_land_size(facility_id),facility_population,facility_level],self,"build_transport_facility",[facility_id])
+				facility_button.disabled = int(s.level) < facility_level or int(s.population) < facility_population
 			_add_label("🚚 پایانه و ناوگان کامیون",19)
 			_add_label("پایانه حمل‌ونقل: %d | کامیون فعال: %d | ظرفیت روزانه: %d واحد" % [game.get_building_count("transport_depot"),game.get_transport_truck_count(),game.get_transport_daily_capacity()],17)
 			_add_label("ظرفیت مصرف‌شده امروز: %d | ظرفیت باقی‌مانده: %d" % [int(s.get("transport_used_today",0)),game.get_transport_capacity_remaining()],16)
@@ -1709,8 +1711,10 @@ func show_page(page):
 			_add_label("نگهداری روزانه ناوگان: %d سکه | نگهداری جاده: %d سکه" % [game.get_fleet_maintenance(),game.get_road_maintenance()],16)
 			var depot = game.get_building_definitions().get("transport_depot",{})
 			if not depot.is_empty():
-				var depot_button = _add_button("ساخت پایانه حمل‌ونقل — %d سکه | زمین: %d قطعه" % [int(depot.get("cost",0)),game.get_land_size("transport_depot")],self,"build_transport_facility",["transport_depot"])
-				depot_button.disabled = int(s.level) < int(depot.get("level_unlock",1))
+				var depot_population = int(depot.get("unlock",0))
+				var depot_level = int(depot.get("level_unlock",1))
+				var depot_button = _add_button("ساخت پایانه حمل‌ونقل — %d سکه | زمین: %d قطعه | جمعیت لازم: %d نفر | سطح: %d" % [int(depot.get("cost",0)),game.get_land_size("transport_depot"),depot_population,depot_level],self,"build_transport_facility",["transport_depot"])
+				depot_button.disabled = int(s.level) < depot_level or int(s.population) < depot_population
 			_add_label("ظرفیت کامیون‌ها بین واردات، قراردادهای تأمین و صادرات مشترک است.",15)
 		"imports":
 			_add_label(" واردات و حمل‌ونقل بین‌شهری", 22)
