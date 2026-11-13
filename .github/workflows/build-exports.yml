@@ -2,7 +2,7 @@ name: Build and publish Mini ZekaCity
 
 concurrency:
   group: mini-zeka-city-godot4-migration
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 on:
   workflow_dispatch:
@@ -26,6 +26,7 @@ permissions:
 jobs:
   export:
     runs-on: ubuntu-22.04
+    timeout-minutes: 40
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -98,10 +99,16 @@ jobs:
           set -euxo pipefail
           sdkmanager --sdk_root="$ANDROID_HOME" --install "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;23.2.8568313" "cmake;3.10.2.4988404"
 
-      - name: Install Godot Android build template
+      - name: Verify Android templates from the official export bundle
+        timeout-minutes: 2
         run: |
           set -euxo pipefail
-          /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --path . --install-android-build-template
+          TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/4.4.1.stable"
+          for template in android_debug.apk android_release.apk android_source.zip; do
+            test -s "$TEMPLATE_DIR/$template"
+            ls -lh "$TEMPLATE_DIR/$template"
+          done
+          unzip -t "$TEMPLATE_DIR/android_source.zip" | tail -n 2
 
       - name: Export Android APK for device testing
         run: |
