@@ -339,13 +339,6 @@ jobs:
             -destkeypass "$ANDROID_KEYSTORE_PASSWORD" \
             -destalias "$ANDROID_KEY_ALIAS"
           "$JAVA_HOME/bin/keytool" -importkeystore -noprompt \
-            -srckeystore "$MATERIAL_PATH" -srcstoretype PKCS12 \
-            -srcstorepass "$ANDROID_KEYSTORE_PASSWORD" \
-            -destkeystore "$KEYSTORE_PATH" -deststoretype JKS \
-            -deststorepass "$ANDROID_KEYSTORE_PASSWORD" \
-            -destkeypass "$ANDROID_KEYSTORE_PASSWORD" \
-            -srcalias "$ANDROID_KEY_ALIAS" -destalias "$ANDROID_KEY_ALIAS"
-          "$JAVA_HOME/bin/keytool" -importkeystore -noprompt \
             -srckeystore "$P12_PATH" -srcstoretype PKCS12 \
             -srcstorepass "$ANDROID_KEYSTORE_PASSWORD" \
             -srcalias "$ANDROID_KEY_ALIAS" \
