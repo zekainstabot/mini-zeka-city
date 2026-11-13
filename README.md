@@ -99,8 +99,11 @@ Open `project.godot` in Godot 3.6.x and run the project.
 
 ## خروجی اندروید و HTML5
 - فایل export_presets.cfg دو خروجی آماده دارد: Android APK و HTML5.
-- با اجرای GitHub Actions به نام Build Mini ZekaCity exports، بازی با Godot 3.6.3 برای هر دو بستر ساخته می‌شود.
-- خروجی APK نسخه Debug برای نصب و آزمایش روی گوشی است؛ برای انتشار عمومی در فروشگاه، کلید امضای اختصاصی لازم است.
+- با اجرای GitHub Actions به نام Build and publish Mini ZekaCity، بازی با Godot 4.4.1 برای هر دو بستر ساخته می‌شود.
+- خروجی Android فعلی نسخه Debug و صرفاً برای نصب و آزمایش است؛ هنوز نسخه انتشار امضاشده نیست.
+- خروجی Android با Target SDK 34 و حداقل SDK 23 ساخته می‌شود و معماری‌های ARMv7 و ARM64 را دارد.
+- برای انتشار در مایکت باید کلید امضای اختصاصی امن ایجاد و به‌صورت GitHub Secrets تنظیم شود؛ رمزها و فایل کلید نباید داخل مخزن عمومی قرار بگیرند.
+- شناسه بسته اندروید `com.zekainstabot.minizekacity` ثابت انتخاب شده است؛ پس از ثبت و انتشار نباید تغییر کند.
 - خروجی وب به‌صورت ZIP شامل فایل HTML و منابع WebAssembly است؛ آن را استخراج کن و از طریق وب‌سرور اجرا کن، نه با بازکردن مستقیم فایل HTML.
 - برای اجرای محلی وب در ویندوز، وارد پوشه استخراج‌شده شو و دستور `py -m http.server 8000` را اجرا کن؛ سپس `http://localhost:8000` را در مرورگر باز کن.
 - برای دریافت فایل‌ها وارد [صفحه اجرای خروجی‌ها در GitHub Actions](https://github.com/zekainstabot/mini-zeka-city/actions/workflows/build-exports.yml) شو، آخرین اجرای موفق را باز کن و از بخش Artifacts فایل‌ها را دریافت کن.
