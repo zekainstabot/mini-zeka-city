@@ -468,5 +468,25 @@ func _init():
 	assert(str(independent_jobs_game.state.citizens[0].get("job","")) == "factory")
 	assert(str(independent_jobs_game.state.citizens[1].get("job","")) == "farm")
 
+	# Personal savings follow each citizen's saving habit and remain available for essential food.
+	var savings_game = EngineScript.new()
+	savings_game.new_game()
+	var saver = {"id":7,"wallet":100,"saving_habit":100,"savings":0}
+	saver = savings_game._apply_citizen_payday(saver, 100)
+	assert(int(saver.wallet) == 160)
+	assert(int(saver.savings) == 40)
+	assert(int(saver.last_savings_deposit) == 40)
+	var savings_food_game = EngineScript.new()
+	savings_food_game.new_game()
+	savings_food_game.state.citizens = [{"id":1,"wallet":0,"savings":40}]
+	savings_food_game.state.population = 1
+	savings_food_game.state.resources.food = 4
+	savings_food_game.state.buildings.append({"id":"grocery_store","workers":0,"balance":0})
+	savings_food_game.assign_jobs()
+	var savings_purchase = savings_food_game._process_citizen_purchases([])
+	assert(int(savings_purchase.food_units) == 4)
+	assert(int(savings_food_game.state.citizens[0].wallet) == 0)
+	assert(int(savings_food_game.state.citizens[0].savings) == 0)
+
 	print("Mini ZekaCity logic smoke tests passed.")
 	quit()
