@@ -19,6 +19,11 @@ func _run_tests():
 	# actual UI direction below instead of treating this optional feature as a blocker.
 	assert(main.is_layout_rtl())
 	assert(main.header_label.is_layout_rtl())
+	assert(main.header_label.autowrap_mode == TextServer.AUTOWRAP_WORD_SMART)
+	await process_frame
+	var main_layout = main.get_node("MainLayout")
+	var navigation_grid = main_layout.get_node("MainNavigationGrid")
+	assert(navigation_grid.get_combined_minimum_size().x <= main_layout.size.x + 1.0)
 	assert(main.ui_font is Font)
 	main.game = EngineScript.new()
 	main.game.new_game()

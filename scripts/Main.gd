@@ -500,6 +500,7 @@ func _build_ui():
 	add_child(ambient_background)
 	_update_ambient_background(0.0, true)
 	var root = VBoxContainer.new()
+	root.name = "MainLayout"
 	root.anchor_right = 1
 	root.anchor_bottom = 1
 	var screen_width = get_viewport_rect().size.x
@@ -513,6 +514,8 @@ func _build_ui():
 	header_label = Label.new()
 	header_label.text = PersianText.reshaper("مینی زکا سیتی")
 	header_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	header_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	header_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_font(header_label, 28 if compact_layout else 26)
 	header_label.add_theme_color_override("font_color", Color("#ffffff"))
 	root.add_child(header_label)
@@ -520,7 +523,7 @@ func _build_ui():
 	menu_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	root.add_child(menu_row)
 	var menu_button = Button.new()
-	menu_button.text = PersianText.reshaper("☰ منو")
+	menu_button.text = PersianText.reshaper("منو")
 	menu_button.custom_minimum_size = Vector2(180, 54 if compact_layout else 46)
 	_apply_font(menu_button, 20 if compact_layout else 18)
 	_style_button(menu_button, true)
@@ -641,6 +644,8 @@ func _build_ui():
 	progress_panel.add_child(xp_progress_bar)
 	_update_progress_hud()
 	var nav = GridContainer.new()
+	nav.name = "MainNavigationGrid"
+	nav.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	nav.columns = 2 if compact_layout else 3
 	nav.add_theme_constant_override("h_separation", 8)
 	nav.add_theme_constant_override("v_separation", 8)
@@ -660,13 +665,22 @@ func _build_ui():
 			mission_reward_badge.modulate = Color("#ffffff")
 			_apply_font(mission_reward_badge, 17)
 			nav_item.add_child(mission_reward_badge)
+		var nav_title = str(item.t)
+		if compact_layout:
+			match str(item.p):
+				"buildings": nav_title = "ساختمان"
+				"bank": nav_title = "بانک"
+				"private_economy": nav_title = "اقتصاد"
+				"commerce": nav_title = "بازار"
+				"transport": nav_title = "حمل‌ونقل"
+				"progress": nav_title = "پیشرفت"
 		var b = Button.new()
 		var civic_page_locked = item.p in ["municipality", "private_economy"] and not game.has_municipal_hall()
-		b.text = PersianText.reshaper(item.t + (" 🔒" if civic_page_locked else "") + "  ")
+		b.text = PersianText.reshaper(nav_title + (" (قفل)" if civic_page_locked else ""))
 		b.disabled = civic_page_locked
 		b.custom_minimum_size = Vector2(0, 64 if compact_layout else 58)
 		b.flat = false
-		_apply_font(b, 21 if compact_layout else 18)
+		_apply_font(b, 17 if compact_layout else 18)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_style_button(b, true)
 		b.connect("pressed", Callable(self, "show_page").bind(item.p))
@@ -2272,7 +2286,9 @@ func show_page(page):
 	bottom_scroll_space.custom_minimum_size = Vector2(0, 180 if get_viewport_rect().size.x < 900 else 90)
 	bottom_scroll_space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_child(bottom_scroll_space)
-	header_label.text = PersianText.reshaper("مینی زکا سیتی  |  خزانه: %d  |  جمعیت: %d" % [s.money,s.population])
+	var header_stats = "خزانه: %d  |  جمعیت: %d" % [s.money,s.population]
+	var header_text = "مینی زکا سیتی\n" + header_stats if get_viewport_rect().size.x < 900 else "مینی زکا سیتی  |  " + header_stats
+	header_label.text = PersianText.reshaper(header_text)
 
 func _municipality_section(title, section_id):
 	var expanded = bool(municipality_section_expanded.get(section_id, false))
