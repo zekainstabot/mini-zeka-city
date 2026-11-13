@@ -218,6 +218,30 @@ func _init():
 	assert(bool(engagement_game.invest_landmark_stage().get("ok", false)))
 	assert(int(engagement_game.get_landmark_project_status().get("stage", 0)) == 2)
 
+	# Automatic recruitment must turn new housing into residents, not stranded requests.
+	var auto_recruitment_game = EngineScript.new()
+	auto_recruitment_game.new_game()
+	auto_recruitment_game.state.buildings.append({"id":"small_house","workers":0,"balance":0})
+	var automatic_arrivals = auto_recruitment_game._create_house_citizen_requests("small_house")
+	assert(automatic_arrivals == 2)
+	assert(int(auto_recruitment_game.state.population) == 6)
+	assert(auto_recruitment_game.state.citizen_requests.is_empty())
+	assert(auto_recruitment_game.state.citizens.size() == 6)
+
+	# Manual mode keeps requests, and switching back to auto accepts them.
+	var manual_recruitment_game = EngineScript.new()
+	manual_recruitment_game.new_game()
+	manual_recruitment_game.set_citizen_recruitment_mode("manual")
+	manual_recruitment_game.state.buildings.append({"id":"small_house","workers":0,"balance":0})
+	var manual_requests = manual_recruitment_game._create_house_citizen_requests("small_house")
+	assert(manual_requests == 2)
+	assert(int(manual_recruitment_game.state.population) == 4)
+	assert(manual_recruitment_game.state.citizen_requests.size() == 2)
+	manual_recruitment_game.set_citizen_recruitment_mode("auto")
+	assert(int(manual_recruitment_game.state.population) == 6)
+	assert(manual_recruitment_game.state.citizen_requests.is_empty())
+	assert(manual_recruitment_game.state.citizens.size() == 6)
+
 	var market_result = game.buy_resource("food", 5)
 	assert(bool(market_result.ok))
 	assert(int(game.state.resources.food) == 5)
