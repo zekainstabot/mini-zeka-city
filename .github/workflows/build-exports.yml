@@ -309,8 +309,8 @@ jobs:
           export P12_PASSWORD="$ANDROID_KEYSTORE_PASSWORD"
           # Fail early with a clear message if the PKCS#12 file or password is wrong.
           openssl pkcs12 -in "$MATERIAL_PATH" -nodes -passin env:P12_PASSWORD -out "$PEM_PATH"
-          grep -q "-----BEGIN .*PRIVATE KEY-----" "$PEM_PATH"
-          grep -q "-----BEGIN CERTIFICATE-----" "$PEM_PATH"
+          grep -q -- "-----BEGIN .*PRIVATE KEY-----" "$PEM_PATH"
+          grep -q -- "-----BEGIN CERTIFICATE-----" "$PEM_PATH"
           "$JAVA_HOME/bin/keytool" -importkeystore -noprompt \
             -srckeystore "$MATERIAL_PATH" -srcstoretype PKCS12 \
             -srcstorepass "$ANDROID_KEYSTORE_PASSWORD" \
