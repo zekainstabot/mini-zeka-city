@@ -940,7 +940,10 @@ func _maybe_create_city_decision(report):
 	var choices = [
 		{"id":"festival","title":"پیشنهاد برگزاری جشن شهر","description":"شورای شهر پیشنهاد داده برای افزایش روحیه مردم یک جشن محلی برگزار شود.","options":[{"id":"fund","label":"برگزاری جشن | ۳۵۰ سکه","effect":"festival_fund"},{"id":"volunteer","label":"جشن مردمی و داوطلبانه","effect":"festival_volunteer"},{"id":"decline","label":"فعلاً برگزار نکن","effect":"decline"}]},
 		{"id":"water","title":"تصمیم اضطراری آب","description":"مصرف آب بالا رفته؛ باید بین سرمایه‌گذاری فوری و محدودیت مصرف انتخاب کنی.","options":[{"id":"invest","label":"سرمایه‌گذاری | ۵۰۰ سکه","effect":"water_invest"},{"id":"ration","label":"مدیریت مصرف","effect":"water_ration"}]},
-		{"id":"investor","title":"پیشنهاد سرمایه‌گذار","description":"یک سرمایه‌گذار برای کمک فوری به شهر پیشنهاد مالی داده، اما انتظار امتیاز اجتماعی دارد.","options":[{"id":"accept","label":"پذیرش سرمایه | دریافت ۷۰۰ سکه","effect":"investor_accept"},{"id":"decline","label":"رد پیشنهاد","effect":"decline"}]}
+		{"id":"investor","title":"پیشنهاد سرمایه‌گذار","description":"یک سرمایه‌گذار برای کمک فوری به شهر پیشنهاد مالی داده، اما انتظار امتیاز اجتماعی دارد.","options":[{"id":"accept","label":"پذیرش سرمایه | دریافت ۷۰۰ سکه","effect":"investor_accept"},{"id":"decline","label":"رد پیشنهاد","effect":"decline"}]},
+		{"id":"fire_emergency","title":"🚒 آتش‌سوزی در محله مسکونی","description":"آتش‌سوزی در چند ساختمان گسترش پیدا کرده است. برای مهار آن باید سریع تصمیم بگیری.","options":[{"id":"firefighters","label":"اعزام تیم آتش‌نشانی | ۴۰۰ سکه","effect":"fire_paid","cost":400},{"id":"volunteers","label":"بسیج نیروهای داوطلب | ۱۵۰ سکه","effect":"fire_volunteer","cost":150},{"id":"ignore_fire","label":"عدم مداخله","effect":"fire_ignore"}]},
+		{"id":"illness_outbreak","title":"🏥 شیوع بیماری فصلی","description":"موارد بیماری در میان شهروندان افزایش یافته است. رسیدگی درمانی می‌تواند از گسترش آن جلوگیری کند.","options":[{"id":"medical","label":"درمان و دارو | ۳۵۰ سکه","effect":"health_paid","cost":350},{"id":"public_health","label":"اطلاع‌رسانی و پیشگیری","effect":"health_public"},{"id":"ignore_illness","label":"عدم اقدام","effect":"health_ignore"}]},
+		{"id":"storm_damage","title":"🌧️ خسارت طوفان","description":"طوفان به زیرساخت‌های شهر آسیب زده و خدمات شهری را مختل کرده است.","options":[{"id":"repair","label":"تعمیر فوری زیرساخت‌ها | ۵۰۰ سکه","effect":"storm_paid","cost":500},{"id":"temporary","label":"راهکار موقت | ۲۰۰ سکه","effect":"storm_temporary","cost":200},{"id":"ignore_storm","label":"تعویق تعمیرات","effect":"storm_ignore"}]}
 	]
 	var selected = choices[int(randi() % choices.size())].duplicate(true)
 	state["pending_city_decision"] = selected
@@ -961,11 +964,11 @@ func resolve_city_decision(option_id):
 	if selected.is_empty():
 		return {"ok":false,"message":"این گزینه معتبر نیست."}
 	var effect = str(selected.get("effect", ""))
-	if effect == "festival_fund" or effect == "water_invest":
-		var cost = 350 if effect == "festival_fund" else 500
-		if get_available_money() < cost:
+	var decision_cost = int(selected.get("cost", 350 if effect == "festival_fund" else (500 if effect == "water_invest" else 0)))
+	if decision_cost > 0:
+		if get_available_money() < decision_cost:
 			return {"ok":false,"message":"موجودی آزاد خزانه برای این تصمیم کافی نیست."}
-		_spend_money(cost)
+		_spend_money(decision_cost)
 	match effect:
 		"festival_fund":
 			state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) + 5, 0, 100))
@@ -983,6 +986,34 @@ func resolve_city_decision(option_id):
 			_add_money(700)
 			state["reputation"] = int(clamp(int(state.get("reputation", 50)) + 1, 0, 100))
 			state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) - 2, 0, 100))
+		"fire_paid":
+			state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) + (1 if get_building_count("fire_station") > 0 else -1), 0, 100))
+			state["reputation"] = int(clamp(int(state.get("reputation", 50)) + 2, 0, 100))
+		"fire_volunteer":
+			state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) - 1, 0, 100))
+			state["reputation"] = int(clamp(int(state.get("reputation", 50)) + 1, 0, 100))
+		"fire_ignore":
+			state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) - 7, 0, 100))
+			state["reputation"] = int(clamp(int(state.get("reputation", 50)) - 4, 0, 100))
+		"health_paid":
+			state["needs"]["health"] = int(clamp(int(state.needs.get("health", 50)) + (12 if get_building_count("clinic") + get_building_count("hospital") > 0 else 6), 0, 100))
+			state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) + 2, 0, 100))
+		"health_public":
+			state["needs"]["health"] = int(clamp(int(state.needs.get("health", 50)) + 5, 0, 100))
+			state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) - 1, 0, 100))
+		"health_ignore":
+			state["needs"]["health"] = int(clamp(int(state.needs.get("health", 50)) - 10, 0, 100))
+			state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) - 6, 0, 100))
+		"storm_paid":
+			state["needs"]["water"] = int(clamp(int(state.needs.get("water", 50)) + 5, 0, 100))
+			state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) + 2, 0, 100))
+			state["reputation"] = int(clamp(int(state.get("reputation", 50)) + 2, 0, 100))
+		"storm_temporary":
+			state["needs"]["water"] = int(clamp(int(state.needs.get("water", 50)) + 2, 0, 100))
+			state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) - 1, 0, 100))
+		"storm_ignore":
+			state["needs"]["water"] = int(clamp(int(state.needs.get("water", 50)) - 8, 0, 100))
+			state["satisfaction"] = int(clamp(int(state.get("satisfaction", 50)) - 5, 0, 100))
 		"decline":
 			state["reputation"] = int(clamp(int(state.get("reputation", 50)) - 1, 0, 100))
 	state["pending_city_decision"] = {}
