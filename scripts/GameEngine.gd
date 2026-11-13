@@ -2157,29 +2157,57 @@ func demolish(index):
 	return {"ok":true,"message":"ساختمان تخریب شد. بازپرداختی انجام نشد."}
 
 func assign_jobs():
-	for citizen in state.citizens:
-		citizen.job = ""
-		citizen.job_building_index = -1
+	for citizen_index in range(state.citizens.size()):
+		var citizen = state.citizens[citizen_index]
+		citizen["job"] = ""
+		citizen["job_building_index"] = -1
+		state.citizens[citizen_index] = citizen
 	var workplaces = []
 	for i in range(state.buildings.size()):
 		if int(state.buildings[i].get("rented_to", 0)) > 0:
 			continue
-		var data = BUILDINGS.get(state.buildings[i].id, {})
+		var data = BUILDINGS.get(str(state.buildings[i].get("id", "")), {})
 		for slot in range(int(data.get("jobs", 0))):
 			workplaces.append(i)
-	# The menu-based game has no road coordinates. Assign open job
-	# slots in a stable, fair order instead of inventing fake distances.
+	# Each resident independently chooses the best available role for their
+	# interests and abilities. The simulation has no road coordinates, so
+	# distance is deliberately not fabricated.
 	for citizen_index in range(state.citizens.size()):
 		var citizen = state.citizens[citizen_index]
-		if int(citizen.get("private_job_id", 0)) > 0:
+		if int(citizen.get("private_job_id", 0)) > 0 or workplaces.is_empty():
 			continue
-		if workplaces.is_empty():
-			break
-		var building_index = workplaces[0]
-		citizen.job_building_index = building_index
-		citizen.job = str(state.buildings[building_index].id)
+		var preference = str(citizen.get("career_sector", citizen.get("business_interest", "services")))
+		var best_slot = -1
+		var best_score = -999999.0
+		for slot_index in range(workplaces.size()):
+			var building_index = int(workplaces[slot_index])
+			var building_id = str(state.buildings[building_index].get("id", ""))
+			var data = BUILDINGS.get(building_id, {})
+			var sector = "services"
+			if building_id in ["farm", "grocery_store", "bakery", "restaurant", "fishing_dock", "fish_market", "fish_processing"]:
+				sector = "food"
+			elif building_id in ["woodcutter", "sawmill", "carpenter", "factory", "iron_mine", "stone_mine"]:
+				sector = "industry"
+			var score = float(int(data.get("wage", 30))) * 0.2
+			if sector == preference:
+				score += 40.0
+			else:
+				score -= 8.0
+			score += float(int(citizen.get("education", 30))) * (0.16 if sector == "services" else 0.04)
+			score += float(int(citizen.get("creativity", 30))) * (0.08 if sector == "food" else 0.03)
+			score += float(int(citizen.get("initiative", 30))) * 0.03
+			# Stable tie-breaker prevents jobs from reshuffling randomly each day.
+			score += float((int(citizen.get("id", citizen_index + 1)) + building_index) % 7) * 0.001
+			if score > best_score:
+				best_score = score
+				best_slot = slot_index
+		if best_slot < 0:
+			continue
+		var selected_building = int(workplaces[best_slot])
+		citizen["job_building_index"] = selected_building
+		citizen["job"] = str(state.buildings[selected_building].get("id", ""))
 		state.citizens[citizen_index] = citizen
-		workplaces.remove_at(0)
+		workplaces.remove_at(best_slot)
 
 func _workers_for_building(building_index):
 	var count = 0
