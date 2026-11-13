@@ -1780,8 +1780,8 @@ func build(id):
 		return {"ok":false,"message":"برای ساخت این ساختمان باید به سطح %d برسی." % int(data.get("level_unlock", 1))}
 	if id == "central_bank" and int(state.get("central_bank_rebuild_days_left", 0)) > 0:
 		return {"ok":false,"message":"برای ساخت دوباره بانک مرکزی باید %d روز صبر کنی." % int(state.central_bank_rebuild_days_left)}
-	if id == "fish_processing_plant" and get_building_count("fishing_dock") <= 0:
-		return {"ok":false,"message":"برای کارخانه فرآوری، ابتدا اسکله صیادی بساز."}
+	if id in ["fish_market","fish_processing_plant"] and get_building_count("fishing_dock") <= 0:
+		return {"ok":false,"message":"برای راه‌اندازی بازار یا کارخانه فرآوری ماهی، ابتدا اسکله صیادی بساز."}
 	var required_land = get_land_size(id)
 	if get_land_free() < required_land:
 		return {"ok":false,"message":"زمین کافی نداری؛ این ساختمان %d قطعه زمین می‌خواهد و فقط %d قطعه آزاد داری. ابتدا زمین بخر." % [required_land,get_land_free()]}
