@@ -312,13 +312,14 @@ jobs:
           import sys
           from pathlib import Path
           raw = Path(sys.argv[1]).read_text(encoding="utf-8")
-          key_start = raw.find("-----BEGIN PRIVATE KEY-----")
+          key_markers = ("-----BEGIN PRIVATE KEY-----", "-----BEGIN RSA PRIVATE KEY-----")
+          key_start = min((raw.find(marker) for marker in key_markers if raw.find(marker) >= 0), default=-1)
           cert_start = raw.find("-----BEGIN CERTIFICATE-----")
           if key_start < 0 or cert_start < 0 or cert_start <= key_start:
               raise SystemExit("Signing material is invalid: expected private key PEM followed by certificate PEM")
           key = raw[key_start:cert_start].strip() + "\n"
           cert = raw[cert_start:].strip() + "\n"
-          if "-----END PRIVATE KEY-----" not in key or "-----END CERTIFICATE-----" not in cert:
+          if not ("-----END PRIVATE KEY-----" in key or "-----END RSA PRIVATE KEY-----" in key) or "-----END CERTIFICATE-----" not in cert:
               raise SystemExit("Signing material is incomplete")
           Path(sys.argv[2]).write_text(key, encoding="ascii")
           Path(sys.argv[3]).write_text(cert, encoding="ascii")
