@@ -189,7 +189,12 @@ jobs:
       - name: Install Android command-line tools
         run: |
           set -euxo pipefail
-          export ANDROID_HOME="$HOME/android-sdk"
+          # Keep Android SDK environment variables on the runner's single SDK path.
+          # The hosted runner already defines ANDROID_HOME; using a second SDK path
+          # makes Gradle reject the Android export because the two paths disagree.
+          : "${ANDROID_HOME:=/usr/local/lib/android/sdk}"
+          export ANDROID_HOME
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
           mkdir -p "$ANDROID_HOME/cmdline-tools" /tmp/android-cli
           curl -fL --retry 5 --retry-all-errors --retry-delay 3 https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o /tmp/android-cli.zip
           unzip -q /tmp/android-cli.zip -d /tmp/android-cli
