@@ -196,7 +196,10 @@ func _apply_offline_progress():
 	var now = Time.get_unix_time_from_system()
 	var last = int(game.state.get("clock_last_unix", now))
 	var elapsed = max(0, now - last)
-	var offline_days = min(10, int(floor(float(elapsed) / 3600.0)))
+	# One in-game day of offline simulation equals one real hour.
+	var elapsed_offline_days = int(floor(float(elapsed) / 3600.0))
+	# Simulate at most ten days per return to keep catch-up processing bounded.
+	var offline_days = min(10, elapsed_offline_days)
 	var money_before = int(game.state.get("money", 0))
 	if offline_days > 0:
 		game.state["pending_offline_digest"] = []
@@ -216,6 +219,10 @@ func _apply_offline_progress():
 		game.state["pending_offline_income"] = int(game.state.get("pending_offline_income", 0)) + offline_net
 	if offline_days > 0:
 		game.state["pending_offline_days"] = int(game.state.get("pending_offline_days", 0)) + offline_days
+	# Only request the welcome-back dialog after a single absence longer than
+	# ten in-game days. Short visits/returns never trigger it.
+	if elapsed_offline_days > 10:
+		game.state["pending_offline_summary_ready"] = true
 	game.state["clock_last_unix"] = now
 	game.state["clock_cycle_seconds"] = int(game.state.get("clock_cycle_seconds", 0))
 	game.save_game()
@@ -242,8 +249,12 @@ func _on_offline_news_gui_input(event: InputEvent, scroll: ScrollContainer):
 
 func _show_offline_summary():
 	var days = int(game.state.get("pending_offline_days", 0))
-	if days <= 0:
+	if days <= 0 or not bool(game.state.get("pending_offline_summary_ready", false)):
 		return
+	# Consume the one-time display flag immediately so closing the dialog or
+	# reopening the game does not show it again on every visit.
+	game.state["pending_offline_summary_ready"] = false
+	game.save_game()
 	var income = int(game.state.get("pending_offline_income", 0))
 	var viewport_size = get_viewport_rect().size
 	var compact = viewport_size.x < 700
@@ -468,6 +479,7 @@ func _claim_offline_income():
 		message = str(result.message)
 	if int(game.state.get("pending_offline_income", 0)) <= 0:
 		game.state["pending_offline_days"] = 0
+		game.state["pending_offline_summary_ready"] = false
 		game.save_game()
 	show_page("home")
 	_show_message(message)
