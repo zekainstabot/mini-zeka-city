@@ -117,6 +117,9 @@ func _process(delta):
 		return
 	if last_activity_ticks > 0 and Time.get_ticks_msec() - last_activity_ticks <= 90000:
 		game.record_active_play_seconds(delta)
+	var new_recruitment_count = game.process_citizen_recruitment_interval(delta)
+	if new_recruitment_count > 0 and current_page == "citizens":
+		show_page("citizens")
 	clock_cycle_seconds += delta
 	var audio_night_mode = clock_cycle_seconds >= 420.0
 	if audio_manager != null and audio_night_mode != last_audio_night_mode:
