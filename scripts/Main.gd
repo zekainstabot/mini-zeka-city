@@ -18,6 +18,7 @@ var level_status_label = null
 var xp_progress_label = null
 var selected_home_building_id = ""
 var selected_building_category = ""
+var selected_building_group = ""
 var selected_demolish_quantity = 1
 var demolish_panel_expanded = false
 var home_buildings_expanded = false
@@ -1244,14 +1245,23 @@ func show_page(page):
 			_add_label("برای گسترش شهر باید زمین بخری؛ هر ساختمان چند قطعه از زمین را اشغال می‌کند.", 15)
 			var land_button = _add_button("خرید ۱ قطعه زمین | قیمت: %d سکه" % game.get_land_unit_price(), self, "buy_land")
 			land_button.disabled = game.get_available_money() < game.get_land_unit_price()
-			var categories = ["همه","خانه‌ها","کشاورزی","ماهیگیری","معادن","کارخانه‌ها","کسب‌وکارها","خدمات شهری","تفریح و فرهنگ","انبارها"]
-			_add_label("برای دیدن ساختمان‌ها، دسته موردنظر را باز کن:", 18)
-			for category in categories:
-				var is_expanded = selected_building_category == category
-				var category_button = _add_button(("▼ " if is_expanded else "▶ ") + category, self, "select_building_category", [category])
-				if is_expanded:
-					_add_building_category_items(category)
-			if selected_building_category == "همه" or selected_building_category == "معادن":
+			var building_groups = {
+				"مسکونی":["خانه‌ها"],
+				"انبارها":["انبارها"],
+				"اقتصادی":["کشاورزی","ماهیگیری","معادن","کارخانه‌ها","کسب‌وکارها"],
+				"عمومی":["خدمات شهری","تفریح و فرهنگ"]
+			}
+			_add_label("ابتدا یکی از چهار گروه اصلی را انتخاب کن:", 18)
+			for group_name in ["مسکونی","انبارها","اقتصادی","عمومی"]:
+				var group_expanded = selected_building_group == group_name
+				_add_button(("▼ " if group_expanded else "▶ ") + group_name, self, "select_building_group", [group_name])
+				if group_expanded:
+					for category in building_groups[group_name]:
+						var category_expanded = selected_building_category == category
+						_add_button(("  ▾ " if category_expanded else "  › ") + category, self, "select_building_category", [category])
+						if category_expanded:
+							_add_building_category_items(category)
+			if selected_building_category == "معادن":
 				_add_label("مدیریت معادن:", 18)
 				for mine_index in range(game.get_mines().size()):
 					var mine = game.get_mines()[mine_index]
@@ -2454,6 +2464,12 @@ func _add_building_category_items(category):
 	if visible_buildings == 0:
 		_add_label("در این دسته ساختمانی تعریف نشده است.", 16)
 
+func select_building_group(group_name):
+	var requested = str(group_name)
+	selected_building_group = "" if selected_building_group == requested else requested
+	selected_building_category = ""
+	show_page("buildings")
+
 func select_building_category(category):
 	var requested = str(category)
 	selected_building_category = "" if selected_building_category == requested else requested
@@ -2834,6 +2850,17 @@ func go_to_mission_target(mission_id):
 		target_page = "buildings"
 		var target_definition = game.get_building_definitions().get(mission_target_building_id, {})
 		selected_building_category = "ماهیگیری" if mission_target_building_id in ["fish_lake", "fishing_dock", "fish_market", "fish_processing_plant"] else str(target_definition.get("category", ""))
+	if target_page == "buildings":
+		if selected_building_category == "خانه‌ها":
+			selected_building_group = "مسکونی"
+		elif selected_building_category == "انبارها":
+			selected_building_group = "انبارها"
+		elif selected_building_category in ["کشاورزی","ماهیگیری","معادن","کارخانه‌ها","کسب‌وکارها"]:
+			selected_building_group = "اقتصادی"
+		elif selected_building_category in ["خدمات شهری","تفریح و فرهنگ"]:
+			selected_building_group = "عمومی"
+		elif selected_building_category == "":
+			selected_building_group = ""
 	show_page(target_page)
 	if game_scroll_container != null and is_instance_valid(game_scroll_container):
 		game_scroll_container.scroll_vertical = 0
