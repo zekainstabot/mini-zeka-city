@@ -481,12 +481,13 @@ func _init():
 	savings_food_game.state.citizens = [{"id":1,"wallet":0,"savings":40}]
 	savings_food_game.state.population = 1
 	savings_food_game.state.resources.food = 4
+	savings_food_game.state.needs.food = 0
 	savings_food_game.state.buildings.append({"id":"grocery_store","workers":0,"balance":0})
 	savings_food_game.assign_jobs()
 	var savings_purchase = savings_food_game._process_citizen_purchases([])
-	assert(int(savings_purchase.food_units) == 4)
+	assert(int(savings_purchase.food_units) == 3)
 	assert(int(savings_food_game.state.citizens[0].wallet) == 0)
-	assert(int(savings_food_game.state.citizens[0].savings) == 0)
+	assert(int(savings_food_game.state.citizens[0].savings) == 10)
 
 	print("Mini ZekaCity logic smoke tests passed.")
 	quit()
