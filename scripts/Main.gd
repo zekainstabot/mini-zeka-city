@@ -439,6 +439,9 @@ func _notification(what):
 		game.save_game()
 
 func _ready():
+	# The entire interface is Persian, so make the root layout RTL and let
+	# dynamically-created controls inherit the same direction.
+	layout_direction = Control.LAYOUT_DIRECTION_RTL
 	_load_ui_font()
 	audio_manager = AudioManagerScript.new()
 	add_child(audio_manager)
