@@ -2143,12 +2143,13 @@ func show_page(page):
 						continue
 				elif mission_is_claimed or not mission_is_unlocked:
 					continue
-				# Show at most one active progression mission; the daily section
-				# above can show one more, keeping the visible total to two.
-				if visible_missions >= 1:
-					continue
-				visible_missions += 1
 				var mission_type = "legacy" if is_legacy_mission else str(definition.get("type","main"))
+				# Keep the main tutorial focused on its next step, but show every
+				# independently unlocked side mission.
+				if mission_type != "side" and visible_missions >= 1:
+					continue
+				if mission_type != "side":
+					visible_missions += 1
 				if mission_type != last_mission_type:
 					last_mission_type = mission_type
 					if mission_type == "legacy":
