@@ -286,6 +286,7 @@ jobs:
           /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --path . --export-debug "Android - Myket" build/android/MiniZekaCity-debug.apk 2>&1 | tee /tmp/godot-android-export.log
           test -s build/android/MiniZekaCity-debug.apk
 
+      # Signing input is the browser-generated PKCS#12 keystore, Base64-encoded in repository secrets.
       - name: Export signed Android Release APK (when signing secrets are configured)
         id: android_release
         env:
