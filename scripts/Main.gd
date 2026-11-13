@@ -2233,6 +2233,7 @@ func show_page(page):
 			summary_label.add_theme_color_override("font_color", Color("#ffffff"))
 			summary_panel.add_child(summary_label)
 			var visible_missions = 0
+			var visible_side_missions = 0
 			var last_mission_type = ""
 			for mission_index in range(mission_list.size()):
 				var mission = mission_list[mission_index]
@@ -2254,12 +2255,16 @@ func show_page(page):
 				elif mission_is_claimed or not mission_is_unlocked:
 					continue
 				var mission_type = "legacy" if is_legacy_mission else str(definition.get("type","main"))
-				# Keep the main tutorial focused on its next step, but show every
-				# independently unlocked side mission.
-				if mission_type != "side" and visible_missions >= 1:
+				# Show only the next available mission in each track, using the
+				# same focused card presentation for main and side missions.
+				if mission_type == "main" and visible_missions >= 1:
 					continue
-				if mission_type != "side":
+				if mission_type == "side" and visible_side_missions >= 1:
+					continue
+				if mission_type == "main":
 					visible_missions += 1
+				elif mission_type == "side":
+					visible_side_missions += 1
 				if mission_type != last_mission_type:
 					last_mission_type = mission_type
 					if mission_type == "legacy":
