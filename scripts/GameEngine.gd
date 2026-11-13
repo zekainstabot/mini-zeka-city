@@ -2316,13 +2316,14 @@ func _calculate_district_service_coverage(need_id):
 		var capacity = int(data.get("service_capacity", 0))
 		var origin_index = _find_district_index(str(building.get("district_id", "")))
 		var radius = _get_service_radius(building_id)
-		# Infrastructure outside the city serves every district rather than
-		# losing its capacity because it has no district_id.
+		var global_service = false
+		# Infrastructure outside the city serves all districts proportionally.
 		if origin_index < 0 and str(building.get("zone", "")) == "industrial" and not state.get("districts", []).is_empty():
 			origin_index = 0
 			radius = state.districts.size() - 1
+			global_service = true
 		if capacity > 0 and origin_index >= 0:
-			providers.append({"origin":origin_index,"capacity":capacity,"radius":radius})
+			providers.append({"origin":origin_index,"capacity":capacity,"radius":radius,"global":global_service})
 	for business in state.get("private_businesses", []):
 		if bool(business.get("rented_municipal", false)):
 			continue
@@ -2338,6 +2339,31 @@ func _calculate_district_service_coverage(need_id):
 			providers.append({"origin":origin_index,"capacity":capacity,"radius":_get_service_radius(building_id)})
 	for provider in providers:
 		var remaining_capacity = int(provider.capacity)
+		if bool(provider.get("global", false)):
+			var total_unserved = 0
+			for district_id in served.keys():
+				total_unserved += max(0, int(district_population.get(district_id, 0)) - int(served.get(district_id, 0)))
+			if total_unserved > 0:
+				for district in state.get("districts", []):
+					var district_id = str(district.get("id", ""))
+					var demand = max(0, int(district_population.get(district_id, 0)) - int(served.get(district_id, 0)))
+					var share = min(demand, int(floor(float(provider.capacity) * float(demand) / float(total_unserved))))
+					served[district_id] = int(served.get(district_id, 0)) + share
+					remaining_capacity -= share
+				while remaining_capacity > 0:
+					var allocated_any = false
+					for district in state.get("districts", []):
+						if remaining_capacity <= 0:
+							break
+						var district_id = str(district.get("id", ""))
+						if int(served.get(district_id, 0)) >= int(district_population.get(district_id, 0)):
+							continue
+						served[district_id] = int(served.get(district_id, 0)) + 1
+						remaining_capacity -= 1
+						allocated_any = true
+					if not allocated_any:
+						break
+			continue
 		var origin = int(provider.origin)
 		var radius = int(provider.radius)
 		for distance in range(radius + 1):
