@@ -239,11 +239,14 @@ func _show_offline_summary():
 		seen_digest_items[digest_text] = true
 		unique_digest_items.append(digest_item)
 
-	# Keep the dialog compact on phones; long reports scroll inside the news area.
-	var news_count = min(unique_digest_items.size(), 5)
-	var desired_height = 285.0 + news_count * 38.0
-	var max_popup_height = min(viewport_size.y * 0.78, 480.0 if compact else 560.0)
-	var popup_height = clamp(desired_height, 320.0, max_popup_height)
+	# Size the popup from the number of visible news rows, not a large fixed height.
+	# The news area shows up to four rows; additional rows remain scrollable.
+	var shown_news_count = min(unique_digest_items.size(), 8)
+	var visible_news_rows = min(shown_news_count, 4)
+	var news_area_height = 42.0 * max(1, visible_news_rows)
+	var desired_height = 255.0 + news_area_height
+	var max_popup_height = min(viewport_size.y * 0.72, 430.0 if compact else 520.0)
+	var popup_height = clamp(desired_height, 275.0, max_popup_height)
 	var popup = PopupPanel.new()
 	offline_summary_popup = popup
 	popup.name = "OfflineIncomePopup"
@@ -265,7 +268,7 @@ func _show_offline_summary():
 	var layout = VBoxContainer.new()
 	layout.name = "OfflineSummaryLayout"
 	layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	layout.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	layout.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	layout.add_theme_constant_override("separation", 7 if compact else 10)
 	card.add_child(layout)
 
@@ -354,9 +357,9 @@ func _show_offline_summary():
 
 	var news_scroll = ScrollContainer.new()
 	news_scroll.name = "OfflineNewsScroll"
-	news_scroll.custom_minimum_size = Vector2(0, 90 if compact else 120)
+	news_scroll.custom_minimum_size = Vector2(0, news_area_height if shown_news_count > 0 else 42.0)
 	news_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	news_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	news_scroll.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	layout.add_child(news_scroll)
 	var news_list = VBoxContainer.new()
 	news_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
