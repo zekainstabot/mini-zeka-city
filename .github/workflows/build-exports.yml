@@ -265,13 +265,21 @@ jobs:
       - name: Set monotonically increasing Android version
         run: |
           python3 - <<'PY'
-          import os, re
+          import os
           from pathlib import Path
           path = Path('export_presets.cfg')
           data = path.read_text(encoding='utf-8')
           run_number = int(os.environ['GITHUB_RUN_NUMBER'])
           code = max(2, run_number)
-          data, code_count = re.subn(r'(?m)^version/code=\\d+        timeout-minutes: 30
+          if 'version/code=1' not in data or 'version/name="1.0.0"' not in data:
+              raise SystemExit('Unexpected Android version fields; refusing to overwrite them')
+          data = data.replace('version/code=1', f'version/code={code}', 1)
+          data = data.replace('version/name="1.0.0"', f'version/name="1.0.{run_number}"', 1)
+          path.write_text(data, encoding='utf-8')
+          print(f'Android version: 1.0.{run_number} (code {code})')
+          PY
+      - name: Export Android APK for device testing
+        timeout-minutes: 30
         run: |
           set -o pipefail
           mkdir -p build/android
@@ -284,10 +292,9 @@ jobs:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || [ -z "$ANDROID_KEY_ALIAS" ] || [ -z "$ANDROID_KEY_PASSWORD" ]; then
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || [ -z "$ANDROID_KEY_ALIAS" ]; then
             echo "release_ready=false" >> "$GITHUB_OUTPUT"
             echo "Release signing secrets are not configured; skipping signed APK."
             exit 0
@@ -295,35 +302,28 @@ jobs:
           KEYSTORE_PATH="$RUNNER_TEMP/minizekacity-release.keystore"
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
           test -s "$KEYSTORE_PATH"
-          python3 - "$KEYSTORE_PATH" "$ANDROID_KEY_ALIAS" "$ANDROID_KEYSTORE_PASSWORD" "$ANDROID_KEY_PASSWORD" <<'PY'
-          import sys
+          python3 - "$KEYSTORE_PATH" "$ANDROID_KEY_ALIAS" "$ANDROID_KEYSTORE_PASSWORD" <<'PY'
+          import json, sys
           from pathlib import Path
-          path, alias, store_password, key_password = sys.argv[1:]
-          config = Path('export_presets.cfg')
-          lines = config.read_text(encoding='utf-8').splitlines()
-          in_android = False
-          keys = {
-              'package/keystore': path,
+          keystore, alias, password = sys.argv[1:]
+          path = Path('export_presets.cfg')
+          lines = path.read_text(encoding='utf-8').splitlines()
+          start = lines.index('[preset.1.options]') + 1
+          end = next((i for i in range(start, len(lines)) if lines[i].startswith('[preset.')), len(lines))
+          values = {
+              'package/keystore': keystore,
               'package/keystore_user': alias,
-              'package/keystore_password': store_password,
-              'package/signed': 'true',
+              'package/keystore_password': password,
           }
-          found = set()
-          result = []
-          for line in lines:
-              if line.startswith('[preset.') and line.endswith('.options]'):
-                  in_android = line == '[preset.1.options]'
-              if in_android:
-                  key = line.split('=', 1)[0] if '=' in line else ''
-                  if key in keys:
-                      result.append(f'{key}={keys[key]!r}' if key != 'package/signed' else f'{key}=true')
-                      found.add(key)
-                      continue
-              result.append(line)
-          missing = set(keys) - found
-          if missing:
-              raise SystemExit('Missing Android signing options: ' + ', '.join(sorted(missing)))
-          config.write_text('\n'.join(result) + '\n', encoding='utf-8')
+          for key, value in values.items():
+              replacement = key + '=' + json.dumps(value)
+              found = next((i for i in range(start, end) if lines[i].startswith(key + '=')), None)
+              if found is None:
+                  lines.insert(end, replacement)
+                  end += 1
+              else:
+                  lines[found] = replacement
+          path.write_text('\n'.join(lines) + '\n', encoding='utf-8')
           PY
           mkdir -p build/android
           /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --path . --export-release "Android - Myket" build/android/MiniZekaCity-release.apk 2>&1 | tee /tmp/godot-android-release-export.log
@@ -337,7 +337,6 @@ jobs:
           name: mini-zeka-city-android-release-apk
           path: build/android/MiniZekaCity-release.apk
           retention-days: 30
-
       - name: Preserve migration diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -354,81 +353,7 @@ jobs:
             /tmp/godot-export.log
             /tmp/godot-android-template.log
             /tmp/godot-android-export.log
-          if-no-files-found: ignore
-          retention-days: 14
-
-      - name: Archive Android APK for testing
-        uses: actions/upload-artifact@v4
-        with:
-          name: mini-zeka-city-android-debug-apk
-          path: build/android/MiniZekaCity-debug.apk
-          retention-days: 14
-
-, f'version/code={code}', data, count=1)
-          data, name_count = re.subn(r'(?m)^version/name="[^"]*"        timeout-minutes: 30
-        run: |
-          set -o pipefail
-          mkdir -p build/android
-          /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --path . --export-debug "Android - Myket" build/android/MiniZekaCity-debug.apk 2>&1 | tee /tmp/godot-android-export.log
-          test -s build/android/MiniZekaCity-debug.apk
-
-      - name: Preserve migration diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: godot4-migration-diagnostics
-          path: |
-            /tmp/godot-download-editor.log
-            /tmp/godot-download-templates.log
-            /tmp/godot-convert.log
-            /tmp/godot-import.log
-            /tmp/godot-tests.log
-            /tmp/godot-ui-tests.log
-            /tmp/godot-main-scene.log
-            /tmp/godot-export.log
-            /tmp/godot-android-template.log
-            /tmp/godot-android-export.log
-          if-no-files-found: ignore
-          retention-days: 14
-
-      - name: Archive Android APK for testing
-        uses: actions/upload-artifact@v4
-        with:
-          name: mini-zeka-city-android-debug-apk
-          path: build/android/MiniZekaCity-debug.apk
-          retention-days: 14
-
-, f'version/name="1.0.{run_number}"', data, count=1)
-          if code_count != 1 or name_count != 1:
-              raise SystemExit('Could not safely update Android version fields in export_presets.cfg')
-          path.write_text(data, encoding='utf-8')
-          print(f'Android version: 1.0.{run_number} (code {code})')
-          PY
-
-      - name: Export Android APK for device testing
-        timeout-minutes: 30
-        run: |
-          set -o pipefail
-          mkdir -p build/android
-          /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --path . --export-debug "Android - Myket" build/android/MiniZekaCity-debug.apk 2>&1 | tee /tmp/godot-android-export.log
-          test -s build/android/MiniZekaCity-debug.apk
-
-      - name: Preserve migration diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: godot4-migration-diagnostics
-          path: |
-            /tmp/godot-download-editor.log
-            /tmp/godot-download-templates.log
-            /tmp/godot-convert.log
-            /tmp/godot-import.log
-            /tmp/godot-tests.log
-            /tmp/godot-ui-tests.log
-            /tmp/godot-main-scene.log
-            /tmp/godot-export.log
-            /tmp/godot-android-template.log
-            /tmp/godot-android-export.log
+            /tmp/godot-android-release-export.log
           if-no-files-found: ignore
           retention-days: 14
 
