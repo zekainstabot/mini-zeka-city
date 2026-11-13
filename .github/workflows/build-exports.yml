@@ -299,8 +299,20 @@ jobs:
             echo "Release signing secrets are not configured; skipping signed APK."
             exit 0
           fi
+          P12_PATH="$RUNNER_TEMP/minizekacity-release.p12"
           KEYSTORE_PATH="$RUNNER_TEMP/minizekacity-release.keystore"
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$P12_PATH"
+          test -s "$P12_PATH"
+          # Convert the browser-generated PKCS#12 file into a Java JKS keystore
+          # for consistent compatibility with Godot's Android release exporter.
+          "$JAVA_HOME/bin/keytool" -importkeystore -noprompt \
+            -srckeystore "$P12_PATH" -srcstoretype PKCS12 \
+            -srcstorepass "$ANDROID_KEYSTORE_PASSWORD" \
+            -srcalias "$ANDROID_KEY_ALIAS" \
+            -destkeystore "$KEYSTORE_PATH" -deststoretype JKS \
+            -deststorepass "$ANDROID_KEYSTORE_PASSWORD" \
+            -destkeypass "$ANDROID_KEYSTORE_PASSWORD" \
+            -destalias "$ANDROID_KEY_ALIAS"
           test -s "$KEYSTORE_PATH"
           python3 - "$KEYSTORE_PATH" "$ANDROID_KEY_ALIAS" "$ANDROID_KEYSTORE_PASSWORD" <<'PY'
           import json, sys
