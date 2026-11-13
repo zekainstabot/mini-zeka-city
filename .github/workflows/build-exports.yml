@@ -199,7 +199,8 @@ jobs:
           curl -fL --retry 5 --retry-all-errors --retry-delay 3 https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o /tmp/android-cli.zip
           unzip -q /tmp/android-cli.zip -d /tmp/android-cli
           mkdir -p "$ANDROID_HOME/cmdline-tools/latest"
-          cp -a /tmp/android-cli/cmdline-tools/. "$ANDROID_HOME/cmdline-tools/latest/"
+          # The hosted runner's shared SDK directory does not allow timestamp preservation.
+          cp -R /tmp/android-cli/cmdline-tools/. "$ANDROID_HOME/cmdline-tools/latest/"
           echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
           echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
