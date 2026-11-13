@@ -2445,11 +2445,15 @@ func _sort_building_ids_by_unlock_priority(a, b):
 	return str(first.get("name", a)) < str(second.get("name", b))
 
 func _add_building_category_items(category):
+	if category == "ماهیگیری":
+		_add_label("پهنه‌های آبی به‌صورت طبیعی در شهر وجود دارند؛ برای آغاز صید، اسکله صیادی بساز.", 15)
 	var visible_buildings = 0
 	var definitions = game.get_building_definitions()
 	var building_ids = []
 	for id in definitions.keys():
 		var data = definitions[id]
+		if str(id) == "fish_lake":
+			continue
 		if category == "همه" and str(data.get("category","")) == "حمل‌ونقل":
 			continue
 		if category == "ماهیگیری" and not str(id) in ["fish_lake","fishing_dock","fish_market","fish_processing_plant"]:
@@ -2851,8 +2855,7 @@ func go_to_mission_target(mission_id):
 		"side_university": mission_target_building_id = "university"
 		"side_cultural": mission_target_building_id = "cultural_center"
 		"side_iron_mine": mission_target_building_id = "iron_mine"
-		"side_fish_lake": mission_target_building_id = "fish_lake"
-		"side_fishing_dock": mission_target_building_id = "fishing_dock"
+		"side_fish_lake", "side_fishing_dock": mission_target_building_id = "fishing_dock"
 		"side_fish_market": mission_target_building_id = "fish_market"
 		"side_fish_processing": mission_target_building_id = "fish_processing_plant"
 		"side_grocery": mission_target_building_id = "grocery_store"
