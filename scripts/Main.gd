@@ -658,7 +658,7 @@ func _build_ui():
 	nav.add_theme_constant_override("h_separation", 8)
 	nav.add_theme_constant_override("v_separation", 8)
 	root.add_child(nav)
-	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بانک و امور مالی","p":"bank"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار و تجارت","p":"commerce"},{"t":"زیرساخت و توسعه شهر","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش","p":"report"},{"t":"ماموریت‌ها","p":"missions"},{"t":"پیشرفت شهر","p":"progress"}]:
+	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بانک و امور مالی","p":"bank"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار و تجارت","p":"commerce"},{"t":"زیرساخت و توسعه شهر","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش","p":"report"},{"t":"پیشرفت و مأموریت‌ها","p":"missions"}]:
 		var nav_item = VBoxContainer.new()
 		nav_item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		nav_item.add_theme_constant_override("separation", 2)
@@ -1178,6 +1178,30 @@ func _open_missions_from_welcome():
 	show_page("missions")
 	if game_scroll_container != null and is_instance_valid(game_scroll_container):
 		game_scroll_container.scroll_vertical = 0
+
+func _add_progress_missions_tabs(active_page):
+	var tabs = HBoxContainer.new()
+	tabs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tabs.add_theme_constant_override("separation", 8)
+	content.add_child(tabs)
+	var missions_button = Button.new()
+	missions_button.text = PersianText.reshaper("🎯 مأموریت‌ها")
+	missions_button.custom_minimum_size = Vector2(0, 50 if get_viewport_rect().size.x < 900 else 44)
+	missions_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_font(missions_button, 17)
+	_style_button(missions_button, str(active_page) == "missions")
+	missions_button.disabled = str(active_page) == "missions"
+	missions_button.pressed.connect(Callable(self, "show_page").bind("missions"))
+	tabs.add_child(missions_button)
+	var progress_button = Button.new()
+	progress_button.text = PersianText.reshaper("📈 پیشرفت شهر")
+	progress_button.custom_minimum_size = Vector2(0, 50 if get_viewport_rect().size.x < 900 else 44)
+	progress_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_font(progress_button, 17)
+	_style_button(progress_button, str(active_page) == "progress")
+	progress_button.disabled = str(active_page) == "progress"
+	progress_button.pressed.connect(Callable(self, "show_page").bind("progress"))
+	tabs.add_child(progress_button)
 
 func show_page(page):
 	var civic_page_locked = page in ["municipality", "private_economy"] and not game.has_municipal_hall()
@@ -1984,6 +2008,7 @@ func show_page(page):
 			_add_button("🏙️ حالا برگردیم به شهر!", self, "return_home_from_menu")
 
 		"progress":
+			_add_progress_missions_tabs("progress")
 			_add_label("🏗️ هدف‌های بلندمدت شهر",23)
 			_add_label("این هدف‌ها با ساخت‌وساز و رشد شهر کامل می‌شوند. پیشرفت هر هدف ذخیره می‌شود و پس از تکمیل، می‌توانی جایزه‌اش را دریافت کنی.",16)
 			for project in game.get_long_term_projects():
@@ -2072,6 +2097,7 @@ func show_page(page):
 				_add_label(achievement_status+" | "+str(achievement.title),18)
 				_add_label(str(achievement.description),15)
 		"missions":
+			_add_progress_missions_tabs("missions")
 			_add_label("📅 مأموریت‌های روزانه", 23)
 			_add_label("هر روز سه هدف تازه برای توسعه شهر؛ پیشرفت و جایزه‌ها جدا از مأموریت‌های اصلی ذخیره می‌شوند.", 16)
 			var shown_daily_missions = 0
