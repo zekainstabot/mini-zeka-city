@@ -260,15 +260,13 @@ func _show_offline_summary():
 		seen_digest_items[digest_text] = true
 		unique_digest_items.append(digest_item)
 
-	# Keep the report viewport compact. Let PopupPanel derive its height from
-	# the actual controls instead of reserving a guessed, oversized height.
+	# Keep the report viewport compact inside a predictable dialog size.
 	var shown_news_count = min(unique_digest_items.size(), 8)
 	var visible_news_rows = min(shown_news_count, 4)
 	# Give the popup a deliberate, viewport-bounded size. The report itself
 	# takes the remaining space and scrolls, so wrapped news cannot stretch
 	# the dialog or leave an oversized empty area below the actions.
-	var popup_height = min(viewport_size.y - 32.0, 350.0 + 42.0 * max(1, visible_news_rows))
-	popup_height = max(300.0, popup_height)
+	var popup_height = max(200.0, min(viewport_size.y - 32.0, 350.0 + 42.0 * max(1, visible_news_rows)))
 	var popup = PopupPanel.new()
 	offline_summary_popup = popup
 	popup.name = "OfflineIncomePopup"
