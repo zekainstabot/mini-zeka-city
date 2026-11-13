@@ -404,5 +404,55 @@ func _init():
 	assert(int(unlocked_summary.private_business_tax) > 0)
 	assert(int(civic_gate_game.state.private_businesses[0].balance) < unlocked_business_balance + 200)
 
+	# District service capacity reaches neighboring districts, but never exceeds its resident capacity.
+	var district_service_game = EngineScript.new()
+	district_service_game.new_game()
+	for house_index in range(19):
+		district_service_game.state.buildings.append({"id":"small_house","workers":0,"balance":0})
+	district_service_game.state.buildings.append({"id":"hospital","workers":0,"balance":0})
+	district_service_game.state.population = 42
+	district_service_game._sync_population()
+	district_service_game._ensure_building_locations()
+	district_service_game.assign_jobs()
+	var district_population = district_service_game._get_district_population()
+	assert(district_service_game.state.districts.size() == 2)
+	assert(int(district_population.get("A1", 0)) == 40)
+	assert(int(district_population.get("A2", 0)) == 2)
+	var hospital_coverage = district_service_game._calculate_district_service_coverage("health")
+	assert(int(hospital_coverage.coverage.get("A1", 0)) == 100)
+	assert(int(hospital_coverage.coverage.get("A2", 0)) == 100)
+
+	# Citizen service requests are district-based, persistent, and do not flood the inbox.
+	var district_report_game = EngineScript.new()
+	district_report_game.new_game()
+	assert(district_report_game.check_citizen_reports())
+	assert(district_report_game.state.active_service_report_keys.size() == 1)
+	var first_service_report_key = str(district_report_game.state.active_service_report_keys[0])
+	assert(first_service_report_key.begins_with("service_"))
+	assert(not district_report_game.check_citizen_reports())
+	assert(district_report_game.state.active_service_report_keys.size() == 1)
+	var first_service_report_index = -1
+	for report_index in range(district_report_game.state.report_events.size()):
+		if str(district_report_game.state.report_events[report_index].get("issue_key", "")) == first_service_report_key:
+			first_service_report_index = report_index
+			break
+	assert(first_service_report_index >= 0)
+	district_report_game.state.buildings.append({"id":"school","workers":0,"balance":0})
+	district_report_game._ensure_building_locations()
+	district_report_game.assign_jobs()
+	assert(district_report_game.check_citizen_reports())
+	assert(bool(district_report_game.state.report_events[first_service_report_index].get("resolved", false)))
+	assert(district_report_game.state.active_service_report_keys.size() == 1)
+	assert(str(district_report_game.state.active_service_report_keys[0]) != first_service_report_key)
+
+	# The existing per-district type limit remains intact.
+	var district_type_limit_game = EngineScript.new()
+	district_type_limit_game.new_game()
+	district_type_limit_game._ensure_building_locations()
+	var first_district = district_type_limit_game.state.districts[0].duplicate(true)
+	first_district["building_type_counts"]["small_park"] = 2
+	assert(not district_type_limit_game._district_can_accept(first_district, "small_park"))
+	assert(district_type_limit_game._district_can_accept(first_district, "playground"))
+
 	print("Mini ZekaCity logic smoke tests passed.")
 	quit()
