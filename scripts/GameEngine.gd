@@ -1146,17 +1146,85 @@ func record_active_play_seconds(seconds):
 		return
 	state["active_play_seconds_today"] = float(state.get("active_play_seconds_today", 0.0)) + min(float(seconds), 1.0)
 
-func add_report_event(message, persist=true):
+func add_report_event(message, persist=true, metadata={}):
 	var clean_message = str(message).strip_edges()
 	if clean_message == "":
 		return
 	if typeof(state.get("report_events", null)) != TYPE_ARRAY:
 		state["report_events"] = []
-	state.report_events.append({"timestamp":Time.get_unix_time_from_system(),"day":int(state.get("day", 1)),"message":clean_message})
-	while state.report_events.size() > 100:
-		state.report_events.pop_front()
+	var event_id = int(state.get("next_report_event_id", 1))
+	state["next_report_event_id"] = event_id + 1
+	var event = {"id":event_id,"timestamp":Time.get_unix_time_from_system(),"day":int(state.get("day", 1)),"message":clean_message,"resolved":false}
+	if typeof(metadata) == TYPE_DICTIONARY:
+		for key in metadata.keys():
+			event[key] = metadata[key]
+	state.report_events.append(event)
 	if persist:
 		save_game()
+
+func review_report_event(event_id):
+	if typeof(state.get("report_events", null)) != TYPE_ARRAY:
+		return false
+	for index in range(state.report_events.size() - 1, -1, -1):
+		if int(state.report_events[index].get("id", -1)) == int(event_id):
+			state.report_events.remove_at(index)
+			save_game()
+			return true
+	return false
+
+func check_citizen_reports():
+	if typeof(state.get("citizens", null)) != TYPE_ARRAY:
+		return false
+	var need_names = {
+		"food":"خوراک","water":"آب","power":"برق","health":"درمان",
+		"education":"آموزش","safety":"امنیت","leisure":"تفریح","sanitation":"بهداشت محیط"
+	}
+	var need_advice = {
+		"food":"فروشگاه و ذخیره مواد غذایی را تقویت کن",
+		"water":"ظرفیت آب‌رسانی را افزایش بده",
+		"power":"تأمین برق را بررسی کن",
+		"health":"درمانگاه و خدمات درمانی بیشتری فراهم کن",
+		"education":"دسترسی به مدرسه را بهتر کن",
+		"safety":"امنیت محله را تقویت کن",
+		"leisure":"فضای تفریحی بیشتری ایجاد کن",
+		"sanitation":"خدمات بهداشت محیط را توسعه بده"
+	}
+	var changed = false
+	var needs = state.get("needs", {})
+	for citizen_index in range(state.citizens.size()):
+		var citizen = state.citizens[citizen_index]
+		var citizen_id = int(citizen.get("id", citizen_index + 1))
+		var concerns = {}
+		if str(citizen.get("job", "")).strip_edges() == "" and int(state.get("day", 1)) > 1:
+			concerns["unemployed"] = "شهروند شماره %d: هنوز شغلی پیدا نکرده‌ام و درآمد ثابتی ندارم." % citizen_id
+		if int(citizen.get("wallet", 0)) < 20:
+			concerns["low_wallet"] = "شهروند شماره %d: پول کافی برای خریدهای ضروری ندارم؛ فرصت کار یا درآمدم را بررسی کن." % citizen_id
+		for need_id in need_names.keys():
+			var need_value = int(needs.get(need_id, 60))
+			if need_value <= 25:
+				var issue_key = "need_" + str(need_id)
+				concerns[issue_key] = "شهروند شماره %d: نیاز من به %s برآورده نمی‌شود (%d%%). پیشنهاد: %s." % [citizen_id, need_names[need_id], need_value, need_advice[need_id]]
+		var previous_keys = citizen.get("active_report_keys", [])
+		if typeof(previous_keys) != TYPE_ARRAY:
+			previous_keys = []
+		for issue_key in concerns.keys():
+			if not previous_keys.has(issue_key):
+				add_report_event(concerns[issue_key], false, {"citizen_id":citizen_id,"issue_key":issue_key,"resolved":false})
+				changed = true
+		for previous_key in previous_keys:
+			if concerns.has(str(previous_key)):
+				continue
+			for event_index in range(state.report_events.size() - 1, -1, -1):
+				var event = state.report_events[event_index]
+				if int(event.get("citizen_id", 0)) == citizen_id and str(event.get("issue_key", "")) == str(previous_key) and not bool(event.get("resolved", false)):
+					event["resolved"] = true
+					state.report_events[event_index] = event
+					changed = true
+		citizen["active_report_keys"] = concerns.keys()
+		state.citizens[citizen_index] = citizen
+	if changed:
+		save_game()
+	return changed
 
 func save_game():
 	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -1169,8 +1237,17 @@ func save_game():
 func _normalize_state():
 	if typeof(state.get("report_events", null)) != TYPE_ARRAY:
 		state["report_events"] = []
-	while state.report_events.size() > 100:
-		state.report_events.pop_front()
+	var next_report_id = max(1, int(state.get("next_report_event_id", 1)))
+	for report_index in range(state.report_events.size()):
+		var report_event = state.report_events[report_index]
+		if not report_event.has("id"):
+			report_event["id"] = next_report_id
+			next_report_id += 1
+		if not report_event.has("resolved"):
+			report_event["resolved"] = false
+		state.report_events[report_index] = report_event
+		next_report_id = max(next_report_id, int(report_event.get("id", 0)) + 1)
+	state["next_report_event_id"] = next_report_id
 	if typeof(state.get("buildings", null)) != TYPE_ARRAY:
 		state.buildings = []
 	if typeof(state.get("citizens", null)) != TYPE_ARRAY:
