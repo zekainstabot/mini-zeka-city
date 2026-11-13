@@ -47,6 +47,7 @@ var municipality_section_expanded = {"land":false,"tax":false,"requests":false,"
 var citizen_status_expanded = {}
 var commerce_section_expanded = {"domestic":false,"export":false,"import":false,"shipments":false,"contracts":false}
 var storage_section_expanded = {}
+var storage_production_expanded = false
 var current_district_expanded = {}
 var active_section_container = null
 var mission_reward_badge = null
@@ -703,6 +704,47 @@ func _build_ui():
 	message_label.add_theme_color_override("font_color", Color("#ffffff"))
 	message_label.modulate = Color("#ffffff")
 	root.add_child(message_label)
+
+func toggle_storage_production():
+	storage_production_expanded = not storage_production_expanded
+	show_page("storage")
+
+func _get_daily_production_totals():
+	var totals = {}
+	var definitions = game.get_building_definitions()
+	var resources = game.get_resource_definitions()
+	var available_inputs = game.state.get("resources", {}).duplicate(true)
+	for building_index in range(game.state.get("buildings", []).size()):
+		var building = game.state.buildings[building_index]
+		if int(building.get("rented_to", 0)) > 0:
+			continue
+		var building_id = str(building.get("id", ""))
+		var data = definitions.get(building_id, {})
+		var output_id = str(data.get("output", ""))
+		if output_id.is_empty() or not resources.has(output_id):
+			continue
+		var workers = int(game._workers_for_building(building_index))
+		var required_workers = int(data.get("jobs", 0))
+		if workers <= 0:
+			continue
+		var amount = int(data.get("amount", 0))
+		if required_workers > 0:
+			amount = max(1, int(floor(float(amount) * float(workers) / float(required_workers))))
+		var input_id = str(data.get("input", ""))
+		var input_amount = int(data.get("input_amount", 0))
+		if not input_id.is_empty():
+			if required_workers > 0:
+				input_amount = max(1, int(ceil(float(input_amount) * float(workers) / float(required_workers))))
+			if int(available_inputs.get(input_id, 0)) < input_amount:
+				continue
+			available_inputs[input_id] = int(available_inputs.get(input_id, 0)) - input_amount
+		if building_id == "woodcutter":
+			amount = min(amount, int(game.state.get("forest_trees", 0)))
+		if amount <= 0:
+			continue
+		totals[output_id] = int(totals.get(output_id, 0)) + amount
+		available_inputs[output_id] = int(available_inputs.get(output_id, 0)) + amount
+	return totals
 
 func _update_mission_reward_badge():
 	if mission_reward_badge == null or not is_instance_valid(mission_reward_badge) or game == null:
@@ -1703,6 +1745,16 @@ func show_page(page):
 				_add_button("قرارداد ۷ روزه: ۲ واحد چوب از "+city.name,self,"make_import_contract",[city_id,"wood",2,7])
 		"storage":
 			_add_label("مدیریت و تنظیم خودکار انبار", 22)
+			var production_toggle = _add_button(("▼ " if storage_production_expanded else "▶ ") + "تولید روزانه شهر", self, "toggle_storage_production")
+			_style_button(production_toggle, false)
+			if storage_production_expanded:
+				_add_label("فقط کالاهایی که ساختمان‌های تولیدی شهر می‌سازند؛ مقدار بر اساس کارگران و مواد اولیه فعلی محاسبه می‌شود.", 14)
+				var production_totals = _get_daily_production_totals()
+				if production_totals.is_empty():
+					_add_label("در حال حاضر تولید فعالی نداری. برای شروع، یک ساختمان تولیدی بساز و نیروی کار آن را تأمین کن.", 16)
+				else:
+					for resource_id in production_totals.keys():
+						_add_label("%s : %d در روز" % [str(game.get_resource_definitions()[resource_id].name), int(production_totals[resource_id])], 18)
 			_add_label("ظرفیت: %d | مصرف‌شده: %d | فضای خالی: %d" % [game.get_storage_capacity(),game.get_storage_used(),game.get_free_storage()])
 			_add_label("برای هر ماده حداقل و حداکثر موجودی تعیین کن. تنظیمات در پایان هر روز اجرا می‌شوند.",15)
 			_add_label("اگر موجودی از حداقل کمتر شود، می‌توانی خرید از بازار یا افزایش تولید کارخانه را انتخاب کنی؛ اگر از حداکثر بیشتر شود، فروش خودکار انجام می‌شود.",15)
