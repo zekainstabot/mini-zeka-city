@@ -66,7 +66,7 @@ func _init():
 	mission_game._update_missions()
 	assert(bool(mission_game.state.missions[20].unlocked))
 	assert(bool(mission_game.state.missions[21].unlocked))
-	assert(not bool(mission_game.state.missions[1].unlocked))
+	assert(not bool(mission_game.state.missions[2].unlocked))
 	mission_game.state.population = 12
 	mission_game.state.buildings.append({"id":"water_tower","workers":0,"balance":0})
 	mission_game._update_missions()
