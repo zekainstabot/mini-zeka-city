@@ -2850,7 +2850,7 @@ func end_day(is_offline=false):
 		var payable_wage = min(wage, wallet_room)
 		total_wages += payable_wage
 		var payment = min(payable_wage, treasury_for_payroll)
-		citizen.wallet = int(citizen.get("wallet", 0)) + payment
+		citizen = _apply_citizen_payday(citizen, payment)
 		state.citizens[citizen_index] = citizen
 		treasury_for_payroll -= payment
 		paid_wages += payment
@@ -3128,6 +3128,22 @@ func end_day(is_offline=false):
 	save_game()
 	return state.last_report
 
+func _apply_citizen_payday(citizen, payment):
+	# Citizens choose how much of their earned wage to save based on their personal habit.
+	var citizen_id = int(citizen.get("id", 1))
+	var saving_habit = int(citizen.get("saving_habit", 30 + int((citizen_id * 13) % 71)))
+	var saving_rate = float(clamp(0.10 + float(saving_habit) * 0.003, 0.10, 0.40))
+	var wallet = max(0, int(citizen.get("wallet", 0)))
+	var savings = max(0, int(citizen.get("savings", 0)))
+	var desired_deposit = int(floor(float(max(0, payment)) * saving_rate))
+	var wallet_room_after_pay = max(0, wallet + max(0, payment) - 40)
+	var savings_room = max(0, 10000 - savings)
+	var deposit = min(desired_deposit, min(wallet_room_after_pay, savings_room))
+	citizen["wallet"] = wallet + max(0, payment) - deposit
+	citizen["savings"] = savings + deposit
+	citizen["last_savings_deposit"] = deposit
+	return citizen
+
 func _process_citizen_purchases(report):
 	var shops = []
 	var total_weight = 0
@@ -3158,9 +3174,10 @@ func _process_citizen_purchases(report):
 	for step in range(citizen_count):
 		var citizen_index = int((start_index + step) % rotation_count)
 		var citizen = state.citizens[citizen_index]
-		var wallet = int(citizen.get("wallet", 0))
+		var wallet = max(0, int(citizen.get("wallet", 0)))
+		var savings = max(0, int(citizen.get("savings", 0)))
 		var demand_units = 1 + int(floor(float(100 - food_need) / 50.0))
-		var affordable_units = int(floor(float(wallet) / 10.0))
+		var affordable_units = int(floor(float(wallet + savings) / 10.0))
 		var purchase_units = min(min(demand_units, affordable_units), food_stock)
 		if purchase_units <= 0:
 			continue
@@ -3176,7 +3193,10 @@ func _process_citizen_purchases(report):
 		var tax = int(floor(float(purchase) * 0.10))
 		var business_revenue = purchase - tax
 		state.buildings[selected_index].balance = int(state.buildings[selected_index].get("balance", 0)) + business_revenue
-		citizen.wallet = wallet - purchase
+		var wallet_payment = min(wallet, purchase)
+		var savings_payment = purchase - wallet_payment
+		citizen.wallet = wallet - wallet_payment
+		citizen.savings = savings - savings_payment
 		state.citizens[citizen_index] = citizen
 		spending += purchase
 		sales_tax += tax
