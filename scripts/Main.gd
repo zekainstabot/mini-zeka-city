@@ -889,7 +889,7 @@ func _add_button(text, button_target, callback, args=[]):
 	_style_button(button, false)
 	if audio_manager != null and button_target != audio_manager:
 		button.connect("pressed", Callable(audio_manager, "play_sfx").bind("click"))
-	button.connect("pressed", Callable(button_target, callback).bind(args))
+	button.connect("pressed", Callable(button_target, callback).bindv(args))
 	var parent = active_section_container if active_section_container != null else content
 	parent.add_child(button)
 	return button
