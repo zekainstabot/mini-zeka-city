@@ -29,13 +29,13 @@ func _init():
 	construction_limit_game.state.constructions.pop_back()
 	assert(construction_limit_game.get_active_construction_count() == 1)
 
-	# Main and side missions share one ordered progression.
+	# Main missions are ordered; side missions unlock independently.
 	var mission_game = EngineScript.new()
 	mission_game.new_game()
 	assert(mission_game.state.missions.size() == 60)
 	assert(bool(mission_game.state.missions[0].unlocked))
 	assert(not bool(mission_game.state.missions[1].unlocked))
-	assert(not bool(mission_game.state.missions[20].unlocked))
+	assert(bool(mission_game.state.missions[20].unlocked))
 	mission_game.state.land_owned = 11
 	mission_game.state.money = 9000
 	mission_game._update_missions()
@@ -61,15 +61,12 @@ func _init():
 	mission_game.state.buildings.append({"id":"small_house","workers":0,"balance":0})
 	assert(int(mission_game._get_mission_progress("build_house_tutorial")) == 1)
 	assert(not bool(mission_game.state.missions[2].unlocked))
-	assert(not bool(mission_game.state.missions[20].unlocked))
-	# Side missions remain hidden until the preceding main progression is claimed.
-	for main_index in range(20):
-		var main_mission = mission_game.state.missions[main_index]
-		main_mission["claimed"] = true
-		mission_game.state.missions[main_index] = main_mission
+	assert(bool(mission_game.state.missions[20].unlocked))
+	# Side missions are available independently while main missions keep their sequence.
 	mission_game._update_missions()
 	assert(bool(mission_game.state.missions[20].unlocked))
-	assert(not bool(mission_game.state.missions[21].unlocked))
+	assert(bool(mission_game.state.missions[21].unlocked))
+	assert(not bool(mission_game.state.missions[1].unlocked))
 	mission_game.state.population = 12
 	mission_game.state.buildings.append({"id":"water_tower","workers":0,"balance":0})
 	mission_game._update_missions()
