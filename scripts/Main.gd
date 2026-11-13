@@ -33,6 +33,7 @@ var construction_check_accumulator = 0.0
 var construction_time_labels = []
 var game_paused = false
 var menu_panel = null
+var menu_overlay = null
 var menu_pause_button = null
 var game_scroll_container = null
 var touch_scroll_active = false
@@ -572,11 +573,45 @@ func _build_ui():
 	help_button.add_theme_color_override("font_color_pressed", Color("#ffffff"))
 	help_button.connect("pressed", Callable(self, "_open_help"))
 	menu_row.add_child(help_button)
+	# Full-screen modal menu dims the city and separates menu actions
+	# from the navigation and city controls behind it.
+	var menu_layer = CanvasLayer.new()
+	menu_layer.layer = 50
+	add_child(menu_layer)
+	menu_overlay = ColorRect.new()
+	menu_overlay.name = "GameMenuBackdrop"
+	menu_overlay.color = Color(0.015, 0.035, 0.065, 0.82)
+	menu_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	menu_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	menu_overlay.visible = false
+	menu_layer.add_child(menu_overlay)
+	var menu_center = CenterContainer.new()
+	menu_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	menu_center.offset_left = 24
+	menu_center.offset_right = -24
+	menu_center.offset_top = 24
+	menu_center.offset_bottom = -24
+	menu_overlay.add_child(menu_center)
+	var menu_card = PanelContainer.new()
+	menu_card.custom_minimum_size = Vector2(min(440.0, screen_width - 56.0), 0)
+	menu_card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var menu_card_style = StyleBoxFlat.new()
+	menu_card_style.bg_color = Color("#101f32")
+	menu_card_style.border_color = Color("#38bdf8")
+	menu_card_style.set_border_width_all(2)
+	menu_card_style.set_corner_radius_all(20)
+	menu_card_style.content_margin_left = 18
+	menu_card_style.content_margin_right = 18
+	menu_card_style.content_margin_top = 18
+	menu_card_style.content_margin_bottom = 18
+	menu_card_style.shadow_color = Color(0, 0, 0, 0.55)
+	menu_card_style.shadow_size = 18
+	menu_card.add_theme_stylebox_override("panel", menu_card_style)
+	menu_center.add_child(menu_card)
 	menu_panel = VBoxContainer.new()
-	menu_panel.visible = false
 	menu_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	menu_panel.add_theme_constant_override("separation", 7)
-	root.add_child(menu_panel)
+	menu_panel.add_theme_constant_override("separation", 10)
+	menu_card.add_child(menu_panel)
 	menu_pause_button = _create_menu_action("⏸ توقف بازی", "toggle_pause")
 	_create_menu_action("🔊 صدا و موسیقی", "open_audio_settings")
 	_create_menu_action("⚙️ تنظیمات بازی", "open_game_settings")
@@ -831,7 +866,7 @@ func _create_menu_action(title, callback):
 func _toggle_game_menu():
 	if menu_panel == null:
 		return
-	menu_panel.visible = not menu_panel.visible
+	menu_overlay.visible = not menu_overlay.visible
 	_update_menu_pause_button()
 
 func _update_menu_pause_button():
@@ -847,7 +882,7 @@ func save_from_menu():
 	var saved = game.save_game()
 	_show_message("شهر ذخیره شد." if saved else "ذخیره‌سازی ناموفق بود.")
 	if menu_panel != null:
-		menu_panel.visible = false
+		menu_overlay.visible = false
 
 func confirm_restart_from_menu():
 	if restart_confirm_panel != null:
