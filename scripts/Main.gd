@@ -676,7 +676,7 @@ func _build_ui():
 				"progress": nav_title = "پیشرفت"
 		var b = Button.new()
 		var civic_page_locked = item.p in ["municipality", "private_economy"] and not game.has_municipal_hall()
-		b.text = PersianText.reshaper(nav_title + (" (قفل)" if civic_page_locked else ""))
+		b.text = PersianText.reshaper(nav_title + (" 🔒" if civic_page_locked else ""))
 		b.disabled = civic_page_locked
 		b.custom_minimum_size = Vector2(0, 64 if compact_layout else 58)
 		b.flat = false
@@ -954,12 +954,12 @@ func _style_button(button, navigation=false):
 	button.add_theme_stylebox_override("hover", _button_style(hover_color, border_hover))
 	button.add_theme_stylebox_override("focus", _button_style(hover_color, border_hover))
 	button.add_theme_stylebox_override("pressed", _button_style(pressed_color, border_pressed))
-	button.add_theme_stylebox_override("disabled", _button_style(Color("#D1D5DB"), Color("#6B7280")))
+	button.add_theme_stylebox_override("disabled", _button_style(Color("#FFFFFF"), Color("#73777D")))
 	button.add_theme_color_override("font_color", text_color)
 	button.add_theme_color_override("font_color_focus", text_color)
 	button.add_theme_color_override("font_color_hover", text_color)
 	button.add_theme_color_override("font_color_pressed", text_color)
-	button.add_theme_color_override("font_color_disabled", Color("#4B5563"))
+	button.add_theme_color_override("font_color_disabled", Color("#111111"))
 	button.add_theme_constant_override("outline_size", 1)
 	button.add_theme_color_override("font_outline_color", Color("#FFFFFF") if not navigation else Color("#111827"))
 
@@ -1709,8 +1709,10 @@ func show_page(page):
 					continue
 				var facility_population = int(facility.get("unlock",0))
 				var facility_level = int(facility.get("level_unlock",1))
-				var facility_button = _add_button("ساخت "+str(facility.get("name","ایستگاه"))+" — %d سکه | زمین: %d قطعه | جمعیت لازم: %d نفر | سطح: %d" % [int(facility.get("cost",0)),game.get_land_size(facility_id),facility_population,facility_level],self,"build_transport_facility",[facility_id])
-				facility_button.disabled = int(s.level) < facility_level
+				var facility_locked = int(s.level) < facility_level
+				var facility_name = str(facility.get("name","ایستگاه")) + (" 🔒" if facility_locked else "")
+				var facility_button = _add_button("ساخت "+facility_name+" — %d سکه | زمین: %d قطعه | جمعیت لازم: %d نفر | سطح: %d" % [int(facility.get("cost",0)),game.get_land_size(facility_id),facility_population,facility_level],self,"build_transport_facility",[facility_id])
+				facility_button.disabled = facility_locked
 			_add_label("🚚 پایانه و ناوگان کامیون",19)
 			_add_label("پایانه حمل‌ونقل: %d | کامیون فعال: %d | ظرفیت روزانه: %d واحد" % [game.get_building_count("transport_depot"),game.get_transport_truck_count(),game.get_transport_daily_capacity()],17)
 			_add_label("ظرفیت مصرف‌شده امروز: %d | ظرفیت باقی‌مانده: %d" % [int(s.get("transport_used_today",0)),game.get_transport_capacity_remaining()],16)
@@ -1720,8 +1722,10 @@ func show_page(page):
 			if not depot.is_empty():
 				var depot_population = int(depot.get("unlock",0))
 				var depot_level = int(depot.get("level_unlock",1))
-				var depot_button = _add_button("ساخت پایانه حمل‌ونقل — %d سکه | زمین: %d قطعه | جمعیت لازم: %d نفر | سطح: %d" % [int(depot.get("cost",0)),game.get_land_size("transport_depot"),depot_population,depot_level],self,"build_transport_facility",["transport_depot"])
-				depot_button.disabled = int(s.level) < depot_level
+				var depot_locked = int(s.level) < depot_level
+				var depot_title = "ساخت پایانه حمل‌ونقل" + (" 🔒" if depot_locked else "")
+				var depot_button = _add_button(depot_title+" — %d سکه | زمین: %d قطعه | جمعیت لازم: %d نفر | سطح: %d" % [int(depot.get("cost",0)),game.get_land_size("transport_depot"),depot_population,depot_level],self,"build_transport_facility",["transport_depot"])
+				depot_button.disabled = depot_locked
 			_add_label("ظرفیت کامیون‌ها بین واردات، قراردادهای تأمین و صادرات مشترک است.",15)
 		"imports":
 			_add_label(" واردات و حمل‌ونقل بین‌شهری", 22)
