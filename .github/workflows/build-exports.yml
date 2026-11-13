@@ -70,6 +70,40 @@ jobs:
           timeout 15s /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --path . --audio-driver Dummy --quit 2>&1 | tee /tmp/godot-main-scene.log
           if grep -E "SCRIPT ERROR|Parse Error" /tmp/godot-main-scene.log; then exit 1; fi
 
+      - name: Export HTML5 build
+        run: |
+          set -o pipefail
+          mkdir -p build/web
+          /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --path . --export-debug "Web" build/web/index.html 2>&1 | tee /tmp/godot-export.log
+          test -s build/web/index.html
+          touch build/web/.nojekyll
+          python3 - <<'PY'
+          from pathlib import Path
+          page = Path("build/web/index.html")
+          html = page.read_text(encoding="utf-8")
+          html = html.replace("\t\tbody {", "\t\tbody {\n\t\t\toverflow: hidden;\n\t\t\twidth: 100vw;\n\t\t\theight: 100vh;")
+          # Keep Godot's own canvas sizing and device-pixel-ratio handling.
+          # Forcing CSS width/height here can rescale the rendered canvas and blur text.
+          html = html.replace("\t\t#canvas {", "\t\t#canvas {")
+          page.write_text(html, encoding="utf-8")
+          PY
+
+      - name: Publish browser build for Render Static Site
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: render-web
+          publish_dir: build/web
+          force_orphan: true
+          commit_message: "Deploy Mini ZekaCity web build: ${{ github.sha }}"
+
+      - name: Archive validated browser build
+        uses: actions/upload-artifact@v4
+        with:
+          name: mini-zeka-city-web-build
+          path: build/web
+          retention-days: 14
+
       - name: Set up Java 17 and Android SDK
         uses: actions/setup-java@v4
         with:
@@ -99,41 +133,28 @@ jobs:
           set -euxo pipefail
           sdkmanager --sdk_root="$ANDROID_HOME" --install "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;23.2.8568313" "cmake;3.10.2.4988404"
 
-      - name: Verify Android templates from the official export bundle
-        timeout-minutes: 2
+      - name: Install Android build template into the project
+        timeout-minutes: 5
         run: |
           set -euxo pipefail
           TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/4.4.1.stable"
-          for template in android_debug.apk android_release.apk android_source.zip; do
-            test -s "$TEMPLATE_DIR/$template"
-            ls -lh "$TEMPLATE_DIR/$template"
-          done
-          unzip -t "$TEMPLATE_DIR/android_source.zip" | tail -n 2
+          test -s "$TEMPLATE_DIR/android_source.zip"
+          mkdir -p android/plugins android/build
+          touch android/build/.gdignore
+          printf '%s\n' '4.4.1.stable' > android/.build_version
+          unzip -q -o "$TEMPLATE_DIR/android_source.zip" -d android/build
+          chmod +x android/build/gradlew
+          test -s android/build/build.gradle
+          test -x android/build/gradlew
+          echo "Godot Android Gradle template installed in android/build."
 
       - name: Export Android APK for device testing
+        timeout-minutes: 30
         run: |
           set -o pipefail
           mkdir -p build/android
           /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --path . --export-debug "Android - Myket" build/android/MiniZekaCity-debug.apk 2>&1 | tee /tmp/godot-android-export.log
           test -s build/android/MiniZekaCity-debug.apk
-
-      - name: Export HTML5 build
-        run: |
-          set -o pipefail
-          mkdir -p build/web
-          /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --path . --export-debug "Web" build/web/index.html 2>&1 | tee /tmp/godot-export.log
-          test -s build/web/index.html
-          touch build/web/.nojekyll
-          python3 - <<'PY'
-          from pathlib import Path
-          page = Path("build/web/index.html")
-          html = page.read_text(encoding="utf-8")
-          html = html.replace("\t\tbody {", "\t\tbody {\n\t\t\toverflow: hidden;\n\t\t\twidth: 100vw;\n\t\t\theight: 100vh;")
-          # Keep Godot's own canvas sizing and device-pixel-ratio handling.
-          # Forcing CSS width/height here can rescale the rendered canvas and blur text.
-          html = html.replace("\t\t#canvas {", "\t\t#canvas {")
-          page.write_text(html, encoding="utf-8")
-          PY
 
       - name: Preserve migration diagnostics
         if: always()
@@ -149,18 +170,10 @@ jobs:
             /tmp/godot-ui-tests.log
             /tmp/godot-main-scene.log
             /tmp/godot-export.log
+            /tmp/godot-android-template.log
             /tmp/godot-android-export.log
           if-no-files-found: ignore
           retention-days: 14
-
-      - name: Publish browser build for Render Static Site
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: render-web
-          publish_dir: build/web
-          force_orphan: true
-          commit_message: "Deploy Mini ZekaCity web build: ${{ github.sha }}"
 
       - name: Archive Android APK for testing
         uses: actions/upload-artifact@v4
@@ -169,9 +182,3 @@ jobs:
           path: build/android/MiniZekaCity-debug.apk
           retention-days: 14
 
-      - name: Archive validated browser build
-        uses: actions/upload-artifact@v4
-        with:
-          name: mini-zeka-city-web-build
-          path: build/web
-          retention-days: 14

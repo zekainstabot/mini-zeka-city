@@ -12,6 +12,13 @@ func _run_tests():
 	var main = MainScene.instantiate()
 	get_root().add_child(main)
 	await process_frame
+	var text_server = TextServerManager.get_primary_interface()
+	assert(text_server != null)
+	assert(text_server.has_feature(TextServer.FEATURE_SHAPING))
+	assert(text_server.has_feature(TextServer.FEATURE_BIDI_LAYOUT))
+	assert(main.is_layout_rtl())
+	assert(main.header_label.is_layout_rtl())
+	assert(main.ui_font is Font)
 	main.game = EngineScript.new()
 	main.game.new_game()
 	assert(main._get_geographic_rank_name(1) == "آبادی کوچک")
