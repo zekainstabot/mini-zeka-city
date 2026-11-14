@@ -1110,11 +1110,18 @@ func _show_welcome_mission_hint():
 
 
 func open_audio_settings():
+	# Close the full-screen modal backdrop as well as its card.
+	if menu_overlay != null:
+		menu_overlay.visible = false
 	if menu_panel != null:
 		menu_panel.visible = false
 	show_page("audio")
 
 func open_game_settings():
+	# The backdrop is a full-screen input blocker; hiding only menu_panel
+	# leaves it covering the settings page and makes the page seem not to open.
+	if menu_overlay != null:
+		menu_overlay.visible = false
 	if menu_panel != null:
 		menu_panel.visible = false
 	show_page("settings")
