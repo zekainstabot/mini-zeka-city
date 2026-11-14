@@ -691,7 +691,6 @@ func _build_ui():
 	_create_menu_action("⚙️ تنظیمات بازی", "open_game_settings")
 	_create_menu_action("💾 ذخیره بازی", "save_from_menu")
 	_create_menu_action("🔄 شروع دوباره شهر", "confirm_restart_from_menu")
-	_create_menu_action("🏙️ بازگشت به شهر من", "return_home_from_menu")
 	_create_menu_action("✕ بستن منو", "_close_game_menu")
 	menu_button.connect("pressed", Callable(self, "_toggle_game_menu"))
 	restart_confirm_panel = VBoxContainer.new()
@@ -947,11 +946,15 @@ func _create_menu_action(title, callback):
 	return button
 
 func _toggle_game_menu():
-	if menu_panel == null:
+	if menu_panel == null or menu_overlay == null or not is_instance_valid(menu_overlay):
 		return
 	if exit_overlay != null and is_instance_valid(exit_overlay):
 		exit_overlay.visible = false
-	menu_overlay.visible = not menu_overlay.visible
+	var should_open = not menu_overlay.visible
+	menu_overlay.visible = should_open
+	# Settings pages hide the menu contents while leaving the menu overlay closed.
+	# Restore the contents whenever the player opens the menu again.
+	menu_panel.visible = should_open
 	_update_menu_pause_button()
 
 func _close_game_menu():
