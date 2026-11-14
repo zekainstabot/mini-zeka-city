@@ -6,6 +6,7 @@ const GameData = preload("res://scripts/GameData.gd")
 const GameRanking = preload("res://scripts/GameRanking.gd")
 const BankingSystem = preload("res://scripts/BankingSystem.gd")
 const TradeSystem = preload("res://scripts/TradeSystem.gd")
+const StorageSystem = preload("res://scripts/StorageSystem.gd")
 
 const SAVE_PATH = "user://mini_zeka_city_save.json"
 const STORAGE_RESERVE = 50
@@ -1853,94 +1854,32 @@ func get_forest_tree_count():
 
 
 func get_storage_rule(resource_id):
-	if not RESOURCES.has(str(resource_id)):
-		return {}
-	if typeof(state.get("storage_rules", null)) != TYPE_DICTIONARY:
-		state["storage_rules"] = {}
-	if not state.storage_rules.has(str(resource_id)):
-		state.storage_rules[str(resource_id)] = {"minimum":10,"maximum":40,"low_action":"market","high_action":"market"}
-	return state.storage_rules[str(resource_id)]
+	return StorageSystem.get_storage_rule(self, resource_id)
+
 
 func set_storage_rule(resource_id, field, value):
-	if not RESOURCES.has(str(resource_id)) or not str(field) in ["minimum","maximum"]:
-		return {"ok":false,"message":"تنظیم انبار نامعتبر است."}
-	var rule = get_storage_rule(str(resource_id))
-	var amount = max(0,int(value))
-	if str(field) == "minimum":
-		rule.minimum = min(amount,max(0,int(rule.maximum)-5))
-	else:
-		rule.maximum = max(amount,int(rule.minimum)+5)
-	state.storage_rules[str(resource_id)] = rule
-	save_game()
-	return {"ok":true,"message":"حد موجودی "+RESOURCES[str(resource_id)].name+" ذخیره شد."}
+	return StorageSystem.set_storage_rule(self, resource_id, field, value)
+
 
 func toggle_storage_action(resource_id, level):
-	var rule = get_storage_rule(str(resource_id))
-	if str(level) == "low":
-		rule.low_action = "factory" if str(rule.get("low_action","market")) == "market" else "market"
-	else:
-		rule.high_action = "shop" if str(rule.get("high_action","market")) == "market" else "market"
-	state.storage_rules[str(resource_id)] = rule
-	save_game()
-	return {"ok":true,"message":"روش مدیریت موجودی "+RESOURCES[str(resource_id)].name+" تغییر کرد."}
+	return StorageSystem.toggle_storage_action(self, resource_id, level)
+
 
 func apply_storage_rule(resource_id, manual=false):
-	if not RESOURCES.has(str(resource_id)):
-		return {"ok":false,"message":"ماده پیدا نشد."}
-	var id = str(resource_id)
-	var rule = get_storage_rule(id)
-	var current = int(state.resources.get(id,0))
-	var minimum = int(rule.get("minimum",10))
-	var maximum = int(rule.get("maximum",40))
-	if current < minimum:
-		if str(rule.get("low_action","market")) == "market":
-			var amount = min(minimum-current,min(int(state.market_stock.get(id,0)),get_free_storage()))
-			var price = get_market_price(id,"buy")
-			amount = min(amount,int(floor(float(get_available_money())/float(max(1,price)))))
-			if amount > 0:
-				_spend_money(amount*price)
-				state.market_stock[id] = int(state.market_stock.get(id,0))-amount
-				state.resources[id] = current+amount
-				return {"ok":true,"message":"برای انبار %d واحد %s از بازار خریداری شد." % [amount,RESOURCES[id].name]}
-			return {"ok":false,"message":"برای تأمین "+RESOURCES[id].name+" موجودی بازار، فضای انبار یا پول کافی نیست."}
-		return {"ok":true,"message":"تولید "+RESOURCES[id].name+" در کارخانه‌ها در اولویت قرار گرفت؛ تولید اضافه فقط با مواد اولیه و نیروی کار ممکن است."}
-	if current > maximum:
-		var surplus = current-maximum
-		if str(rule.get("high_action","market")) == "shop":
-			if id != "food" or get_building_count("grocery_store") <= 0:
-				return {"ok":false,"message":"برای فروش این ماده از فروشگاه، فروشگاه مواد غذایی لازم است؛ فعلاً از بازار استفاده کن."}
-			# Keep surplus food for the normal citizen-purchase process at staffed grocery stores.
-			return {"ok":true,"message":"مازاد خوراک در انبار ماند تا فروشگاه‌ها آن را به شهروندان بفروشند."}
-		# Market route uses the same stock and treasury limits as manual market sales.
-		var sell_mode = "sell"
-		var unit_sell_price = max(1, get_market_price(id, sell_mode))
-		var market_room = max(0, 100 - int(state.market_stock.get(id, 0)))
-		var treasury_room = max(0, get_treasury_capacity() - int(state.money))
-		var sold = min(surplus, min(market_room, int(floor(float(treasury_room) / float(unit_sell_price)))))
-		if sold > 0:
-			var revenue = sold*get_market_price(id,"sell")
-			state.resources[id] = current-sold
-			state.market_stock[id] = int(state.market_stock.get(id,0))+sold
-			_add_money(revenue)
-			return {"ok":true,"message":"%d واحد %s به فروش رسید و %d سکه درآمد ایجاد کرد." % [sold,RESOURCES[id].name,revenue]}
-		return {"ok":false,"message":"بازار یا خزانه ظرفیت فروش "+RESOURCES[id].name+" را ندارد."}
-	return {"ok":true,"message":"موجودی "+RESOURCES[id].name+" در محدوده تنظیم‌شده است."}
+	return StorageSystem.apply_storage_rule(self, resource_id, manual=false)
 
 
 func get_storage_capacity():
-	var total = 0
-	for building in state.buildings:
-		total += int(BUILDINGS.get(building.id, {}).get("storage", 0))
-	return total
+	return StorageSystem.get_storage_capacity(self)
+
 
 func get_storage_used():
-	var total = 0
-	for value in state.resources.values():
-		total += int(value)
-	return total
+	return StorageSystem.get_storage_used(self)
+
 
 func get_free_storage():
-	return max(0, get_storage_capacity() - get_storage_used())
+	return StorageSystem.get_free_storage(self)
+
 
 func has_municipal_hall():
 	return get_building_count("municipal_hall") > 0
