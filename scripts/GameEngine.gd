@@ -366,11 +366,7 @@ func new_game():
 		"city_records": {},
 		"long_term_project_claimed": [],
 		"weekly_challenge": {},
-		"rival_cities": [
-			{"id":"mehrabad_rival","name":"مهرآباد","population":18,"level":2,"buildings":7,"wealth":6500,"satisfaction":62,"score":330},
-			{"id":"navid_rival","name":"نویدشهر","population":26,"level":3,"buildings":10,"wealth":9200,"satisfaction":68,"score":520},
-			{"id":"golestan_rival","name":"گلستان","population":14,"level":2,"buildings":6,"wealth":4800,"satisfaction":58,"score":280}
-		],
+		"rival_cities": [],
 		"mystery_active": {},
 		"mystery_completed": [],
 		"mystery_next_day": 4,
@@ -885,11 +881,20 @@ func claim_weekly_challenge():
 
 
 func _default_rival_cities():
-	return [
-		{"id":"mehrabad_rival","name":"مهرآباد","population":18,"level":2,"buildings":7,"wealth":6500,"satisfaction":62,"score":330},
-		{"id":"navid_rival","name":"نویدشهر","population":26,"level":3,"buildings":10,"wealth":9200,"satisfaction":68,"score":520},
-		{"id":"golestan_rival","name":"گلستان","population":14,"level":2,"buildings":6,"wealth":4800,"satisfaction":58,"score":280}
-	]
+	var defaults = []
+	for index in range(CITY_NAME_POOL.size()):
+		var city = CITY_NAME_POOL[index]
+		defaults.append({
+			"id": str(city.id) + "_rival",
+			"name": str(city.name),
+			"population": 16 + index * 3,
+			"level": 2 + (index % 3),
+			"buildings": 6 + index,
+			"wealth": 5000 + index * 1250,
+			"satisfaction": 58 + (index % 5) * 5,
+			"score": 280 + index * 115
+		})
+	return defaults
 
 func _advance_rival_cities(report):
 	var rivals = state.get("rival_cities", _default_rival_cities())
