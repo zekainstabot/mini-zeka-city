@@ -2,7 +2,7 @@ extends RefCounted
 
 # City treasury loans, deposits, repayments, and bank ledger.
 
-static func engine._record_bank_transaction( kind, amount, description):
+static func _record_bank_transaction(engine, kind, amount, description):
 	var state = engine.state
 	if typeof(state.get("bank_transactions", null)) != TYPE_ARRAY:
 		state["bank_transactions"] = []
@@ -10,7 +10,7 @@ static func engine._record_bank_transaction( kind, amount, description):
 	while state.bank_transactions.size() > 100:
 		state.bank_transactions.pop_front()
 
-static func engine.get_bank_loan_limit():
+static func get_bank_loan_limit(engine):
 	var state = engine.state
 	if not engine.has_central_bank():
 		return 0
@@ -166,5 +166,5 @@ static func _process_bank_day(engine, report):
 		state["bank_daily_repayment"] = total_paid
 	return total_paid
 
-static func engine.game_has_no_municipal_bank():
+static func game_has_no_municipal_bank(engine):
 	return engine.get_building_count("municipal_bank") <= 0
