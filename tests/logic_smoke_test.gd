@@ -505,13 +505,17 @@ func _init():
 	private_district_game.new_game()
 	private_district_game.state["private_businesses"] = [
 		{"id":101,"building_id":"grocery_store","name":"فروشگاه خصوصی"},
-		{"id":102,"building_id":"grocery_store","name":"فروشگاه دوم"}
+		{"id":102,"building_id":"grocery_store","name":"فروشگاه دوم"},
+		{"id":103,"building_id":"grocery_store","name":"فروشگاه سوم"}
 	]
 	private_district_game._ensure_building_locations()
 	var private_district = private_district_game.state.districts[0]
 	assert(int(private_district.building_type_counts.get("grocery_store", 0)) == 2)
 	assert(not private_district.building_type_counts.has("101"))
 	assert(not private_district.building_type_counts.has("102"))
+	assert(not private_district_game._district_can_accept(private_district, "grocery_store"))
+	assert(private_district_game.state.districts.size() == 2)
+	assert(str(private_district_game.state.private_businesses[2].district_id) == "A2")
 
 	var district_type_limit_game = EngineScript.new()
 	district_type_limit_game.new_game()
