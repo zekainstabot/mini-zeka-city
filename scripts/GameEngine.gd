@@ -312,12 +312,16 @@ func _sync_rival_cities():
 				"wealth": 5000 + index * 1250,
 				"satisfaction": 58 + (index % 5) * 5,
 				"score": 280 + index * 115,
+				"xp": int(randi() % 100),
 				"ai_style_index": int(randi() % 4),
 				"ai_actions": 0
 			}
-		elif not rival_data.has("ai_style_index"):
-			# Give older saves their own persistent AI profile exactly once.
-			rival_data["ai_style_index"] = int(randi() % 4)
+		else:
+			# Give older saves independent AI and XP profiles exactly once.
+			if not rival_data.has("ai_style_index"):
+				rival_data["ai_style_index"] = int(randi() % 4)
+			if not rival_data.has("xp"):
+				rival_data["xp"] = int(randi() % 100)
 			rival_data["ai_actions"] = int(rival_data.get("ai_actions", 0))
 		rival_data["id"] = rival_id + "_rival"
 		rival_data["name"] = rival_name
@@ -784,7 +788,7 @@ func get_city_league():
 	for league in leagues:
 		if score >= int(league.min):
 			selected = league
-	return {"score":score,"name":str(selected.name),"next":int(selected.next)}
+	return {"score":score,"name":str(selected.name),"next":int(selected.next),"tier":leagues.find(selected)}
 
 
 func get_weekly_city_event():
@@ -972,6 +976,14 @@ func _advance_rival_cities(report):
 		if int(randi() % 100) < 10 and int(rival.get("level", 1)) < 15:
 			rival["level"] = int(rival.get("level", 1)) + 1
 		rival["satisfaction"] = int(clamp(int(rival.get("satisfaction", 50)) + int(randi() % 5) - 2, 25, 100))
+		# Rival XP is persistent progress within its current city level.
+		var rival_xp = int(rival.get("xp", 0)) + 8 + int(randi() % 21)
+		var xp_required = max(100, int(rival.get("level", 1)) * 100)
+		while rival_xp >= xp_required:
+			rival_xp -= xp_required
+			rival["level"] = int(rival.get("level", 1)) + 1
+			xp_required = max(100, int(rival.get("level", 1)) * 100)
+		rival["xp"] = rival_xp
 		rivals[index] = rival
 
 	state["rival_cities"] = rivals
@@ -988,16 +1000,42 @@ func get_rival_standings():
 	_sync_rival_cities()
 	var standings = []
 	var player_league = get_city_league()
-	standings.append({"id":"player","name":"شهر من","score":int(player_league.score),"population":int(state.get("population", 0)),"level":int(state.get("level", 1)),"is_player":true})
+	standings.append({"id":"player","name":"شهر من","score":int(player_league.score),"league_tier":int(player_league.tier),"xp":int(state.get("xp", 0)),"population":int(state.get("population", 0)),"level":int(state.get("level", 1)),"is_player":true})
 	for rival in state.get("rival_cities", _default_rival_cities()):
-		standings.append({"id":str(rival.get("id","rival")),"name":str(rival.get("name","شهر رقیب")),"score":int(rival.get("score",0)),"population":int(rival.get("population",0)),"level":int(rival.get("level",1)),"is_player":false})
+		var rival_score = int(rival.get("score", 0))
+		var rival_league = _get_city_league_for_score(rival_score)
+		standings.append({"id":str(rival.get("id","rival")),"name":str(rival.get("name","شهر رقیب")),"score":rival_score,"league_tier":int(rival_league.tier),"xp":int(rival.get("xp",0)),"population":int(rival.get("population",0)),"level":int(rival.get("level",1)),"is_player":false})
 	standings.sort_custom(Callable(self, "_sort_rival_standings"))
 	for index in range(standings.size()):
 		standings[index]["rank"] = index + 1
 	return standings
 
 func _sort_rival_standings(a, b):
+	var tier_a = int(a.get("league_tier", 0))
+	var tier_b = int(b.get("league_tier", 0))
+	if tier_a != tier_b:
+		return tier_a > tier_b
+	var xp_a = int(a.get("xp", 0))
+	var xp_b = int(b.get("xp", 0))
+	if xp_a != xp_b:
+		return xp_a > xp_b
 	return int(a.get("score", 0)) > int(b.get("score", 0))
+
+func _get_city_league_for_score(score):
+	var leagues = [
+		{"name":"روستای نوپا","min":0,"next":300},
+		{"name":"شهرک در حال رشد","min":300,"next":650},
+		{"name":"شهر پویا","min":650,"next":1100},
+		{"name":"کلان‌شهر","min":1100,"next":1700},
+		{"name":"کلان‌شهر پیشرفته","min":1700,"next":0}
+	]
+	var selected = leagues[0]
+	var tier = 0
+	for index in range(leagues.size()):
+		if int(score) >= int(leagues[index].min):
+			selected = leagues[index]
+			tier = index
+	return {"name":str(selected.name),"next":int(selected.next),"tier":tier}
 
 func _process_mystery_discovery(report):
 	if not state.get("mystery_active", {}).is_empty():
