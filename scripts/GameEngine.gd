@@ -1030,15 +1030,19 @@ func _advance_rival_cities(report):
 	state["rival_cities"] = rivals
 	if rivals.is_empty():
 		return
-	var leader = rivals[0]
-	for rival in rivals:
-		if int(rival.get("score", 0)) > int(leader.get("score", 0)):
-			leader = rival
 	var player_geo = get_geographic_rank_for_district_count(state.get("districts", []).size())
-	var leader_geo = get_geographic_rank_for_district_count(int(leader.get("district_count", 1)))
-	var leader_row = {"geographic_tier":int(leader_geo.tier),"xp":int(leader.get("xp",0)),"score":int(leader.get("score",0))}
 	var player_row = {"geographic_tier":int(player_geo.tier),"xp":int(state.get("xp",0)),"score":int(get_city_league().score)}
-	if _sort_rival_standings(leader_row, player_row):
+	var leader = null
+	var leader_geo = {}
+	var leader_row = {}
+	for rival in rivals:
+		var rival_geo = get_geographic_rank_for_district_count(int(rival.get("district_count", 1)))
+		var rival_row = {"geographic_tier":int(rival_geo.tier),"xp":int(rival.get("xp",0)),"score":int(rival.get("score",0))}
+		if leader == null or _sort_rival_standings(rival_row, leader_row):
+			leader = rival
+			leader_geo = rival_geo
+			leader_row = rival_row
+	if leader != null and _sort_rival_standings(leader_row, player_row):
 		report.append("🏙️ خبر رقبا: %s با رتبه %s و مدیریت %s از شهر تو جلوتر افتاد؛ برای پس گرفتن رتبه تلاش کن." % [str(leader.get("name", "شهر رقیب")),str(leader_geo.name),str(leader.get("ai_personality", "هوشمند"))])
 
 func get_rival_standings():

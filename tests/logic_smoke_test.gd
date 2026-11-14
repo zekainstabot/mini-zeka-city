@@ -228,6 +228,20 @@ func _init():
 	assert(str(ranking_tiebreakers[0].id) == "same_rank_high_xp")
 	assert(str(ranking_tiebreakers[1].id) == "same_rank_low_xp")
 	assert(str(ranking_tiebreakers[2].id) == "lower_geo_rank")
+
+	# The rival news leader must follow the same geographic/XP/score priority as the ranking.
+	var leader_priority_game = EngineScript.new()
+	leader_priority_game.new_game()
+	leader_priority_game.state["districts"] = [leader_priority_game.state.districts[0].duplicate(true)]
+	leader_priority_game.state["rival_cities"] = [
+		{"id":"high_score_low_rank","name":"رقیب با امتیاز زیاد","district_count":4,"buildings":12,"level":1,"xp":99,"score":99999,"wealth":0,"ai_style_index":0},
+		{"id":"high_rank_low_score","name":"رقیب با رتبه بالاتر","district_count":10,"buildings":30,"level":1,"xp":1,"score":1,"wealth":0,"ai_style_index":0}
+	]
+	var leader_priority_report = []
+	leader_priority_game._advance_rival_cities(leader_priority_report)
+	assert(leader_priority_report.size() == 1)
+	assert(str(leader_priority_report[0]).find("رقیب با رتبه بالاتر") >= 0)
+
 	var rival_ai_report = []
 	engagement_game._advance_rival_cities(rival_ai_report)
 	var saved_ai_profiles = {}
