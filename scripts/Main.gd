@@ -3,6 +3,8 @@ extends Control
 const EngineScript = preload("res://scripts/GameEngine.gd")
 const PersianText = preload("res://scripts/PersianText.gd")
 const AudioManagerScript = preload("res://scripts/AudioManager.gd")
+const MainUITheme = preload("res://scripts/MainUITheme.gd")
+const HelpPageBuilder = preload("res://scripts/HelpPageBuilder.gd")
 var game = null
 var audio_manager = null
 var last_audio_night_mode = false
@@ -1358,45 +1360,10 @@ func _apply_font(control, size=18):
 	return ui_font
 
 func _button_style(bg_color, border_color):
-	var style = StyleBoxFlat.new()
-	style.bg_color = bg_color
-	style.border_color = border_color
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(15)
-	style.content_margin_left = 14
-	style.content_margin_right = 14
-	style.content_margin_top = 10
-	style.content_margin_bottom = 10
-	return style
+	return MainUITheme.button_style(bg_color, border_color)
 
 func _style_button(button, navigation=false):
-	button.flat = false
-	# Activate after touch release so Android cannot leave a menu button stuck
-	# in its pressed/blue state while the next screen is displayed.
-	button.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
-	button.focus_mode = Control.FOCUS_NONE
-	# Main buttons: near-black with white text.
-	# Inner buttons: clean white with near-black text.
-	var normal_color = Color("#202124") if navigation else Color("#FFFFFF")
-	var hover_color = Color("#34363A") if navigation else Color("#E8EAED")
-	var pressed_color = Color("#111214") if navigation else Color("#DADCE0")
-	var border_normal = Color("#050505") if navigation else Color("#73777D")
-	var border_hover = Color("#000000") if navigation else Color("#4B5057")
-	var border_pressed = Color("#000000") if navigation else Color("#30343A")
-	var text_color = Color("#FFFFFF") if navigation else Color("#111111")
-	button.add_theme_stylebox_override("normal", _button_style(normal_color, border_normal))
-	button.add_theme_stylebox_override("hover", _button_style(hover_color, border_hover))
-	button.add_theme_stylebox_override("focus", _button_style(hover_color, border_hover))
-	button.add_theme_stylebox_override("pressed", _button_style(pressed_color, border_pressed))
-	# Locked navigation items keep the exact same visual style; only the lock icon indicates availability.
-	button.add_theme_stylebox_override("disabled", _button_style(normal_color, border_normal))
-	button.add_theme_color_override("font_color", text_color)
-	button.add_theme_color_override("font_color_focus", text_color)
-	button.add_theme_color_override("font_color_hover", text_color)
-	button.add_theme_color_override("font_color_pressed", text_color)
-	button.add_theme_color_override("font_color_disabled", text_color)
-	button.add_theme_constant_override("outline_size", 1)
-	button.add_theme_color_override("font_outline_color", Color("#FFFFFF") if not navigation else Color("#111827"))
+	MainUITheme.style_button(button, navigation)
 
 func _clear_content():
 	construction_time_labels.clear()
@@ -1612,46 +1579,7 @@ func _open_help_target(target_page):
 	show_page(str(target_page))
 
 func _add_help_section(title, description, target_page=""):
-	var panel = PanelContainer.new()
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var panel_style = StyleBoxFlat.new()
-	panel_style.bg_color = Color("#1e293b")
-	panel_style.border_color = Color("#475569")
-	panel_style.set_border_width_all(1)
-	panel_style.set_corner_radius_all(10)
-	panel_style.content_margin_left = 12
-	panel_style.content_margin_right = 12
-	panel_style.content_margin_top = 10
-	panel_style.content_margin_bottom = 10
-	panel.add_theme_stylebox_override("panel", panel_style)
-	content.add_child(panel)
-	var body = VBoxContainer.new()
-	body.add_theme_constant_override("separation", 5)
-	panel.add_child(body)
-	var heading = Label.new()
-	heading.text = PersianText.reshaper(title)
-	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	heading.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_apply_font(heading, 18 if get_viewport_rect().size.x < 900 else 17)
-	heading.add_theme_color_override("font_color", Color("#fbbf24"))
-	body.add_child(heading)
-	var details = Label.new()
-	details.text = PersianText.reshaper(description)
-	details.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_font(details, 16 if get_viewport_rect().size.x < 900 else 15)
-	details.add_theme_color_override("font_color", Color("#e2e8f0"))
-	body.add_child(details)
-	if str(target_page) != "":
-		var jump = Button.new()
-		jump.text = PersianText.reshaper("رفتن به بخش مربوط  ←")
-		jump.custom_minimum_size = Vector2(0, 48 if get_viewport_rect().size.x < 900 else 42)
-		jump.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_apply_font(jump, 16 if get_viewport_rect().size.x < 900 else 15)
-		_style_button(jump, false)
-		jump.connect("pressed", Callable(self, "_open_help_target").bind(str(target_page)))
-		body.add_child(jump)
+	HelpPageBuilder.add_section(self, title, description, target_page)
 
 func _open_missions_from_welcome():
 	show_page("missions")
