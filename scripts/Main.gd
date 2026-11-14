@@ -61,6 +61,7 @@ var main_layout = null
 var main_navigation_grid = null
 var navigation_buttons = []
 var menu_card = null
+var exit_overlay = null
 var last_layout_viewport_size = Vector2.ZERO
 
 func _input(event):
@@ -74,6 +75,10 @@ func _input(event):
 			meaningful_input = true
 		if meaningful_input:
 			last_activity_ticks = Time.get_ticks_msec()
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_ESCAPE, KEY_BACK]:
+		_handle_device_back()
+		get_viewport().set_input_as_handled()
+		return
 	if game_scroll_container == null or not is_instance_valid(game_scroll_container):
 		return
 	if event is InputEventScreenTouch:
@@ -442,6 +447,9 @@ func _claim_offline_income():
 	_show_message(message)
 
 func _notification(what):
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST and game != null:
+		_handle_device_back()
+		return
 	if what == NOTIFICATION_WM_CLOSE_REQUEST and game != null:
 		game.state["clock_last_unix"] = Time.get_unix_time_from_system()
 		game.state["clock_cycle_seconds"] = int(clock_cycle_seconds)
@@ -663,16 +671,30 @@ func _build_ui():
 	menu_card_style.shadow_size = 18
 	menu_card.add_theme_stylebox_override("panel", menu_card_style)
 	menu_center.add_child(menu_card)
+	var menu_heading = Label.new()
+	menu_heading.text = PersianText.reshaper("منوی بازی")
+	menu_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_font(menu_heading, 23 if compact_layout else 21)
+	menu_heading.add_theme_color_override("font_color", Color("#f8fafc"))
+	menu_card.add_child(menu_heading)
+	var menu_scroll = ScrollContainer.new()
+	menu_scroll.name = "PhoneMenuScroll"
+	menu_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	menu_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	menu_scroll.custom_minimum_size = Vector2(0, min(560.0, max(220.0, get_viewport_rect().size.y - 150.0)))
+	menu_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	menu_card.add_child(menu_scroll)
 	menu_panel = VBoxContainer.new()
 	menu_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	menu_panel.add_theme_constant_override("separation", 10)
-	menu_card.add_child(menu_panel)
+	menu_panel.add_theme_constant_override("separation", 12)
+	menu_scroll.add_child(menu_panel)
 	menu_pause_button = _create_menu_action("⏸ توقف بازی", "toggle_pause")
 	_create_menu_action("🔊 صدا و موسیقی", "open_audio_settings")
 	_create_menu_action("⚙️ تنظیمات بازی", "open_game_settings")
 	_create_menu_action("💾 ذخیره بازی", "save_from_menu")
 	_create_menu_action("🔄 شروع دوباره شهر", "confirm_restart_from_menu")
 	_create_menu_action("🏙️ بازگشت به شهر من", "return_home_from_menu")
+	_create_menu_action("✕ بستن منو", "_close_game_menu")
 	menu_button.connect("pressed", Callable(self, "_toggle_game_menu"))
 	restart_confirm_panel = VBoxContainer.new()
 	restart_confirm_panel.visible = false
@@ -703,6 +725,7 @@ func _build_ui():
 	_style_button(restart_no_button, false)
 	restart_no_button.connect("pressed", Callable(self, "_cancel_restart"))
 	restart_confirm_panel.add_child(restart_no_button)
+	_build_exit_confirmation(menu_layer)
 	# Persistent city progression panel: stays visible above navigation on every page.
 	var progress_panel = VBoxContainer.new()
 	progress_panel.add_theme_constant_override("separation", 3)
@@ -911,9 +934,9 @@ func _update_mission_reward_badge():
 func _create_menu_action(title, callback):
 	var button = Button.new()
 	button.text = PersianText.reshaper(title)
-	button.custom_minimum_size = Vector2(0, 52 if get_viewport_rect().size.x < 900 else 44)
+	button.custom_minimum_size = Vector2(0, 64 if get_viewport_rect().size.x < 900 else 54)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_font(button, 18 if get_viewport_rect().size.x < 900 else 16)
+	_apply_font(button, 19 if get_viewport_rect().size.x < 900 else 17)
 	_style_button(button, false)
 	button.connect("pressed", Callable(self, callback))
 	if audio_manager != null:
@@ -924,8 +947,106 @@ func _create_menu_action(title, callback):
 func _toggle_game_menu():
 	if menu_panel == null:
 		return
+	if exit_overlay != null and is_instance_valid(exit_overlay):
+		exit_overlay.visible = false
 	menu_overlay.visible = not menu_overlay.visible
 	_update_menu_pause_button()
+
+func _close_game_menu():
+	if menu_overlay != null and is_instance_valid(menu_overlay):
+		menu_overlay.visible = false
+	if restart_confirm_panel != null and is_instance_valid(restart_confirm_panel):
+		restart_confirm_panel.visible = false
+
+func _handle_device_back():
+	if exit_overlay != null and is_instance_valid(exit_overlay) and exit_overlay.visible:
+		exit_overlay.visible = false
+		return
+	if restart_confirm_panel != null and is_instance_valid(restart_confirm_panel) and restart_confirm_panel.visible:
+		restart_confirm_panel.visible = false
+		return
+	if menu_overlay != null and is_instance_valid(menu_overlay) and menu_overlay.visible:
+		_close_game_menu()
+		return
+	_show_exit_confirmation()
+
+func _build_exit_confirmation(parent_layer):
+	exit_overlay = ColorRect.new()
+	exit_overlay.name = "ExitGameConfirmation"
+	exit_overlay.color = Color(0.015, 0.035, 0.065, 0.86)
+	exit_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	exit_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	exit_overlay.visible = false
+	exit_overlay.z_index = 20
+	parent_layer.add_child(exit_overlay)
+	var center = CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.offset_left = 18
+	center.offset_right = -18
+	center.offset_top = 18
+	center.offset_bottom = -18
+	exit_overlay.add_child(center)
+	var card = PanelContainer.new()
+	card.custom_minimum_size = Vector2(min(420.0, get_viewport_rect().size.x - 44.0), 0)
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color("#14243a")
+	style.border_color = Color("#f59e0b")
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(22)
+	style.content_margin_left = 20
+	style.content_margin_right = 20
+	style.content_margin_top = 22
+	style.content_margin_bottom = 22
+	card.add_theme_stylebox_override("panel", style)
+	center.add_child(card)
+	var layout = VBoxContainer.new()
+	layout.add_theme_constant_override("separation", 14)
+	card.add_child(layout)
+	var title = Label.new()
+	title.text = PersianText.reshaper("خروج از بازی؟")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_font(title, 23)
+	title.add_theme_color_override("font_color", Color("#f8fafc"))
+	layout.add_child(title)
+	var description = Label.new()
+	description.text = PersianText.reshaper("می‌خواهی از مینی زکا سیتی خارج شوی؟ پیشرفتت ذخیره می‌شود.")
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_font(description, 16)
+	description.add_theme_color_override("font_color", Color("#cbd5e1"))
+	layout.add_child(description)
+	var continue_button = Button.new()
+	continue_button.text = PersianText.reshaper("ادامه بازی")
+	continue_button.custom_minimum_size = Vector2(0, 60)
+	continue_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_font(continue_button, 19)
+	_style_button(continue_button, true)
+	continue_button.pressed.connect(_cancel_exit_game)
+	layout.add_child(continue_button)
+	var exit_button = Button.new()
+	exit_button.text = PersianText.reshaper("خروج از بازی")
+	exit_button.custom_minimum_size = Vector2(0, 60)
+	exit_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_font(exit_button, 19)
+	_style_button(exit_button, false)
+	exit_button.pressed.connect(_confirm_exit_game)
+	layout.add_child(exit_button)
+
+func _show_exit_confirmation():
+	if exit_overlay != null and is_instance_valid(exit_overlay):
+		exit_overlay.visible = true
+
+func _cancel_exit_game():
+	if exit_overlay != null and is_instance_valid(exit_overlay):
+		exit_overlay.visible = false
+
+func _confirm_exit_game():
+	if game != null:
+		game.state["clock_last_unix"] = Time.get_unix_time_from_system()
+		game.state["clock_cycle_seconds"] = int(clock_cycle_seconds)
+		game.save_game()
+	get_tree().quit()
 
 func _update_menu_pause_button():
 	if menu_pause_button != null:
