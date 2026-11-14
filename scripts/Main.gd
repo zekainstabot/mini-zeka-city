@@ -63,6 +63,7 @@ var navigation_buttons = []
 var menu_card = null
 var exit_overlay = null
 var last_layout_viewport_size = Vector2.ZERO
+var last_device_back_ticks = 0
 
 func _input(event):
 	if game != null:
@@ -600,9 +601,11 @@ func _build_ui():
 	menu_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	root.add_child(menu_row)
 	var menu_button = Button.new()
-	menu_button.text = PersianText.reshaper("منو")
-	menu_button.custom_minimum_size = Vector2(180, 54 if compact_layout else 46)
-	_apply_font(menu_button, 20 if compact_layout else 18)
+	menu_button.text = "☰"
+	menu_button.tooltip_text = "باز کردن منوی بازی"
+	menu_button.custom_minimum_size = Vector2(68 if compact_layout else 60, 62 if compact_layout else 52)
+	menu_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_apply_font(menu_button, 29 if compact_layout else 25)
 	_style_button(menu_button, true)
 	menu_row.add_child(menu_button)
 
@@ -934,7 +937,7 @@ func _update_mission_reward_badge():
 func _create_menu_action(title, callback):
 	var button = Button.new()
 	button.text = PersianText.reshaper(title)
-	button.custom_minimum_size = Vector2(0, 64 if get_viewport_rect().size.x < 900 else 54)
+	button.custom_minimum_size = Vector2(0, 68 if get_viewport_rect().size.x < 900 else 58)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_font(button, 19 if get_viewport_rect().size.x < 900 else 17)
 	_style_button(button, false)
@@ -959,6 +962,12 @@ func _close_game_menu():
 		restart_confirm_panel.visible = false
 
 func _handle_device_back():
+	# Android can deliver both KEY_BACK and NOTIFICATION_WM_GO_BACK_REQUEST
+	# for one physical press. Debounce them so one press performs one action.
+	var now_ticks = Time.get_ticks_msec()
+	if now_ticks - last_device_back_ticks < 350:
+		return
+	last_device_back_ticks = now_ticks
 	if exit_overlay != null and is_instance_valid(exit_overlay) and exit_overlay.visible:
 		exit_overlay.visible = false
 		return
@@ -1161,15 +1170,18 @@ func _button_style(bg_color, border_color):
 	style.bg_color = bg_color
 	style.border_color = border_color
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(9)
-	style.content_margin_left = 12
-	style.content_margin_right = 12
-	style.content_margin_top = 8
-	style.content_margin_bottom = 8
+	style.set_corner_radius_all(15)
+	style.content_margin_left = 14
+	style.content_margin_right = 14
+	style.content_margin_top = 10
+	style.content_margin_bottom = 10
 	return style
 
 func _style_button(button, navigation=false):
 	button.flat = false
+	# Native-feeling mobile response: activate on finger-down, not finger-up.
+	button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
+	button.focus_mode = Control.FOCUS_NONE
 	# Main buttons: near-black with white text.
 	# Inner buttons: clean white with near-black text.
 	var normal_color = Color("#202124") if navigation else Color("#FFFFFF")
