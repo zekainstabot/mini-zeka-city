@@ -6,6 +6,8 @@ const AudioManagerScript = preload("res://scripts/AudioManager.gd")
 const MainUITheme = preload("res://scripts/MainUITheme.gd")
 const HelpPageBuilder = preload("res://scripts/HelpPageBuilder.gd")
 const AudioSettingsPage = preload("res://scripts/AudioSettingsPage.gd")
+const CitizensPage = preload("res://scripts/CitizensPage.gd")
+const CityReportPage = preload("res://scripts/CityReportPage.gd")
 var game = null
 var audio_manager = null
 var last_audio_night_mode = false
@@ -1880,74 +1882,7 @@ func show_page(page):
 			if district_ids.size() == 0:
 				_add_label("هنوز ساختمانی در محله‌ای ساخته نشده است.", 15)
 		"citizens":
-			_add_label(" جمعیت: %d | شاغل: %d | بیکار: %d" % [s.population,game.get_employed_count(),game.get_unemployed_count()], 20)
-			var poor_citizens = 0
-			var middle_citizens = 0
-			var wealthy_citizens = 0
-			for wealth_citizen in s.citizens:
-				var citizen_wallet = int(wealth_citizen.get("wallet",0))
-				if citizen_wallet < 500:
-					poor_citizens += 1
-				elif citizen_wallet < 1200:
-					middle_citizens += 1
-				else:
-					wealthy_citizens += 1
-			_add_label("وضعیت اقتصادی شهروندان | فقیر: %d نفر  |  متوسط: %d نفر  |  ثروتمند: %d نفر" % [poor_citizens,middle_citizens,wealthy_citizens], 17)
-			_add_label("ظرفیت مسکن: %d | ظرفیت شغلی: %d" % [game.get_housing_capacity(),game.get_job_capacity()])
-			_add_label("رضایت شهروندان: %d/۱۰۰" % int(s.get("satisfaction",50)))
-			_add_label("نیازهای روزانه: " + _needs_summary(), 15)
-			var resident_requests = s.get("resident_requests",[])
-			_add_label("📣 درخواست‌های شهروندان: %d" % resident_requests.size(),18)
-			for resident_request in resident_requests:
-				_add_label(str(resident_request.get("title","درخواست شهروندان"))+" | روز "+str(int(resident_request.get("day",s.day))),17)
-				_add_label(str(resident_request.get("description","")),15)
-				_add_button("رفتن به بخش ساخت ساختمان پیشنهادی  ←",self,"go_to_resident_request_building",[str(resident_request.get("building_id",""))])
-				if bool(resident_request.get("accepted",false)):
-					_add_label("✓ پذیرفته شده؛ با ساخت ساختمان پیشنهادی، درخواست تکمیل می‌شود.",15)
-				else:
-					_add_button("پذیرفتن و تعهد ساخت",self,"resolve_resident_request",[int(resident_request.get("id",0)),true])
-					_add_button("رد درخواست",self,"resolve_resident_request",[int(resident_request.get("id",0)),false])
-			_add_label("روش جذب شهروند: " + ("خودکار" if str(s.get("citizen_recruitment_mode","auto")) == "auto" else "دستی"), 18)
-			var auto_recruit_button = _add_button("فعال‌کردن جذب خودکار", self, "set_recruitment_mode", ["auto"])
-			var manual_recruit_button = _add_button("فعال‌کردن جذب دستی", self, "set_recruitment_mode", ["manual"])
-			auto_recruit_button.disabled = str(s.get("citizen_recruitment_mode","auto")) == "auto"
-			manual_recruit_button.disabled = str(s.get("citizen_recruitment_mode","auto")) == "manual"
-			_add_label("درخواست‌های در انتظار: %d" % s.get("citizen_requests", []).size(), 18)
-			for request_index in range(s.get("citizen_requests", []).size()):
-				var request = s.citizen_requests[request_index]
-				_add_label("متقاضی شماره %d | درخواست در روز %d" % [int(request.get("id",0)),int(request.get("day",s.day))], 17)
-				_add_button("قبول درخواست شماره %d" % int(request.get("id",0)), self, "accept_citizen_request", [request_index])
-				_add_button("رد درخواست شماره %d" % int(request.get("id",0)), self, "reject_citizen_request", [request_index])
-			if int(s.population) >= game.get_housing_capacity():
-				_add_label("ظرفیت خانه‌ها پر است؛ برای جذب شهروند جدید خانه بساز.", 15)
-			elif int(s.reputation) < 25:
-				_add_label("اعتبار شهر باید حداقل ۲۵ باشد تا متقاضی جدید بیاید.", 15)
-			var citizen_groups = {"بیکاران":[],"کارمندان شهرداری":[],"کارمندان بخش خصوصی":[],"کارآفرینان بخش خصوصی":[]}
-			for citizen in s.citizens:
-				var group_name = "بیکاران"
-				if str(citizen.get("job","")) != "":
-					group_name = "کارمندان شهرداری"
-				elif int(citizen.get("private_business_id",0)) > 0:
-					group_name = "کارآفرینان بخش خصوصی"
-				elif int(citizen.get("private_job_id",0)) > 0:
-					group_name = "کارمندان بخش خصوصی"
-				citizen_groups[group_name].append(citizen)
-			for group_name in ["بیکاران","کارمندان شهرداری","کارمندان بخش خصوصی","کارآفرینان بخش خصوصی"]:
-				var group_citizens = citizen_groups[group_name]
-				if group_citizens.is_empty():
-					continue
-				var group_expanded = bool(citizen_status_expanded.get(group_name,false))
-				var group_button = _add_button(("%s " % ("▼" if group_expanded else "▶")) + "%s (%d)" % [group_name,group_citizens.size()], self, "toggle_citizen_status_group", [group_name])
-				_style_button(group_button,false)
-				if group_expanded:
-					for citizen in group_citizens:
-						var citizen_role = group_name
-						if str(citizen.get("job","")) != "":
-							citizen_role += ": " + str(citizen.job)
-						_add_label("شهروند %s — %s | کیف پول: %d سکه | زمین خصوصی: %d قطعه" % [str(citizen.id),citizen_role,int(citizen.get("wallet",0)),int(citizen.get("private_land",0))])
-						var interest_names = {"food":"خوراک","industry":"صنعت","services":"خدمات"}
-						_add_label("استعداد کارآفرینی: %d | ریسک‌پذیری: %d | علاقه: %s | پس‌انداز: %d" % [int(citizen.get("entrepreneurship",0)),int(citizen.get("risk_tolerance",0)),str(interest_names.get(str(citizen.get("business_interest","")),"نامشخص")),int(citizen.get("saving_habit",0))], 14)
-			_add_button(" تخصیص دوباره شغل‌ها", self, "reassign_jobs")
+			CitizensPage.build(self, s)
 		"bank":
 			_add_label("🏦 بانک و امور مالی شهر",22)
 			_add_label("بانک مرکزی: %s | بانک شهری: %d" % ["فعال" if game.has_central_bank() else "ساخته نشده",game.get_building_count("municipal_bank")],17)
@@ -2336,25 +2271,7 @@ func show_page(page):
 			_add_label("ذخیره درختان جنگل: %d / ۱۰۰" % game.get_forest_tree_count())
 
 		"report":
-			_add_label("گزارش وقایع شهر", 22)
-			var events = s.get("report_events", [])
-			_add_label("گزارش‌های مردم و اتفاقات شهر | تعداد فعلی: %d" % events.size(), 15)
-			if events.is_empty():
-				_add_label("گزارشی برای نمایش وجود ندارد.", 18)
-			else:
-				for event_index in range(events.size() - 1, -1, -1):
-					var event = events[event_index]
-					var stamp = Time.get_datetime_dict_from_unix_time(int(event.get("timestamp", 0)))
-					var time_text = "%02d/%02d - %02d:%02d" % [int(stamp.get("day", 1)), int(stamp.get("month", 1)), int(stamp.get("hour", 0)), int(stamp.get("minute", 0))]
-					var status_text = " | مشکل برطرف شده" if bool(event.get("resolved", false)) else ""
-					_add_label("[%s] روز %d | %s%s" % [time_text, int(event.get("day", 1)), str(event.get("message", "")), status_text], 17)
-					# Only citizen complaints get a solution shortcut; ordinary city logs stay informational.
-					var is_citizen_complaint = int(event.get("citizen_id", 0)) > 0 or str(event.get("district_id", "")) != ""
-					if is_citizen_complaint:
-						var issue_key = str(event.get("issue_key", ""))
-						var service_need = str(event.get("service_need", ""))
-						_add_button("🏗️ رفتن به ساختمانِ حل‌کننده مشکل", self, "go_to_report_solution", [issue_key, service_need])
-
+			CityReportPage.build(self, s)
 		"settings":
 			_add_label("⚙️ تنظیمات بازی", 24)
 			_add_button("🏙️ تغییر نام شهر", self, "_open_city_name_setup", [false])
