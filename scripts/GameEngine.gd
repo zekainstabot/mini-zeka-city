@@ -279,20 +279,32 @@ func get_random_city_name():
 
 func _sync_rival_cities():
 	var player_name = str(state.get("city_name", "")).strip_edges()
+	var previous_player_name = str(state.get("rival_roster_player_name", ""))
+	var excluded_id = str(state.get("rival_roster_excluded_id", ""))
+	if previous_player_name != player_name or excluded_id.is_empty():
+		excluded_id = ""
+		for city in CITY_NAME_POOL:
+			if str(city.name) == player_name:
+				excluded_id = str(city.id)
+				break
+		if excluded_id.is_empty():
+			excluded_id = str(CITY_NAME_POOL[randi() % CITY_NAME_POOL.size()].id)
+		state["rival_roster_player_name"] = player_name
+		state["rival_roster_excluded_id"] = excluded_id
 	var existing = {}
 	for rival in state.get("rival_cities", []):
 		existing[str(rival.get("name", ""))] = rival.duplicate(true)
 	var rivals = []
 	for city in CITY_NAME_POOL:
-		var rival_name = str(city.name)
-		if not player_name.is_empty() and rival_name == player_name:
+		var rival_id = str(city.id)
+		if rival_id == excluded_id:
 			continue
-		var rival_id = str(city.id) + "_rival"
+		var rival_name = str(city.name)
 		var rival_data = existing.get(rival_name, {})
 		if rival_data.is_empty():
 			var index = rivals.size()
 			rival_data = {
-				"id": rival_id,
+				"id": rival_id + "_rival",
 				"name": rival_name,
 				"population": 16 + index * 3,
 				"level": 2 + (index % 3),
@@ -301,7 +313,7 @@ func _sync_rival_cities():
 				"satisfaction": 58 + (index % 5) * 5,
 				"score": 280 + index * 115
 			}
-		rival_data["id"] = rival_id
+		rival_data["id"] = rival_id + "_rival"
 		rival_data["name"] = rival_name
 		rivals.append(rival_data)
 	state["rival_cities"] = rivals
