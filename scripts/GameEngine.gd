@@ -259,6 +259,53 @@ const BUILDINGS = {
 
 var state = {}
 
+const CITY_NAME_POOL = [
+	{"id":"ariana","name":"آریانا"},
+	{"id":"zekapolis","name":"زکاپولیس"},
+	{"id":"skycity","name":"آسمان‌شهر"},
+	{"id":"neora","name":"نئورا"},
+	{"id":"arion","name":"آریون"},
+	{"id":"golden_city","name":"زرین‌شهر"},
+	{"id":"vista","name":"ویستا"},
+	{"id":"elora","name":"الورا"},
+	{"id":"nova","name":"نووا"},
+	{"id":"zekaland","name":"زکالند"}
+]
+
+func get_random_city_name():
+	var choices = CITY_NAME_POOL.duplicate(true)
+	choices.shuffle()
+	return str(choices[0].name)
+
+func _sync_rival_cities():
+	var player_name = str(state.get("city_name", "")).strip_edges()
+	var existing = {}
+	for rival in state.get("rival_cities", []):
+		existing[str(rival.get("name", ""))] = rival.duplicate(true)
+	var rivals = []
+	for city in CITY_NAME_POOL:
+		var rival_name = str(city.name)
+		if not player_name.is_empty() and rival_name == player_name:
+			continue
+		var rival_id = str(city.id) + "_rival"
+		var rival_data = existing.get(rival_name, {})
+		if rival_data.is_empty():
+			var index = rivals.size()
+			rival_data = {
+				"id": rival_id,
+				"name": rival_name,
+				"population": 16 + index * 3,
+				"level": 2 + (index % 3),
+				"buildings": 6 + index,
+				"wealth": 5000 + index * 1250,
+				"satisfaction": 58 + (index % 5) * 5,
+				"score": 280 + index * 115
+			}
+		rival_data["id"] = rival_id
+		rival_data["name"] = rival_name
+		rivals.append(rival_data)
+	state["rival_cities"] = rivals
+
 func new_game():
 	state = {
 		"version": 18,
@@ -347,6 +394,7 @@ func new_game():
 		"district_service_coverage": {},
 		"report_events": [{"timestamp":Time.get_unix_time_from_system(),"day":1,"message":"شهر جدید ساخته شد. به مینی زکا سیتی خوش آمدی."}]
 	}
+	_sync_rival_cities()
 	_sync_population()
 	CitizenSociety.new().ensure_state(self)
 	_ensure_building_locations()
@@ -368,6 +416,7 @@ func load_game():
 	state = parsed
 	state["city_name"] = str(state.get("city_name", "")).strip_edges()
 	_normalize_state()
+	_sync_rival_cities()
 	_sync_population()
 	CitizenSociety.new().ensure_state(self)
 	_ensure_building_locations()
@@ -853,6 +902,7 @@ func _advance_rival_cities(report):
 		report.append("🏙️ خبر رقبا: %s در این روز از شهر تو جلوتر افتاد؛ برای پس گرفتن رتبه تلاش کن." % str(leader.get("name", "شهر رقیب")))
 
 func get_rival_standings():
+	_sync_rival_cities()
 	var standings = []
 	var player_league = get_city_league()
 	standings.append({"id":"player","name":"شهر من","score":int(player_league.score),"population":int(state.get("population", 0)),"level":int(state.get("level", 1)),"is_player":true})
