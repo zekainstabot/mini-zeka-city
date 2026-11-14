@@ -64,6 +64,10 @@ var menu_card = null
 var exit_overlay = null
 var last_layout_viewport_size = Vector2.ZERO
 var last_device_back_ticks = 0
+var help_overlay = null
+var help_body = null
+var help_previous_page = "home"
+var help_scroll_original_index = 5
 
 func _input(event):
 	if game != null:
@@ -646,6 +650,65 @@ func _build_ui():
 	menu_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	menu_overlay.visible = false
 	menu_layer.add_child(menu_overlay)
+	# Help uses its own modal surface so the city navigation is fully covered.
+	help_overlay = ColorRect.new()
+	help_overlay.name = "GameHelpBackdrop"
+	help_overlay.color = Color(0.015, 0.035, 0.065, 0.88)
+	help_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	help_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	help_overlay.visible = false
+	menu_layer.add_child(help_overlay)
+	var help_center = CenterContainer.new()
+	help_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	help_center.offset_left = 18
+	help_center.offset_right = -18
+	help_center.offset_top = 18
+	help_center.offset_bottom = -18
+	help_overlay.add_child(help_center)
+	var help_card = PanelContainer.new()
+	help_card.custom_minimum_size = Vector2(min(560.0, screen_width - 40.0), 0)
+	help_card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var help_card_style = StyleBoxFlat.new()
+	help_card_style.bg_color = Color("#101f32")
+	help_card_style.border_color = Color("#38bdf8")
+	help_card_style.set_border_width_all(2)
+	help_card_style.set_corner_radius_all(20)
+	help_card_style.content_margin_left = 14
+	help_card_style.content_margin_right = 14
+	help_card_style.content_margin_top = 12
+	help_card_style.content_margin_bottom = 12
+	help_card.add_theme_stylebox_override("panel", help_card_style)
+	help_center.add_child(help_card)
+	var help_layout = VBoxContainer.new()
+	help_layout.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	help_layout.add_theme_constant_override("separation", 10)
+	help_card.add_child(help_layout)
+	var help_header = HBoxContainer.new()
+	help_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	help_layout.add_child(help_header)
+	var help_heading = Label.new()
+	help_heading.text = PersianText.reshaper("راهنمای بازی")
+	help_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	help_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_font(help_heading, 22 if compact_layout else 20)
+	help_heading.add_theme_color_override("font_color", Color("#f8fafc"))
+	help_header.add_child(help_heading)
+	var help_spacer = Control.new()
+	help_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	help_header.add_child(help_spacer)
+	var help_close_button = Button.new()
+	help_close_button.text = "✕"
+	help_close_button.tooltip_text = "بستن راهنما"
+	help_close_button.custom_minimum_size = Vector2(48, 46)
+	_apply_font(help_close_button, 24)
+	_style_button(help_close_button, false)
+	help_close_button.connect("pressed", Callable(self, "_close_help"))
+	help_header.add_child(help_close_button)
+	help_body = VBoxContainer.new()
+	help_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	help_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	help_body.add_theme_constant_override("separation", 10)
+	help_layout.add_child(help_body)
 	var menu_center = CenterContainer.new()
 	menu_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	menu_center.offset_left = 24
@@ -972,6 +1035,9 @@ func _handle_device_back():
 	last_device_back_ticks = now_ticks
 	if exit_overlay != null and is_instance_valid(exit_overlay) and exit_overlay.visible:
 		exit_overlay.visible = false
+		return
+	if help_overlay != null and is_instance_valid(help_overlay) and help_overlay.visible:
+		_close_help()
 		return
 	if restart_confirm_panel != null and is_instance_valid(restart_confirm_panel) and restart_confirm_panel.visible:
 		restart_confirm_panel.visible = false
@@ -1388,9 +1454,34 @@ func _on_environment_volume_changed(value):
 	audio_manager.set_environment_volume(value)
 
 func _open_help():
+	if help_overlay == null or not is_instance_valid(help_overlay) or game_scroll_container == null or not is_instance_valid(game_scroll_container):
+		return
+	help_previous_page = current_page if current_page != "help" else "home"
+	var old_parent = game_scroll_container.get_parent()
+	if old_parent != null:
+		help_scroll_original_index = old_parent.get_children().find(game_scroll_container)
+		old_parent.remove_child(game_scroll_container)
+	if game_scroll_container.get_parent() == null:
+		help_body.add_child(game_scroll_container)
+	game_scroll_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	menu_overlay.visible = false
+	menu_panel.visible = false
+	help_overlay.visible = true
 	show_page("help")
 	if game_scroll_container != null and is_instance_valid(game_scroll_container):
 		game_scroll_container.scroll_vertical = 0
+
+func _close_help():
+	if help_overlay != null and is_instance_valid(help_overlay):
+		help_overlay.visible = false
+	if game_scroll_container != null and is_instance_valid(game_scroll_container):
+		var old_parent = game_scroll_container.get_parent()
+		if old_parent != null:
+			old_parent.remove_child(game_scroll_container)
+		if main_layout != null and is_instance_valid(main_layout):
+			main_layout.add_child(game_scroll_container)
+			main_layout.move_child(game_scroll_container, clamp(help_scroll_original_index, 0, main_layout.get_child_count() - 1))
+	show_page(help_previous_page)
 
 func _add_help_section(title, description, target_page=""):
 	var panel = PanelContainer.new()
