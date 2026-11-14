@@ -1866,7 +1866,7 @@ func toggle_storage_action(resource_id, level):
 
 
 func apply_storage_rule(resource_id, manual=false):
-	return StorageSystem.apply_storage_rule(self, resource_id, manual=false)
+	return StorageSystem.apply_storage_rule(self, resource_id, manual)
 
 
 func get_storage_capacity():
