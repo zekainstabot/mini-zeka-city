@@ -2284,17 +2284,22 @@ func show_page(page):
 		"report":
 			_add_label("گزارش وقایع شهر", 22)
 			var events = s.get("report_events", [])
-			_add_label("گزارش‌ها تا زمان بررسی و زدن دکمه مربوطه باقی می‌مانند | تعداد فعلی: %d" % events.size(), 15)
+			_add_label("گزارش‌های مردم و اتفاقات شهر | تعداد فعلی: %d" % events.size(), 15)
 			if events.is_empty():
-				_add_label("گزارش بررسی‌نشده‌ای وجود ندارد.", 18)
+				_add_label("گزارشی برای نمایش وجود ندارد.", 18)
 			else:
 				for event_index in range(events.size() - 1, -1, -1):
 					var event = events[event_index]
 					var stamp = Time.get_datetime_dict_from_unix_time(int(event.get("timestamp", 0)))
 					var time_text = "%02d/%02d - %02d:%02d" % [int(stamp.get("day", 1)), int(stamp.get("month", 1)), int(stamp.get("hour", 0)), int(stamp.get("minute", 0))]
-					var status_text = " | حل شده" if bool(event.get("resolved", false)) else ""
+					var status_text = " | مشکل برطرف شده" if bool(event.get("resolved", false)) else ""
 					_add_label("[%s] روز %d | %s%s" % [time_text, int(event.get("day", 1)), str(event.get("message", "")), status_text], 17)
-					_add_button("✓ بررسی و بستن گزارش", self, "review_report_event", [int(event.get("id", -1))])
+					# Only citizen complaints get a solution shortcut; ordinary city logs stay informational.
+					var is_citizen_complaint = int(event.get("citizen_id", 0)) > 0 or str(event.get("district_id", "")) != ""
+					if is_citizen_complaint:
+						var issue_key = str(event.get("issue_key", ""))
+						var service_need = str(event.get("service_need", ""))
+						_add_button("🏗️ رفتن به ساختمانِ حل‌کننده مشکل", self, "go_to_report_solution", [issue_key, service_need])
 
 		"settings":
 			_add_label("⚙️ تنظیمات بازی", 24)
@@ -3465,6 +3470,43 @@ func resolve_resident_request(request_id, accepted):
 	var result = game.resolve_resident_request(int(request_id),bool(accepted))
 	show_page("citizens")
 	_show_message(str(result.message))
+
+func go_to_report_solution(issue_key, service_need):
+	var building_id = ""
+	match str(issue_key):
+		"unemployed", "low_wallet":
+			building_id = "office"
+	match str(service_need):
+		"food": building_id = "grocery_store"
+		"water": building_id = "water_tower"
+		"power": building_id = "power_station"
+		"health": building_id = "clinic"
+		"education": building_id = "school"
+		"safety": building_id = "police_station"
+		"leisure": building_id = "small_park"
+		"sanitation": building_id = "waste_facility"
+	if building_id == "":
+		_show_message("برای این گزارش هنوز ساختمان مشخصی تعریف نشده است.")
+		return
+	var definition = game.get_building_definitions().get(building_id, {})
+	if definition.is_empty():
+		_show_message("ساختمان پیشنهادی این گزارش در فهرست ساخت‌وساز پیدا نشد.")
+		return
+	mission_target_building_id = building_id
+	selected_building_category = str(definition.get("category", ""))
+	if selected_building_category == "خانه‌ها":
+		selected_building_group = "مسکونی"
+	elif selected_building_category == "انبارها":
+		selected_building_group = "انبارها"
+	elif selected_building_category in ["کشاورزی", "ماهیگیری", "معادن", "کارخانه‌ها", "کسب‌وکارها"]:
+		selected_building_group = "اقتصادی"
+	else:
+		selected_building_group = "عمومی"
+	show_page("buildings")
+	if game_scroll_container != null and is_instance_valid(game_scroll_container):
+		game_scroll_container.scroll_vertical = 0
+		call_deferred("_scroll_to_mission_target_building")
+	_show_message("ساختمان پیشنهادی برای حل مشکل شهروندان را باز کردم.")
 
 func go_to_resident_request_building(building_id):
 	var definition = game.get_building_definitions().get(str(building_id),{})
