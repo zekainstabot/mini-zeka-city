@@ -266,30 +266,83 @@ func _make_environment_stream(mode, is_night):
 	return stream
 
 func _make_ambient_music(is_night):
-	var notes = [261.63, 329.63, 392.0, 329.63, 293.66, 349.23, 440.0, 349.23]
+	# A gentle, original city theme: warm sustained chords, rounded bass and a
+	# lightly played bell-like motif. The 4-bar loop is kept musically smooth.
+	var duration = 12.0
+	var bar_length = 3.0
+	var beat_length = 0.75
+	var chords = [
+		[130.81, 164.81, 196.00, 246.94], # Cmaj7
+		[110.00, 130.81, 164.81, 196.00], # Am7
+		[87.31, 110.00, 130.81, 164.81], # Fmaj7
+		[98.00, 146.83, 164.81, 220.00]  # Gsus2
+	]
+	var melody = [
+		523.25, 659.25, 783.99, 659.25,
+		587.33, 659.25, 880.00, 783.99,
+		698.46, 659.25, 587.33, 523.25,
+		587.33, 659.25, 783.99, 659.25
+	]
 	if is_night:
-		notes = [220.0, 261.63, 329.63, 261.63, 196.0, 246.94, 293.66, 246.94]
-	var sample_count = SAMPLE_RATE * 8
+		for chord_index in range(chords.size()):
+			for note_index in range(chords[chord_index].size()):
+				chords[chord_index][note_index] *= 0.5
+		for note_index in range(melody.size()):
+			melody[note_index] *= 0.5
+
+	var sample_count = int(SAMPLE_RATE * duration)
 	var bytes = PackedByteArray()
-	bytes.resize(sample_count * 2)
+	bytes.resize(sample_count * 4)
 	for i in range(sample_count):
 		var t = float(i) / float(SAMPLE_RATE)
-		var beat = int(floor(t))
-		var local_t = fposmod(t, 1.0)
-		var note = notes[beat % notes.size()]
-		var next_note = notes[(beat + 1) % notes.size()]
-		var fade = min(1.0, local_t / 0.10) * min(1.0, (1.0 - local_t) / 0.12)
-		var slow_pulse = 0.78 + 0.22 * sin(t * PI * 0.5)
-		var fundamental = sin(2.0 * PI * note * t)
-		var harmonic = sin(2.0 * PI * note * 2.0 * t) * 0.16
-		var pad = sin(2.0 * PI * next_note * t) * 0.12
-		var sample = int(clamp((fundamental * 0.48 + harmonic + pad) * fade * slow_pulse * 3900.0, -32767.0, 32767.0))
-		bytes[i * 2] = sample & 0xff
-		bytes[i * 2 + 1] = (sample >> 8) & 0xff
+		var bar_index = int(floor(t / bar_length)) % 4
+		var bar_time = fposmod(t, bar_length)
+		var next_bar = (bar_index + 1) % 4
+		var transition = clamp((bar_time - 2.72) / 0.28, 0.0, 1.0)
+		transition = transition * transition * (3.0 - 2.0 * transition)
+
+		var pad = 0.0
+		for chord_note in range(4):
+			var current_frequency = float(chords[bar_index][chord_note])
+			var next_frequency = float(chords[next_bar][chord_note])
+			var frequency = lerp(current_frequency, next_frequency, transition)
+			var slow_breath = 0.88 + 0.12 * sin(2.0 * PI * t / 7.5)
+			var voice = sin(2.0 * PI * frequency * t)
+			voice += sin(2.0 * PI * frequency * 2.003 * t) * 0.10
+			pad += voice * slow_breath * 0.035
+
+		var beat_index = int(floor(t / beat_length))
+		var beat_time = fposmod(t, beat_length)
+		var melody_frequency = float(melody[beat_index % melody.size()])
+		var pluck_envelope = exp(-beat_time * 5.2) * min(1.0, beat_time / 0.012)
+		var pluck = sin(2.0 * PI * melody_frequency * beat_time)
+		pluck += sin(2.0 * PI * melody_frequency * 2.01 * beat_time) * 0.28
+		pluck += sin(2.0 * PI * melody_frequency * 3.98 * beat_time) * 0.06
+		pluck *= pluck_envelope * 0.105
+
+		var bass_frequency = float(chords[bar_index][0]) * 0.5
+		var bass_envelope = 0.72 + 0.28 * exp(-bar_time * 1.4)
+		var bass = sin(2.0 * PI * bass_frequency * t) * 0.075
+		bass += sin(2.0 * PI * bass_frequency * 2.0 * t) * 0.012
+		bass *= bass_envelope
+
+		var left = pad + pluck + bass
+		var right = pad + pluck * 0.94 + bass * 0.98
+		var fade_in = min(1.0, t / 0.18)
+		var fade_out = min(1.0, (duration - t) / 0.18)
+		var edge = min(fade_in, fade_out)
+		var left_value = int(clamp(left * edge * 14500.0, -32767.0, 32767.0))
+		var right_value = int(clamp(right * edge * 14500.0, -32767.0, 32767.0))
+		var offset = i * 4
+		bytes[offset] = left_value & 0xff
+		bytes[offset + 1] = (left_value >> 8) & 0xff
+		bytes[offset + 2] = right_value & 0xff
+		bytes[offset + 3] = (right_value >> 8) & 0xff
+
 	var stream = AudioStreamWAV.new()
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
 	stream.mix_rate = SAMPLE_RATE
-	stream.stereo = false
+	stream.stereo = true
 	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	stream.loop_begin = 0
 	stream.loop_end = sample_count
@@ -312,8 +365,12 @@ func _make_tone_stream(tones, master_gain):
 			var length = float(tone[2])
 			var elapsed = t - start
 			if elapsed >= 0.0 and elapsed <= length:
-				var envelope = min(1.0, elapsed / 0.008) * max(0.0, 1.0 - elapsed / length)
-				mixed += sin(2.0 * PI * frequency * elapsed) * envelope / float(tones.size())
+				var attack = min(1.0, elapsed / 0.006)
+				var decay = exp(-elapsed * (3.2 / max(0.08, length)))
+				var envelope = attack * decay
+				var fundamental = sin(2.0 * PI * frequency * elapsed)
+				var harmonics = sin(2.0 * PI * frequency * 2.0 * elapsed) * 0.16
+				mixed += (fundamental + harmonics) * envelope / float(tones.size())
 		var sample = int(clamp(mixed * master_gain * 8500.0, -32767.0, 32767.0))
 		bytes[i * 2] = sample & 0xff
 		bytes[i * 2 + 1] = (sample >> 8) & 0xff
