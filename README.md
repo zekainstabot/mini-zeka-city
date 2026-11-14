@@ -1,11 +1,11 @@
 # Mini ZekaCity
 
-A text-first city management game built with Godot 3.6.
+A text-first city management game built with Godot 4.4.1.
 
 Mini ZekaCity is a separate project from the original ZekaCity. It brings the original game's city-management systems into a menu-driven interface: buildings, residents, employment, production chains, resources, storage, market, treasury, services, missions, and saving.
 
 ## Run
-Open `project.godot` in Godot 3.6.x and run the project.
+Open `project.godot` in Godot 4.4.1 and run the project.
 
 ## Current milestone
 - Text/menu-based city dashboard
