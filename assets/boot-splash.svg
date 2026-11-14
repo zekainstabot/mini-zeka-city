@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="1280" viewBox="0 0 720 1280">
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#091827"/><stop offset=".55" stop-color="#142f45"/><stop offset="1" stop-color="#1b4a55"/></linearGradient>
+ <radialGradient id="glow"><stop stop-color="#45d6b0" stop-opacity=".32"/><stop offset="1" stop-color="#45d6b0" stop-opacity="0"/></radialGradient>
+ <linearGradient id="gold" x2="0" y2="1"><stop stop-color="#ffe7a3"/><stop offset="1" stop-color="#e5a94d"/></linearGradient>
+ <linearGradient id="glass" x2="0" y2="1"><stop stop-color="#315b70"/><stop offset="1" stop-color="#18364c"/></linearGradient>
+</defs>
+<rect width="720" height="1280" fill="url(#bg)"/>
+<circle cx="360" cy="480" r="410" fill="url(#glow)"/>
+<g opacity=".18" fill="#8bd7cf"><circle cx="100" cy="170" r="3"/><circle cx="610" cy="240" r="4"/><circle cx="550" cy="570" r="3"/><circle cx="155" cy="620" r="4"/><path d="M70 330h95M555 390h100M80 760h110M520 790h120" stroke="#8bd7cf" stroke-width="2" fill="none"/></g>
+<g transform="translate(360 500)">
+ <circle r="190" fill="#0b2233" stroke="#4ad5b0" stroke-opacity=".45" stroke-width="3"/>
+ <circle r="166" fill="none" stroke="#f4c66f" stroke-opacity=".55" stroke-width="2" stroke-dasharray="5 13"/>
+ <path d="M-130 100h260" stroke="#7ed8c4" stroke-opacity=".5" stroke-width="5" stroke-linecap="round"/>
+ <g stroke="#7bd6c3" stroke-width="4" stroke-linejoin="round">
+  <path d="M-112 94V-15l55-38v147z" fill="url(#glass)"/>
+  <path d="M-50 94V-105l60-42 60 42V94z" fill="#234a60"/>
+  <path d="M77 94V-45l45 30V94z" fill="url(#glass)"/>
+ </g>
+ <g fill="#f7d98e">
+  <path d="M-94 4h13v16h-13zm0 31h13v16h-13zm-38-31h13v16h-13zM-25-80h15v18h-15zm0 34h15v18h-15zm38-34h15v18H13zm0 34h15v18H13zm38 0h15v18H51zm-38 34h15v18H13zm38 0h15v18H51zM91-14h11v15H91zm0 30h11v15H91z"/>
+ </g>
+ <path d="M0-147v-38" stroke="#f3c56b" stroke-width="5" stroke-linecap="round"/>
+ <circle cy="-194" r="9" fill="#f3c56b"/>
+ <path d="M-18 94v-54q18-26 36 0v54" fill="#e6b45e"/>
+</g>
+<g text-anchor="middle" fill="#fff">
+ <text x="360" y="790" font-family="Vazirmatn, Noto Sans Arabic, sans-serif" font-size="54" font-weight="700">مینی زکا سیتی</text>
+ <text x="360" y="845" font-family="Vazirmatn, Noto Sans Arabic, sans-serif" font-size="23" fill="#a9d9d1">شهر خودت را بساز؛ آینده را مدیریت کن</text>
+</g>
+<g transform="translate(360 1000)">
+ <rect x="-130" y="-4" width="260" height="5" rx="3" fill="#34566a"/>
+ <rect x="-130" y="-4" width="92" height="5" rx="3" fill="#55d6b3"/>
+ <text x="0" y="42" text-anchor="middle" fill="#8eb7bc" font-family="sans-serif" font-size="16" letter-spacing="3">BUILD YOUR CITY</text>
+</g>
+<g fill="#f5cf80" opacity=".7"><circle cx="118" cy="930" r="3"/><circle cx="600" cy="930" r="3"/><circle cx="150" cy="350" r="2"/><circle cx="570" cy="350" r="2"/></g>
+</svg>
