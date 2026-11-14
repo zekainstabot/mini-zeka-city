@@ -1177,9 +1177,11 @@ func _button_style(bg_color, border_color):
 
 func _style_button(button, navigation=false):
 	button.flat = false
-	# Native-feeling mobile response: activate on finger-down, not finger-up.
-	button.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
+	# Activate after touch release so Android cannot leave a menu button stuck
+	# in its pressed/blue state while the next screen is displayed.
+	button.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
 	button.focus_mode = Control.FOCUS_NONE
+	button.release_focus()
 	# Main buttons: near-black with white text.
 	# Inner buttons: clean white with near-black text.
 	var normal_color = Color("#202124") if navigation else Color("#FFFFFF")
