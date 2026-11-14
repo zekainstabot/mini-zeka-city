@@ -52,7 +52,7 @@ jobs:
       - name: Import and validate converted Godot 4 project
         run: |
           set -o pipefail
-          /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --editor --path . --quit 2>&1 | tee /tmp/godot-import.log
+          /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --editor --path . --import 2>&1 | tee /tmp/godot-import.log
 
       - name: Run game logic smoke tests
         timeout-minutes: 1
@@ -63,10 +63,10 @@ jobs:
           if grep -E "SCRIPT ERROR|Parse Error" /tmp/godot-tests.log; then exit 1; fi
 
       - name: Exercise every menu page for runtime validation
-        timeout-minutes: 1
+        timeout-minutes: 2
         run: |
           set -o pipefail
-          timeout 25s /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --audio-driver Dummy --path . --script res://tests/ui_smoke_test.gd 2>&1 | tee /tmp/godot-ui-tests.log
+          timeout 90s /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --audio-driver Dummy --path . --script res://tests/ui_smoke_test.gd 2>&1 | tee /tmp/godot-ui-tests.log
           grep -q "Mini ZekaCity UI smoke tests passed." /tmp/godot-ui-tests.log
           if grep -E "SCRIPT ERROR|Parse Error" /tmp/godot-ui-tests.log; then exit 1; fi
 

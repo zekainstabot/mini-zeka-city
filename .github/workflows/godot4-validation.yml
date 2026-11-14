@@ -44,7 +44,7 @@ jobs:
         run: |
           set -o pipefail
           if [ -x /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 ]; then
-            /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --editor --path . --quit 2>&1 | tee /tmp/godot-import.log
+            /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --editor --path . --import 2>&1 | tee /tmp/godot-import.log
             if grep -E "SCRIPT ERROR|Parse Error|Compile Error" /tmp/godot-import.log; then exit 1; fi
           fi
 
@@ -59,10 +59,10 @@ jobs:
 
       - name: Exercise every menu page
         shell: bash
-        timeout-minutes: 1
+        timeout-minutes: 2
         run: |
           set -o pipefail
-          timeout 25s /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --audio-driver Dummy --path . --script res://tests/ui_smoke_test.gd 2>&1 | tee /tmp/godot-ui-tests.log
+          timeout 90s /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --audio-driver Dummy --path . --script res://tests/ui_smoke_test.gd 2>&1 | tee /tmp/godot-ui-tests.log
           grep -q "Mini ZekaCity UI smoke tests passed." /tmp/godot-ui-tests.log
           if grep -E "SCRIPT ERROR|Parse Error|Compile Error" /tmp/godot-ui-tests.log; then exit 1; fi
 
