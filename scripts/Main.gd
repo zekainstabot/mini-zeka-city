@@ -11,6 +11,9 @@ const CityReportPage = preload("res://scripts/CityReportPage.gd")
 const BankPage = preload("res://scripts/BankPage.gd")
 const TransportPage = preload("res://scripts/TransportPage.gd")
 const ImportsPage = preload("res://scripts/ImportsPage.gd")
+const MunicipalityPage = preload("res://scripts/MunicipalityPage.gd")
+const PrivateEconomyPage = preload("res://scripts/PrivateEconomyPage.gd")
+const CommercePage = preload("res://scripts/CommercePage.gd")
 var game = null
 var audio_manager = null
 var last_audio_night_mode = false
@@ -1889,56 +1892,7 @@ func show_page(page):
 		"bank":
 			BankPage.build(self, s)
 		"municipality":
-			var civic = game.get_civic_overview()
-			_add_label("🏛️ شهرداری و مدیریت اقتصاد شهر", 22)
-			_municipality_section("🟨 زمین و قیمت‌گذاری", "land")
-			_add_label("زمین خصوصی آماده فروش: %d قطعه | قیمت هر قطعه: %d سکه" % [int(civic.get("private_land_available",0)),int(civic.get("private_land_price",300))], 17)
-			_add_button("کاهش قیمت زمین خصوصی ۵۰ سکه", self, "adjust_private_land_price", [-50])
-			_add_button("افزایش قیمت زمین خصوصی ۵۰ سکه", self, "adjust_private_land_price", [50])
-			_end_municipality_section()
-			_municipality_section("💰 مالیات و مجوزها", "tax")
-			_add_label("نرخ مالیات کسب‌وکارهای خصوصی: %d درصد" % int(civic.get("tax_rate",8)), 18)
-			var tax_down = _add_button("کاهش مالیات خصوصی ۱٪", self, "adjust_business_tax", [-1])
-			var tax_up = _add_button("افزایش مالیات خصوصی ۱٪", self, "adjust_business_tax", [1])
-			tax_down.disabled = int(civic.get("tax_rate",8)) <= 0
-			tax_up.disabled = int(civic.get("tax_rate",8)) >= 30
-			_add_label("هزینه صدور مجوز: %d سکه | درآمد مالیات امروز: %d سکه" % [int(civic.get("permit_fee",50)),int(civic.get("daily_tax",0))], 16)
-			_add_button("کاهش هزینه مجوز ۱۰ سکه", self, "adjust_business_permit_fee", [-10])
-			_add_button("افزایش هزینه مجوز ۱۰ سکه", self, "adjust_business_permit_fee", [10])
-			_add_label("درآمد فروش زمین و صدور مجوز جدا از مالیات محاسبه می‌شود.", 15)
-			_end_municipality_section()
-			_municipality_section("📨 درخواست‌های شهروندان", "requests")
-			_add_label("درخواست‌های شهروندان برای بررسی شهرداری: %d" % int(civic.get("request_count",0)), 19)
-			if civic.get("requests", []).is_empty():
-				_add_label("درخواستی در انتظار بررسی نیست.", 16)
-			for municipal_request in civic.get("requests", []):
-				_add_label("%s | شهروند شماره %d | روز %d | مبلغ: %d سکه" % [str(municipal_request.get("title","درخواست شهروند")),int(municipal_request.get("citizen_id",0)),int(municipal_request.get("day",s.day)),int(municipal_request.get("amount",0))], 17)
-				_add_button("تأیید درخواست", self, "resolve_civic_request", [int(municipal_request.get("id",0)), true])
-				_add_button("رد درخواست", self, "resolve_civic_request", [int(municipal_request.get("id",0)), false])
-			_end_municipality_section()
-			_municipality_section("🏢 املاک و درآمد اجاره", "properties")
-			_add_label("مجموع درآمد اجاره املاک شهرداری (جدا از مالیات): %d سکه" % int(civic.get("rent_income",0)), 16)
-			_add_label("املاک تجاری شهرداری:", 18)
-			var municipal_property_count = 0
-			for property_index in range(s.buildings.size()):
-				var property = s.buildings[property_index]
-				var property_data = game.get_building_definitions().get(str(property.get("id","")), {})
-				var property_category = str(property_data.get("category",""))
-				if property_category != "کسب‌وکارها" and property_category != "کارخانه‌ها":
-					continue
-				municipal_property_count += 1
-				if int(property.get("rented_to",0)) > 0:
-					_add_label("%s | اجاره‌داده‌شده به شهروند %d | تا روز %d" % [str(property_data.get("name","ملک")),int(property.get("rented_to",0)),int(property.get("rent_until_day",0))],15)
-				else:
-					_add_label("%s | متعلق به شهرداری | آماده اجاره با درخواست شهروند" % str(property_data.get("name","ملک")),15)
-			if municipal_property_count == 0:
-				_add_label("هنوز ملک تجاری متعلق به شهرداری ساخته نشده است.", 16)
-			_end_municipality_section()
-			_municipality_section("🏗️ پروژه‌های عمرانی", "projects")
-			_add_label("پروژه‌های عمرانی در حال اجرا: %d" % int(civic.get("project_count",0)), 17)
-			for civic_project in civic.get("projects", []):
-				_add_label("%s | تحویل روز %d | اعتبار مالیاتی: %d سکه" % [str(game.get_building_definitions().get(str(civic_project.get("building_id","")),{}).get("name","پروژه")),int(civic_project.get("finish_day",0)),int(civic_project.get("tax_credit",0))], 15)
-			_end_municipality_section()
+			MunicipalityPage.build(self, s)
 		"private_economy":
 			var private_economy_data = game.get_civic_overview()
 			_add_label("🏙️ اقتصاد خصوصی و مشارکت مردمی", 22)
@@ -1984,65 +1938,9 @@ func show_page(page):
 			for project in private_economy_data.get("projects", []):
 				var project_data = game.get_building_definitions().get(str(project.get("building_id","")),{"name":"پروژه شهری"})
 				_add_label("%s | پیشنهاددهنده: شهروند %d | تحویل روز %d" % [str(project_data.get("name","پروژه شهری")),int(project.get("citizen_id",0)),int(project.get("finish_day",0))], 15)
-				_add_label("سهم مردم: %d | سهم شهرداری: %d" % [int(project.get("citizen_contribution",0)),int(project.get("municipal_contribution",0))], 14)
-			_add_label("🏪 کسب‌وکارهای مردم", 19)
-			if private_economy_data.get("private_businesses", []).is_empty():
-				_add_label("هنوز کسب‌وکار خصوصی تأسیس نشده؛ مردم پس از پس‌انداز، برای زمین، اجاره ملک یا مجوز کسب‌وکار درخواست می‌دهند.", 15)
-			for business in private_economy_data.get("private_businesses", []):
-				_add_label("%s | مالک: شهروند %d | کارمند: %d | فروش روزانه: %d سکه" % [str(business.get("name","کسب‌وکار")),int(business.get("owner_citizen_id",0)),business.get("employees",[]).size(),int(business.get("last_revenue",0))], 16)
-				_add_label("سرمایه: %d | مالیات: %d | اعتبار مالیاتی پروژه‌ها: %d" % [int(business.get("balance",0)),int(business.get("last_tax",0)),int(business.get("tax_credit",0))], 14)
-				if bool(business.get("rented_municipal",false)):
-					_add_label("ملک شهرداری؛ پایان اجاره: روز %d" % int(business.get("rent_until_day",0)), 14)
-			_add_label("🧠 هوش و توان شهروندان", 19)
-			_add_label("تصمیم مردم بر اساس سرمایه، کارآفرینی، ریسک‌پذیری، خلاقیت، علاقه شغلی، رضایت عمومی و کمبود خدمات شهر گرفته می‌شود.", 15)
-			for citizen_index in range(min(8,s.citizens.size())):
-				var resident = s.citizens[citizen_index]
-				_add_label("شهروند %d | کیف پول: %d | کارآفرینی: %d | خلاقیت: %d | مشارکت اجتماعی: %d" % [int(resident.get("id",citizen_index+1)),int(resident.get("wallet",0)),int(resident.get("entrepreneurship",0)),int(resident.get("creativity",0)),int(resident.get("civic_mindedness",0))], 14)
-
-		"commerce":
-			_add_label("🛒 بازار، تجارت و واردات", 22)
-			_add_label("فهرست استان‌های تجاری هر روز تغییر می‌کند و با ارتقای سطح شهر، گزینه‌های بیشتری آزاد می‌شود.", 15)
-			_add_button(("▼ " if commerce_section_expanded.domestic else "▶ ") + "بازار داخلی و خریدوفروش", self, "_toggle_commerce_section", ["domestic"])
-			if commerce_section_expanded.domestic:
-				_add_label("قیمت‌ها بر اساس عرضه و تقاضا تغییر می‌کنند.", 15)
-				for id in game.get_resource_definitions().keys():
-					var d = game.get_resource_definitions()[id]
-					var stock = int(s.resources.get(id,0))
-					var market_stock = int(s.market_stock.get(id,0))
-					var buy_price = game.get_market_price(id,"buy")
-					var sell_price = game.get_market_price(id,"sell")
-					_add_label("%s | انبار: %d | بازار: %d/۱۰۰ | خرید: %d | فروش: %d" % [d.name,stock,market_stock,buy_price,sell_price])
-					var buy_button = _add_button("خرید ۵ واحد "+d.name, self, "buy_item", [id,5])
-					buy_button.disabled = int(s.market_stock.get(id,0)) < 5 or game.get_free_storage() < 5 or game.get_available_money() < buy_price * 5
-					var sell_button = _add_button("فروش ۵ واحد "+d.name, self, "sell_item", [id,5])
-					sell_button.disabled = stock < 5 or int(s.market_stock.get(id,0)) > 95 or game.get_available_money() >= game.get_treasury_capacity()
-			_add_button(("▼ " if commerce_section_expanded.export else "▶ ") + "صادرات به استان‌ها", self, "_toggle_commerce_section", ["export"])
-			if commerce_section_expanded.export:
-				var trade_ids = game.get_daily_trade_city_ids()
-				_add_label("استان‌های فعال امروز: %d | ظرفیت حمل آزاد: %d واحد" % [trade_ids.size(),game.get_transport_capacity_remaining()],16)
-				_add_label("هر استان فقط کالاهای موردنیاز خودش را می‌خرد؛ کالاهای دیگر برای صادرات به آن استان پذیرفته نمی‌شوند. فهرست فردا تغییر می‌کند.",14)
-				for city_id in trade_ids:
-					var city = game.get_trade_cities()[city_id]
-					_add_label("%s | ظرفیت باقی‌مانده: %d از %d واحد" % [city.name,int(s.trade_remaining.get(city_id,city.daily_capacity)),int(city.daily_capacity)],18)
-					for resource_id in game.get_resource_definitions().keys():
-						var export_price = game.get_trade_export_price(city_id,resource_id)
-						if export_price <= 0:
-							continue
-						var city_demand_left = int(s.trade_demand_remaining.get(city_id,city.demand).get(resource_id,0))
-						_add_label("%s | تقاضا: %d | قیمت صادرات: %d سکه" % [game.get_resource_definitions()[resource_id].name,city_demand_left,export_price],15)
-						var export_button = _add_button("صادرات ۵ واحد "+game.get_resource_definitions()[resource_id].name+" به "+city.name,self,"export_to_city",[city_id,resource_id,5])
-						export_button.disabled = int(s.resources.get(resource_id,0)) <= 0 or int(s.trade_remaining.get(city_id,city.daily_capacity)) <= 0 or game.get_transport_capacity_remaining() <= 0
-				_add_label("آخرین معامله: "+str(s.get("last_trade_report","هنوز معامله‌ای انجام نشده است.")),16)
-			_add_button(("▼ " if commerce_section_expanded.import else "▶ ") + "واردات از استان‌ها", self, "_toggle_commerce_section", ["import"])
-			if commerce_section_expanded.import:
-				var import_ids = game.get_daily_trade_city_ids()
-				_add_label("استان‌های فعال امروز: %d | ظرفیت کامیون آزاد: %d از %d واحد" % [import_ids.size(),game.get_transport_capacity_remaining(),game.get_transport_daily_capacity()],16)
-				_add_label("هزینه کالا و ۱۰٪ کرایه حمل هنگام سفارش پرداخت می‌شود؛ زمان تحویل بسته به فاصله استان است.",15)
-				for city_id in import_ids:
-					var city = game.get_import_cities()[city_id]
-					_add_label("%s | زمان حمل: %d روز" % [city.name,int(city.travel_days)],18)
-					for resource_id in game.get_resource_definitions().keys():
-						var import_stock = int(s.city_export_stock.get(city_id,city.supply).get(resource_id,0))
+				_add_label("سهم مردم: %d | سهم شهرداری: %d" % [int(project.get("		"private_economy":
+			PrivateEconomyPage.build(self, s)
+urce_id,0))
 						var price = game.get_import_price(city_id,resource_id)
 						if import_stock <= 0:
 							continue
@@ -2105,101 +2003,9 @@ func show_page(page):
 				facility_button.disabled = false
 			_add_label("🚚 پایانه و ناوگان کامیون",19)
 			_add_label("پایانه حمل‌ونقل: %d | کامیون فعال: %d | ظرفیت روزانه: %d واحد" % [game.get_building_count("transport_depot"),game.get_transport_truck_count(),game.get_transport_daily_capacity()],17)
-			_add_label("ظرفیت مصرف‌شده امروز: %d | ظرفیت باقی‌مانده: %d" % [int(s.get("transport_used_today",0)),game.get_transport_capacity_remaining()],16)
-			_add_label("هر پایانه با ۲ کارمند، یک کامیون را فعال می‌کند؛ هر پایانه حداکثر ۲ کامیون پشتیبانی می‌کند.",15)
-			_add_label("نگهداری روزانه ناوگان: %d سکه | نگهداری جاده: %d سکه" % [game.get_fleet_maintenance(),game.get_road_maintenance()],16)
-			var depot = game.get_building_definitions().get("transport_depot",{})
-			if not depot.is_empty():
-				var depot_population = int(depot.get("unlock",0))
-				var depot_level = int(depot.get("level_unlock",1))
-				var depot_locked = int(s.level) < depot_level or int(s.population) < depot_population
-				var depot_title = "ساخت پایانه حمل‌ونقل" + (" 🔒" if depot_locked else "")
-				var depot_button = _add_button(depot_title+" — %d سکه | زمین: %d قطعه | جمعیت لازم: %d نفر | سطح: %d" % [int(depot.get("cost",0)),game.get_land_size("transport_depot"),depot_population,depot_level],self,"build_transport_facility",["transport_depot"])
-				depot_button.disabled = false
-			_add_label("ظرفیت کامیون‌ها بین واردات، قراردادهای تأمین و صادرات مشترک است.",15)
-		"imports":
-			_add_label(" واردات و حمل‌ونقل بین‌شهری", 22)
-			_add_label("ظرفیت کامیون آزاد امروز: %d از %d واحد" % [game.get_transport_capacity_remaining(),game.get_transport_daily_capacity()],16)
-			_add_label("هزینه کالا و ۱۰٪ کرایه حمل هنگام سفارش پرداخت می‌شود. محموله پس از ۱ یا ۲ روز می‌رسد.",15)
-			for city_id in game.get_import_cities().keys():
-				var city = game.get_import_cities()[city_id]
-				_add_label("%s | زمان حمل: %d روز" % [city.name,int(city.travel_days)],18)
-				for resource_id in game.get_resource_definitions().keys():
-					var stock = int(s.city_export_stock.get(city_id,city.supply).get(resource_id,0))
-					var price = game.get_import_price(city_id,resource_id)
-					if stock <= 0:
-						continue
-					_add_label("%s | موجودی: %d		"transport":
-			TransportPage.build(self, s)
-nt = int(s.resources.get(id,0))
-				var market_amount = int(s.market_stock.get(id,0))
-				var is_expanded = bool(storage_section_expanded.get(str(id), false))
-				var section_button = _add_button(("▼ " if is_expanded else "▶ ") + resource_name + " | موجودی: %d" % current_amount,self,"toggle_storage_section",[str(id)])
-				_style_button(section_button,false)
-				if not is_expanded:
-					continue
-				var section_body = VBoxContainer.new()
-				section_body.add_theme_constant_override("separation",5)
-				section_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				content.add_child(section_body)
-				active_section_container = section_body
-				_add_label("موجودی انبار: %d | موجودی بازار: %d" % [current_amount,market_amount],16)
-				_add_label("حداقل موجودی: %d | حداکثر موجودی: %d" % [int(rule.get("minimum",10)),int(rule.get("maximum",40))],16)
-				var controls = HBoxContainer.new()
-				controls.add_theme_constant_override("separation",6)
-				controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				active_section_container.add_child(controls)
-				var low_down = Button.new()
-				low_down.text = PersianText.reshaper("حداقل −")
-				_style_button(low_down,false)
-				_apply_font(low_down,16)
-				low_down.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				low_down.connect("pressed", Callable(self, "adjust_storage_rule").bind(id,"minimum",-5))
-				controls.add_child(low_down)
-				var low_up = Button.new()
-				low_up.text = PersianText.reshaper("حداقل +")
-				_style_button(low_up,false)
-				_apply_font(low_up,16)
-				low_up.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				low_up.connect("pressed", Callable(self, "adjust_storage_rule").bind(id,"minimum",5))
-				controls.add_child(low_up)
-				var high_down = Button.new()
-				high_down.text = PersianText.reshaper("حداکثر −")
-				_style_button(high_down,false)
-				_apply_font(high_down,16)
-				high_down.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				high_down.connect("pressed", Callable(self, "adjust_storage_rule").bind(id,"maximum",-5))
-				controls.add_child(high_down)
-				var high_up = Button.new()
-				high_up.text = PersianText.reshaper("حداکثر +")
-				_style_button(high_up,false)
-				_apply_font(high_up,16)
-				high_up.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				high_up.connect("pressed", Callable(self, "adjust_storage_rule").bind(id,"maximum",5))
-				controls.add_child(high_up)
-				_add_label("وقتی موجودی کم شد: "+("خرید از بازار" if str(rule.get("low_action","market")) == "market" else "افزایش تولید کارخانه"),15)
-				_add_button("تغییر روش تأمین",self,"toggle_storage_low_action",[id])
-				_add_label("وقتی موجودی زیاد شد: "+("فروش به بازار" if str(rule.get("high_action","market")) == "market" else "فروش از فروشگاه‌ها"),15)
-				_add_button("تغییر روش فروش",self,"toggle_storage_high_action",[id])
-				_add_button("اجرای تنظیمات همین ماده",self,"run_storage_rule",[id])
-				active_section_container = null
-			_add_label("ذخیره درختان جنگل: %d / ۱۰۰" % game.get_forest_tree_count())
-
-		"report":
-			CityReportPage.build(self, s)
-		"settings":
-			_add_label("⚙️ تنظیمات بازی", 24)
-			_add_button("🏙️ تغییر نام شهر", self, "_open_city_name_setup", [false])
-			_add_label("در حالت خودکار، بازی با چرخش گوشی هماهنگ می‌شود؛ حتی وقتی گوشی را ۱۸۰ درجه می‌چرخانی. دو حالت دیگر جهت صفحه را ثابت نگه می‌دارند.", 16)
-			var current_orientation = str(game.state.get("screen_orientation", "landscape"))
-			_add_button(("🔄 خودکار ✓" if current_orientation == "auto" else "🔄 خودکار"), self, "set_screen_orientation", ["auto"])
-			_add_button(("📱 اف		"imports":
-			ImportsPage.build(self, s)
-مان", 21)
-			_add_help_section("خدمات شهری و رضایت", "آب، برق، خوراک، درمان، آموزش، امنیت، تفریح و بهداشت محیط نیازهای جداگانه‌اند. در شهر من میانگین پوشش خدمات را ببین و برای نیازهای ضعیف، ساختمان مناسب بساز. جمعیت بیشتر یعنی نیاز بیشتر به خدمات و زیرساخت.", "home")
-			_add_help_section("شهرداری، زمین و محله‌ها", "پس از ساخت و تکمیل ساختمان شهرداری، بخش شهرداری باز می‌شود و می‌توانی زمین‌های خصوصی، مالیات، مجوزها، درخواست‌ها و پروژه‌های شهری را مدیریت کنی. ظرفیت ساخت هر محله و سهمیه ساختمان‌ها محدود است؛ پیش از خرید یا ساخت، محدودیت همان محله را بررسی کن و برای خدمات ضروری جا نگه دار.", "municipality")
-			_add_help_section("روز، شب و ساخت‌وساز", "هر روز بازی ۱۰ دقیقه زمان واقعی دارد؛ ۷ دقیقه روز و ۳ دقیقه شب است. پایان روز، درآمدها، هزینه‌ها، تولید و رویدادها محاسبه می‌شوند. هم‌زمان حداکثر دو پروژه ساخت فعال می‌توانی داشته باشی؛ زمان ساخت را از بالای صفحه دنبال کن.", "home")
-			_add_help_section("جاده و ناوگان", "جاده و ناوگان برای جابه‌جایی و پشتیبانی تجارت کاربرد دارند و می‌توانند هزینه نگهداری داشته باشند. پیش از توسعه مسیرها، درآمد و توان پرداخت هزینه‌های نگهداری را بررسی کن.", "transport")
+			_add_label("ظرفیت مصرف‌شده امروز: %d | ظرفیت باقی‌ماند		"commerce":
+			CommercePage.build(self, s)
+تجارت کاربرد دارند و می‌توانند هزینه نگهداری داشته باشند. پیش از توسعه مسیرها، درآمد و توان پرداخت هزینه‌های نگهداری را بررسی کن.", "transport")
 			_add_label("🎯 مأموریت‌ها و سرگرمی‌های بلندمدت", 21)
 			_add_help_section("مأموریت‌های روزانه و هفتگی", "مأموریت‌های روزانه با گذر روز عوض می‌شوند و مأموریت هفتگی هدف بزرگ‌تری دارد. انجام مأموریت همیشه به معنی دریافت جایزه نیست؛ اگر دکمه دریافت جایزه نمایش داده شد، آن را بزن. علامت هدیه بالای دکمه پیشرفت و مأموریت‌ها یعنی جایزه آماده دریافت داری.", "missions")
 			_add_help_section("ورود روزانه و زنجیره ورود", "با ورود در روزهای مختلف، زنجیره ورودت را حفظ کن و هدیه روزانه را از شهر من دریافت کن. جایزه روزانه را باید دستی دریافت کنی؛ اگر ظرفیت خزانه پر باشد، ابتدا باید برای دریافت آن فضا ایجاد کنی.", "home")
