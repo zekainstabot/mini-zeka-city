@@ -431,7 +431,7 @@ func get_daily_missions():
 			{"id":"daily_export","title":"تاجر یک‌روزه","description":"امروز حداقل ۳ واحد کالا صادر کن.","progress":min(3, export_progress),"goal":3,"reward":200,"xp":15,"claimed":"daily_export" in claimed}
 		]
 	return [
-		{"id":"daily_profit","title":"سودآوری کسب‌وکار","description":"امروز سود یک کسب‌وکار را به خزانه منتقل کن.","progress":min(1, profit_progress),"goal":1,"reward":160,"xp":12,"claimed":"daily_profit" in claimed},
+		{"id":"daily_profit","title":"سودآوری کسب‌وکار","description":"امروز درآمد یک کسب‌وکار به خزانه شهر واریز شود.","progress":min(1, profit_progress),"goal":1,"reward":160,"xp":12,"claimed":"daily_profit" in claimed},
 		{"id":"daily_satisfaction","title":"شهردار محبوب","description":"رضایت شهر را به ۷۰ یا بیشتر برسان.","progress":1 if int(state.get("satisfaction", 0)) >= 70 else 0,"goal":1,"reward":170,"xp":12,"claimed":"daily_satisfaction" in claimed},
 		{"id":"daily_day","title":"یک روز مدیریت موفق","description":"امروز یک روز بازی را با موفقیت به پایان برسان.","progress":min(1, day_progress),"goal":1,"reward":120,"xp":8,"claimed":"daily_day" in claimed}
 	]
