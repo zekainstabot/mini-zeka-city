@@ -572,6 +572,14 @@ func _open_city_name_setup(first_time = false):
 	city_name_input.clear_button_enabled = true
 	_apply_font(city_name_input, 19)
 	layout.add_child(city_name_input)
+	if city_name_setup_first_time:
+		var random_name_button = Button.new()
+		random_name_button.text = PersianText.reshaper("🎲 انتخاب اسم تصادفی")
+		random_name_button.custom_minimum_size = Vector2(0, 46)
+		_apply_font(random_name_button, 16)
+		_style_button(random_name_button, false)
+		random_name_button.pressed.connect(_choose_random_city_name)
+		layout.add_child(random_name_button)
 	var save_button = Button.new()
 	save_button.text = PersianText.reshaper("ساخت شهر من 🚀" if city_name_setup_first_time else "ذخیره نام جدید")
 	save_button.custom_minimum_size = Vector2(0, 54)
@@ -588,6 +596,13 @@ func _open_city_name_setup(first_time = false):
 		cancel_button.pressed.connect(_close_city_name_setup)
 		layout.add_child(cancel_button)
 	city_name_input.grab_focus()
+
+
+func _choose_random_city_name():
+	if game == null or city_name_input == null or not is_instance_valid(city_name_input):
+		return
+	city_name_input.text = game.get_random_city_name()
+	_save_city_name()
 
 
 func _save_city_name():
