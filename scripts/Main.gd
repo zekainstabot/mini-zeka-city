@@ -2586,9 +2586,9 @@ func show_page(page):
 
 			_add_label("🏆 رتبه، افتخارات و رکوردهای شهر",23)
 			var league = game.get_city_league()
-			_add_label("جایگاه فعلی شهر: %s\nامتیاز توسعه: %d" % [str(league.name),int(league.score)],19)
+			_add_label("رده امتیاز توسعه: %s\nامتیاز توسعه: %d" % [str(league.name),int(league.score)],19)
 			if int(league.next) > 0:
-				_add_label("برای رسیدن به رتبه بعدی، %d امتیاز دیگر لازم داری." % max(0,int(league.next)-int(league.score)),15)
+				_add_label("برای رسیدن به رده امتیاز توسعه بعدی، %d امتیاز دیگر لازم داری." % max(0,int(league.next)-int(league.score)),15)
 			_add_label("این رتبه فقط بر اساس وضعیت شهر خودت محاسبه می‌شود و جدول رتبه‌بندی جهانی نیست.",14)
 			var weekly = game.get_weekly_challenge()
 			_add_label("🏁 چالش این هفته: "+str(weekly.title),19)
