@@ -2512,7 +2512,6 @@ func show_page(page):
 			_add_label("• هر روز گزارش شهر، رویداد هفتگی و رتبه رقبا را بررسی کن.", 16)
 			_add_button("🏙️ حالا برگردیم به شهر!", self, "return_home_from_menu")
 
-			_add_progress_missions_tabs("progress")
 
 		"ranking":
 			_add_label("🏆 رتبه‌بندی شهرها", 24)
@@ -2533,6 +2532,7 @@ func show_page(page):
 			_add_button("🏙️ بازگشت به شهر", self, "show_page", ["home"])
 
 		"progress":
+			_add_progress_missions_tabs("progress")
 			_add_label("🏗️ هدف‌های بلندمدت شهر",23)
 			_add_label("این هدف‌ها با ساخت‌وساز و رشد شهر کامل می‌شوند. پیشرفت هر هدف ذخیره می‌شود و پس از تکمیل، می‌توانی جایزه‌اش را دریافت کنی.",16)
 			for project in game.get_long_term_projects():
