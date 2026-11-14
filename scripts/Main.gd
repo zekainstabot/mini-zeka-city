@@ -464,24 +464,19 @@ func _ready():
 	audio_manager = AudioManagerScript.new()
 	add_child(audio_manager)
 	game = EngineScript.new()
-	if not game.load_game():
+	var has_existing_save = game.load_game()
+	if not has_existing_save:
 		game.new_game()
+		# First launch starts in portrait. Later launches always use the
+		# orientation saved by the player.
+		game.state["screen_orientation"] = "portrait"
 		game.save_game()
-	var saved_orientation = str(game.state.get("screen_orientation", "landscape"))
+	var saved_orientation = str(game.state.get("screen_orientation", "portrait"))
 	if saved_orientation not in ["auto", "portrait", "landscape"]:
-		saved_orientation = "landscape"
+		saved_orientation = "portrait"
 		game.state["screen_orientation"] = saved_orientation
 		game.save_game()
-	# Auto mode follows the device sensor, including reverse landscape when
-	# the phone is turned 180 degrees. Fixed modes keep one orientation.
-	if OS.get_name() in ["Android", "iOS"]:
-		match saved_orientation:
-			"auto":
-				DisplayServer.screen_set_orientation(DisplayServer.SCREEN_SENSOR)
-			"portrait":
-				DisplayServer.screen_set_orientation(DisplayServer.SCREEN_PORTRAIT)
-			_:
-				DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
+	_apply_screen_orientation(saved_orientation)
 	game.register_login_today()
 	game.get_daily_missions()
 	game.get_weekly_challenge()
@@ -1320,21 +1315,24 @@ func open_game_settings():
 		menu_panel.visible = false
 	show_page("settings")
 
+func _apply_screen_orientation(mode):
+	if OS.get_name() not in ["Android", "iOS"]:
+		return
+	match str(mode):
+		"auto":
+			DisplayServer.screen_set_orientation(DisplayServer.SCREEN_SENSOR)
+		"portrait":
+			DisplayServer.screen_set_orientation(DisplayServer.SCREEN_PORTRAIT)
+		_:
+			DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
+
 func set_screen_orientation(mode):
 	var selected_mode = str(mode)
 	if selected_mode not in ["auto", "portrait", "landscape"]:
 		selected_mode = "auto"
 	game.state["screen_orientation"] = selected_mode
 	game.save_game()
-	# Save the preference everywhere; apply sensor rotation only on mobile.
-	if OS.get_name() in ["Android", "iOS"]:
-		match selected_mode:
-			"auto":
-				DisplayServer.screen_set_orientation(DisplayServer.SCREEN_SENSOR)
-			"portrait":
-				DisplayServer.screen_set_orientation(DisplayServer.SCREEN_PORTRAIT)
-			_:
-				DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
+	_apply_screen_orientation(selected_mode)
 	show_page("settings")
 
 func toggle_music_enabled():
