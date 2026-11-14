@@ -500,6 +500,19 @@ func _init():
 	assert(str(district_report_game.state.active_service_report_keys[0]) != first_service_report_key)
 
 	# The existing per-district type limit remains intact.
+	# Private businesses must be rebuilt using their building type, not numeric business id.
+	var private_district_game = EngineScript.new()
+	private_district_game.new_game()
+	private_district_game.state["private_businesses"] = [
+		{"id":101,"building_id":"grocery_store","name":"فروشگاه خصوصی"},
+		{"id":102,"building_id":"grocery_store","name":"فروشگاه دوم"}
+	]
+	private_district_game._ensure_building_locations()
+	var private_district = private_district_game.state.districts[0]
+	assert(int(private_district.building_type_counts.get("grocery_store", 0)) == 2)
+	assert(not private_district.building_type_counts.has("101"))
+	assert(not private_district.building_type_counts.has("102"))
+
 	var district_type_limit_game = EngineScript.new()
 	district_type_limit_game.new_game()
 	district_type_limit_game._ensure_building_locations()

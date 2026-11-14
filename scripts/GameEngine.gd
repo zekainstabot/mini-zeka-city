@@ -1916,7 +1916,8 @@ func _ensure_building_locations():
 			var item = collection[i]
 			if collection_name == "private_businesses" and bool(item.get("rented_municipal", false)):
 				continue
-			var building_id = str(item.get("id", item.get("building_id", "")))
+			# Private business records use a numeric business id in `id`; their building type lives in `building_id`.
+			var building_id = str(item.get("building_id", item.get("id", "")))
 			var location = _assign_building_location(building_id)
 			for key in location.keys():
 				item[key] = location[key]
