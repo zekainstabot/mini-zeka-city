@@ -666,7 +666,7 @@ func _build_ui():
 	help_center.offset_bottom = -18
 	help_overlay.add_child(help_center)
 	var help_card = PanelContainer.new()
-	help_card.custom_minimum_size = Vector2(min(560.0, screen_width - 40.0), 0)
+	help_card.custom_minimum_size = Vector2(min(560.0, screen_width - 40.0), min(760.0, get_viewport_rect().size.y - 40.0))
 	help_card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	var help_card_style = StyleBoxFlat.new()
 	help_card_style.bg_color = Color("#101f32")
@@ -1483,6 +1483,10 @@ func _close_help():
 			main_layout.move_child(game_scroll_container, clamp(help_scroll_original_index, 0, main_layout.get_child_count() - 1))
 	show_page(help_previous_page)
 
+func _open_help_target(target_page):
+	_close_help()
+	show_page(str(target_page))
+
 func _add_help_section(title, description, target_page=""):
 	var panel = PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1522,7 +1526,7 @@ func _add_help_section(title, description, target_page=""):
 		jump.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_apply_font(jump, 16 if get_viewport_rect().size.x < 900 else 15)
 		_style_button(jump, false)
-		jump.connect("pressed", Callable(self, "show_page").bind(str(target_page)))
+		jump.connect("pressed", Callable(self, "_open_help_target").bind(str(target_page)))
 		body.add_child(jump)
 
 func _open_missions_from_welcome():
