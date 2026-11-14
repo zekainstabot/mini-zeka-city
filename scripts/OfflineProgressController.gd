@@ -206,7 +206,7 @@ static func _show_offline_summary(owner):
 		claim.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		owner._apply_font(claim, 14 if compact else 16)
 		owner._style_button(claim, false)
-		claim.pressed.connect(_claim_offline_income)
+		claim.pressed.connect(Callable(owner, "_claim_offline_income"))
 		layout.add_child(claim)
 
 	var continue_button = Button.new()
@@ -215,7 +215,7 @@ static func _show_offline_summary(owner):
 	continue_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	owner._apply_font(continue_button, 14 if compact else 16)
 	owner._style_button(continue_button, true)
-	continue_button.pressed.connect(_close_offline_summary)
+	continue_button.pressed.connect(Callable(owner, "_close_offline_summary"))
 	layout.add_child(continue_button)
 
 	owner.add_child(overlay)
