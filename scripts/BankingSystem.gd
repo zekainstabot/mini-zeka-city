@@ -4,15 +4,15 @@ extends RefCounted
 
 static func _record_bank_transaction(engine, kind, amount, description):
 	var state = engine.state
-if typeof(state.get("bank_transactions", null)) != TYPE_ARRAY:
+	if typeof(state.get("bank_transactions", null)) != TYPE_ARRAY:
 		state["bank_transactions"] = []
 	state.bank_transactions.append({"day":int(state.get("day",1)),"kind":str(kind),"amount":int(amount),"description":str(description)})
 	while state.bank_transactions.size() > 100:
 		state.bank_transactions.pop_front()
 
-static func get_bank_loan_limit(engine, ):
+static func get_bank_loan_limit(engine):
 	var state = engine.state
-if not engine.has_central_bank():
+	if not engine.has_central_bank():
 		return 0
 	var capacity_room = max(0, engine.get_treasury_capacity() - int(state.get("money",0)))
 	var city_limit = 5000 + int(state.get("level",1)) * 2000 + int(state.get("population",0)) * 100
@@ -20,7 +20,7 @@ if not engine.has_central_bank():
 
 static func take_bank_loan(engine, amount, duration_days):
 	var state = engine.state
-if not engine.has_central_bank():
+	if not engine.has_central_bank():
 		return {"ok":false,"message":"برای دریافت وام ابتدا بانک مرکزی بساز."}
 	var active_loans = 0
 	for loan in state.get("bank_loans", []):
@@ -33,8 +33,8 @@ if not engine.has_central_bank():
 	if not rates.has(term):
 		return {"ok":false,"message":"مدت وام باید ۷، ۱۴ یا ۳۰ روز باشد."}
 	var principal = int(amount)
-	if principal < 1000 or principal > BankingSystem.get_bank_loan_limit(engine, ):
-		return {"ok":false,"message":"مبلغ وام باید حداقل ۱۰۰۰ و حداکثر %d سکه باشد." % BankingSystem.get_bank_loan_limit(engine, )}
+	if principal < 1000 or principal > BankingSystem.get_bank_loan_limit(engine):
+		return {"ok":false,"message":"مبلغ وام باید حداقل ۱۰۰۰ و حداکثر %d سکه باشد." % BankingSystem.get_bank_loan_limit(engine)}
 	var interest = int(ceil(float(principal * int(rates[term])) / 100.0))
 	var total_due = principal + interest
 	var accepted = engine._add_money(principal)
@@ -48,7 +48,7 @@ if not engine.has_central_bank():
 
 static func repay_bank_loan_manual(engine, loan_index):
 	var state = engine.state
-if loan_index < 0 or loan_index >= state.get("bank_loans",[]).size():
+	if loan_index < 0 or loan_index >= state.get("bank_loans",[]).size():
 		return {"ok":false,"message":"وام پیدا نشد."}
 	var loan = state.bank_loans[loan_index]
 	if str(loan.get("status","")) != "active":
@@ -72,7 +72,7 @@ if loan_index < 0 or loan_index >= state.get("bank_loans",[]).size():
 
 static func repay_bank_loan_early(engine, loan_index):
 	var state = engine.state
-if loan_index < 0 or loan_index >= state.get("bank_loans",[]).size():
+	if loan_index < 0 or loan_index >= state.get("bank_loans",[]).size():
 		return {"ok":false,"message":"وام پیدا نشد."}
 	var loan = state.bank_loans[loan_index]
 	if str(loan.get("status","")) != "active":
@@ -90,7 +90,7 @@ if loan_index < 0 or loan_index >= state.get("bank_loans",[]).size():
 
 static func create_bank_deposit(engine, amount, duration_days):
 	var state = engine.state
-if BankingSystem.game_has_no_municipal_bank(engine, ):
+	if BankingSystem.game_has_no_municipal_bank(engine):
 		return {"ok":false,"message":"برای سپرده‌گذاری ابتدا بانک شهری بساز."}
 	var term = int(duration_days)
 	var rates = {7:3,14:7,30:15}
@@ -110,7 +110,7 @@ if BankingSystem.game_has_no_municipal_bank(engine, ):
 
 static func withdraw_bank_deposit(engine, deposit_index):
 	var state = engine.state
-if deposit_index < 0 or deposit_index >= state.get("bank_deposits",[]).size():
+	if deposit_index < 0 or deposit_index >= state.get("bank_deposits",[]).size():
 		return {"ok":false,"message":"سپرده پیدا نشد."}
 	var deposit = state.bank_deposits[deposit_index]
 	if str(deposit.get("status","")) == "withdrawn":
@@ -129,7 +129,7 @@ if deposit_index < 0 or deposit_index >= state.get("bank_deposits",[]).size():
 
 static func _process_bank_day(engine, report):
 	var state = engine.state
-var total_paid = 0
+	var total_paid = 0
 	for index in range(state.get("bank_loans",[]).size()):
 		var loan = state.bank_loans[index]
 		if str(loan.get("status","")) != "active":
@@ -166,5 +166,5 @@ var total_paid = 0
 		state["bank_daily_repayment"] = total_paid
 	return total_paid
 
-static func game_has_no_municipal_bank(engine, ):
-return engine.get_building_count("municipal_bank") <= 0
+static func game_has_no_municipal_bank(engine):
+	return engine.get_building_count("municipal_bank") <= 0
