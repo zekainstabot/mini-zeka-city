@@ -9,9 +9,16 @@ func _initialize():
 	call_deferred("_run_tests")
 
 func _run_tests():
+	# Make the headless test viewport deterministic and match a portrait phone.
+	get_root().size = Vector2i(720, 1280)
+	await process_frame
 	var main = MainScene.instantiate()
 	get_root().add_child(main)
 	await process_frame
+	if main.city_name_input != null and is_instance_valid(main.city_name_input):
+		main._choose_random_city_name()
+		assert(not main.city_name_input.text.strip_edges().is_empty())
+		assert(main.city_name_overlay != null and is_instance_valid(main.city_name_overlay))
 	var text_server = TextServerManager.get_primary_interface()
 	assert(text_server != null)
 	assert(text_server.has_feature(TextServer.FEATURE_SHAPING))

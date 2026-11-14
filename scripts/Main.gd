@@ -603,8 +603,9 @@ func _open_city_name_setup(first_time = false):
 func _choose_random_city_name():
 	if game == null or city_name_input == null or not is_instance_valid(city_name_input):
 		return
+	# Selecting a suggested name must not save it immediately; let the player
+	# review or edit it before confirming with the primary save button.
 	city_name_input.text = game.get_random_city_name()
-	_save_city_name()
 
 
 func _save_city_name():
