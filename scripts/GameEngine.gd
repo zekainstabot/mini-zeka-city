@@ -262,6 +262,7 @@ var state = {}
 func new_game():
 	state = {
 		"version": 18,
+		"city_name": "",
 		"districts": [],
 		"day": 1,
 		"clock_last_unix": Time.get_unix_time_from_system(),
@@ -365,6 +366,7 @@ func load_game():
 	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) < 1 or int(parsed.get("version", 0)) > 18:
 		return false
 	state = parsed
+	state["city_name"] = str(state.get("city_name", "")).strip_edges()
 	_normalize_state()
 	_sync_population()
 	CitizenSociety.new().ensure_state(self)
