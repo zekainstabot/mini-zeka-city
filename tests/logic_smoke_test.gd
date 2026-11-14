@@ -210,6 +210,16 @@ func _init():
 			assert(int(standing.get("rank", 0)) >= 1 and int(standing.get("rank", 0)) <= 10)
 	assert(player_found)
 	assert(engagement_game.state.get("rival_cities", []).size() == 9)
+	# A higher city league always outranks a lower one; within the same league, XP wins.
+	var ranking_tiebreakers = [
+		{"id":"low_tier","league_tier":1,"xp":99,"score":999},
+		{"id":"same_tier_low_xp","league_tier":2,"xp":10,"score":800},
+		{"id":"same_tier_high_xp","league_tier":2,"xp":90,"score":700}
+	]
+	ranking_tiebreakers.sort_custom(Callable(engagement_game, "_sort_rival_standings"))
+	assert(str(ranking_tiebreakers[0].id) == "same_tier_high_xp")
+	assert(str(ranking_tiebreakers[1].id) == "same_tier_low_xp")
+	assert(str(ranking_tiebreakers[2].id) == "low_tier")
 	var rival_ai_report = []
 	engagement_game._advance_rival_cities(rival_ai_report)
 	var saved_ai_profiles = {}
