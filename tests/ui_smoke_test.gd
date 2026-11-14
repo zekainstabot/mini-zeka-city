@@ -41,8 +41,13 @@ func _run_tests():
 	assert(main._get_geographic_rank_name(7) == "آبادی بزرگ")
 	assert(main._get_geographic_rank_name(9) == "آبادی بزرگ")
 	assert(main._get_geographic_rank_name(10) == "روستای کوچک")
-	for page in ["home","buildings","citizens","bank","municipality","private_economy","commerce","transport","imports","storage","report","missions","progress","audio","help"]:
+	for page in ["home","buildings","citizens","bank","municipality","private_economy","commerce","transport","imports","storage","report","missions","progress","ranking","settings","audio","help"]:
 		main.show_page(page)
+		if page == "ranking":
+			assert(main.content.get_child_count() >= 12)
+			assert(main.game.get_rival_standings().size() == 10)
+		if page == "settings":
+			assert(main.content.get_child_count() > 0)
 		if page == "audio":
 			assert(main.content.get_child_count() >= 18)
 		if page == "help":
