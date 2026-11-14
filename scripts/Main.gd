@@ -2043,8 +2043,9 @@ func show_page(page):
 			var road_level = int(s.get("road_level",1))
 			if road_level < 3:
 				var next_road_cost = 1500 if road_level == 1 else 3500
-				var road_button = _add_button("احداث و ارتقای مسیر بین‌شهری به سطح %d — %d سکه" % [road_level+1,next_road_cost],self,"upgrade_road")
-				road_button.disabled = int(s.level) < road_level+1 or game.get_available_money() < next_road_cost
+				var road_locked = int(s.level) < road_level+1
+				var road_button = _add_button("احداث و ارتقای مسیر بین‌شهری به سطح %d%s — %d سکه" % [road_level+1, " 🔒" if road_locked else "", next_road_cost],self,"upgrade_road")
+				road_button.disabled = not road_locked and game.get_available_money() < next_road_cost
 			else:
 				_add_label("مسیرهای بین‌شهری به بالاترین سطح رسیده‌اند.")
 			_add_label("🚏 ایستگاه‌های حمل‌ونقل شهری",19)
@@ -2055,7 +2056,7 @@ func show_page(page):
 					continue
 				var facility_population = int(facility.get("unlock",0))
 				var facility_level = int(facility.get("level_unlock",1))
-				var facility_locked = int(s.level) < facility_level
+				var facility_locked = int(s.level) < facility_level or int(s.population) < facility_population
 				var facility_name = str(facility.get("name","ایستگاه")) + (" 🔒" if facility_locked else "")
 				var facility_button = _add_button("ساخت "+facility_name+" — %d سکه | زمین: %d قطعه | جمعیت لازم: %d نفر | سطح: %d" % [int(facility.get("cost",0)),game.get_land_size(facility_id),facility_population,facility_level],self,"build_transport_facility",[facility_id])
 				facility_button.disabled = false
@@ -2068,7 +2069,7 @@ func show_page(page):
 			if not depot.is_empty():
 				var depot_population = int(depot.get("unlock",0))
 				var depot_level = int(depot.get("level_unlock",1))
-				var depot_locked = int(s.level) < depot_level
+				var depot_locked = int(s.level) < depot_level or int(s.population) < depot_population
 				var depot_title = "ساخت پایانه حمل‌ونقل" + (" 🔒" if depot_locked else "")
 				var depot_button = _add_button(depot_title+" — %d سکه | زمین: %d قطعه | جمعیت لازم: %d نفر | سطح: %d" % [int(depot.get("cost",0)),game.get_land_size("transport_depot"),depot_population,depot_level],self,"build_transport_facility",["transport_depot"])
 				depot_button.disabled = false
