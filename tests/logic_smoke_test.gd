@@ -202,13 +202,19 @@ func _init():
 	var engagement_game = EngineScript.new()
 	engagement_game.new_game()
 	var standings = engagement_game.get_rival_standings()
-	assert(standings.size() == 4)
+	assert(standings.size() == 10)
 	var player_found = false
 	for standing in standings:
 		if bool(standing.get("is_player", false)):
 			player_found = true
-			assert(int(standing.get("rank", 0)) >= 1 and int(standing.get("rank", 0)) <= 4)
+			assert(int(standing.get("rank", 0)) >= 1 and int(standing.get("rank", 0)) <= 10)
 	assert(player_found)
+	assert(engagement_game.state.get("rival_cities", []).size() == 9)
+	var rival_ai_report = []
+	engagement_game._advance_rival_cities(rival_ai_report)
+	for rival_city in engagement_game.state.get("rival_cities", []):
+		assert(str(rival_city.get("ai_style", "")) in ["housing", "economy", "services", "innovation"])
+		assert(int(rival_city.get("ai_actions", -1)) >= 0)
 	var weekly_city_event = engagement_game.get_weekly_city_event()
 	assert(str(weekly_city_event.get("id", "")) in ["market_boom","festival_week","energy_saving","development_week"])
 
