@@ -212,9 +212,15 @@ func _init():
 	assert(engagement_game.state.get("rival_cities", []).size() == 9)
 	var rival_ai_report = []
 	engagement_game._advance_rival_cities(rival_ai_report)
+	var saved_ai_profiles = {}
 	for rival_city in engagement_game.state.get("rival_cities", []):
 		assert(str(rival_city.get("ai_style", "")) in ["housing", "economy", "services", "innovation"])
+		assert(int(rival_city.get("ai_style_index", -1)) >= 0 and int(rival_city.get("ai_style_index", -1)) <= 3)
 		assert(int(rival_city.get("ai_actions", -1)) >= 0)
+		saved_ai_profiles[str(rival_city.get("id", ""))] = int(rival_city.get("ai_style_index", -1))
+	engagement_game._sync_rival_cities()
+	for rival_city in engagement_game.state.get("rival_cities", []):
+		assert(int(rival_city.get("ai_style_index", -1)) == int(saved_ai_profiles.get(str(rival_city.get("id", "")), -2)))
 	var weekly_city_event = engagement_game.get_weekly_city_event()
 	assert(str(weekly_city_event.get("id", "")) in ["market_boom","festival_week","energy_saving","development_week"])
 
