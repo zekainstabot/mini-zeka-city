@@ -483,7 +483,8 @@ func _ready():
 	audio_manager.set_night_mode(last_audio_night_mode)
 	set_process(true)
 	_build_ui()
-	last_layout_viewport_size = get_viewport_rect().size
+	last_layout_viewport_size = Vector2.ZERO
+	_apply_responsive_layout()
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
 	show_page("home")
 	_show_offline_summary()
