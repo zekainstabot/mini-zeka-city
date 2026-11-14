@@ -3187,8 +3187,10 @@ func go_to_mission_target(mission_id):
 	mission_target_building_id = ""
 	mission_target_building_button = null
 	match str(mission_id):
-		"daily_build", "daily_land":
+		"daily_build":
 			target_page = "buildings"
+		"daily_land":
+			target_page = "transport"
 		"daily_hire", "daily_population", "daily_satisfaction":
 			target_page = "citizens"
 		"daily_export":
