@@ -210,16 +210,24 @@ func _init():
 			assert(int(standing.get("rank", 0)) >= 1 and int(standing.get("rank", 0)) <= 10)
 	assert(player_found)
 	assert(engagement_game.state.get("rival_cities", []).size() == 9)
-	# A higher city league always outranks a lower one; within the same league, XP wins.
+	for standing in standings:
+		assert(not str(standing.get("geographic_rank", "")).is_empty())
+		assert(int(standing.get("district_count", 0)) >= 1)
+	# Geographic city rank always wins first; XP breaks ties within the same rank.
+	var settlement_rank = engagement_game.get_geographic_rank_for_district_count(6)
+	var village_rank = engagement_game.get_geographic_rank_for_district_count(13)
+	assert(str(settlement_rank.name) == "آبادی")
+	assert(str(village_rank.name) == "روستا")
+	assert(int(village_rank.tier) > int(settlement_rank.tier))
 	var ranking_tiebreakers = [
-		{"id":"low_tier","league_tier":1,"xp":99,"score":999},
-		{"id":"same_tier_low_xp","league_tier":2,"xp":10,"score":800},
-		{"id":"same_tier_high_xp","league_tier":2,"xp":90,"score":700}
+		{"id":"lower_geo_rank","geographic_tier":1,"xp":99,"score":999},
+		{"id":"same_rank_low_xp","geographic_tier":2,"xp":10,"score":800},
+		{"id":"same_rank_high_xp","geographic_tier":2,"xp":90,"score":700}
 	]
 	ranking_tiebreakers.sort_custom(Callable(engagement_game, "_sort_rival_standings"))
-	assert(str(ranking_tiebreakers[0].id) == "same_tier_high_xp")
-	assert(str(ranking_tiebreakers[1].id) == "same_tier_low_xp")
-	assert(str(ranking_tiebreakers[2].id) == "low_tier")
+	assert(str(ranking_tiebreakers[0].id) == "same_rank_high_xp")
+	assert(str(ranking_tiebreakers[1].id) == "same_rank_low_xp")
+	assert(str(ranking_tiebreakers[2].id) == "lower_geo_rank")
 	var rival_ai_report = []
 	engagement_game._advance_rival_cities(rival_ai_report)
 	var saved_ai_profiles = {}
@@ -231,6 +239,16 @@ func _init():
 	engagement_game._sync_rival_cities()
 	for rival_city in engagement_game.state.get("rival_cities", []):
 		assert(int(rival_city.get("ai_style_index", -1)) == int(saved_ai_profiles.get(str(rival_city.get("id", "")), -2)))
+	# Rival progression must never exceed the configured level cap.
+	var capped_rival = engagement_game.state.rival_cities[0]
+	capped_rival["level"] = 15
+	capped_rival["xp"] = 1490
+	engagement_game.state.rival_cities[0] = capped_rival
+	engagement_game._advance_rival_cities(rival_ai_report)
+	capped_rival = engagement_game.state.rival_cities[0]
+	assert(int(capped_rival.get("level", 0)) == 15)
+	assert(int(capped_rival.get("xp", 99999)) < 1500)
+	assert(int(capped_rival.get("district_count", 0)) >= 1)
 	var weekly_city_event = engagement_game.get_weekly_city_event()
 	assert(str(weekly_city_event.get("id", "")) in ["market_boom","festival_week","energy_saving","development_week"])
 
