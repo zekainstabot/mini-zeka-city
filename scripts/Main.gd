@@ -11,6 +11,10 @@ var current_page = "home"
 var message_label = null
 var content = null
 var header_label = null
+var brand_label = null
+var city_name_overlay = null
+var city_name_input = null
+var city_name_setup_first_time = false
 var ui_font = null
 var level_status_bar = null
 var xp_progress_bar = null
@@ -495,7 +499,124 @@ func _ready():
 	_apply_responsive_layout()
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
 	show_page("home")
-	_show_offline_summary()
+	if str(game.state.get("city_name", "")).strip_edges() == "":
+		_open_city_name_setup(true)
+	else:
+		_show_offline_summary()
+
+
+
+func _open_city_name_setup(first_time = false):
+	city_name_setup_first_time = bool(first_time)
+	if city_name_overlay != null and is_instance_valid(city_name_overlay):
+		var old_layer = city_name_overlay.get_parent()
+		if old_layer != null:
+			old_layer.queue_free()
+	var layer = CanvasLayer.new()
+	layer.name = "CityNameSetupLayer"
+	layer.layer = 120
+	add_child(layer)
+	city_name_overlay = Control.new()
+	city_name_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	city_name_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	layer.add_child(city_name_overlay)
+	var shade = ColorRect.new()
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shade.color = Color(0.015, 0.035, 0.065, 0.96)
+	shade.mouse_filter = Control.MOUSE_FILTER_STOP
+	city_name_overlay.add_child(shade)
+	var center = CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.offset_left = 18
+	center.offset_right = -18
+	center.offset_top = 18
+	center.offset_bottom = -18
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	city_name_overlay.add_child(center)
+	var card = PanelContainer.new()
+	card.custom_minimum_size = Vector2(min(520.0, get_viewport_rect().size.x - 36.0), 0)
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color("#14243a")
+	style.border_color = Color("#38bdf8")
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(22)
+	style.content_margin_left = 22
+	style.content_margin_right = 22
+	style.content_margin_top = 26
+	style.content_margin_bottom = 24
+	card.add_theme_stylebox_override("panel", style)
+	center.add_child(card)
+	var layout = VBoxContainer.new()
+	layout.add_theme_constant_override("separation", 14)
+	card.add_child(layout)
+	var title = Label.new()
+	title.text = PersianText.reshaper("به شهر خودت خوش اومدی! 🏙️" if city_name_setup_first_time else "نام شهر رو تغییر بده")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_apply_font(title, 23)
+	title.add_theme_color_override("font_color", Color("#ffffff"))
+	layout.add_child(title)
+	var subtitle = Label.new()
+	subtitle.text = PersianText.reshaper("برای شهرت یه اسم انتخاب کن؛ این اسم بالای شهر نمایش داده می‌شه." if city_name_setup_first_time else "اسم جدید شهر رو وارد کن.")
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_apply_font(subtitle, 15)
+	subtitle.add_theme_color_override("font_color", Color("#cbd5e1"))
+	layout.add_child(subtitle)
+	city_name_input = LineEdit.new()
+	city_name_input.text = str(game.state.get("city_name", ""))
+	city_name_input.placeholder_text = "مثلاً: زکا‌آباد"
+	city_name_input.max_length = 24
+	city_name_input.custom_minimum_size = Vector2(0, 54)
+	city_name_input.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	city_name_input.clear_button_enabled = true
+	_apply_font(city_name_input, 19)
+	layout.add_child(city_name_input)
+	var save_button = Button.new()
+	save_button.text = PersianText.reshaper("ساخت شهر من 🚀" if city_name_setup_first_time else "ذخیره نام جدید")
+	save_button.custom_minimum_size = Vector2(0, 54)
+	_apply_font(save_button, 18)
+	_style_button(save_button, true)
+	save_button.pressed.connect(_save_city_name)
+	layout.add_child(save_button)
+	if not city_name_setup_first_time:
+		var cancel_button = Button.new()
+		cancel_button.text = PersianText.reshaper("انصراف")
+		cancel_button.custom_minimum_size = Vector2(0, 46)
+		_apply_font(cancel_button, 16)
+		_style_button(cancel_button, false)
+		cancel_button.pressed.connect(_close_city_name_setup)
+		layout.add_child(cancel_button)
+	city_name_input.grab_focus()
+
+
+func _save_city_name():
+	if city_name_input == null or not is_instance_valid(city_name_input):
+		return
+	var chosen_name = city_name_input.text.strip_edges()
+	if chosen_name.is_empty():
+		city_name_input.placeholder_text = "اول یه اسم برای شهرت بنویس"
+		return
+	chosen_name = chosen_name.substr(0, 24)
+	game.state["city_name"] = chosen_name
+	game.save_game()
+	var was_first_time = city_name_setup_first_time
+	_close_city_name_setup()
+	show_page("home")
+	if was_first_time:
+		_show_message("شهر «%s» ساخته شد؛ خوش اومدی!" % chosen_name)
+		_show_offline_summary()
+	else:
+		_show_message("نام شهر به «%s» تغییر کرد." % chosen_name)
+
+
+func _close_city_name_setup():
+	if city_name_overlay != null and is_instance_valid(city_name_overlay):
+		var layer = city_name_overlay.get_parent()
+		if layer != null:
+			layer.queue_free()
+	city_name_overlay = null
+	city_name_input = null
 
 
 func _on_viewport_size_changed():
@@ -589,13 +710,23 @@ func _build_ui():
 	root.add_theme_constant_override("separation", 16 if compact_layout else 12)
 	add_child(root)
 	header_label = Label.new()
-	header_label.text = PersianText.reshaper("مینی زکا سیتی")
+	header_label.text = PersianText.reshaper(str(game.state.get("city_name", "شهر من")))
 	header_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	header_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	header_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_font(header_label, 28 if compact_layout else 26)
 	header_label.add_theme_color_override("font_color", Color("#ffffff"))
 	root.add_child(header_label)
+	brand_label = Label.new()
+	brand_label.text = "✦  MINI ZEKA CITY  ✦"
+	brand_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	brand_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	brand_label.add_theme_color_override("font_color", Color("#7dd3fc"))
+	brand_label.add_theme_color_override("font_shadow_color", Color("#0c4a6e"))
+	brand_label.add_theme_constant_override("shadow_offset_x", 1)
+	brand_label.add_theme_constant_override("shadow_offset_y", 1)
+	_apply_font(brand_label, 12 if compact_layout else 14)
+	root.add_child(brand_label)
 	var menu_row = HBoxContainer.new()
 	menu_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	root.add_child(menu_row)
@@ -2303,6 +2434,7 @@ func show_page(page):
 
 		"settings":
 			_add_label("⚙️ تنظیمات بازی", 24)
+			_add_button("🏙️ تغییر نام شهر", self, "_open_city_name_setup", [false])
 			_add_label("در حالت خودکار، بازی با چرخش گوشی هماهنگ می‌شود؛ حتی وقتی گوشی را ۱۸۰ درجه می‌چرخانی. دو حالت دیگر جهت صفحه را ثابت نگه می‌دارند.", 16)
 			var current_orientation = str(game.state.get("screen_orientation", "landscape"))
 			_add_button(("🔄 خودکار ✓" if current_orientation == "auto" else "🔄 خودکار"), self, "set_screen_orientation", ["auto"])
@@ -2758,7 +2890,10 @@ func show_page(page):
 	bottom_scroll_space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_child(bottom_scroll_space)
 	var header_stats = "خزانه: %d  |  جمعیت: %d" % [s.money,s.population]
-	var header_text = "مینی زکا سیتی\n" + header_stats if get_viewport_rect().size.x < 900 else "مینی زکا سیتی  |  " + header_stats
+	var city_title = str(s.get("city_name", "شهر من")).strip_edges()
+	if city_title.is_empty():
+		city_title = "شهر من"
+	var header_text = city_title + "\n" + header_stats
 	header_label.text = PersianText.reshaper(header_text)
 
 func _municipality_section(title, section_id):
