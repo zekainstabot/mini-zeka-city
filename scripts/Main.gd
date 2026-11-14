@@ -238,6 +238,7 @@ func _apply_offline_progress():
 		var digest = str(offline_report).split("\n")
 		for digest_line in digest:
 			var clean_line = str(digest_line).strip_edges()
+			clean_line = clean_line.replace("نویدشهر", "یکی از شهرهای رقیب")
 			if clean_line != "" and (clean_line.find("رویداد") >= 0 or clean_line.find("تصمیم") >= 0 or clean_line.find("رقبا") >= 0 or clean_line.find("درخواست") >= 0 or clean_line.find("تبریک") >= 0 or clean_line.find("تولید") >= 0):
 				game.state["pending_offline_digest"].append(clean_line)
 	while game.state["pending_offline_digest"].size() > 8:
@@ -323,7 +324,7 @@ func _show_offline_summary():
 	card.add_child(layout)
 
 	var heading = Label.new()
-	heading.text = PersianText.reshaper("خوش برگشتی به شهرت! 👋")
+	heading.text = PersianText.reshaper("خوش برگشتی به %s! 👋" % str(game.state.get("city_name", "شهرت")))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	heading.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_apply_font(heading, 21 if compact else 25)
@@ -407,7 +408,8 @@ func _show_offline_summary():
 	else:
 		for index in range(min(unique_digest_items.size(), 8)):
 			var event_label = Label.new()
-			event_label.text = PersianText.reshaper("• " + str(unique_digest_items[index]))
+			var event_text = str(unique_digest_items[index]).replace("نویدشهر", "یکی از شهرهای رقیب")
+			event_label.text = PersianText.reshaper("• " + event_text)
 			event_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 			event_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			event_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
