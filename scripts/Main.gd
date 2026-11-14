@@ -1194,12 +1194,13 @@ func _style_button(button, navigation=false):
 	button.add_theme_stylebox_override("hover", _button_style(hover_color, border_hover))
 	button.add_theme_stylebox_override("focus", _button_style(hover_color, border_hover))
 	button.add_theme_stylebox_override("pressed", _button_style(pressed_color, border_pressed))
-	button.add_theme_stylebox_override("disabled", _button_style(Color("#FFFFFF"), Color("#73777D")))
+	# Locked navigation items keep the exact same visual style; only the lock icon indicates availability.
+	button.add_theme_stylebox_override("disabled", _button_style(normal_color, border_normal))
 	button.add_theme_color_override("font_color", text_color)
 	button.add_theme_color_override("font_color_focus", text_color)
 	button.add_theme_color_override("font_color_hover", text_color)
 	button.add_theme_color_override("font_color_pressed", text_color)
-	button.add_theme_color_override("font_color_disabled", Color("#111111"))
+	button.add_theme_color_override("font_color_disabled", text_color)
 	button.add_theme_constant_override("outline_size", 1)
 	button.add_theme_color_override("font_outline_color", Color("#FFFFFF") if not navigation else Color("#111827"))
 
