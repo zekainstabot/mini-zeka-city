@@ -312,6 +312,7 @@ func _sync_rival_cities():
 				"wealth": 5000 + index * 1250,
 				"satisfaction": 58 + (index % 5) * 5,
 				"score": 280 + index * 115,
+				"district_count": max(1, int(ceil(float(6 + index) / 3.0))),
 				"xp": int(randi() % 100),
 				"ai_style_index": int(randi() % 4),
 				"ai_actions": 0
@@ -322,6 +323,8 @@ func _sync_rival_cities():
 				rival_data["ai_style_index"] = int(randi() % 4)
 			if not rival_data.has("xp"):
 				rival_data["xp"] = int(randi() % 100)
+			if not rival_data.has("district_count"):
+				rival_data["district_count"] = max(1, int(ceil(float(int(rival_data.get("buildings", 1))) / 3.0)))
 			rival_data["ai_actions"] = int(rival_data.get("ai_actions", 0))
 		rival_data["id"] = rival_id + "_rival"
 		rival_data["name"] = rival_name
@@ -775,6 +778,34 @@ func get_city_records():
 	_update_city_records()
 	return state.get("city_records", {}).duplicate(true)
 
+func get_geographic_rank_for_district_count(district_count):
+	var ranks = [
+		"آبادی کوچک", "آبادی", "آبادی بزرگ",
+		"روستای کوچک", "روستا", "روستای بزرگ",
+		"ده کوچک", "ده", "ده بزرگ",
+		"دهستان کوچک", "دهستان", "دهستان بزرگ",
+		"بخش کوچک", "بخش", "بخش بزرگ",
+		"شهر کوچک", "شهر", "شهر بزرگ",
+		"شهرستان کوچک", "شهرستان", "شهرستان بزرگ",
+		"استان کوچک", "استان", "استان بزرگ",
+		"ایالت کوچک", "ایالت", "ایالت بزرگ",
+		"کشور کوچک", "کشور", "کشور بزرگ",
+		"قاره کوچک", "قاره", "قاره بزرگ",
+		"سیاره کوچک", "سیاره", "سیاره بزرگ",
+		"منظومه کوچک", "منظومه", "منظومه بزرگ",
+		"سامانه ستاره‌ای کوچک", "سامانه ستاره‌ای", "سامانه ستاره‌ای بزرگ",
+		"کهکشان کوچک", "کهکشان", "کهکشان بزرگ",
+		"گروه کهکشانی کوچک", "گروه کهکشانی", "گروه کهکشانی بزرگ",
+		"خوشه کهکشانی کوچک", "خوشه کهکشانی", "خوشه کهکشانی بزرگ",
+		"ابرخوشه کهکشانی کوچک", "ابرخوشه کهکشانی", "ابرخوشه کهکشانی بزرگ",
+		"شبکه کیهانی کوچک", "شبکه کیهانی", "شبکه کیهانی بزرگ",
+		"جهان قابل مشاهده کوچک", "جهان قابل مشاهده", "جهان قابل مشاهده بزرگ",
+		"جهان کوچک", "جهان", "جهان بزرگ"
+	]
+	var safe_count = max(1, int(district_count))
+	var tier = min(int(floor(float(safe_count - 1) / 3.0)), ranks.size() - 1)
+	return {"name":str(ranks[tier]),"tier":tier,"district_count":safe_count,"next_at":(tier + 1) * 3 + 1 if tier < ranks.size() - 1 else 0}
+
 func get_city_league():
 	var score = int(state.get("level", 1)) * 100 + int(state.get("population", 0)) * 5 + state.get("buildings", []).size() * 12 + int(state.get("satisfaction", 0)) * 2 + int(state.get("reputation", 0)) * 2
 	var leagues = [
@@ -977,13 +1008,19 @@ func _advance_rival_cities(report):
 			rival["level"] = int(rival.get("level", 1)) + 1
 		rival["satisfaction"] = int(clamp(int(rival.get("satisfaction", 50)) + int(randi() % 5) - 2, 25, 100))
 		# Rival XP is persistent progress within its current city level.
-		var rival_xp = int(rival.get("xp", 0)) + 8 + int(randi() % 21)
-		var xp_required = max(100, int(rival.get("level", 1)) * 100)
-		while rival_xp >= xp_required:
+		var rival_level = int(clamp(int(rival.get("level", 1)), 1, 15))
+		var rival_xp = max(0, int(rival.get("xp", 0))) + 8 + int(randi() % 21)
+		var xp_required = max(100, rival_level * 100)
+		while rival_xp >= xp_required and rival_level < 15:
 			rival_xp -= xp_required
-			rival["level"] = int(rival.get("level", 1)) + 1
-			xp_required = max(100, int(rival.get("level", 1)) * 100)
+			rival_level += 1
+			xp_required = max(100, rival_level * 100)
+		if rival_level >= 15:
+			rival_xp = min(rival_xp, xp_required - 1)
+		rival["level"] = rival_level
 		rival["xp"] = rival_xp
+		var building_count = max(1, int(rival.get("buildings", 1)))
+		rival["district_count"] = max(int(rival.get("district_count", 1)), int(ceil(float(building_count) / 3.0)))
 		rivals[index] = rival
 
 	state["rival_cities"] = rivals
@@ -993,26 +1030,30 @@ func _advance_rival_cities(report):
 	for rival in rivals:
 		if int(rival.get("score", 0)) > int(leader.get("score", 0)):
 			leader = rival
-	if int(leader.get("score", 0)) > int(get_city_league().score):
-		report.append("🏙️ خبر رقبا: %s با مدیریت %s در این روز از شهر تو جلوتر افتاد؛ برای پس گرفتن رتبه تلاش کن." % [str(leader.get("name", "شهر رقیب")), str(leader.get("ai_personality", "هوشمند"))])
+	var player_geo = get_geographic_rank_for_district_count(state.get("districts", []).size())
+	var leader_geo = get_geographic_rank_for_district_count(int(leader.get("district_count", 1)))
+	var leader_row = {"geographic_tier":int(leader_geo.tier),"xp":int(leader.get("xp",0)),"score":int(leader.get("score",0))}
+	var player_row = {"geographic_tier":int(player_geo.tier),"xp":int(state.get("xp",0)),"score":int(get_city_league().score)}
+	if _sort_rival_standings(leader_row, player_row):
+		report.append("🏙️ خبر رقبا: %s با رتبه %s و مدیریت %s از شهر تو جلوتر افتاد؛ برای پس گرفتن رتبه تلاش کن." % [str(leader.get("name", "شهر رقیب")),str(leader_geo.name),str(leader.get("ai_personality", "هوشمند"))])
 
 func get_rival_standings():
 	_sync_rival_cities()
 	var standings = []
-	var player_league = get_city_league()
-	standings.append({"id":"player","name":"شهر من","score":int(player_league.score),"league_tier":int(player_league.tier),"xp":int(state.get("xp", 0)),"population":int(state.get("population", 0)),"level":int(state.get("level", 1)),"is_player":true})
+	var player_geo = get_geographic_rank_for_district_count(state.get("districts", []).size())
+	standings.append({"id":"player","name":str(state.get("city_name","شهر من")),"score":int(get_city_league().score),"geographic_tier":int(player_geo.tier),"geographic_rank":str(player_geo.name),"district_count":int(player_geo.district_count),"xp":int(state.get("xp",0)),"population":int(state.get("population",0)),"level":int(state.get("level",1)),"is_player":true})
 	for rival in state.get("rival_cities", _default_rival_cities()):
-		var rival_score = int(rival.get("score", 0))
-		var rival_league = _get_city_league_for_score(rival_score)
-		standings.append({"id":str(rival.get("id","rival")),"name":str(rival.get("name","شهر رقیب")),"score":rival_score,"league_tier":int(rival_league.tier),"xp":int(rival.get("xp",0)),"population":int(rival.get("population",0)),"level":int(rival.get("level",1)),"is_player":false})
+		var rival_score = int(rival.get("score",0))
+		var rival_geo = get_geographic_rank_for_district_count(int(rival.get("district_count",1)))
+		standings.append({"id":str(rival.get("id","rival")),"name":str(rival.get("name","شهر رقیب")),"score":rival_score,"geographic_tier":int(rival_geo.tier),"geographic_rank":str(rival_geo.name),"district_count":int(rival_geo.district_count),"xp":int(rival.get("xp",0)),"population":int(rival.get("population",0)),"level":int(rival.get("level",1)),"is_player":false})
 	standings.sort_custom(Callable(self, "_sort_rival_standings"))
 	for index in range(standings.size()):
 		standings[index]["rank"] = index + 1
 	return standings
 
 func _sort_rival_standings(a, b):
-	var tier_a = int(a.get("league_tier", 0))
-	var tier_b = int(b.get("league_tier", 0))
+	var tier_a = int(a.get("geographic_tier", 0))
+	var tier_b = int(b.get("geographic_tier", 0))
 	if tier_a != tier_b:
 		return tier_a > tier_b
 	var xp_a = int(a.get("xp", 0))
@@ -1020,22 +1061,6 @@ func _sort_rival_standings(a, b):
 	if xp_a != xp_b:
 		return xp_a > xp_b
 	return int(a.get("score", 0)) > int(b.get("score", 0))
-
-func _get_city_league_for_score(score):
-	var leagues = [
-		{"name":"روستای نوپا","min":0,"next":300},
-		{"name":"شهرک در حال رشد","min":300,"next":650},
-		{"name":"شهر پویا","min":650,"next":1100},
-		{"name":"کلان‌شهر","min":1100,"next":1700},
-		{"name":"کلان‌شهر پیشرفته","min":1700,"next":0}
-	]
-	var selected = leagues[0]
-	var tier = 0
-	for index in range(leagues.size()):
-		if int(score) >= int(leagues[index].min):
-			selected = leagues[index]
-			tier = index
-	return {"name":str(selected.name),"next":int(selected.next),"tier":tier}
 
 func _process_mystery_discovery(report):
 	if not state.get("mystery_active", {}).is_empty():
