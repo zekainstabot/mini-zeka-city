@@ -1337,34 +1337,9 @@ func _update_progress_hud():
 	level_status_bar.value = 100
 
 func _get_geographic_rank_name(district_count):
-	# Every three built districts advance the city's geographic rank.
-	# A new city starts at the first rank even before its first district is registered.
-	var ranks = [
-		"آبادی کوچک", "آبادی", "آبادی بزرگ",
-		"روستای کوچک", "روستا", "روستای بزرگ",
-		"ده کوچک", "ده", "ده بزرگ",
-		"دهستان کوچک", "دهستان", "دهستان بزرگ",
-		"بخش کوچک", "بخش", "بخش بزرگ",
-		"شهر کوچک", "شهر", "شهر بزرگ",
-		"شهرستان کوچک", "شهرستان", "شهرستان بزرگ",
-		"استان کوچک", "استان", "استان بزرگ",
-		"ایالت کوچک", "ایالت", "ایالت بزرگ",
-		"کشور کوچک", "کشور", "کشور بزرگ",
-		"قاره کوچک", "قاره", "قاره بزرگ",
-		"سیاره کوچک", "سیاره", "سیاره بزرگ",
-		"منظومه کوچک", "منظومه", "منظومه بزرگ",
-		"سامانه ستاره‌ای کوچک", "سامانه ستاره‌ای", "سامانه ستاره‌ای بزرگ",
-		"کهکشان کوچک", "کهکشان", "کهکشان بزرگ",
-		"گروه کهکشانی کوچک", "گروه کهکشانی", "گروه کهکشانی بزرگ",
-		"خوشه کهکشانی کوچک", "خوشه کهکشانی", "خوشه کهکشانی بزرگ",
-		"ابرخوشه کهکشانی کوچک", "ابرخوشه کهکشانی", "ابرخوشه کهکشانی بزرگ",
-		"شبکه کیهانی کوچک", "شبکه کیهانی", "شبکه کیهانی بزرگ",
-		"جهان قابل مشاهده کوچک", "جهان قابل مشاهده", "جهان قابل مشاهده بزرگ",
-		"جهان کوچک", "جهان", "جهان بزرگ"
-	]
-	var safe_count = max(1, int(district_count))
-	var rank_index = int(floor(float(safe_count - 1) / 3.0))
-	return str(ranks[min(rank_index, ranks.size() - 1)])
+	if game != null:
+		return str(game.get_geographic_rank_for_district_count(district_count).get("name", "آبادی کوچک"))
+	return "آبادی کوچک"
 
 func _load_ui_font():
 	# Godot 4 uses FontFile itself as the font resource; the old DynamicFont
@@ -2532,7 +2507,7 @@ func show_page(page):
 
 		"ranking":
 			_add_label("🏆 رتبه‌بندی شهرها", 24)
-			_add_label("جایگاه شهر تو در مقایسه با شهرهای رقیب. امتیاز توسعه با رشد جمعیت، سطح و ساخت‌وساز تغییر می‌کند.", 16)
+			_add_label("اول رده جغرافیایی شهر، بعد XP و در صورت برابری هر دو، امتیاز توسعه تعیین‌کننده جایگاه است.", 16)
 			var ranking_rows = game.get_rival_standings()
 			var player_rank = 0
 			for ranking_row in ranking_rows:
@@ -2543,7 +2518,7 @@ func show_page(page):
 			for ranking_row in ranking_rows:
 				var ranking_prefix = "👑 " if bool(ranking_row.get("is_player", false)) else "🏘️ "
 				var ranking_name = str(ranking_row.get("name", "شهر"))
-				var ranking_card_text = "%sرتبه %d ـ %s\nامتیاز توسعه: %d\nجمعیت: %d نفر  |  سطح: %d" % [ranking_prefix, int(ranking_row.get("rank", 0)), ranking_name, int(ranking_row.get("score", 0)), int(ranking_row.get("population", 0)), int(ranking_row.get("level", 1))]
+				var ranking_card_text = "%sرتبه %d ـ %s\nرده جغرافیایی: %s  |  XP: %d\nامتیاز توسعه: %d\nجمعیت: %d نفر  |  سطح: %d" % [ranking_prefix, int(ranking_row.get("rank", 0)), ranking_name, str(ranking_row.get("geographic_rank", "آبادی کوچک")), int(ranking_row.get("xp", 0)), int(ranking_row.get("score", 0)), int(ranking_row.get("population", 0)), int(ranking_row.get("level", 1))]
 				_add_label(ranking_card_text, 18)
 			_add_label("نکته: این رتبه‌بندی فعلاً بین شهرهای رقیب داخل همین ذخیره بازی محاسبه می‌شود و آنلاین یا جهانی نیست.", 14)
 			_add_button("🏙️ بازگشت به شهر", self, "show_page", ["home"])
@@ -2572,10 +2547,10 @@ func show_page(page):
 					_add_label("● هنوز در حال تکمیل این هدف هستی",15)
 
 			_add_label("🏙️ رتبه‌بندی شهرها",23)
-			_add_label("شهر تو با شهرهای رقیب مقایسه می‌شود. هر روز ممکن است امتیاز آن‌ها تغییر کند؛ با افزایش سطح، جمعیت و ساختمان‌ها رتبه‌ات را بهتر کن.",15)
+			_add_label("ابتدا رده جغرافیایی، سپس XP و در نهایت امتیاز توسعه رتبه شهرها را تعیین می‌کند.",15)
 			for rival_row in game.get_rival_standings():
 				var rival_prefix = "👑 " if bool(rival_row.get("is_player",false)) else "🏘️ "
-				_add_label("%sرتبه %d ـ %s\nامتیاز توسعه: %d | جمعیت: %d نفر | سطح: %d" % [rival_prefix,int(rival_row.get("rank",0)),str(rival_row.get("name","")),int(rival_row.get("score",0)),int(rival_row.get("population",0)),int(rival_row.get("level",1))],16)
+				_add_label("%sرتبه %d ـ %s\nرده جغرافیایی: %s | XP: %d\nامتیاز توسعه: %d | جمعیت: %d نفر | سطح: %d" % [rival_prefix,int(rival_row.get("rank",0)),str(rival_row.get("name","")),str(rival_row.get("geographic_rank","آبادی کوچک")),int(rival_row.get("xp",0)),int(rival_row.get("score",0)),int(rival_row.get("population",0)),int(rival_row.get("level",1))],16)
 			_add_label("🔎 رازها و کشفیات",23)
 			var mystery = game.get_mystery_status()
 			if bool(mystery.get("active",false)):
