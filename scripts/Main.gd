@@ -937,9 +937,12 @@ func _update_mission_reward_badge():
 func _create_menu_action(title, callback):
 	var button = Button.new()
 	button.text = PersianText.reshaper(title)
-	button.custom_minimum_size = Vector2(0, 68 if get_viewport_rect().size.x < 900 else 58)
-	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_font(button, 19 if get_viewport_rect().size.x < 900 else 17)
+	var phone_layout = get_viewport_rect().size.x < 900
+	# Keep menu actions compact and centered instead of stretching edge-to-edge.
+	var action_width = min(320.0 if phone_layout else 360.0, get_viewport_rect().size.x - (88.0 if phone_layout else 160.0))
+	button.custom_minimum_size = Vector2(max(220.0, action_width), 62 if phone_layout else 54)
+	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_apply_font(button, 19 if phone_layout else 17)
 	_style_button(button, false)
 	button.connect("pressed", Callable(self, callback))
 	if audio_manager != null:
