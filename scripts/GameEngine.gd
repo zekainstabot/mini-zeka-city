@@ -809,11 +809,11 @@ func get_geographic_rank_for_district_count(district_count):
 func get_city_league():
 	var score = int(state.get("level", 1)) * 100 + int(state.get("population", 0)) * 5 + state.get("buildings", []).size() * 12 + int(state.get("satisfaction", 0)) * 2 + int(state.get("reputation", 0)) * 2
 	var leagues = [
-		{"name":"روستای نوپا","min":0,"next":300},
-		{"name":"شهرک در حال رشد","min":300,"next":650},
-		{"name":"شهر پویا","min":650,"next":1100},
-		{"name":"کلان‌شهر","min":1100,"next":1700},
-		{"name":"کلان‌شهر پیشرفته","min":1700,"next":0}
+		{"name":"توسعه نوپا","min":0,"next":300},
+		{"name":"توسعه در حال رشد","min":300,"next":650},
+		{"name":"توسعه پویا","min":650,"next":1100},
+		{"name":"توسعه پیشرفته","min":1100,"next":1700},
+		{"name":"توسعه ممتاز","min":1700,"next":0}
 	]
 	var selected = leagues[0]
 	for league in leagues:
@@ -931,6 +931,10 @@ func _default_rival_cities():
 			"population": 16 + index * 3,
 			"level": 2 + (index % 3),
 			"buildings": 6 + index,
+			"district_count": max(1, int(ceil(float(6 + index) / 3.0))),
+			"xp": int(randi() % 100),
+			"ai_style_index": int(randi() % 4),
+			"ai_actions": 0,
 			"wealth": 5000 + index * 1250,
 			"satisfaction": 58 + (index % 5) * 5,
 			"score": 280 + index * 115
