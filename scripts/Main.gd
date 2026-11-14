@@ -653,7 +653,7 @@ func _build_ui():
 	# Help uses its own modal surface so the city navigation is fully covered.
 	help_overlay = ColorRect.new()
 	help_overlay.name = "GameHelpBackdrop"
-	help_overlay.color = Color(0.015, 0.035, 0.065, 0.88)
+	help_overlay.color = Color("#0b1727")
 	help_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	help_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	help_overlay.visible = false
