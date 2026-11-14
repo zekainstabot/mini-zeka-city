@@ -33,8 +33,8 @@ static func take_bank_loan(engine, amount, duration_days):
 	if not rates.has(term):
 		return {"ok":false,"message":"مدت وام باید ۷، ۱۴ یا ۳۰ روز باشد."}
 	var principal = int(amount)
-	if principal < 1000 or principal > BankingSystem.get_bank_loan_limit(engine):
-		return {"ok":false,"message":"مبلغ وام باید حداقل ۱۰۰۰ و حداکثر %d سکه باشد." % BankingSystem.get_bank_loan_limit(engine)}
+	if principal < 1000 or principal > get_bank_loan_limit(engine):
+		return {"ok":false,"message":"مبلغ وام باید حداقل ۱۰۰۰ و حداکثر %d سکه باشد." % get_bank_loan_limit(engine)}
 	var interest = int(ceil(float(principal * int(rates[term])) / 100.0))
 	var total_due = principal + interest
 	var accepted = engine._add_money(principal)
@@ -42,7 +42,7 @@ static func take_bank_loan(engine, amount, duration_days):
 		return {"ok":false,"message":"ظرفیت خزانه برای پرداخت کامل وام کافی نیست."}
 	var loan = {"id":state.get("bank_loans",[]).size()+1,"principal":principal,"interest":interest,"total_due":total_due,"remaining":total_due,"daily_installment":int(ceil(float(total_due)/float(term))),"duration":term,"days_left":term,"status":"active","missed_days":0}
 	state.bank_loans.append(loan)
-	BankingSystem._record_bank_transaction(engine, "loan",principal,"دریافت وام %d روزه با سود %d درصد" % [term,int(rates[term])])
+	_record_bank_transaction(engine, "loan",principal,"دریافت وام %d روزه با سود %d درصد" % [term,int(rates[term])])
 	engine.save_game()
 	return {"ok":true,"message":"وام %d سکه‌ای با سود %d سکه ثبت شد؛ بازپرداخت روزانه حدود %d سکه به مدت %d روز." % [principal,interest,loan.daily_installment,term]}
 
@@ -66,7 +66,7 @@ static func repay_bank_loan_manual(engine, loan_index):
 	if int(loan.get("remaining",0)) <= 0:
 		loan["status"] = "paid"
 	state.bank_loans[loan_index] = loan
-	BankingSystem._record_bank_transaction(engine, "repayment",payment,"پرداخت دستی قسط وام شماره %d" % int(loan.get("id",loan_index+1)))
+	_record_bank_transaction(engine, "repayment",payment,"پرداخت دستی قسط وام شماره %d" % int(loan.get("id",loan_index+1)))
 	engine.save_game()
 	return {"ok":true,"message":"قسط دستی به مبلغ %d سکه پرداخت شد؛ مانده وام: %d سکه." % [payment,int(loan.get("remaining",0))]}
 
@@ -84,13 +84,13 @@ static func repay_bank_loan_early(engine, loan_index):
 	loan["remaining"] = 0
 	loan["status"] = "paid"
 	state.bank_loans[loan_index] = loan
-	BankingSystem._record_bank_transaction(engine, "repayment",due,"تسویه زودهنگام وام شماره %d" % int(loan.get("id",loan_index+1)))
+	_record_bank_transaction(engine, "repayment",due,"تسویه زودهنگام وام شماره %d" % int(loan.get("id",loan_index+1)))
 	engine.save_game()
 	return {"ok":true,"message":"وام با پرداخت %d سکه تسویه شد." % due}
 
 static func create_bank_deposit(engine, amount, duration_days):
 	var state = engine.state
-	if BankingSystem.game_has_no_municipal_bank(engine):
+	if game_has_no_municipal_bank(engine):
 		return {"ok":false,"message":"برای سپرده‌گذاری ابتدا بانک شهری بساز."}
 	var term = int(duration_days)
 	var rates = {7:3,14:7,30:15}
@@ -104,7 +104,7 @@ static func create_bank_deposit(engine, amount, duration_days):
 	var interest = int(floor(float(principal * int(rates[term])) / 100.0))
 	var deposit = {"id":state.get("bank_deposits",[]).size()+1,"principal":principal,"interest":interest,"duration":term,"maturity_day":int(state.day)+term,"status":"active"}
 	state.bank_deposits.append(deposit)
-	BankingSystem._record_bank_transaction(engine, "deposit",principal,"افتتاح سپرده %d روزه با سود %d درصد" % [term,int(rates[term])])
+	_record_bank_transaction(engine, "deposit",principal,"افتتاح سپرده %d روزه با سود %d درصد" % [term,int(rates[term])])
 	engine.save_game()
 	return {"ok":true,"message":"سپرده %d سکه‌ای ثبت شد؛ سود سررسید %d سکه است." % [principal,interest]}
 
@@ -123,7 +123,7 @@ static func withdraw_bank_deposit(engine, deposit_index):
 	deposit["status"] = "withdrawn"
 	deposit["withdrawn_day"] = int(state.day)
 	state.bank_deposits[deposit_index] = deposit
-	BankingSystem._record_bank_transaction(engine, "withdrawal",payout,"برداشت سپرده شماره %d%s" % [int(deposit.get("id",deposit_index+1))," با سود" if matured else " پیش از سررسید؛ بدون سود"])
+	_record_bank_transaction(engine, "withdrawal",payout,"برداشت سپرده شماره %d%s" % [int(deposit.get("id",deposit_index+1))," با سود" if matured else " پیش از سررسید؛ بدون سود"])
 	engine.save_game()
 	return {"ok":true,"message":"%d سکه به خزانه برگشت%s." % [payout,"؛ سود هم دریافت شد" if matured else "؛ چون زودتر برداشت کردی سودی تعلق نگرفت"]}
 
@@ -145,7 +145,7 @@ static func _process_bank_day(engine, report):
 			loan["days_left"] = max(0,int(loan.get("days_left",0))-1)
 			loan["missed_days"] = 0
 			total_paid += payment
-			BankingSystem._record_bank_transaction(engine, "repayment",payment,"قسط روزانه وام شماره %d" % int(loan.get("id",index+1)))
+			_record_bank_transaction(engine, "repayment",payment,"قسط روزانه وام شماره %d" % int(loan.get("id",index+1)))
 			if int(loan.remaining) <= 0:
 				loan["status"] = "paid"
 				report.append("وام شماره %d به‌طور کامل تسویه شد." % int(loan.get("id",index+1)))
