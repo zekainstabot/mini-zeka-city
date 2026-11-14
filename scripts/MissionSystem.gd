@@ -24,7 +24,7 @@ static func _ensure_daily_missions(engine):
 
 static func get_daily_missions(engine):
 	var state = engine.state
-	var daily = _ensure_daily_missions()
+	var daily = engine._ensure_daily_missions()
 	var building_progress = max(0, state.get("buildings", []).size() - int(daily.get("baseline_buildings", 0)))
 	var employed_progress = max(0, engine.get_employed_count() - int(daily.get("baseline_employed", 0)))
 	var day_progress = max(0, int(state.get("day", 1)) - int(daily.get("baseline_city_day", 1)))
