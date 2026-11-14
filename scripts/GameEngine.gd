@@ -898,25 +898,85 @@ func _default_rival_cities():
 
 func _advance_rival_cities(report):
 	var rivals = state.get("rival_cities", _default_rival_cities())
+	var styles = ["housing", "economy", "services", "innovation"]
+	var style_names = ["جمعیت‌محور", "اقتصادمحور", "خدمات‌محور", "نوآور"]
 	for index in range(rivals.size()):
-		var rival = rivals[index]
-		var growth = 3 + int(rival.get("level", 1)) + int(randi() % 4)
-		rival["score"] = int(rival.get("score", 0)) + growth
-		if int(randi() % 100) < 28:
+		var rival = rivals[index].duplicate(true)
+		var rival_id = str(rival.get("id", "rival_%d" % index))
+		var style_index = int(rival.get("ai_style_index", abs(rival_id.hash()) % styles.size()))
+		style_index = int(posmod(style_index, styles.size()))
+		rival["ai_style_index"] = style_index
+		rival["ai_style"] = styles[style_index]
+		rival["ai_personality"] = style_names[style_index]
+		rival["ai_actions"] = int(rival.get("ai_actions", 0))
+
+		var wealth = int(rival.get("wealth", 0))
+		var level = int(rival.get("level", 1))
+		var population = int(rival.get("population", 0))
+		var action = "maintain"
+		var action_cost = 0
+		var action_score = 0
+
+		# Every mayor makes a budget-aware decision each simulated city day.
+		if int(randi() % 100) < 72:
+			match styles[style_index]:
+				"housing":
+					if wealth >= 350 and population < 500 and int(randi() % 100) < 78:
+						action = "housing"
+						action_cost = 300 + level * 35
+						rival["population"] = population + (1 if int(randi() % 100) < 75 else 2)
+						rival["buildings"] = int(rival.get("buildings", 0)) + 1
+						rival["satisfaction"] = int(clamp(int(rival.get("satisfaction", 50)) + 1, 25, 100))
+						action_score = 9 + level * 2
+				"economy":
+					if wealth >= 250 and int(randi() % 100) < 82:
+						action = "economy"
+						action_cost = 220 + level * 45
+						rival["wealth"] = wealth + 650 + int(randi() % 450)
+						rival["buildings"] = int(rival.get("buildings", 0)) + (1 if int(randi() % 100) < 45 else 0)
+						action_score = 11 + int(randi() % 7)
+				"services":
+					if wealth >= 280 and int(randi() % 100) < 76:
+						action = "services"
+						action_cost = 260 + level * 40
+						rival["satisfaction"] = int(clamp(int(rival.get("satisfaction", 50)) + 2 + int(randi() % 3), 25, 100))
+						rival["population"] = population + (1 if int(randi() % 100) < 35 else 0)
+						action_score = 8 + int(randi() % 6)
+				"innovation":
+					if wealth >= 500 and int(randi() % 100) < 68:
+						action = "innovation"
+						action_cost = 420 + level * 65
+						if int(randi() % 100) < 24 and level < 15:
+							rival["level"] = level + 1
+						action_score = 13 + int(randi() % 9)
+
+		if action_cost > 0:
+			rival["wealth"] = max(0, int(rival.get("wealth", wealth)) - action_cost)
+			rival["ai_actions"] = int(rival.get("ai_actions", 0)) + 1
+		else:
+			# A city that saves money can still grow slowly through routine activity.
+			rival["wealth"] = max(0, wealth + int(randi() % 321) - 170)
+
+		var routine_growth = 2 + int(rival.get("level", 1)) + int(randi() % 4)
+		rival["score"] = int(rival.get("score", 0)) + routine_growth + action_score
+		if int(randi() % 100) < 18 and int(rival.get("population", 0)) < 500:
 			rival["population"] = int(rival.get("population", 0)) + 1
-			rival["buildings"] = int(rival.get("buildings", 0)) + (1 if int(randi() % 100) < 35 else 0)
-		if int(randi() % 100) < 18:
-			rival["level"] = min(10, int(rival.get("level", 1)) + 1)
-		rival["wealth"] = max(0, int(rival.get("wealth", 0)) + int(randi() % 500) - 120)
-		rival["satisfaction"] = int(clamp(int(rival.get("satisfaction", 50)) + int(randi() % 5) - 2, 35, 95))
+		if int(randi() % 100) < 12 and int(rival.get("buildings", 0)) < 250:
+			rival["buildings"] = int(rival.get("buildings", 0)) + 1
+		if int(randi() % 100) < 10 and int(rival.get("level", 1)) < 15:
+			rival["level"] = int(rival.get("level", 1)) + 1
+		rival["satisfaction"] = int(clamp(int(rival.get("satisfaction", 50)) + int(randi() % 5) - 2, 25, 100))
 		rivals[index] = rival
+
 	state["rival_cities"] = rivals
+	if rivals.is_empty():
+		return
 	var leader = rivals[0]
 	for rival in rivals:
 		if int(rival.get("score", 0)) > int(leader.get("score", 0)):
 			leader = rival
 	if int(leader.get("score", 0)) > int(get_city_league().score):
-		report.append("🏙️ خبر رقبا: %s در این روز از شهر تو جلوتر افتاد؛ برای پس گرفتن رتبه تلاش کن." % str(leader.get("name", "شهر رقیب")))
+		report.append("🏙️ خبر رقبا: %s با مدیریت %s در این روز از شهر تو جلوتر افتاد؛ برای پس گرفتن رتبه تلاش کن." % [str(leader.get("name", "شهر رقیب")), str(leader.get("ai_personality", "هوشمند"))])
 
 func get_rival_standings():
 	_sync_rival_cities()
