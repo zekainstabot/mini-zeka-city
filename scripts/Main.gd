@@ -1597,6 +1597,12 @@ func show_page(page):
 			_style_button(save_city_button, false)
 		"buildings":
 			_add_label("ساخت‌وساز شهر", 22)
+			# Keep the first tutorial mission's action directly on the page
+			# that its guidance names, rather than sending new players elsewhere.
+			_add_label("🗺️ توسعه محدوده شهر", 19)
+			_add_label("زمین شهر: %d قطعه | اشغال‌شده: %d | آزاد: %d" % [int(s.get("land_owned",10)),game.get_land_used(),game.get_land_free()], 16)
+			var tutorial_land_button = _add_button("خرید ۱ قطعه زمین | قیمت: %d سکه" % game.get_land_unit_price(), self, "buy_land")
+			tutorial_land_button.disabled = game.get_available_money() < game.get_land_unit_price()
 			var building_groups = {
 				"مسکونی":["خانه‌ها"],
 				"انبارها":["انبارها"],
@@ -2021,11 +2027,7 @@ func show_page(page):
 					_add_button("قرارداد ۷ روزه: ۲ واحد چوب از "+import_city.name,self,"make_import_contract",[import_city_id,"wood",2,7])
 		"transport":
 			_add_label("🚧 زیرساخت و توسعه شهر",22)
-			_add_label("🗺️ زمین و گسترش محدوده شهر",19)
-			_add_label("زمین شهر: %d قطعه | اشغال‌شده: %d | آزاد: %d" % [int(s.get("land_owned",10)),game.get_land_used(),game.get_land_free()],17)
-			_add_label("برای گسترش شهر زمین بخر؛ هر ساختمان چند قطعه از زمین را اشغال می‌کند.",15)
-			var land_button = _add_button("خرید ۱ قطعه زمین | قیمت: %d سکه" % game.get_land_unit_price(), self, "buy_land")
-			land_button.disabled = game.get_available_money() < game.get_land_unit_price()
+			_add_label("برای گسترش شهر و افزایش ظرفیت ساخت‌وساز، از بخش ساختمان‌ها زمین بخر.",15)
 			_add_label("🛣️ جاده‌ها و مسیرهای حمل‌ونقل",19)
 			_add_label("جاده‌های اصلی شهر و مسیرهای بین‌شهری",19)
 			_add_label("سطح جاده‌های بین‌شهری: %d از ۳" % int(s.get("road_level",1)),17)
@@ -3199,7 +3201,7 @@ func go_to_mission_target(mission_id):
 		"daily_day":
 			target_page = "home"
 		"buy_land_tutorial":
-			target_page = "transport"
+			target_page = "buildings"
 		"build_house_tutorial":
 			target_page = "buildings"
 			selected_building_category = "خانه‌ها"
