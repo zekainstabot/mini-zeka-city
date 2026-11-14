@@ -6,7 +6,7 @@ static func _sync_population(engine):
 	var state = engine.state
 	var capacity = 0
 	for building in state.buildings:
-		var definition = BUILDINGS.get(building.id, {})
+		var definition = engine.BUILDINGS.get(building.id, {})
 		capacity += int(definition.get("capacity", 0))
 	state.population = min(max(0, int(state.population)), capacity)
 	while state.citizens.size() > state.population:
@@ -23,7 +23,7 @@ static func _next_citizen_request_id(engine):
 
 static func _create_house_citizen_requests(engine, building_id):
 	var state = engine.state
-	var definition = BUILDINGS.get(str(building_id), {})
+	var definition = engine.BUILDINGS.get(str(building_id), {})
 	var new_capacity = int(definition.get("capacity", 0))
 	if new_capacity <= 0:
 		return 0
@@ -186,7 +186,7 @@ static func get_housing_capacity(engine):
 	var state = engine.state
 	var total = 0
 	for building in state.buildings:
-		total += int(BUILDINGS.get(building.id, {}).get("capacity", 0))
+		total += int(engine.BUILDINGS.get(building.id, {}).get("capacity", 0))
 	return total
 
 static func _district_letter(engine, index):
@@ -208,7 +208,7 @@ static func _find_district_index(engine, district_id):
 
 static func _is_house_building(engine, building_id):
 	var state = engine.state
-	return int(BUILDINGS.get(str(building_id), {}).get("capacity", 0)) > 0
+	return int(engine.BUILDINGS.get(str(building_id), {}).get("capacity", 0)) > 0
 
 static func _district_can_accept(engine, district, building_id):
 	var state = engine.state
@@ -286,15 +286,15 @@ static func get_districts_overview(engine):
 		var names = []
 		for building in state.get("buildings", []):
 			if str(building.get("district_id", "")) == str(district.get("id", "")):
-				names.append(str(BUILDINGS.get(str(building.get("id", "")), {}).get("name", "ساختمان")))
+				names.append(str(engine.BUILDINGS.get(str(building.get("id", "")), {}).get("name", "ساختمان")))
 		for construction in state.get("constructions", []):
 			if str(construction.get("district_id", "")) == str(district.get("id", "")):
-				names.append(str(BUILDINGS.get(str(construction.get("id", "")), {}).get("name", "پروژه در حال ساخت"))+" (در حال ساخت)")
+				names.append(str(engine.BUILDINGS.get(str(construction.get("id", "")), {}).get("name", "پروژه در حال ساخت"))+" (در حال ساخت)")
 		for business in state.get("private_businesses", []):
 			if bool(business.get("rented_municipal", false)):
 				continue
 			if str(business.get("district_id", "")) == str(district.get("id", "")):
-				names.append(str(business.get("name", BUILDINGS.get(str(business.get("building_id", "")), {}).get("name", "کسب‌وکار"))))
+				names.append(str(business.get("name", engine.BUILDINGS.get(str(business.get("building_id", "")), {}).get("name", "کسب‌وکار"))))
 		var row = district.duplicate(true)
 		row["building_names"] = names
 		row["building_count"] = names.size()
@@ -302,10 +302,10 @@ static func get_districts_overview(engine):
 	var industrial_names = []
 	for building in state.get("buildings", []):
 		if str(building.get("zone", "")) == "industrial":
-			industrial_names.append(str(BUILDINGS.get(str(building.get("id", "")), {}).get("name", "ساختمان")))
+			industrial_names.append(str(engine.BUILDINGS.get(str(building.get("id", "")), {}).get("name", "ساختمان")))
 	for construction in state.get("constructions", []):
 		if str(construction.get("zone", "")) == "industrial":
-			industrial_names.append(str(BUILDINGS.get(str(construction.get("id", "")), {}).get("name", "ساختمان"))+" (در حال ساخت)")
+			industrial_names.append(str(engine.BUILDINGS.get(str(construction.get("id", "")), {}).get("name", "ساختمان"))+" (در حال ساخت)")
 	for business in state.get("private_businesses", []):
 		if bool(business.get("rented_municipal", false)):
 			continue
