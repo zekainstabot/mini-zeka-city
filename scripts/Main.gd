@@ -57,6 +57,11 @@ var mission_target_building_id = ""
 var mission_target_building_button = null
 var last_activity_ticks = 0
 var offline_summary_popup = null
+var main_layout = null
+var main_navigation_grid = null
+var navigation_buttons = []
+var menu_card = null
+var last_layout_viewport_size = Vector2.ZERO
 
 func _input(event):
 	if game != null:
@@ -478,8 +483,51 @@ func _ready():
 	audio_manager.set_night_mode(last_audio_night_mode)
 	set_process(true)
 	_build_ui()
+	last_layout_viewport_size = get_viewport_rect().size
+	get_viewport().size_changed.connect(_on_viewport_size_changed)
 	show_page("home")
 	_show_offline_summary()
+
+
+func _on_viewport_size_changed():
+	call_deferred("_apply_responsive_layout")
+
+func _apply_responsive_layout():
+	if main_layout == null or not is_instance_valid(main_layout):
+		return
+	var viewport_size = get_viewport_rect().size
+	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
+		return
+	if viewport_size.is_equal_approx(last_layout_viewport_size):
+		return
+	var previous_scroll = 0
+	if game_scroll_container != null and is_instance_valid(game_scroll_container):
+		previous_scroll = game_scroll_container.scroll_vertical
+	last_layout_viewport_size = viewport_size
+	var compact = viewport_size.x < 900.0
+	var narrow = viewport_size.x < 380.0
+	main_layout.offset_left = 12 if narrow else (18 if compact else 24)
+	main_layout.offset_right = -12 if narrow else (-18 if compact else -24)
+	main_layout.offset_top = 8 if viewport_size.y < 500.0 else (12 if compact else 22)
+	main_layout.offset_bottom = -8 if viewport_size.y < 500.0 else (12 if compact else -22)
+	main_layout.add_theme_constant_override("separation", 8 if viewport_size.y < 500.0 else (12 if compact else 12))
+	if main_navigation_grid != null and is_instance_valid(main_navigation_grid):
+		# Keep three columns on wider landscape phones so navigation does not
+		# consume most of the short screen; use two on portrait phones.
+		main_navigation_grid.columns = 3 if viewport_size.x >= 650.0 and viewport_size.x > viewport_size.y else (1 if narrow else 2)
+	for button in navigation_buttons:
+		if button == null or not is_instance_valid(button):
+			continue
+		button.custom_minimum_size = Vector2(0, 48 if viewport_size.y < 500.0 else (58 if compact else 58))
+		_apply_font(button, 15 if narrow else (16 if compact else 18))
+	if menu_card != null and is_instance_valid(menu_card):
+		menu_card.custom_minimum_size = Vector2(max(220.0, min(440.0, viewport_size.x - (24.0 if narrow else 40.0))), 0)
+	if header_label != null and is_instance_valid(header_label):
+		_apply_font(header_label, 22 if compact else 26)
+	if game != null and content != null and is_instance_valid(content):
+		show_page(current_page)
+		if game_scroll_container != null and is_instance_valid(game_scroll_container):
+			game_scroll_container.scroll_vertical = previous_scroll
 
 func _get_ambient_background_target():
 	# Muted colors keep the time-of-day atmosphere gentle and readable.
@@ -519,6 +567,7 @@ func _build_ui():
 	add_child(ambient_background)
 	_update_ambient_background(0.0, true)
 	var root = VBoxContainer.new()
+	main_layout = root
 	root.name = "MainLayout"
 	root.anchor_right = 1
 	root.anchor_bottom = 1
@@ -597,7 +646,7 @@ func _build_ui():
 	menu_center.offset_top = 24
 	menu_center.offset_bottom = -24
 	menu_overlay.add_child(menu_center)
-	var menu_card = PanelContainer.new()
+	menu_card = PanelContainer.new()
 	menu_card.custom_minimum_size = Vector2(min(440.0, screen_width - 56.0), 0)
 	menu_card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	var menu_card_style = StyleBoxFlat.new()
@@ -698,12 +747,14 @@ func _build_ui():
 	progress_panel.add_child(xp_progress_bar)
 	_update_progress_hud()
 	var nav = GridContainer.new()
+	main_navigation_grid = nav
 	nav.name = "MainNavigationGrid"
 	nav.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	nav.columns = 2 if compact_layout else 3
 	nav.add_theme_constant_override("h_separation", 8)
 	nav.add_theme_constant_override("v_separation", 8)
 	root.add_child(nav)
+	navigation_buttons.clear()
 	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بانک و امور مالی","p":"bank"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار و تجارت","p":"commerce"},{"t":"زیرساخت و توسعه شهر","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش","p":"report"},{"t":"پیشرفت و مأموریت‌ها","p":"missions"}]:
 		var nav_item = VBoxContainer.new()
 		nav_item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -738,6 +789,7 @@ func _build_ui():
 		_apply_font(b, 17 if compact_layout else 18)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_style_button(b, true)
+		navigation_buttons.append(b)
 		b.connect("pressed", Callable(self, "show_page").bind(item.p))
 		nav_item.add_child(b)
 		nav.add_child(nav_item)
