@@ -314,10 +314,10 @@ static func end_day(engine, is_offline=false):
 	engine._process_trade_arrivals(report)
 	engine._dispatch_import_contracts(report)
 	# Neighboring cities replenish their export inventories gradually.
-	for city_id in TRADE_CITIES.keys():
+	for city_id in engine.TRADE_CITIES.keys():
 		for resource_id in engine.RESOURCES.keys():
-			var city_stock = state.city_export_stock.get(city_id, TRADE_CITIES[city_id].supply)
-			city_stock[resource_id] = min(int(TRADE_CITIES[city_id].supply.get(resource_id,0)), int(city_stock.get(resource_id,0)) + max(1,int(TRADE_CITIES[city_id].supply.get(resource_id,0) / 5)))
+			var city_stock = state.city_export_stock.get(city_id, engine.TRADE_CITIES[city_id].supply)
+			city_stock[resource_id] = min(int(engine.TRADE_CITIES[city_id].supply.get(resource_id,0)), int(city_stock.get(resource_id,0)) + max(1,int(engine.TRADE_CITIES[city_id].supply.get(resource_id,0) / 5)))
 			state.city_export_stock[city_id] = city_stock
 	var xp_earned = engine.get_daily_xp_gain()
 	if str(weekly_event.get("id", "")) == "development_week":
