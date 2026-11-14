@@ -311,8 +311,14 @@ func _sync_rival_cities():
 				"buildings": 6 + index,
 				"wealth": 5000 + index * 1250,
 				"satisfaction": 58 + (index % 5) * 5,
-				"score": 280 + index * 115
+				"score": 280 + index * 115,
+				"ai_style_index": int(randi() % 4),
+				"ai_actions": 0
 			}
+		elif not rival_data.has("ai_style_index"):
+			# Give older saves their own persistent AI profile exactly once.
+			rival_data["ai_style_index"] = int(randi() % 4)
+			rival_data["ai_actions"] = int(rival_data.get("ai_actions", 0))
 		rival_data["id"] = rival_id + "_rival"
 		rival_data["name"] = rival_name
 		rivals.append(rival_data)
@@ -902,8 +908,8 @@ func _advance_rival_cities(report):
 	var style_names = ["جمعیت‌محور", "اقتصادمحور", "خدمات‌محور", "نوآور"]
 	for index in range(rivals.size()):
 		var rival = rivals[index].duplicate(true)
-		var rival_id = str(rival.get("id", "rival_%d" % index))
-		var style_index = int(rival.get("ai_style_index", abs(rival_id.hash()) % styles.size()))
+		# AI identity belongs to this saved city, never to the rival's public name or ID.
+		var style_index = int(rival.get("ai_style_index", int(randi() % styles.size())))
 		style_index = int(posmod(style_index, styles.size()))
 		rival["ai_style_index"] = style_index
 		rival["ai_style"] = styles[style_index]
