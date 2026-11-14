@@ -232,7 +232,7 @@ func _init():
 	# The rival news leader must follow the same geographic/XP/score priority as the ranking.
 	var leader_priority_game = EngineScript.new()
 	leader_priority_game.new_game()
-	leader_priority_game.state["districts"] = [leader_priority_game.state.districts[0].duplicate(true)]
+	leader_priority_game.state["districts"] = [{"id":"A1"}]
 	leader_priority_game.state["rival_cities"] = [
 		{"id":"high_score_low_rank","name":"رقیب با امتیاز زیاد","district_count":4,"buildings":12,"level":1,"xp":99,"score":99999,"wealth":0,"ai_style_index":0},
 		{"id":"high_rank_low_score","name":"رقیب با رتبه بالاتر","district_count":10,"buildings":30,"level":1,"xp":1,"score":1,"wealth":0,"ai_style_index":0}
