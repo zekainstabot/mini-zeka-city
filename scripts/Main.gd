@@ -8,6 +8,9 @@ const HelpPageBuilder = preload("res://scripts/HelpPageBuilder.gd")
 const AudioSettingsPage = preload("res://scripts/AudioSettingsPage.gd")
 const CitizensPage = preload("res://scripts/CitizensPage.gd")
 const CityReportPage = preload("res://scripts/CityReportPage.gd")
+const BankPage = preload("res://scripts/BankPage.gd")
+const TransportPage = preload("res://scripts/TransportPage.gd")
+const ImportsPage = preload("res://scripts/ImportsPage.gd")
 var game = null
 var audio_manager = null
 var last_audio_night_mode = false
@@ -1884,54 +1887,7 @@ func show_page(page):
 		"citizens":
 			CitizensPage.build(self, s)
 		"bank":
-			_add_label("🏦 بانک و امور مالی شهر",22)
-			_add_label("بانک مرکزی: %s | بانک شهری: %d" % ["فعال" if game.has_central_bank() else "ساخته نشده",game.get_building_count("municipal_bank")],17)
-			_add_label("وام فقط با بانک مرکزی و سپرده‌گذاری با بانک شهری فعال می‌شود.",15)
-			_add_label("موجودی خزانه: %d سکه | ظرفیت آزاد: %d سکه" % [int(s.money),game.get_available_money()],16)
-			_add_label("حداکثر وام قابل دریافت: %d سکه" % game.get_bank_loan_limit(),16)
-			var player_active_loans = 0
-			for player_loan in s.get("bank_loans", []):
-				if str(player_loan.get("status", "active")) == "active":
-					player_active_loans += 1
-			_add_label("وام‌های فعال شهرداری: %d از ۲" % player_active_loans,16)
-			_add_label("شهروندان شاغل و کم‌پول نیز در صورت فعال‌بودن بانک مرکزی، خودکار وام می‌گیرند؛ سقف هر شهروند ۲ وام فعال است و قسط از کیف پول خودش کم می‌شود.",15)
-			var citizen_active_loans = 0
-			for bank_citizen in s.get("citizens", []):
-				for citizen_loan in bank_citizen.get("bank_loans", []):
-					if str(citizen_loan.get("status", "active")) == "active":
-						citizen_active_loans += 1
-			_add_label("وام‌های فعال شهروندان: %d" % citizen_active_loans,16)
-			_add_label("💳 دریافت وام",19)
-			for loan_option in [{"amount":1000,"days":7},{"amount":3000,"days":14},{"amount":5000,"days":30}]:
-				var loan_button = _add_button("درخواست وام %d سکه‌ای — %d روزه" % [int(loan_option.amount),int(loan_option.days)],self,"request_bank_loan",[int(loan_option.amount),int(loan_option.days)])
-				loan_button.disabled = not game.has_central_bank() or game.get_bank_loan_limit() < int(loan_option.amount) or player_active_loans >= 2
-			for loan_index in range(s.get("bank_loans",[]).size()):
-				var loan = s.bank_loans[loan_index]
-				_add_label("وام #%d | اصل: %d | سود: %d | مانده: %d | وضعیت: %s" % [int(loan.get("id",loan_index+1)),int(loan.get("principal",0)),int(loan.get("interest",0)),int(loan.get("remaining",0)),"فعال" if str(loan.get("status","")) == "active" else "تسویه‌شده"],15)
-				if str(loan.get("status","")) == "active":
-					var manual_button = _add_button("پرداخت دستی قسط وام #%d — تا %d سکه" % [int(loan.get("id",loan_index+1)),min(int(loan.get("remaining",0)),int(loan.get("daily_installment",0)))],self,"repay_bank_loan_manual",[loan_index])
-					manual_button.disabled = int(loan.get("last_manual_payment_day",0)) == int(s.get("day",1)) or game.get_available_money() <= 0
-					var full_button = _add_button("تسویه کامل وام #%d — %d سکه" % [int(loan.get("id",loan_index+1)),int(loan.get("remaining",0))],self,"repay_bank_loan",[loan_index])
-					full_button.disabled = game.get_available_money() < int(loan.get("remaining",0))
-			_add_label("🏧 سپرده‌گذاری",19)
-			_add_label("سود کل سپرده: ۷ روز ۳٪ | ۱۴ روز ۷٪ | ۳۰ روز ۱۵٪؛ برداشت پیش از سررسید بدون سود است.",14)
-			for deposit_option in [{"amount":500,"days":7},{"amount":1000,"days":14},{"amount":2500,"days":30}]:
-				var deposit_button = _add_button("سپرده %d سکه‌ای — %d روزه" % [int(deposit_option.amount),int(deposit_option.days)],self,"open_bank_deposit",[int(deposit_option.amount),int(deposit_option.days)])
-				deposit_button.disabled = game.get_building_count("municipal_bank") <= 0 or game.get_available_money() < int(deposit_option.amount)
-			for deposit_index in range(s.get("bank_deposits",[]).size()):
-				var deposit = s.bank_deposits[deposit_index]
-				var deposit_status = str(deposit.get("status","active"))
-				if deposit_status == "withdrawn":
-					continue
-				_add_label("سپرده #%d | اصل: %d | سود: %d | سررسید: روز %d | %s" % [int(deposit.get("id",deposit_index+1)),int(deposit.get("principal",0)),int(deposit.get("interest",0)),int(deposit.get("maturity_day",0)),"آماده برداشت" if deposit_status == "matured" or int(s.day) >= int(deposit.get("maturity_day",0)) else "در حال سپرده"],15)
-				_add_button("برداشت سپرده #%d" % int(deposit.get("id",deposit_index+1)),self,"withdraw_bank_savings",[deposit_index])
-			_add_label("📜 گردش حساب و سوابق مالی",19)
-			if s.get("bank_transactions",[]).is_empty():
-				_add_label("هنوز تراکنش بانکی ثبت نشده است.",15)
-			else:
-				for transaction_index in range(s.bank_transactions.size()-1,-1,-1):
-					var transaction = s.bank_transactions[transaction_index]
-					_add_label("روز %d | %s | %d سکه | %s" % [int(transaction.get("day",0)),str(transaction.get("kind","")),int(transaction.get("amount",0)),str(transaction.get("description",""))],14)
+			BankPage.build(self, s)
 		"municipality":
 			var civic = game.get_civic_overview()
 			_add_label("🏛️ شهرداری و مدیریت اقتصاد شهر", 22)
@@ -2173,50 +2129,9 @@ func show_page(page):
 					var price = game.get_import_price(city_id,resource_id)
 					if stock <= 0:
 						continue
-					_add_label("%s | موجودی: %d | قیمت: %d سکه/واحد" % [game.get_resource_definitions()[resource_id].name,stock,price],15)
-					var import_button = _add_button("سفارش ۵ واحد "+game.get_resource_definitions()[resource_id].name+" از "+city.name,self,"import_from_city",[city_id,resource_id,5])
-					import_button.disabled = game.get_free_storage() < 5 or game.get_transport_capacity_remaining() < 5 or game.get_available_money() < (5 * price + int(ceil(float(5 * price) * 0.10)))
-			_add_label(" محموله‌های در راه:",18)
-			if s.trade_shipments.is_empty():
-				_add_label("محموله‌ای در راه نیست.")
-			for shipment in s.trade_shipments:
-				var shipment_city = game.get_import_cities().get(str(shipment.get("city_id","")),{"name":"نامشخص"})
-				var shipment_resource = game.get_resource_definitions().get(str(shipment.get("resource_id","")),{"name":"کالای نامشخص"})
-				_add_label("#%d | %s | %d واحد %s | تحویل روز %d" % [int(shipment.get("id",0)),shipment_city.name,int(shipment.get("amount",0)),shipment_resource.name,int(shipment.get("arrival_day",0))],15)
-			_add_label("آخرین سفارش: "+str(s.get("last_import_report","")),15)
-			_add_label(" قراردادهای واردات:",18)
-			if s.import_contracts.is_empty():
-				_add_label("قرارداد فعالی ثبت نشده است.")
-			for contract_index in range(s.import_contracts.size()):
-				var contract = s.import_contracts[contract_index]
-				var contract_city = game.get_import_cities().get(str(contract.get("city_id","")),{"name":"نامشخص"})
-				var contract_resource = game.get_resource_definitions().get(str(contract.get("resource_id","")),{"name":"نامشخص"})
-				var active_label = "فعال" if bool(contract.get("active",false)) else "پایان‌یافته/لغوشده"
-				_add_label("%s | %s | روزانه %d واحد | %d روز باقی‌مانده | %s" % [contract_city.name,contract_resource.name,int(contract.get("daily_amount",0)),int(contract.get("days_left",0)),active_label],15)
-				if bool(contract.get("active",false)):
-					_add_button("لغو قرارداد "+contract_resource.name,self,"cancel_import",[contract_index])
-			for city_id in game.get_import_cities().keys():
-				var city = game.get_import_cities()[city_id]
-				_add_button("قرارداد ۷ روزه: ۲ واحد چوب از "+city.name,self,"make_import_contract",[city_id,"wood",2,7])
-		"storage":
-			_add_label("مدیریت و تنظیم خودکار انبار", 22)
-			var production_toggle = _add_button(("▼ " if storage_production_expanded else "▶ ") + "تولید روزانه شهر", self, "toggle_storage_production")
-			_style_button(production_toggle, false)
-			if storage_production_expanded:
-				_add_label("فقط کالاهایی که ساختمان‌های تولیدی شهر می‌سازند؛ مقدار بر اساس کارگران و مواد اولیه فعلی محاسبه می‌شود.", 14)
-				var production_totals = _get_daily_production_totals()
-				if production_totals.is_empty():
-					_add_label("در حال حاضر تولید فعالی نداری. برای شروع، یک ساختمان تولیدی بساز و نیروی کار آن را تأمین کن.", 16)
-				else:
-					for resource_id in production_totals.keys():
-						_add_label("%s : %d در روز" % [str(game.get_resource_definitions()[resource_id].name), int(production_totals[resource_id])], 18)
-			_add_label("ظرفیت: %d | مصرف‌شده: %d | فضای خالی: %d" % [game.get_storage_capacity(),game.get_storage_used(),game.get_free_storage()])
-			_add_label("برای هر ماده حداقل و حداکثر موجودی تعیین کن. تنظیمات در پایان هر روز اجرا می‌شوند.",15)
-			_add_label("اگر موجودی از حداقل کمتر شود، می‌توانی خرید از بازار یا افزایش تولید کارخانه را انتخاب کنی؛ اگر از حداکثر بیشتر شود، فروش خودکار انجام می‌شود.",15)
-			for id in game.get_resource_definitions().keys():
-				var resource_name = str(game.get_resource_definitions()[id].name)
-				var rule = game.get_storage_rule(id)
-				var current_amount = int(s.resources.get(id,0))
+					_add_label("%s | موجودی: %d		"transport":
+			TransportPage.build(self, s)
+nt = int(s.resources.get(id,0))
 				var market_amount = int(s.market_stock.get(id,0))
 				var is_expanded = bool(storage_section_expanded.get(str(id), false))
 				var section_button = _add_button(("▼ " if is_expanded else "▶ ") + resource_name + " | موجودی: %d" % current_amount,self,"toggle_storage_section",[str(id)])
@@ -2278,25 +2193,9 @@ func show_page(page):
 			_add_label("در حالت خودکار، بازی با چرخش گوشی هماهنگ می‌شود؛ حتی وقتی گوشی را ۱۸۰ درجه می‌چرخانی. دو حالت دیگر جهت صفحه را ثابت نگه می‌دارند.", 16)
 			var current_orientation = str(game.state.get("screen_orientation", "landscape"))
 			_add_button(("🔄 خودکار ✓" if current_orientation == "auto" else "🔄 خودکار"), self, "set_screen_orientation", ["auto"])
-			_add_button(("📱 افقی ✓" if current_orientation == "landscape" else "📱 افقی"), self, "set_screen_orientation", ["landscape"])
-			_add_button(("📱 عمودی ✓" if current_orientation == "portrait" else "📱 عمودی"), self, "set_screen_orientation", ["portrait"])
-		"audio":
-			AudioSettingsPage.build(self)
-		"help":
-			_add_label("❔ راهنمای کامل مینی زکا سیتی", 25)
-			_add_label("اینجا هر زمان گیر کردی برگرد؛ از شروع بازی تا اقتصاد، ساختمان‌ها و رقابت شهرها را قدم‌به‌قدم توضیح داده‌ایم.", 17)
-			_add_button("🏙️ برگشت به شهر من", self, "return_home_from_menu")
-			_add_label("🚀 شروع سریع برای بازیکن تازه‌وارد", 21)
-			_add_help_section("۱. اول مأموریت‌ها را انجام بده", "از دکمه مأموریت‌ها شروع کن. مأموریت‌های آموزشی به‌ترتیب خرید زمین، ساخت خانه، ساخت مزرعه، استخدام شهروند و توسعه خدمات را یاد می‌دهند. هر مأموریت را بخوان؛ اگر دکمه رفتن داشت، از همان برای رفتن مستقیم به بخش مربوط استفاده کن.", "missions")
-			_add_help_section("۲. زمین و ساختمان بساز", "در ساختمان‌ها زمین تازه بخر و بعد ساختمان مناسب را انتخاب کن. قبل از ساخت، هزینه، زمان ساخت، ظرفیت و نیاز به نیروی کار را بررسی کن. همه ساختمان‌ها فوری آماده نمی‌شوند؛ پروژه‌های در حال ساخت و زمان باقی‌مانده بالای صفحه دیده می‌شود.", "buildings")
-			_add_help_section("۳. شهروند و شغل را مدیریت کن", "خانه ظرفیت سکونت ایجاد می‌کند؛ اما برای تولید و درآمد، بعضی ساختمان‌ها به کارگر نیاز دارند. از بخش شهروندان تعداد شاغل، بیکار و وضعیت گروه‌های شهروندی را بررسی کن. بدون نیروی انسانی کافی، توسعه اقتصادی متوقف می‌شود.", "citizens")
-			_add_label("💰 پول، درآمد و اقتصاد", 21)
-			_add_help_section("خزانه و درآمد شهرداری", "در شهر من موجودی خزانه، ظرفیت خزانه، پول قفل‌شده و درآمد روزانه شهرداری را می‌بینی. سود کسب‌وکارها در حساب همان کسب‌وکار جمع می‌شود و در هر نوبت اقتصادی به‌صورت خودکار به خزانه منتقل می‌شود؛ اگر خزانه جا نداشته باشد، بخش منتقل‌نشده باقی می‌ماند تا بعداً واریز شود. ظرفیت خزانه محدود است؛ پول قفل‌شده را با پول آزاد اشتباه نگیر.", "home")
-			_add_help_section("بانک، وام و امور مالی", "قبل از گرفتن وام، مبلغ دریافتی، بهره، زمان بازپرداخت و قسط را با درآمد پایدار شهر مقایسه کن. برای پرداخت هزینه‌های روزمره روی وام تکیه نکن؛ ابتدا درآمد و تولید منظم بساز.", "bank")
-			_add_help_section("اقتصاد خصوصی و کسب‌وکارها", "کسب‌وکارها می‌توانند از فعالیت شهروندان و تقاضای شهر درآمد بسازند. تعداد ساختمان، نیروی کار، رضایت و دسترسی به کالا روی نتیجه اثر می‌گذارند. درآمد خصوصی را با مالیات و درآمد شهرداری جداگانه بررسی کن.", "private_economy")
-			_add_help_section("بازار، تجارت و منابع", "در بازار می‌توانی کالا و منابع را بخری یا صادر کنی. قیمت خرید و فروش را مقایسه کن و همه ذخایر ضروری را نفروش؛ مواد اولیه برای زنجیره تولید و توسعه بعدی لازم می‌شوند. سفارش‌ها و محموله‌های در حال ارسال را پیگیری کن.", "commerce")
-			_add_help_section("انبار و مدیریت موجودی", "انبار برای نگهداری منابع است. ظرفیت انبار محدود است؛ موجودی کالاها را بررسی کن و فضای کافی برای تولید بعدی نگه دار. اگر یک منبع کم است، زنجیره تولید وابسته به آن هم ممکن است متوقف شود.", "storage")
-			_add_label("🏗️ توسعه، خدمات و زمان", 21)
+			_add_button(("📱 اف		"imports":
+			ImportsPage.build(self, s)
+مان", 21)
 			_add_help_section("خدمات شهری و رضایت", "آب، برق، خوراک، درمان، آموزش، امنیت، تفریح و بهداشت محیط نیازهای جداگانه‌اند. در شهر من میانگین پوشش خدمات را ببین و برای نیازهای ضعیف، ساختمان مناسب بساز. جمعیت بیشتر یعنی نیاز بیشتر به خدمات و زیرساخت.", "home")
 			_add_help_section("شهرداری، زمین و محله‌ها", "پس از ساخت و تکمیل ساختمان شهرداری، بخش شهرداری باز می‌شود و می‌توانی زمین‌های خصوصی، مالیات، مجوزها، درخواست‌ها و پروژه‌های شهری را مدیریت کنی. ظرفیت ساخت هر محله و سهمیه ساختمان‌ها محدود است؛ پیش از خرید یا ساخت، محدودیت همان محله را بررسی کن و برای خدمات ضروری جا نگه دار.", "municipality")
 			_add_help_section("روز، شب و ساخت‌وساز", "هر روز بازی ۱۰ دقیقه زمان واقعی دارد؛ ۷ دقیقه روز و ۳ دقیقه شب است. پایان روز، درآمدها، هزینه‌ها، تولید و رویدادها محاسبه می‌شوند. هم‌زمان حداکثر دو پروژه ساخت فعال می‌توانی داشته باشی؛ زمان ساخت را از بالای صفحه دنبال کن.", "home")
