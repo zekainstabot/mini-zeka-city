@@ -2058,7 +2058,7 @@ func show_page(page):
 				var facility_locked = int(s.level) < facility_level
 				var facility_name = str(facility.get("name","ایستگاه")) + (" 🔒" if facility_locked else "")
 				var facility_button = _add_button("ساخت "+facility_name+" — %d سکه | زمین: %d قطعه | جمعیت لازم: %d نفر | سطح: %d" % [int(facility.get("cost",0)),game.get_land_size(facility_id),facility_population,facility_level],self,"build_transport_facility",[facility_id])
-				facility_button.disabled = facility_locked
+				facility_button.disabled = false
 			_add_label("🚚 پایانه و ناوگان کامیون",19)
 			_add_label("پایانه حمل‌ونقل: %d | کامیون فعال: %d | ظرفیت روزانه: %d واحد" % [game.get_building_count("transport_depot"),game.get_transport_truck_count(),game.get_transport_daily_capacity()],17)
 			_add_label("ظرفیت مصرف‌شده امروز: %d | ظرفیت باقی‌مانده: %d" % [int(s.get("transport_used_today",0)),game.get_transport_capacity_remaining()],16)
@@ -2071,7 +2071,7 @@ func show_page(page):
 				var depot_locked = int(s.level) < depot_level
 				var depot_title = "ساخت پایانه حمل‌ونقل" + (" 🔒" if depot_locked else "")
 				var depot_button = _add_button(depot_title+" — %d سکه | زمین: %d قطعه | جمعیت لازم: %d نفر | سطح: %d" % [int(depot.get("cost",0)),game.get_land_size("transport_depot"),depot_population,depot_level],self,"build_transport_facility",["transport_depot"])
-				depot_button.disabled = depot_locked
+				depot_button.disabled = false
 			_add_label("ظرفیت کامیون‌ها بین واردات، قراردادهای تأمین و صادرات مشترک است.",15)
 		"imports":
 			_add_label(" واردات و حمل‌ونقل بین‌شهری", 22)
@@ -2894,15 +2894,10 @@ func _add_building_category_items(category):
 		var required_level = int(data.get("level_unlock", 1))
 		var level_unlocked = int(s.level) >= required_level
 		var unlocked = population_unlocked and level_unlocked
-		var label = "%s | هزینه: %d | زمین: %d قطعه | جمعیت: %d | سطح: %d" % [data.name,data.cost,game.get_land_size(id),data.unlock,required_level]
-		if not level_unlocked:
-			label = "%s 🔒 | هزینه: %d | زمین: %d قطعه | جمعیت: %d | سطح: %d" % [data.name,data.cost,game.get_land_size(id),data.unlock,required_level]
+		var label = "%s%s | هزینه: %d | زمین: %d قطعه | جمعیت: %d | سطح: %d" % [data.name, "" if unlocked else " 🔒", data.cost,game.get_land_size(id),data.unlock,required_level]
 		var building_button = _add_button(label, self, "build_building", [id])
-		building_button.disabled = not level_unlocked
-		if not level_unlocked:
-			# Keep locked building text readable on mobile; the lock icon carries the status.
-			building_button.add_theme_stylebox_override("disabled", _button_style(Color("#FFFFFF"), Color("#73777D")))
-			building_button.add_theme_color_override("font_disabled_color", Color("#111111"))
+		# Locked buildings stay tappable so their exact unlock requirements can be explained.
+		building_button.disabled = false
 		if id == mission_target_building_id:
 			building_button.modulate = Color("#fde68a")
 			building_button.name = "MissionTargetBuilding"
@@ -2989,6 +2984,21 @@ func buy_land():
 	_show_message(result.message)
 
 func build_building(id):
+	var data = game.get_building_definitions().get(str(id), {})
+	if data.is_empty():
+		return
+	var required_level = int(data.get("level_unlock", 1))
+	var required_population = int(data.get("unlock", 0))
+	var current_level = int(game.state.get("level", 1))
+	var current_population = int(game.state.get("population", 0))
+	if current_level < required_level or current_population < required_population:
+		var reasons = []
+		if current_level < required_level:
+			reasons.append("سطح شهر باید به %d برسد (سطح فعلی: %d)" % [required_level, current_level])
+		if current_population < required_population:
+			reasons.append("جمعیت شهر باید به %d نفر برسد (جمعیت فعلی: %d)" % [required_population, current_population])
+		_show_message("🔒 برای باز شدن %s: %s." % [str(data.get("name", "این ساختمان")), " و ".join(reasons)])
+		return
 	var previous_level = int(game.state.get("level", 1))
 	var result = game.build(id)
 	if bool(result.get("ok", false)):
@@ -3100,11 +3110,32 @@ func reassign_jobs():
 	_show_message("تخصیص شغل‌ها به‌روزرسانی شد.")
 
 func upgrade_road():
+	var current_road_level = int(game.state.get("road_level", 1))
+	var required_city_level = current_road_level + 1
+	var current_city_level = int(game.state.get("level", 1))
+	if current_city_level < required_city_level:
+		_show_message("🔒 برای ارتقای جاده، سطح شهر باید به %d برسد (سطح فعلی: %d)." % [required_city_level, current_city_level])
+		return
 	var result = game.upgrade_roads()
 	show_page("transport")
 	_show_message(result.message)
 
 func build_transport_facility(building_id):
+	var data = game.get_building_definitions().get(str(building_id), {})
+	if data.is_empty():
+		return
+	var required_level = int(data.get("level_unlock", 1))
+	var required_population = int(data.get("unlock", 0))
+	var current_level = int(game.state.get("level", 1))
+	var current_population = int(game.state.get("population", 0))
+	if current_level < required_level or current_population < required_population:
+		var reasons = []
+		if current_level < required_level:
+			reasons.append("سطح شهر باید به %d برسد (سطح فعلی: %d)" % [required_level, current_level])
+		if current_population < required_population:
+			reasons.append("جمعیت شهر باید به %d نفر برسد (جمعیت فعلی: %d)" % [required_population, current_population])
+		_show_message("🔒 برای باز شدن %s: %s." % [str(data.get("name", "این ایستگاه")), " و ".join(reasons)])
+		return
 	var previous_level = int(game.state.get("level", 1))
 	var result = game.build(str(building_id))
 	if bool(result.get("ok", false)):
