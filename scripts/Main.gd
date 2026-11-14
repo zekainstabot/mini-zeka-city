@@ -1723,6 +1723,7 @@ func show_page(page):
 	match page:
 		"home":
 			_add_label("وضعیت کلی شهر", 22)
+			_add_button("🏆 رتبه‌بندی", self, "show_page", ["ranking"])
 			_show_welcome_mission_hint()
 			_add_label("روز %d  |  سطح شهر %d" % [s.day,s.level], 19)
 			var login_reward_status = game.get_login_reward_status()
@@ -2511,8 +2512,27 @@ func show_page(page):
 			_add_label("• هر روز گزارش شهر، رویداد هفتگی و رتبه رقبا را بررسی کن.", 16)
 			_add_button("🏙️ حالا برگردیم به شهر!", self, "return_home_from_menu")
 
-		"progress":
 			_add_progress_missions_tabs("progress")
+
+		"ranking":
+			_add_label("🏆 رتبه‌بندی شهرها", 24)
+			_add_label("جایگاه شهر تو در مقایسه با شهرهای رقیب. امتیاز توسعه با رشد جمعیت، سطح و ساخت‌وساز تغییر می‌کند.", 16)
+			var ranking_rows = game.get_rival_standings()
+			var player_rank = 0
+			for ranking_row in ranking_rows:
+				if bool(ranking_row.get("is_player", false)):
+					player_rank = int(ranking_row.get("rank", 0))
+			if player_rank > 0:
+				_add_label("👑 رتبه فعلی شهر تو: %d از %d" % [player_rank, ranking_rows.size()], 20)
+			for ranking_row in ranking_rows:
+				var ranking_prefix = "👑 " if bool(ranking_row.get("is_player", false)) else "🏘️ "
+				var ranking_name = str(ranking_row.get("name", "شهر"))
+				var ranking_card_text = "%sرتبه %d ـ %s\nامتیاز توسعه: %d\nجمعیت: %d نفر  |  سطح: %d" % [ranking_prefix, int(ranking_row.get("rank", 0)), ranking_name, int(ranking_row.get("score", 0)), int(ranking_row.get("population", 0)), int(ranking_row.get("level", 1))]
+				_add_label(ranking_card_text, 18)
+			_add_label("نکته: این رتبه‌بندی فعلاً بین شهرهای رقیب داخل همین ذخیره بازی محاسبه می‌شود و آنلاین یا جهانی نیست.", 14)
+			_add_button("🏙️ بازگشت به شهر", self, "show_page", ["home"])
+
+		"progress":
 			_add_label("🏗️ هدف‌های بلندمدت شهر",23)
 			_add_label("این هدف‌ها با ساخت‌وساز و رشد شهر کامل می‌شوند. پیشرفت هر هدف ذخیره می‌شود و پس از تکمیل، می‌توانی جایزه‌اش را دریافت کنی.",16)
 			for project in game.get_long_term_projects():
