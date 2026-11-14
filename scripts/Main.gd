@@ -805,14 +805,15 @@ func _build_ui():
 		var b = Button.new()
 		var civic_page_locked = item.p in ["municipality", "private_economy"] and not game.has_municipal_hall()
 		b.text = PersianText.reshaper(nav_title + (" 🔒" if civic_page_locked else ""))
-		b.disabled = civic_page_locked
+		# Keep locked entries tappable so the player can learn how to unlock them.
+		b.disabled = false
 		b.custom_minimum_size = Vector2(0, 64 if compact_layout else 58)
 		b.flat = false
 		_apply_font(b, 17 if compact_layout else 18)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_style_button(b, true)
 		navigation_buttons.append(b)
-		b.connect("pressed", Callable(self, "show_page").bind(item.p))
+		b.connect("pressed", Callable(self, "_on_navigation_pressed").bind(item.p, b, nav_title))
 		nav_item.add_child(b)
 		nav.add_child(nav_item)
 	var line = HSeparator.new()
@@ -1458,6 +1459,14 @@ func _add_progress_missions_tabs(active_page):
 	progress_button.disabled = str(active_page) == "progress"
 	progress_button.pressed.connect(Callable(self, "show_page").bind("progress"))
 	tabs.add_child(progress_button)
+
+func _on_navigation_pressed(page, button, title):
+	var civic_page_locked = page in ["municipality", "private_economy"] and not game.has_municipal_hall()
+	button.text = PersianText.reshaper(str(title) + (" 🔒" if civic_page_locked else ""))
+	if civic_page_locked:
+		_show_message("برای باز شدن این بخش، ابتدا ساختمان شهرداری را بساز و ساخت آن را کامل کن.")
+		return
+	show_page(page)
 
 func show_page(page):
 	var civic_page_locked = page in ["municipality", "private_economy"] and not game.has_municipal_hall()
