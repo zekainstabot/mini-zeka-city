@@ -2423,8 +2423,8 @@ func show_page(page):
 				else:
 					var daily_go_button = Button.new()
 					daily_go_button.text = PersianText.reshaper("رفتن ←")
-					daily_go_button.custom_minimum_size = Vector2(0, 46 if get_viewport_rect().size.x < 900 else 40)
-					daily_go_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+					daily_go_button.custom_minimum_size = Vector2(132 if get_viewport_rect().size.x < 900 else 144, 42 if get_viewport_rect().size.x < 900 else 38)
+					daily_go_button.size_flags_horizontal = Control.SIZE_SHRINK_END
 					_apply_font(daily_go_button, 17)
 					_style_button(daily_go_button, false)
 					daily_go_button.connect("pressed", Callable(self, "go_to_mission_target").bind(str(daily_mission.id)))
@@ -2630,8 +2630,8 @@ func show_page(page):
 					card_body.add_child(hint_label)
 				var go_button = Button.new()
 				go_button.text = PersianText.reshaper("رفتن به بخش مربوط  ←")
-				go_button.custom_minimum_size = Vector2(0, 50 if get_viewport_rect().size.x < 900 else 42)
-				go_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				go_button.custom_minimum_size = Vector2(148 if get_viewport_rect().size.x < 900 else 160, 44 if get_viewport_rect().size.x < 900 else 40)
+				go_button.size_flags_horizontal = Control.SIZE_SHRINK_END
 				_apply_font(go_button, 17 if get_viewport_rect().size.x < 900 else 16)
 				_style_button(go_button, false)
 				go_button.connect("pressed", Callable(self, "go_to_mission_target").bind(str(mission.get("id", ""))))
