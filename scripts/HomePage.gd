@@ -4,7 +4,6 @@ extends RefCounted
 static func build(owner, s):
 	var game = owner.game
 	owner._add_label("وضعیت کلی شهر", 22)
-	owner._add_button("🏆 رتبه‌بندی", owner, "show_page", ["ranking"])
 	owner._show_welcome_mission_hint()
 	owner._add_label("روز %d  |  سطح شهر %d" % [s.day,s.level], 19)
 	var login_reward_status = game.get_login_reward_status()
