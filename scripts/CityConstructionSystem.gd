@@ -66,6 +66,23 @@ static func build(engine, id):
 		return {"ok":false,"message":"برای ساخت دوباره بانک مرکزی باید %d روز صبر کنی." % int(state.central_bank_rebuild_days_left)}
 	if id in ["fish_market","fish_processing_plant"] and engine.get_building_count("fishing_dock") <= 0:
 		return {"ok":false,"message":"برای راه‌اندازی بازار یا کارخانه فرآوری ماهی، ابتدا اسکله صیادی بساز."}
+	# A new neighborhood may only be opened when the road network has
+	# reached the matching development level. The first neighborhood is free.
+	if not id in engine.OUTSIDE_CITY_BUILDINGS:
+		var districts = state.get("districts", [])
+		var needs_new_district = districts.is_empty()
+		if not districts.is_empty():
+			needs_new_district = true
+			for district in districts:
+				if engine._district_can_accept(district, id):
+					needs_new_district = false
+					break
+		if needs_new_district and not districts.is_empty():
+			var required_road_level = min(3, districts.size() + 1)
+			var current_road_level = int(state.get("road_level", 1))
+			if current_road_level < required_road_level:
+				var next_district_number = districts.size() + 1
+				return {"ok":false,"message":"🔒 برای ایجاد محله %d، ابتدا شبکه جاده‌ای را به سطح %d از ۳ ارتقا بده. سطح فعلی جاده: %d از ۳. از بخش «توسعه شهر» جاده‌ها را ارتقا بده." % [next_district_number, required_road_level, current_road_level]}
 	var required_land = engine.get_land_size(id)
 	if engine.get_land_free() < required_land:
 		return {"ok":false,"message":"زمین کافی نداری؛ این ساختمان %d قطعه زمین می‌خواهد و فقط %d قطعه آزاد داری. ابتدا زمین بخر." % [required_land,engine.get_land_free()]}
