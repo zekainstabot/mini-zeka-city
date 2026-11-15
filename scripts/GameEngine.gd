@@ -190,6 +190,8 @@ func new_game():
 		"missions": [],
 		"daily_missions": {},
 		"login_reward_claimed_day_serial": -1,
+		"login_reward_streak": 0,
+		"login_reward_last_claim_unix": 0,
 		"city_event_history": [],
 		"city_event_next_day": 3,
 		"resident_requests": [],
@@ -291,31 +293,78 @@ func claim_daily_mission(mission_id):
 	return MissionSystem.claim_daily_mission(self, mission_id)
 
 
+func _get_login_reward_definitions():
+	return [
+		{"day":1,"coins":100,"xp":5,"title":"شروع خوش‌شانس"},
+		{"day":2,"coins":150,"xp":8,"title":"هدیه روز دوم"},
+		{"day":3,"coins":250,"xp":12,"title":"کیسه نقره‌ای"},
+		{"day":4,"coins":400,"xp":20,"title":"گنج کوچک"},
+		{"day":5,"coins":650,"xp":30,"title":"صندوق ارزشمند"},
+		{"day":6,"coins":1000,"xp":50,"title":"گنجینه بزرگ"},
+		{"day":7,"coins":3000,"xp":150,"title":"صندوق طلایی ویژه"}
+	]
+
+func _refresh_login_reward_cycle():
+	var last_claim = int(state.get("login_reward_last_claim_unix", 0))
+	if last_claim <= 0:
+		return
+	var now = int(Time.get_unix_time_from_system())
+	# Each reward opens 24 hours after the previous claim and remains available
+	# for the following 24 hours. Missing that complete window resets the cycle.
+	if now >= last_claim + 172800:
+		state["login_reward_streak"] = 0
+		state["login_reward_last_claim_unix"] = 0
+		save_game()
+
+func get_login_reward_calendar():
+	return _get_login_reward_definitions()
+
 func get_login_reward_status():
-	var today = _get_local_calendar_day_serial()
-	var streak = max(1, int(state.get("login_streak", 1)))
-	var reward = min(400, 100 + (streak - 1) * 25)
+	_refresh_login_reward_cycle()
+	var now = int(Time.get_unix_time_from_system())
+	var last_claim = int(state.get("login_reward_last_claim_unix", 0))
+	var streak = int(clamp(int(state.get("login_reward_streak", 0)), 0, 7))
+	var seconds_remaining = 0
+	var can_claim = last_claim <= 0
+	if last_claim > 0:
+		seconds_remaining = max(0, last_claim + 86400 - now)
+		can_claim = seconds_remaining <= 0
+	var next_day = 1 if streak >= 7 else streak + 1
+	var rewards = _get_login_reward_definitions()
+	var reward = rewards[next_day - 1]
 	return {
 		"streak":streak,
-		"reward":reward,
-		"claimed":int(state.get("login_reward_claimed_day_serial", -1)) == today,
-		"logged_in":int(state.get("last_login_day_serial", -1)) == today
+		"next_day":next_day,
+		"reward":int(reward.coins),
+		"xp":int(reward.xp),
+		"title":str(reward.title),
+		"claimed":not can_claim,
+		"can_claim":can_claim,
+		"seconds_remaining":seconds_remaining,
+		"last_claim_unix":last_claim
 	}
 
 func claim_login_reward():
 	var status = get_login_reward_status()
-	if not bool(status.logged_in):
-		return {"ok":false,"message":"برای دریافت هدیه، ابتدا امروز وارد شهر شو."}
-	if bool(status.claimed):
-		return {"ok":false,"message":"هدیه ورود امروز را قبلاً دریافت کرده‌ای."}
-	var reward = int(status.reward)
+	if not bool(status.can_claim):
+		var remaining = int(status.seconds_remaining)
+		var hours = int(remaining / 3600)
+		var minutes = int((remaining % 3600) / 60)
+		return {"ok":false,"message":"جایزه بعدی %d ساعت و %d دقیقه دیگر آماده می‌شود." % [hours, minutes]}
+	var day = int(status.next_day)
+	var rewards = _get_login_reward_definitions()
+	var reward_data = rewards[day - 1]
+	var reward = int(reward_data.coins)
+	var xp = int(reward_data.xp)
 	if get_treasury_capacity() - int(state.get("money", 0)) < reward:
-		return {"ok":false,"message":"ظرفیت خالی خزانه برای دریافت هدیه کافی نیست؛ ابتدا کمی از موجودی خرج کن."}
+		return {"ok":false,"message":"ظرفیت خالی خزانه برای دریافت جایزه کافی نیست؛ ابتدا کمی از موجودی خرج کن."}
 	_add_money(reward)
-	state["login_reward_claimed_day_serial"] = _get_local_calendar_day_serial()
-	var xp_message = _award_xp(5)
+	var xp_message = _award_xp(xp)
+	state["login_reward_streak"] = day
+	state["login_reward_last_claim_unix"] = int(Time.get_unix_time_from_system())
 	save_game()
-	return {"ok":true,"message":"هدیه ورود امروز: %d سکه + ۵ تجربه. %s" % [reward, xp_message]}
+	var special_text = " 🎉 صندوق طلایی ویژه روز هفتم!" if day == 7 else ""
+	return {"ok":true,"message":"جایزه روز %d دریافت شد: %d سکه + %d تجربه.%s %s" % [day, reward, xp, special_text, xp_message]}
 
 func _process_city_event(report):
 	return CityProgressSystem._process_city_event(self, report)
@@ -703,6 +752,8 @@ func _normalize_state():
 	if typeof(state.get("daily_missions", null)) != TYPE_DICTIONARY:
 		state["daily_missions"] = {}
 	state["login_reward_claimed_day_serial"] = int(state.get("login_reward_claimed_day_serial", -1))
+	state["login_reward_streak"] = int(clamp(int(state.get("login_reward_streak", 0)), 0, 7))
+	state["login_reward_last_claim_unix"] = max(0, int(state.get("login_reward_last_claim_unix", 0)))
 	if typeof(state.get("city_event_history", null)) != TYPE_ARRAY:
 		state["city_event_history"] = []
 	while state.city_event_history.size() > 20:
