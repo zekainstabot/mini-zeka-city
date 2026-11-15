@@ -5,7 +5,7 @@ static func build(owner, s):
 	var game = owner.game
 	owner._add_label("وضعیت کلی شهر", 22)
 	owner._show_welcome_mission_hint()
-	owner._add_label("روز %d  |  سطح شهر %d" % [s.day,s.level], 19)
+	owner._add_label("سطح شهر %d" % s.level, 19)
 	var weekly_city_event = game.get_weekly_city_event()
 	owner._add_label("🌟 رویداد این هفته: %s" % str(weekly_city_event.get("title","")),17)
 	owner._add_label("%s | اثر: %s" % [str(weekly_city_event.get("description","")),str(weekly_city_event.get("effect",""))],14)
@@ -27,7 +27,7 @@ static func build(owner, s):
 	if not recent_city_events.is_empty():
 		var recent_event = recent_city_events[recent_city_events.size()-1]
 		owner._add_label("🎲 آخرین اتفاق شهر | روز %d: %s" % [int(recent_event.get("day",s.day)),str(recent_event.get("title","رویداد"))],16)
-	owner.clock_label = owner._add_label("روز | زمان باقی‌مانده: 00:07", 18)
+
 	owner._add_label("خزانه: %d / %d سکه  |  پول قفل‌شده: %d" % [s.money,game.get_treasury_capacity(),game.get_locked_money()], 20)
 	owner._add_label("جمعیت: %d نفر  |  شاغل: %d  |  بیکار: %d" % [s.population,game.get_employed_count(),game.get_unemployed_count()], 19)
 	var municipal_economy = s.get("last_economy", {})
