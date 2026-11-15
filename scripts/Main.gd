@@ -106,6 +106,18 @@ var startup_tip_label = null
 var startup_tip_timer = null
 var startup_tip_index = -1
 
+func _on_ui_node_added(node):
+	# Enforce one alignment rule for every text button, including buttons
+	# created later by page builders, dialogs, popups, and overlays.
+	if node is Button:
+		node.alignment = HORIZONTAL_ALIGNMENT_CENTER
+
+func _center_existing_button_texts(node):
+	if node is Button:
+		node.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	for child in node.get_children():
+		_center_existing_button_texts(child)
+
 func _input(event):
 	if game != null:
 		var meaningful_input = false
@@ -293,6 +305,10 @@ func _notification(what):
 		game.save_game()
 
 func _ready():
+	# Apply centered text to every Button in the scene tree, now and whenever
+	# any game page or overlay creates additional buttons.
+	get_tree().node_added.connect(_on_ui_node_added)
+	_center_existing_button_texts(self)
 	# Show a lightweight loading screen before doing any synchronous startup work.
 	layout_direction = Control.LAYOUT_DIRECTION_RTL
 	_create_startup_loading_screen()
