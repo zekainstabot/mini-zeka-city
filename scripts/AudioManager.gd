@@ -16,6 +16,7 @@ var effects_volume = 0.55
 var environment_volume = 0.18
 var environment_mode = "city"
 var night_mode = false
+var _tone_stream_cache: Dictionary = {}
 
 func _ready():
 	settings.load(SETTINGS_PATH)
@@ -205,7 +206,13 @@ func play_sfx(kind="click"):
 			tones = [[110.0, 0.0, 0.35], [146.83, 0.30, 0.35], [123.47, 0.62, 0.40]]
 		_:
 			tones = [[880.0, 0.0, 0.055], [1174.66, 0.025, 0.075]]
-	selected_player.stream = _make_tone_stream(tones, 0.72)
+	var cache_key = str(kind)
+	if _tone_stream_cache.has(cache_key):
+		selected_player.stream = _tone_stream_cache[cache_key]
+	else:
+		var tone_stream = _make_tone_stream(tones, 0.72)
+		_tone_stream_cache[cache_key] = tone_stream
+		selected_player.stream = tone_stream
 	selected_player.play()
 
 func _make_environment_stream(mode, is_night):
