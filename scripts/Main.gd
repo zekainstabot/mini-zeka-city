@@ -1079,31 +1079,10 @@ func _build_ui():
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_style_button(b, true)
 		if str(item.p) == "ranking":
-			b.text = PersianText.reshaper("🏆  رتبه‌بندی شهرها\nرقابت با شهرهای دیگر")
-			b.custom_minimum_size = Vector2(0, 76 if compact_layout else 70)
+			# Keep ranking visually consistent with the other navigation buttons.
+			b.text = PersianText.reshaper("رتبه‌بندی شهرها")
 			b.alignment = HORIZONTAL_ALIGNMENT_CENTER
 			b.text_direction = Control.TEXT_DIRECTION_RTL
-			_apply_font(b, 16 if compact_layout else 17)
-			var ranking_normal = StyleBoxFlat.new()
-			ranking_normal.bg_color = Color("#302a1d")
-			ranking_normal.border_color = Color("#d6a83f")
-			ranking_normal.set_border_width_all(2)
-			ranking_normal.set_corner_radius_all(14)
-			ranking_normal.content_margin_left = 10
-			ranking_normal.content_margin_right = 10
-			ranking_normal.content_margin_top = 7
-			ranking_normal.content_margin_bottom = 7
-			var ranking_hover = ranking_normal.duplicate()
-			ranking_hover.bg_color = Color("#493b20")
-			ranking_hover.border_color = Color("#f5d477")
-			var ranking_pressed = ranking_normal.duplicate()
-			ranking_pressed.bg_color = Color("#211d16")
-			b.add_theme_stylebox_override("normal", ranking_normal)
-			b.add_theme_stylebox_override("hover", ranking_hover)
-			b.add_theme_stylebox_override("pressed", ranking_pressed)
-			b.add_theme_color_override("font_color", Color("#ffe7a3"))
-			b.add_theme_color_override("font_hover_color", Color("#fff4cf"))
-			b.add_theme_color_override("font_pressed_color", Color("#f5d477"))
 		if str(item.p) == "missions":
 			b.alignment = HORIZONTAL_ALIGNMENT_RIGHT
 			b.text_direction = Control.TEXT_DIRECTION_RTL
