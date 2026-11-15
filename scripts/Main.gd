@@ -925,7 +925,7 @@ func _open_daily_reward_calendar():
 	close_button.pressed.connect(_close_daily_reward_calendar)
 	header.add_child(close_button)
 	var status = game.get_login_reward_status()
-	var intro_text = "هر جایزه ۲۴ ساعت پس از دریافت قبلی باز می‌شود؛ اگر ۴۸ ساعت بگذرد و جایزه بعدی را نگیری، زنجیره از روز اول شروع می‌شود."
+	var intro_text = "هر جایزه ۲۴ ساعت پس از دریافت قبلی باز می‌شود و تا ۲۴ ساعت فرصت دریافتش را داری؛ اگر این مهلت را از دست بدهی، زنجیره از روز اول شروع می‌شود."
 	var intro = Label.new()
 	intro.text = PersianText.reshaper(intro_text)
 	intro.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -947,7 +947,7 @@ func _open_daily_reward_calendar():
 	var streak = int(status.streak)
 	for reward_data in rewards:
 		var day = int(reward_data.day)
-		var claimed = day <= streak and not (streak == 7 and next_day == 1)
+		var claimed = (day == 7) if streak == 7 and next_day == 1 else (day <= streak)
 		var is_next = day == next_day
 		var row = PanelContainer.new()
 		var row_style = StyleBoxFlat.new()
