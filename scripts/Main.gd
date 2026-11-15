@@ -386,8 +386,9 @@ func _create_startup_loading_screen():
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	center.offset_left = 24
 	center.offset_right = -24
-	center.offset_top = 24
-	center.offset_bottom = -24
+	# Shift the card 14 px downward so its title does not sit beneath the camera cutout.
+	center.offset_top = 38
+	center.offset_bottom = -10
 	layer.add_child(center)
 
 	var card = PanelContainer.new()
@@ -537,8 +538,9 @@ func _update_city_name_keyboard_position():
 	# Move the complete name-entry card upward while the Android keyboard is open.
 	# The capped offset keeps the title and action buttons visible on short screens.
 	var upward_shift = minf(float(keyboard_height) * 0.35, 140.0) if keyboard_height > 0 else 0.0
-	city_name_center_container.offset_top = 24.0 - upward_shift
-	city_name_center_container.offset_bottom = -24.0 - upward_shift
+	# Keep the city-name card slightly lower to clear the phone camera/notch area.
+	city_name_center_container.offset_top = 38.0 - upward_shift
+	city_name_center_container.offset_bottom = -10.0 - upward_shift
 
 
 func _open_city_name_setup(first_time = false):
