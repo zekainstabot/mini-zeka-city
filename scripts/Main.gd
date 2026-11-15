@@ -1103,10 +1103,9 @@ func return_home_from_menu():
 	show_page("home")
 
 func _restart_city():
-	if restart_confirm_panel != null:
-		restart_confirm_panel.visible = false
-	if menu_panel != null:
-		menu_panel.visible = false
+	# Close the entire menu backdrop before rebuilding the city.
+	# Hiding only menu_panel leaves the dark modal overlay on screen.
+	_close_game_menu()
 	game_paused = false
 	clock_cycle_seconds = 0.0
 	clock_save_accumulator = 0.0
