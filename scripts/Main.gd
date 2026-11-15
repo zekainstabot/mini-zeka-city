@@ -103,6 +103,8 @@ var help_overlay = null
 var help_body = null
 var daily_reward_layer = null
 var daily_reward_button = null
+var menu_button = null
+var help_button = null
 var help_previous_page = "home"
 var help_scroll_original_index = 5
 var startup_loading_layer = null
@@ -864,7 +866,7 @@ func _build_ui():
 	var menu_row = HBoxContainer.new()
 	menu_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	root.add_child(menu_row)
-	var menu_button = Button.new()
+	menu_button = Button.new()
 	menu_button.text = "☰"
 	menu_button.tooltip_text = "باز کردن منوی بازی"
 	menu_button.custom_minimum_size = Vector2(68 if compact_layout else 60, 62 if compact_layout else 52)
@@ -873,7 +875,7 @@ func _build_ui():
 	_style_button(menu_button, true)
 	menu_row.add_child(menu_button)
 
-	var help_button = Button.new()
+	help_button = Button.new()
 	help_button.text = PersianText.reshaper("؟")
 	help_button.tooltip_text = "راهنمای کامل بازی"
 	help_button.custom_minimum_size = Vector2(58 if compact_layout else 50, 58 if compact_layout else 46)
