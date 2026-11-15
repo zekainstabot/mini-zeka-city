@@ -1669,6 +1669,7 @@ func build_building(id):
 	var data = game.get_building_definitions().get(str(id), {})
 	if data.is_empty():
 		return
+	var is_first_building_started = game.state.get("buildings", []).size() <= 1 and game.state.get("constructions", []).is_empty()
 	var required_level = int(data.get("level_unlock", 1))
 	var required_population = int(data.get("unlock", 0))
 	var current_level = int(game.state.get("level", 1))
@@ -1689,6 +1690,15 @@ func build_building(id):
 			audio_manager.play_sfx("level")
 	show_page("buildings")
 	_show_message(result.message)
+	if bool(result.get("ok", false)) and is_first_building_started:
+		_show_temporary_message("💡 برای دیدن جزئیات، به بخش «شهر من» برو.", 4.0)
+
+func _show_temporary_message(text, seconds=4.0):
+	var shown_text = PersianText.reshaper(str(text))
+	message_label.text = shown_text
+	await get_tree().create_timer(float(seconds)).timeout
+	if is_instance_valid(message_label) and message_label.text == shown_text:
+		message_label.text = ""
 
 func toggle_home_city_details():
 	var was_expanded = home_city_details_expanded
