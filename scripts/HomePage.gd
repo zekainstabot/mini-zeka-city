@@ -112,3 +112,6 @@ static func build(owner, s):
 		owner._add_label("عوارض جاده‌ای: %d سکه" % int(home_economy.get("road_income",0)), 16)
 	var save_city_button = owner._add_button("💾 ذخیره شهر", owner, "save_now")
 	owner._style_button(save_city_button, false)
+	var brand_handle = owner._add_label("zekamediafa", 13)
+	brand_handle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	brand_handle.add_theme_color_override("font_color", Color("#94a3b8"))
