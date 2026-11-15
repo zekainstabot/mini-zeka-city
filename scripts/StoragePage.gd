@@ -48,7 +48,7 @@ static func build(owner, s):
 		)
 		minimum_slider.drag_ended.connect(func(changed):
 			if changed:
-				owner.set_storage_rule_slider(str(id), "minimum", int(round(minimum_slider.value))
+				owner.set_storage_rule_slider(str(id), "minimum", int(round(minimum_slider.value)))
 		)
 		var maximum_slider_label = owner._add_label("تنظیم حداکثر موجودی: %d" % int(rule.get("maximum",40)),15)
 		var maximum_slider = HSlider.new()
@@ -64,7 +64,7 @@ static func build(owner, s):
 		)
 		maximum_slider.drag_ended.connect(func(changed):
 			if changed:
-				owner.set_storage_rule_slider(str(id), "maximum", int(round(maximum_slider.value))
+				owner.set_storage_rule_slider(str(id), "maximum", int(round(maximum_slider.value)))
 		)
 		owner._add_label("وقتی موجودی کم شد: "+("خرید از بازار" if str(rule.get("low_action","market")) == "market" else "افزایش تولید کارخانه"),15)
 		owner._add_button("تغییر روش تأمین",owner,"toggle_storage_low_action",[id])
