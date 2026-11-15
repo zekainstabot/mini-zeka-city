@@ -192,8 +192,8 @@ func _process(delta):
 	if last_activity_ticks > 0 and Time.get_ticks_msec() - last_activity_ticks <= 90000:
 		game.record_active_play_seconds(delta)
 	var new_recruitment_count = game.process_citizen_recruitment_interval(delta)
-	if new_recruitment_count > 0 and current_page == "citizens":
-		show_page("citizens")
+	if new_recruitment_count > 0 and current_page == "home":
+		show_page("home")
 	clock_cycle_seconds += delta
 	var audio_night_mode = clock_cycle_seconds >= 420.0
 	if audio_manager != null and audio_night_mode != last_audio_night_mode:
@@ -1126,7 +1126,7 @@ func _build_ui():
 	nav.add_theme_constant_override("v_separation", 8)
 	root.add_child(nav)
 	navigation_buttons.clear()
-	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بانک و امور مالی","p":"bank"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار و تجارت","p":"commerce"},{"t":"توسعه شهر","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش","p":"report"},{"t":"پیشرفت و مأموریت‌ها","p":"missions"},{"t":"🏆 رتبه‌بندی","p":"ranking"}]:
+	for item in [{"t":"شهر من و شهروندان","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"بانک و امور مالی","p":"bank"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار و تجارت","p":"commerce"},{"t":"توسعه شهر","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش","p":"report"},{"t":"پیشرفت و مأموریت‌ها","p":"missions"},{"t":"🏆 رتبه‌بندی","p":"ranking"}]:
 		var nav_item = VBoxContainer.new()
 		nav_item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		nav_item.add_theme_constant_override("separation", 2)
@@ -2185,6 +2185,8 @@ func show_page(page):
 	match page:
 		"home":
 			HomePage.build(self, s)
+			_add_label("مدیریت شهروندان", 24)
+			CitizensPage.build(self, s)
 		"buildings":
 			BuildingsPage.build(self, s)
 		"citizens":
