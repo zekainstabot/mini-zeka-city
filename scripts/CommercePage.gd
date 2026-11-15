@@ -15,10 +15,15 @@ static func build(owner, s):
 			var buy_price = game.get_market_price(id,"buy")
 			var sell_price = game.get_market_price(id,"sell")
 			owner._add_label("%s | انبار: %d | بازار: %d/۱۰۰ | خرید: %d | فروش: %d" % [d.name,stock,market_stock,buy_price,sell_price])
-			var buy_button = owner._add_button("خرید ۵ واحد "+d.name, owner, "buy_item", [id,5])
-			buy_button.disabled = int(s.market_stock.get(id,0)) < 5 or game.get_free_storage() < 5 or game.get_available_money() < buy_price * 5
-			var sell_button = owner._add_button("فروش ۵ واحد "+d.name, owner, "sell_item", [id,5])
-			sell_button.disabled = stock < 5 or int(s.market_stock.get(id,0)) > 95 or game.get_available_money() >= game.get_treasury_capacity()
+			var buy_max = min(int(s.market_stock.get(id,0)), min(game.get_free_storage(), int(floor(float(game.get_available_money()) / max(1,buy_price)))))
+			var buy_slider = _add_quantity_slider(owner, "مقدار خرید "+d.name, buy_max)
+			var buy_button = owner._add_button("خرید "+d.name, owner, "buy_item_from_slider", [id,buy_slider])
+			buy_button.disabled = buy_max <= 0
+			var treasury_room = max(0, game.get_treasury_capacity() - int(s.money))
+			var sell_max = min(stock, min(max(0,100-int(s.market_stock.get(id,0))), int(floor(float(treasury_room) / max(1,sell_price)))))
+			var sell_slider = _add_quantity_slider(owner, "مقدار فروش "+d.name, sell_max)
+			var sell_button = owner._add_button("فروش "+d.name, owner, "sell_item_from_slider", [id,sell_slider])
+			sell_button.disabled = sell_max <= 0
 	owner._add_button(("▼ " if owner.commerce_section_expanded.export else "▶ ") + "صادرات به استان‌ها", owner, "_toggle_commerce_section", ["export"])
 	if owner.commerce_section_expanded.export:
 		var trade_ids = game.get_daily_trade_city_ids()
@@ -33,8 +38,11 @@ static func build(owner, s):
 					continue
 				var city_demand_left = int(s.trade_demand_remaining.get(city_id,city.demand).get(resource_id,0))
 				owner._add_label("%s | تقاضا: %d | قیمت صادرات: %d سکه" % [game.get_resource_definitions()[resource_id].name,city_demand_left,export_price],15)
-				var export_button = owner._add_button("صادرات ۵ واحد "+game.get_resource_definitions()[resource_id].name+" به "+city.name,owner,"export_to_city",[city_id,resource_id,5])
-				export_button.disabled = int(s.resources.get(resource_id,0)) <= 0 or int(s.trade_remaining.get(city_id,city.daily_capacity)) <= 0 or game.get_transport_capacity_remaining() <= 0
+				var treasury_room = max(0, game.get_treasury_capacity() - int(s.money))
+				var export_max = min(int(s.resources.get(resource_id,0)), min(city_demand_left, min(int(s.trade_remaining.get(city_id,city.daily_capacity)), min(game.get_transport_capacity_remaining(), int(floor(float(treasury_room) / max(1,export_price)))))))
+				var export_slider = _add_quantity_slider(owner, "مقدار صادرات "+game.get_resource_definitions()[resource_id].name+" به "+city.name, export_max)
+				var export_button = owner._add_button("صادرات به "+city.name,owner,"export_from_slider",[city_id,resource_id,export_slider])
+				export_button.disabled = export_max <= 0
 		owner._add_label("آخرین معامله: "+str(s.get("last_trade_report","هنوز معامله‌ای انجام نشده است.")),16)
 	owner._add_button(("▼ " if owner.commerce_section_expanded.import else "▶ ") + "واردات از استان‌ها", owner, "_toggle_commerce_section", ["import"])
 	if owner.commerce_section_expanded.import:
@@ -50,8 +58,15 @@ static func build(owner, s):
 				if import_stock <= 0:
 					continue
 				owner._add_label("%s | موجودی: %d | قیمت: %d سکه/واحد" % [game.get_resource_definitions()[resource_id].name,import_stock,price],15)
-				var import_button = owner._add_button("سفارش ۵ واحد "+game.get_resource_definitions()[resource_id].name+" از "+city.name,owner,"import_from_city",[city_id,resource_id,5])
-				import_button.disabled = game.get_free_storage() < 5 or game.get_transport_capacity_remaining() < 5 or game.get_available_money() < (5 * price + int(ceil(float(5 * price) * 0.10)))
+				var import_max = min(import_stock, min(game.get_free_storage(), game.get_transport_capacity_remaining()))
+				while import_max > 0:
+					var import_cost = import_max * price + max(1,int(ceil(float(import_max * price) * 0.10)))
+					if import_cost <= game.get_available_money():
+						break
+					import_max -= 1
+				var import_slider = _add_quantity_slider(owner, "مقدار سفارش "+game.get_resource_definitions()[resource_id].name+" از "+city.name, import_max)
+				var import_button = owner._add_button("سفارش از "+city.name,owner,"import_from_slider",[city_id,resource_id,import_slider])
+				import_button.disabled = import_max <= 0
 	owner._add_button(("▼ " if owner.commerce_section_expanded.shipments else "▶ ") + "محموله‌های در راه", owner, "_toggle_commerce_section", ["shipments"])
 	if owner.commerce_section_expanded.shipments:
 		if s.trade_shipments.is_empty():
@@ -76,3 +91,22 @@ static func build(owner, s):
 		for import_city_id in game.get_daily_trade_city_ids():
 			var import_city = game.get_import_cities()[import_city_id]
 			owner._add_button("قرارداد ۷ روزه: ۲ واحد چوب از "+import_city.name,owner,"make_import_contract",[import_city_id,"wood",2,7])
+
+
+static func _add_quantity_slider(owner, caption, maximum):
+	var safe_maximum = max(0, int(maximum))
+	var label = owner._add_label(caption+" : "+str(1 if safe_maximum > 0 else 0), 14)
+	var slider = HSlider.new()
+	slider.min_value = 1
+	slider.max_value = max(1, safe_maximum)
+	slider.step = 1
+	slider.value = 1
+	slider.custom_minimum_size = Vector2(0, 38)
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.editable = safe_maximum > 0
+	var parent = owner.active_section_container if owner.active_section_container != null else owner.content
+	parent.add_child(slider)
+	slider.value_changed.connect(func(value):
+		label.text = owner.PersianText.reshaper(caption+" : "+str(int(round(value))))
+	)
+	return slider
