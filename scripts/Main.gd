@@ -90,6 +90,8 @@ var last_layout_viewport_size = Vector2.ZERO
 var last_device_back_ticks = 0
 var help_overlay = null
 var help_body = null
+var daily_reward_layer = null
+var daily_reward_button = null
 var help_previous_page = "home"
 var help_scroll_original_index = 5
 
@@ -855,6 +857,164 @@ func _build_ui():
 	message_label.add_theme_color_override("font_color", Color("#ffffff"))
 	message_label.modulate = Color("#ffffff")
 	root.add_child(message_label)
+	_build_daily_reward_calendar_button()
+
+func _build_daily_reward_calendar_button():
+	daily_reward_button = Button.new()
+	daily_reward_button.name = "DailyRewardCalendarButton"
+	daily_reward_button.text = "📅"
+	daily_reward_button.tooltip_text = "تقویم جایزه‌های ورود"
+	daily_reward_button.custom_minimum_size = Vector2(54, 52)
+	daily_reward_button.position = Vector2(8, 8)
+	daily_reward_button.z_index = 15
+	_apply_font(daily_reward_button, 25)
+	_style_button(daily_reward_button, false)
+	daily_reward_button.pressed.connect(_open_daily_reward_calendar)
+	add_child(daily_reward_button)
+
+func _open_daily_reward_calendar():
+	if daily_reward_layer != null and is_instance_valid(daily_reward_layer):
+		daily_reward_layer.queue_free()
+	daily_reward_layer = CanvasLayer.new()
+	daily_reward_layer.name = "DailyRewardCalendarLayer"
+	daily_reward_layer.layer = 80
+	add_child(daily_reward_layer)
+	var backdrop = ColorRect.new()
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.color = Color(0.015, 0.035, 0.065, 0.88)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
+	daily_reward_layer.add_child(backdrop)
+	var center = CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.offset_left = 14
+	center.offset_right = -14
+	center.offset_top = 18
+	center.offset_bottom = -18
+	backdrop.add_child(center)
+	var card = PanelContainer.new()
+	card.custom_minimum_size = Vector2(min(540.0, get_viewport_rect().size.x - 36.0), 0)
+	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var card_style = StyleBoxFlat.new()
+	card_style.bg_color = Color("#14243a")
+	card_style.border_color = Color("#fbbf24")
+	card_style.set_border_width_all(2)
+	card_style.set_corner_radius_all(22)
+	card_style.content_margin_left = 14
+	card_style.content_margin_right = 14
+	card_style.content_margin_top = 16
+	card_style.content_margin_bottom = 16
+	card.add_theme_stylebox_override("panel", card_style)
+	center.add_child(card)
+	var layout = VBoxContainer.new()
+	layout.add_theme_constant_override("separation", 9)
+	card.add_child(layout)
+	var header = HBoxContainer.new()
+	layout.add_child(header)
+	var title = Label.new()
+	title.text = PersianText.reshaper("🎁 تقویم جایزه ورود")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_font(title, 21)
+	title.add_theme_color_override("font_color", Color("#fef3c7"))
+	header.add_child(title)
+	var close_button = Button.new()
+	close_button.text = "✕"
+	close_button.custom_minimum_size = Vector2(42, 40)
+	_apply_font(close_button, 21)
+	_style_button(close_button, false)
+	close_button.pressed.connect(_close_daily_reward_calendar)
+	header.add_child(close_button)
+	var status = game.get_login_reward_status()
+	var intro_text = "هر جایزه ۲۴ ساعت پس از دریافت قبلی باز می‌شود؛ اگر ۴۸ ساعت بگذرد و جایزه بعدی را نگیری، زنجیره از روز اول شروع می‌شود."
+	var intro = Label.new()
+	intro.text = PersianText.reshaper(intro_text)
+	intro.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_apply_font(intro, 13)
+	intro.add_theme_color_override("font_color", Color("#cbd5e1"))
+	layout.add_child(intro)
+	var scroll = ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(0, min(500.0, max(250.0, get_viewport_rect().size.y - 260.0)))
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	layout.add_child(scroll)
+	var days_column = VBoxContainer.new()
+	days_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	days_column.add_theme_constant_override("separation", 7)
+	scroll.add_child(days_column)
+	var rewards = game.get_login_reward_calendar()
+	var next_day = int(status.next_day)
+	var streak = int(status.streak)
+	for reward_data in rewards:
+		var day = int(reward_data.day)
+		var claimed = day <= streak and not (streak == 7 and next_day == 1)
+		var is_next = day == next_day
+		var row = PanelContainer.new()
+		var row_style = StyleBoxFlat.new()
+		row_style.bg_color = Color("#183b35") if claimed else (Color("#4a3715") if is_next and bool(status.can_claim) else Color("#1e293b"))
+		row_style.border_color = Color("#fbbf24") if day == 7 else (Color("#34d399") if claimed else Color("#475569"))
+		row_style.set_border_width_all(2 if day == 7 or is_next else 1)
+		row_style.set_corner_radius_all(12)
+		row_style.content_margin_left = 10
+		row_style.content_margin_right = 10
+		row_style.content_margin_top = 8
+		row_style.content_margin_bottom = 8
+		row.add_theme_stylebox_override("panel", row_style)
+		days_column.add_child(row)
+		var row_layout = HBoxContainer.new()
+		row_layout.add_theme_constant_override("separation", 8)
+		row.add_child(row_layout)
+		var day_label = Label.new()
+		day_label.text = PersianText.reshaper("روز %d%s" % [day, "  👑" if day == 7 else ""])
+		day_label.custom_minimum_size = Vector2(78, 0)
+		_apply_font(day_label, 16)
+		day_label.add_theme_color_override("font_color", Color("#fde68a") if day == 7 else Color("#f8fafc"))
+		row_layout.add_child(day_label)
+		var prize_label = Label.new()
+		prize_label.text = PersianText.reshaper("%s\n%d سکه  +  %d XP" % [str(reward_data.title), int(reward_data.coins), int(reward_data.xp)])
+		prize_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		prize_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_apply_font(prize_label, 14)
+		prize_label.add_theme_color_override("font_color", Color("#ffffff"))
+		row_layout.add_child(prize_label)
+		var state_label = Label.new()
+		if claimed:
+			state_label.text = "✓"
+		elif is_next and bool(status.can_claim):
+			state_label.text = "🎁"
+		elif is_next:
+			var remain = int(status.seconds_remaining)
+			state_label.text = "%02d:%02d" % [int(remain / 3600), int((remain % 3600) / 60)]
+		else:
+			state_label.text = "🔒"
+		state_label.custom_minimum_size = Vector2(64, 0)
+		state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_apply_font(state_label, 14)
+		row_layout.add_child(state_label)
+	var footer = Label.new()
+	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	footer.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_apply_font(footer, 14)
+	footer.add_theme_color_override("font_color", Color("#a7f3d0"))
+	if bool(status.can_claim):
+		footer.text = PersianText.reshaper("جایزه روز %d آماده دریافت است!" % next_day)
+	else:
+		var remain_seconds = int(status.seconds_remaining)
+		footer.text = PersianText.reshaper("جایزه بعدی تا %d ساعت و %d دقیقه دیگر باز می‌شود." % [int(remain_seconds / 3600), int((remain_seconds % 3600) / 60)])
+	layout.add_child(footer)
+	var claim_button = Button.new()
+	claim_button.text = PersianText.reshaper("🎁 دریافت جایزه روز %d" % next_day if bool(status.can_claim) else "⏳ منتظر جایزه بعدی")
+	claim_button.custom_minimum_size = Vector2(0, 52)
+	_apply_font(claim_button, 18)
+	_style_button(claim_button, true)
+	claim_button.disabled = not bool(status.can_claim)
+	claim_button.pressed.connect(claim_login_reward)
+	layout.add_child(claim_button)
+
+func _close_daily_reward_calendar():
+	if daily_reward_layer != null and is_instance_valid(daily_reward_layer):
+		daily_reward_layer.queue_free()
+	daily_reward_layer = null
 
 func toggle_storage_production():
 	storage_production_expanded = not storage_production_expanded
@@ -1485,7 +1645,7 @@ func show_page(page):
 			_add_help_section("جاده و ناوگان", "جاده و ناوگان برای جابه‌جایی و پشتیبانی تجارت کاربرد دارند و می‌توانند هزینه نگهداری داشته باشند. پیش از توسعه مسیرها، درآمد و توان پرداخت هزینه‌های نگهداری را بررسی کن.", "transport")
 			_add_label("🎯 مأموریت‌ها و سرگرمی‌های بلندمدت", 21)
 			_add_help_section("مأموریت‌های روزانه و هفتگی", "مأموریت‌های روزانه با گذر روز عوض می‌شوند و مأموریت هفتگی هدف بزرگ‌تری دارد. انجام مأموریت همیشه به معنی دریافت جایزه نیست؛ اگر دکمه دریافت جایزه نمایش داده شد، آن را بزن. علامت هدیه بالای دکمه پیشرفت و مأموریت‌ها یعنی جایزه آماده دریافت داری.", "missions")
-			_add_help_section("ورود روزانه و زنجیره ورود", "با ورود در روزهای مختلف، زنجیره ورودت را حفظ کن و هدیه روزانه را از شهر من دریافت کن. جایزه روزانه را باید دستی دریافت کنی؛ اگر ظرفیت خزانه پر باشد، ابتدا باید برای دریافت آن فضا ایجاد کنی.", "home")
+			_add_help_section("تقویم جایزه ورود", "از آیکون تقویم گوشه بالای صفحه، هر ۷ جایزه را ببین و جایزه آماده را دریافت کن. هر جایزه ۲۴ ساعت پس از دریافت قبلی باز می‌شود؛ اگر ۴۸ ساعت بگذرد و جایزه بعدی را نگیری، زنجیره از روز اول شروع می‌شود. روز هفتم صندوق طلایی ویژه دارد.", "home")
 			_add_help_section("شهرهای رقیب و رتبه‌بندی", "شهرهای همسایه در گذر روزها رشد می‌کنند. امتیاز توسعه شهر تو با امتیاز آن‌ها مقایسه می‌شود؛ برای بهتر شدن رتبه، جمعیت، سطح و توسعه شهر را بالا ببر. این رتبه‌بندی فعلاً در همین ذخیره بازی محاسبه می‌شود.", "progress")
 			_add_help_section("رازهای مخفی", "گاهی با گذر روزها یک سرنخ پنهان پیدا می‌کنی. سرنخ و هدفش را در پیشرفت شهر بخوان. وقتی نوار پیشرفت به هدف رسید، جایزه را از همان صفحه دستی دریافت کن.", "progress")
 			_add_help_section("پروژه‌های عظیم", "برج بزرگ، مرکز تجارت و فرودگاه پروژه‌های چندمرحله‌ای هستند. هر مرحله به سطح، جمعیت، ساختمان یا صادرات مشخص و هزینه جداگانه نیاز دارد. فقط یک پروژه عظیم را هم‌زمان می‌توانی پیش ببری؛ پیش از سرمایه‌گذاری، شرایط و موجودی آزاد خزانه را بررسی کن.", "progress")
@@ -1501,7 +1661,7 @@ func show_page(page):
 			_add_label("• خانه بساز، اما خدمات و شغل متناسب با جمعیت را فراموش نکن.", 16)
 			_add_label("• همه منابع را نفروش؛ برای تولید و ساخت‌وساز ذخیره نگه دار.", 16)
 			_add_label("• قبل از قبول درخواست شهروند یا شروع پروژه عظیم، هزینه و شرط‌ها را بخوان.", 16)
-			_add_label("• جایزه مأموریت، هدیه ورود و درآمد آفلاین را در صورت آماده بودن دستی دریافت کن.", 16)
+			_add_label("• جایزه مأموریت و درآمد آفلاین را در صورت آماده بودن دریافت کن؛ هدیه ورود در تقویم است.", 16)
 			_add_label("• هر روز گزارش شهر، رویداد هفتگی و رتبه رقبا را بررسی کن.", 16)
 			_add_button("🏙️ حالا برگردیم به شهر!", self, "return_home_from_menu")
 
@@ -2043,7 +2203,8 @@ func claim_login_reward():
 	var result = game.claim_login_reward()
 	if bool(result.get("ok", false)):
 		audio_manager.play_sfx("reward")
-	show_page("home")
+	_close_daily_reward_calendar()
+	show_page(current_page)
 	_show_message(str(result.message))
 
 func resolve_resident_request(request_id, accepted):
