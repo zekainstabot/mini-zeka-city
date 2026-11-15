@@ -2118,6 +2118,9 @@ func make_import_contract(city_id, resource_id, amount, days):
 	show_page("imports")
 	_show_message(result.message)
 
+func make_import_contract_from_slider(city_id, slider, days):
+	make_import_contract(city_id, "wood", int(round(slider.value)), days)
+
 func cancel_import(index):
 	var result = game.cancel_import_contract(index)
 	show_page("imports")
