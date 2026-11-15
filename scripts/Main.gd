@@ -1222,12 +1222,12 @@ func _open_daily_reward_calendar():
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	layout.add_child(scroll)
-	# Seven reward tiles: four in the first row and three in the second.
+	# Calendar-style layout: seven equal date cells, four above and three below.
 	var days_grid = GridContainer.new()
 	days_grid.columns = 4
 	days_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	days_grid.add_theme_constant_override("h_separation", 7)
-	days_grid.add_theme_constant_override("v_separation", 7)
+	days_grid.add_theme_constant_override("h_separation", 6)
+	days_grid.add_theme_constant_override("v_separation", 6)
 	scroll.add_child(days_grid)
 	var rewards = game.get_login_reward_calendar()
 	var next_day = int(status.next_day)
@@ -1237,37 +1237,46 @@ func _open_daily_reward_calendar():
 		var claimed = (day == 7) if streak == 7 and next_day == 1 else (day <= streak)
 		var is_next = day == next_day
 		var tile = PanelContainer.new()
-		tile.custom_minimum_size = Vector2(0, 116)
+		tile.custom_minimum_size = Vector2(0, 132)
 		tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var tile_style = StyleBoxFlat.new()
 		tile_style.bg_color = Color("#183b35") if claimed else (Color("#4a3715") if is_next and bool(status.can_claim) else Color("#1e293b"))
-		tile_style.border_color = Color("#fbbf24") if day == 7 else (Color("#34d399") if claimed else Color("#475569"))
+		tile_style.border_color = Color("#fbbf24") if day == 7 else (Color("#34d399") if claimed else (Color("#fbbf24") if is_next else Color("#64748b")))
 		tile_style.set_border_width_all(2 if day == 7 or is_next else 1)
-		tile_style.set_corner_radius_all(12)
-		tile_style.content_margin_left = 4
-		tile_style.content_margin_right = 4
-		tile_style.content_margin_top = 7
-		tile_style.content_margin_bottom = 6
+		tile_style.set_corner_radius_all(9)
+		tile_style.content_margin_left = 3
+		tile_style.content_margin_right = 3
+		tile_style.content_margin_top = 5
+		tile_style.content_margin_bottom = 5
 		tile.add_theme_stylebox_override("panel", tile_style)
 		days_grid.add_child(tile)
 		var tile_layout = VBoxContainer.new()
 		tile_layout.alignment = BoxContainer.ALIGNMENT_CENTER
-		tile_layout.add_theme_constant_override("separation", 4)
+		tile_layout.add_theme_constant_override("separation", 3)
 		tile.add_child(tile_layout)
-		var day_label = Label.new()
-		day_label.text = PersianText.reshaper("روز %d%s" % [day, " 👑" if day == 7 else ""])
-		day_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		day_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		_apply_font(day_label, 13)
-		day_label.add_theme_color_override("font_color", Color("#fde68a") if day == 7 else Color("#f8fafc"))
-		tile_layout.add_child(day_label)
+		var date_number = Label.new()
+		date_number.text = PersianText.reshaper("%d" % day)
+		date_number.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_apply_font(date_number, 24)
+		date_number.add_theme_color_override("font_color", Color("#fde68a") if day == 7 else Color("#f8fafc"))
+		tile_layout.add_child(date_number)
+		var day_caption = Label.new()
+		day_caption.text = PersianText.reshaper("روز %d%s" % [day, " 👑" if day == 7 else ""])
+		day_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		day_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_apply_font(day_caption, 10)
+		day_caption.add_theme_color_override("font_color", Color("#cbd5e1"))
+		tile_layout.add_child(day_caption)
+		var separator = HSeparator.new()
+		separator.add_theme_color_override("color", Color("#64748b"))
+		tile_layout.add_child(separator)
 		var prize_label = Label.new()
 		var item_text = "\n🏅 " + str(reward_data.get("item", "")) if reward_data.has("item") else ""
 		prize_label.text = PersianText.reshaper("%d سکه\n%d XP%s" % [int(reward_data.coins), int(reward_data.xp), item_text])
 		prize_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		prize_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		prize_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		_apply_font(prize_label, 12)
+		_apply_font(prize_label, 11)
 		prize_label.add_theme_color_override("font_color", Color("#ffffff"))
 		tile_layout.add_child(prize_label)
 		var state_label = Label.new()
@@ -1281,7 +1290,7 @@ func _open_daily_reward_calendar():
 		else:
 			state_label.text = "🔒"
 		state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_apply_font(state_label, 14)
+		_apply_font(state_label, 13)
 		tile_layout.add_child(state_label)
 	var footer = Label.new()
 	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
