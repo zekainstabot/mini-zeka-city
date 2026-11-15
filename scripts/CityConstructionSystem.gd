@@ -55,8 +55,13 @@ static func build(engine, id):
 		return {"ok":false,"message":"دریاچه بخشی از طبیعت شهر است و نیازی به ساخت ندارد؛ برای شروع صید، اسکله صیادی بساز."}
 	if not engine.BUILDINGS.has(id):
 		return {"ok":false,"message":"این ساختمان تعریف نشده است."}
-	if engine.get_active_construction_count() >= engine.MAX_CONCURRENT_CONSTRUCTIONS:
-		return {"ok":false,"message":"ظرفیت ساخت‌وساز تکمیل است؛ حداکثر ۲ ساختمان می‌توانند هم‌زمان در حال ساخت باشند. پس از تکمیل یکی از پروژه‌ها دوباره اقدام کن."}
+	var active_projects = int(engine.get_active_construction_count())
+	var unemployed_workers = max(0, int(engine.get_unemployed_count()))
+	var available_builder_slots = min(int(engine.MAX_CONCURRENT_CONSTRUCTIONS), unemployed_workers) - active_projects
+	if available_builder_slots <= 0:
+		if unemployed_workers <= active_projects:
+			return {"ok":false,"message":"کارگر بیکار کافی برای شروع پروژه جدید نداری؛ ابتدا نیروی کار آزاد شهر را افزایش بده یا منتظر تکمیل پروژه فعلی بمان."}
+		return {"ok":false,"message":"ظرفیت ساخت‌وساز تکمیل است؛ حداکثر ۲ پروژه هم‌زمان می‌توانند فعال باشند."}
 	var data = engine.BUILDINGS[id]
 	if int(state.population) < int(data.get("unlock", 0)):
 		return {"ok":false,"message":"برای ساخت این ساختمان جمعیت کافی نیست."}
@@ -178,7 +183,7 @@ static func get_construction_status(engine):
 		var id = str(construction.get("id", ""))
 		if not engine.BUILDINGS.has(id):
 			continue
-		result.append({"name":str(engine.BUILDINGS[id].name),"remaining":max(0,int(construction.get("finish_at",0))-now)})
+		result.append({"id":id,"name":str(engine.BUILDINGS[id].name),"remaining":max(0,int(construction.get("finish_at",0))-now),"district_name":str(construction.get("district_name","منطقه صنعتی خارج شهر")),"cost":int(engine.BUILDINGS[id].get("cost",0))})
 	return result
 
 static func demolish(engine, index):
