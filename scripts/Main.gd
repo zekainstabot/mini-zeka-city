@@ -53,6 +53,7 @@ var ambient_background_color = Color("#172536")
 var clock_label = null
 var clock_save_accumulator = 0.0
 var construction_check_accumulator = 0.0
+var storage_automation_accumulator = 0.0
 var construction_time_labels = []
 var game_paused = false
 var menu_panel = null
@@ -176,6 +177,16 @@ func _process(delta):
 		_update_mission_reward_badge()
 	clock_save_accumulator += delta
 	construction_check_accumulator += delta
+	storage_automation_accumulator += delta
+	if storage_automation_accumulator >= 60.0:
+		storage_automation_accumulator = fmod(storage_automation_accumulator, 60.0)
+		var storage_changed = false
+		for resource_id in game.get_resource_definitions().keys():
+			var storage_result = game.apply_storage_rule(str(resource_id), false)
+			if bool(storage_result.get("ok", false)) and (str(storage_result.get("message","")).begins_with("خرید انجام شد:") or str(storage_result.get("message","")).begins_with("فروش ")):
+				storage_changed = true
+		if storage_changed and current_page == "storage":
+			show_page("storage")
 	if construction_check_accumulator >= 1.0:
 		construction_check_accumulator = 0.0
 		_update_construction_time_labels()
@@ -2151,8 +2162,8 @@ func adjust_storage_rule(resource_id, field, delta):
 	show_page("storage")
 	_show_message(result.message)
 
-func set_storage_rule_slider(resource_id, field, value):
-	var result = game.set_storage_rule(str(resource_id), str(field), int(value))
+func set_storage_target_slider(resource_id, value):
+	var result = game.set_storage_target(str(resource_id), int(value))
 	show_page("storage")
 	_show_message(result.message)
 
