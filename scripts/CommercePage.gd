@@ -98,18 +98,21 @@ static func build(owner, s):
 
 static func _add_quantity_slider(owner, caption, maximum):
 	var safe_maximum = max(0, int(maximum))
-	var label = owner._add_label(caption+" : "+str(1 if safe_maximum > 0 else 0), 14)
+	var selected_amount = 1 if safe_maximum > 0 else 0
+	var label = owner._add_label(caption+" : %d از %d" % [selected_amount, safe_maximum], 15)
 	var slider = HSlider.new()
 	slider.min_value = 1
 	slider.max_value = max(1, safe_maximum)
 	slider.step = 1
-	slider.value = 1
-	slider.custom_minimum_size = Vector2(0, 38)
+	slider.value = selected_amount
+	# فضای بزرگ‌تر برای لمس و کشیدن راحت اسلایدر روی گوشی
+	slider.custom_minimum_size = Vector2(0, 56)
 	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.focus_mode = Control.FOCUS_NONE
 	slider.editable = safe_maximum > 0
 	var parent = owner.active_section_container if owner.active_section_container != null else owner.content
 	parent.add_child(slider)
 	slider.value_changed.connect(func(value):
-		label.text = owner.PersianText.reshaper(caption+" : "+str(int(round(value))))
+		label.text = owner.PersianText.reshaper(caption+" : %d از %d" % [int(round(value)), safe_maximum])
 	)
 	return slider
