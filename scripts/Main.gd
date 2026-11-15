@@ -100,6 +100,9 @@ var startup_loading_layer = null
 var startup_loading_bar = null
 var startup_loading_label = null
 var startup_loading_percent = null
+var startup_tip_label = null
+var startup_tip_timer = null
+var startup_tip_index = -1
 
 func _input(event):
 	if game != null:
@@ -369,7 +372,7 @@ func _create_startup_loading_screen():
 	layer.add_child(center)
 
 	var card = PanelContainer.new()
-	card.custom_minimum_size = Vector2(0, 220)
+	card.custom_minimum_size = Vector2(0, 285)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var card_style = StyleBoxFlat.new()
@@ -432,6 +435,54 @@ func _create_startup_loading_screen():
 	startup_loading_percent.add_theme_color_override("font_color", Color("#7dd3fc"))
 	layout.add_child(startup_loading_percent)
 
+	var tip_heading = Label.new()
+	tip_heading.text = "💡 نکته‌ای برای شهرت"
+	tip_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_font(tip_heading, 14)
+	tip_heading.add_theme_color_override("font_color", Color("#fbbf24"))
+	layout.add_child(tip_heading)
+
+	startup_tip_label = Label.new()
+	startup_tip_label.text = ""
+	startup_tip_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	startup_tip_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	startup_tip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	startup_tip_label.custom_minimum_size = Vector2(0, 48)
+	_apply_font(startup_tip_label, 14)
+	startup_tip_label.add_theme_color_override("font_color", Color("#dbeafe"))
+	layout.add_child(startup_tip_label)
+	_show_next_startup_tip()
+
+	startup_tip_timer = Timer.new()
+	startup_tip_timer.wait_time = 4.0
+	startup_tip_timer.one_shot = false
+	startup_tip_timer.timeout.connect(_show_next_startup_tip)
+	layer.add_child(startup_tip_timer)
+	startup_tip_timer.start()
+
+
+func _show_next_startup_tip():
+	if startup_tip_label == null or not is_instance_valid(startup_tip_label):
+		return
+	var tips = [
+		"با اسلایدر بازار، مقدار خرید و فروش هر کالا رو دقیق انتخاب کن.",
+		"برای انبار، موجودی هدف تعیین کن تا مازاد فروخته و کمبود جبران بشه.",
+		"مدیریت پول شهر مهمه؛ قبل از خرید، موجودی خزانه رو بررسی کن.",
+		"برای توسعه محله‌های بعدی، سطح جاده موردنیاز رو ارتقا بده.",
+		"از بخش خدمات شهری، وضعیت پوشش خدمات و زیرساخت‌ها رو بررسی کن.",
+		"تولید داخلی می‌تونه نیاز شهر رو تأمین کنه؛ ظرفیت انبار رو هم در نظر بگیر.",
+		"با تکمیل مأموریت‌ها و چالش‌ها، پاداش‌های شهر رو دریافت کن.",
+		"در بازار، صادرات راهی برای فروش کالاهای مازاد شهره."
+	]
+	if tips.size() <= 1:
+		startup_tip_index = 0
+	else:
+		var next_index = randi_range(0, tips.size() - 1)
+		while next_index == startup_tip_index:
+			next_index = randi_range(0, tips.size() - 1)
+		startup_tip_index = next_index
+	startup_tip_label.text = PersianText.reshaper(tips[startup_tip_index])
+
 
 func _set_startup_progress(value: int, message: String):
 	var safe_value = clampi(value, 0, 100)
@@ -452,6 +503,8 @@ func _finish_startup_loading():
 	startup_loading_bar = null
 	startup_loading_label = null
 	startup_loading_percent = null
+	startup_tip_label = null
+	startup_tip_timer = null
 
 
 
