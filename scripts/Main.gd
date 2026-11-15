@@ -2138,6 +2138,18 @@ func sell_item(id, amount):
 	show_page("market")
 	_show_message(result.message)
 
+func buy_item_from_slider(id, slider):
+	buy_item(id, int(round(slider.value)))
+
+func sell_item_from_slider(id, slider):
+	sell_item(id, int(round(slider.value)))
+
+func export_from_slider(city_id, resource_id, slider):
+	export_to_city(city_id, resource_id, int(round(slider.value)))
+
+func import_from_slider(city_id, resource_id, slider):
+	import_from_city(city_id, resource_id, int(round(slider.value)))
+
 
 func toggle_current_district(district_id):
 	var key = str(district_id)
