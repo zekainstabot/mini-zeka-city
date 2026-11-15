@@ -40,9 +40,20 @@ func _ready():
 	environment_player = AudioStreamPlayer.new()
 	environment_player.name = "OriginalCitySoundscape"
 	add_child(environment_player)
-	_apply_music()
 	_apply_effects()
+
+func configure_startup_night_mode(value):
+	night_mode = bool(value)
+	if night_mode:
+		environment_mode = "night"
+	else:
+		environment_mode = _choose_day_environment()
+
+
+func start_ambience():
+	_apply_music()
 	_apply_environment()
+
 
 func _save_settings():
 	settings.set_value("audio", "music_enabled", music_enabled)
