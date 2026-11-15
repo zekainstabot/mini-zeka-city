@@ -821,6 +821,9 @@ func _build_ui():
 		_apply_font(b, 17 if compact_layout else 18)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_style_button(b, true)
+		if str(item.p) == "missions":
+			b.alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			b.text_direction = Control.TEXT_DIRECTION_RTL
 		navigation_buttons.append(b)
 		b.connect("pressed", Callable(self, "_on_navigation_pressed").bind(item.p, b, nav_title))
 		nav_item.add_child(b)
