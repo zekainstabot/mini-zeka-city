@@ -3,7 +3,7 @@ extends RefCounted
 # Builds city land expansion, roads, transport facilities, and fleet status.
 static func build(owner, s):
 	var game = owner.game
-	owner._add_label("🚧 زیرساخت و توسعه شهر",22)
+	owner._add_label("🏗️ توسعه شهر",22)
 	owner._add_label("🗺️ زمین و گسترش محدوده شهر",19)
 	owner._add_label("زمین شهر: %d قطعه | اشغال‌شده: %d | آزاد: %d" % [int(s.get("land_owned",10)),game.get_land_used(),game.get_land_free()],17)
 	owner._add_label("برای گسترش شهر زمین بخر؛ هر ساختمان چند قطعه از زمین را اشغال می‌کند.",15)
