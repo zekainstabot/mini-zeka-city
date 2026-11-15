@@ -30,11 +30,14 @@ static func build(owner, s):
 		else:
 			owner._add_button("پذیرفتن و تعهد ساخت",owner,"resolve_resident_request",[int(resident_request.get("id",0)),true])
 			owner._add_button("رد درخواست",owner,"resolve_resident_request",[int(resident_request.get("id",0)),false])
-	owner._add_label("روش جذب شهروند: " + ("خودکار" if str(s.get("citizen_recruitment_mode","auto")) == "auto" else "دستی"), 18)
-	var auto_recruit_button = owner._add_button("فعال‌کردن جذب خودکار", owner, "set_recruitment_mode", ["auto"])
-	var manual_recruit_button = owner._add_button("فعال‌کردن جذب دستی", owner, "set_recruitment_mode", ["manual"])
-	auto_recruit_button.disabled = str(s.get("citizen_recruitment_mode","auto")) == "auto"
-	manual_recruit_button.disabled = str(s.get("citizen_recruitment_mode","auto")) == "manual"
+	var recruitment_mode = str(s.get("citizen_recruitment_mode","auto"))
+	var is_auto_recruitment = recruitment_mode == "auto"
+	var next_recruitment_mode = "manual" if is_auto_recruitment else "auto"
+	var current_recruitment_label = "خودکار" if is_auto_recruitment else "دستی"
+	var next_recruitment_label = "دستی" if is_auto_recruitment else "خودکار"
+	owner._add_label("روش جذب شهروند", 18)
+	var recruitment_toggle = owner._add_button("جذب %s ✓  |  تغییر به جذب %s" % [current_recruitment_label,next_recruitment_label], owner, "set_recruitment_mode", [next_recruitment_mode])
+	owner._style_button(recruitment_toggle, true)
 	owner._add_label("درخواست‌های در انتظار: %d" % s.get("citizen_requests", []).size(), 18)
 	for request_index in range(s.get("citizen_requests", []).size()):
 		var request = s.citizen_requests[request_index]
