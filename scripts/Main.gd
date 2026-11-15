@@ -352,6 +352,26 @@ func _open_city_name_setup(first_time = false):
 	var layout = VBoxContainer.new()
 	layout.add_theme_constant_override("separation", 14)
 	card.add_child(layout)
+	if city_name_setup_first_time:
+		var brand_badge = PanelContainer.new()
+		brand_badge.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		var brand_style = StyleBoxFlat.new()
+		brand_style.bg_color = Color("#102f46")
+		brand_style.border_color = Color("#38bdf8")
+		brand_style.set_border_width_all(1)
+		brand_style.set_corner_radius_all(18)
+		brand_style.content_margin_left = 18
+		brand_style.content_margin_right = 18
+		brand_style.content_margin_top = 7
+		brand_style.content_margin_bottom = 7
+		brand_badge.add_theme_stylebox_override("panel", brand_style)
+		var brand_text = Label.new()
+		brand_text.text = "✦  zekamediafa  ✦"
+		brand_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_apply_font(brand_text, 14)
+		brand_text.add_theme_color_override("font_color", Color("#7dd3fc"))
+		brand_badge.add_child(brand_text)
+		layout.add_child(brand_badge)
 	var title = Label.new()
 	title.text = PersianText.reshaper("به شهر خودت خوش اومدی! 🏙️" if city_name_setup_first_time else "نام شهر رو تغییر بده")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
