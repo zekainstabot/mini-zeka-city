@@ -894,7 +894,13 @@ func _build_daily_reward_calendar_button():
 	daily_reward_button.text = "📅"
 	daily_reward_button.tooltip_text = "تقویم جایزه‌های ورود"
 	daily_reward_button.custom_minimum_size = Vector2(54, 52)
-	daily_reward_button.position = Vector2(8, 8)
+	# Keep the calendar at the upper-left with enough inset from the phone edges.
+	daily_reward_button.layout_direction = Control.LAYOUT_DIRECTION_LTR
+	daily_reward_button.anchor_left = 0.0
+	daily_reward_button.anchor_top = 0.0
+	daily_reward_button.anchor_right = 0.0
+	daily_reward_button.anchor_bottom = 0.0
+	daily_reward_button.position = Vector2(18, 48)
 	daily_reward_button.z_index = 15
 	_apply_font(daily_reward_button, 25)
 	_style_button(daily_reward_button, false)
