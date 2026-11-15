@@ -97,6 +97,7 @@ var navigation_buttons = []
 var menu_card = null
 var exit_overlay = null
 var last_layout_viewport_size = Vector2.ZERO
+var safe_area_insets = Vector4.ZERO
 var last_device_back_ticks = 0
 var help_overlay = null
 var help_body = null
@@ -391,11 +392,11 @@ func _create_startup_loading_screen():
 
 	var center = CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	center.offset_left = 24
-	center.offset_right = -24
-	# Shift the card 14 px downward so its title does not sit beneath the camera cutout.
-	center.offset_top = 38
-	center.offset_bottom = -10
+	var loading_safe = _get_safe_area_insets()
+	center.offset_left = loading_safe.x + 16.0
+	center.offset_right = -(loading_safe.z + 16.0)
+	center.offset_top = loading_safe.y + 24.0
+	center.offset_bottom = -(loading_safe.w + 16.0)
 	layer.add_child(center)
 
 	var card = PanelContainer.new()
@@ -546,8 +547,11 @@ func _update_city_name_keyboard_position():
 	# The capped offset keeps the title and action buttons visible on short screens.
 	var upward_shift = minf(float(keyboard_height) * 0.35, 140.0) if keyboard_height > 0 else 0.0
 	# Keep the city-name card slightly lower to clear the phone camera/notch area.
-	city_name_center_container.offset_top = 38.0 - upward_shift
-	city_name_center_container.offset_bottom = -10.0 - upward_shift
+	var modal_safe = _get_safe_area_insets()
+	city_name_center_container.offset_left = modal_safe.x + 16.0
+	city_name_center_container.offset_right = -(modal_safe.z + 16.0)
+	city_name_center_container.offset_top = modal_safe.y + 16.0 - upward_shift
+	city_name_center_container.offset_bottom = -(modal_safe.w + 16.0) - upward_shift
 
 
 func _open_city_name_setup(first_time = false):
@@ -571,10 +575,11 @@ func _open_city_name_setup(first_time = false):
 	city_name_overlay.add_child(shade)
 	var center = CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	center.offset_left = 24
-	center.offset_right = -24
-	center.offset_top = 24
-	center.offset_bottom = -24
+	var modal_safe = _get_safe_area_insets()
+	center.offset_left = modal_safe.x + 16.0
+	center.offset_right = -(modal_safe.z + 16.0)
+	center.offset_top = modal_safe.y + 16.0
+	center.offset_bottom = -(modal_safe.w + 16.0)
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	city_name_center_container = center
 	city_name_keyboard_height = -1
@@ -706,6 +711,40 @@ func _close_city_name_setup():
 func _on_viewport_size_changed():
 	call_deferred("_apply_responsive_layout")
 
+func _get_safe_area_insets():
+	# Convert Android's physical safe-area rectangle into the current game viewport.
+	var viewport_size = get_viewport_rect().size
+	var screen_size = DisplayServer.screen_get_size()
+	if screen_size.x <= 0 or screen_size.y <= 0:
+		return Vector4.ZERO
+	var safe_rect = DisplayServer.get_display_safe_area()
+	if safe_rect.size.x <= 0 or safe_rect.size.y <= 0:
+		return Vector4.ZERO
+	var scale_x = viewport_size.x / float(screen_size.x)
+	var scale_y = viewport_size.y / float(screen_size.y)
+	return Vector4(
+		maxf(0.0, float(safe_rect.position.x) * scale_x),
+		maxf(0.0, float(safe_rect.position.y) * scale_y),
+		maxf(0.0, float(screen_size.x - safe_rect.position.x - safe_rect.size.x) * scale_x),
+		maxf(0.0, float(screen_size.y - safe_rect.position.y - safe_rect.size.y) * scale_y)
+	)
+
+func _apply_safe_area_to_floating_controls():
+	var inset = safe_area_insets
+	if daily_reward_button != null and is_instance_valid(daily_reward_button):
+		daily_reward_button.position = Vector2(inset.x + 16.0, inset.y + 24.0)
+	if menu_button != null and is_instance_valid(menu_button):
+		menu_button.position = Vector2(inset.x + 105.0, inset.y + 24.0)
+	if help_button != null and is_instance_valid(help_button):
+		help_button.position = Vector2(inset.x + 181.0, inset.y + 26.0)
+	if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
+		construction_capacity_button.position = Vector2(inset.x + 16.0, inset.y + 96.0)
+	if day_night_hud != null and is_instance_valid(day_night_hud):
+		day_night_hud.offset_right = -(inset.z + 16.0)
+		day_night_hud.offset_left = -(inset.z + 188.0)
+		day_night_hud.offset_top = inset.y + 24.0
+		day_night_hud.offset_bottom = inset.y + 84.0
+
 func _apply_responsive_layout():
 	if main_layout == null or not is_instance_valid(main_layout):
 		return
@@ -721,13 +760,15 @@ func _apply_responsive_layout():
 	var compact = viewport_size.x < 900.0
 	var narrow = viewport_size.x < 380.0
 	var short_screen = viewport_size.y < 500.0
-	var horizontal_margin = 18.0 if narrow else (22.0 if compact else 28.0)
-	var top_margin = 18.0 if short_screen else (40.0 if compact else 36.0)
-	var bottom_margin = 18.0 if short_screen else (28.0 if compact else 26.0)
-	main_layout.offset_left = horizontal_margin
-	main_layout.offset_right = -horizontal_margin
-	main_layout.offset_top = top_margin
-	main_layout.offset_bottom = -bottom_margin
+	var horizontal_margin = 16.0 if narrow else 22.0
+	var top_margin = 24.0 if not short_screen else 18.0
+	var bottom_margin = 24.0 if not short_screen else 18.0
+	safe_area_insets = _get_safe_area_insets()
+	main_layout.offset_left = safe_area_insets.x + horizontal_margin
+	main_layout.offset_right = -(safe_area_insets.z + horizontal_margin)
+	main_layout.offset_top = safe_area_insets.y + top_margin
+	main_layout.offset_bottom = -(safe_area_insets.w + bottom_margin)
+	_apply_safe_area_to_floating_controls()
 	main_layout.add_theme_constant_override("separation", 8 if viewport_size.y < 500.0 else (12 if compact else 12))
 	if main_navigation_grid != null and is_instance_valid(main_navigation_grid):
 		# Keep three columns on wider landscape phones so navigation does not
@@ -904,10 +945,11 @@ func _build_ui():
 	menu_layer.add_child(help_overlay)
 	var help_center = CenterContainer.new()
 	help_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	help_center.offset_left = 18
-	help_center.offset_right = -18
-	help_center.offset_top = 18
-	help_center.offset_bottom = -18
+	var help_safe = _get_safe_area_insets()
+	help_center.offset_left = help_safe.x + 16.0
+	help_center.offset_right = -(help_safe.z + 16.0)
+	help_center.offset_top = help_safe.y + 16.0
+	help_center.offset_bottom = -(help_safe.w + 16.0)
 	help_overlay.add_child(help_center)
 	var help_card = PanelContainer.new()
 	help_card.custom_minimum_size = Vector2(min(560.0, initial_viewport_size.x - 40.0), min(760.0, get_viewport_rect().size.y - 40.0))
@@ -955,10 +997,11 @@ func _build_ui():
 	help_layout.add_child(help_body)
 	var menu_center = CenterContainer.new()
 	menu_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	menu_center.offset_left = 24
-	menu_center.offset_right = -24
-	menu_center.offset_top = 24
-	menu_center.offset_bottom = -24
+	var menu_safe = _get_safe_area_insets()
+	menu_center.offset_left = menu_safe.x + 16.0
+	menu_center.offset_right = -(menu_safe.z + 16.0)
+	menu_center.offset_top = menu_safe.y + 16.0
+	menu_center.offset_bottom = -(menu_safe.w + 16.0)
 	menu_overlay.add_child(menu_center)
 	menu_card = PanelContainer.new()
 	menu_card.custom_minimum_size = Vector2(min(440.0, initial_viewport_size.x - 56.0), 0)
@@ -1306,10 +1349,11 @@ func _open_construction_details():
 	construction_details_layer.add_child(backdrop)
 	var center = CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	center.offset_left = 14
-	center.offset_right = -14
-	center.offset_top = 18
-	center.offset_bottom = -18
+	var construction_safe = _get_safe_area_insets()
+	center.offset_left = construction_safe.x + 14.0
+	center.offset_right = -(construction_safe.z + 14.0)
+	center.offset_top = construction_safe.y + 18.0
+	center.offset_bottom = -(construction_safe.w + 18.0)
 	backdrop.add_child(center)
 	var card = PanelContainer.new()
 	card.custom_minimum_size = Vector2(min(520.0, get_viewport_rect().size.x - 36.0), 0)
