@@ -2169,6 +2169,9 @@ func _on_navigation_pressed(page, button, title):
 	show_page(page)
 
 func show_page(page):
+	# City overview and citizen management are one combined destination.
+	if page == "citizens":
+		page = "home"
 	var civic_page_locked = page in ["municipality", "private_economy"] and not game.has_municipal_hall()
 	if civic_page_locked:
 		page = "home"
