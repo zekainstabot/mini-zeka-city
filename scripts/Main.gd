@@ -1540,8 +1540,9 @@ func return_home_from_menu():
 	show_page("home")
 
 func _restart_city():
-	# Close the entire menu backdrop before rebuilding the city.
-	# Hiding only menu_panel leaves the dark modal overlay on screen.
+	# Reset the game exactly like a first launch: create a blank city state,
+	# persist it so an interrupted setup is shown again on the next launch,
+	# then require the player to choose a name before entering the city.
 	_close_game_menu()
 	game_paused = false
 	clock_cycle_seconds = 0.0
@@ -1553,8 +1554,7 @@ func _restart_city():
 	game.save_game()
 	selected_home_building_id = ""
 	selected_demolish_quantity = 1
-	show_page("home")
-	_show_message("شهر جدید با موفقیت آغاز شد.")
+	_open_city_name_setup(true)
 
 func _update_progress_hud():
 	if game == null or level_status_label == null or xp_progress_bar == null:
