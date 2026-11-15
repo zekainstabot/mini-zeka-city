@@ -129,7 +129,8 @@ jobs:
                   // Headless Linux has no physical display orientation; this Godot warning is expected in CI.
                   if (
                     !text.includes("Orientation not supported by this display server") &&
-                    !text.includes("Virtual keyboard not supported by this display server")
+                    !text.includes("Virtual keyboard not supported by this display server") &&
+                    !text.includes("virtual_keyboard_get_height")
                   ) errors.push(text);
                 }
               });
