@@ -1363,7 +1363,8 @@ func _add_label(text, size=18):
 	_apply_font(label, size)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.custom_minimum_size = Vector2(0, 44 if get_viewport_rect().size.x < 900 else 34)
+	# Let wrapped Persian text determine its own height instead of clipping to a fixed row.
+	label.custom_minimum_size = Vector2.ZERO
 	label.add_theme_color_override("font_color", Color("#f8fafc"))
 	label.add_theme_color_override("font_color_shadow", Color("#0b1220"))
 	label.modulate = Color("#ffffff")
