@@ -645,7 +645,7 @@ func _build_ui():
 	help_center.offset_bottom = -18
 	help_overlay.add_child(help_center)
 	var help_card = PanelContainer.new()
-	help_card.custom_minimum_size = Vector2(min(560.0, screen_width - 40.0), min(760.0, get_viewport_rect().size.y - 40.0))
+	help_card.custom_minimum_size = Vector2(min(560.0, initial_viewport_size.x - 40.0), min(760.0, get_viewport_rect().size.y - 40.0))
 	help_card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	var help_card_style = StyleBoxFlat.new()
 	help_card_style.bg_color = Color("#101f32")
@@ -696,7 +696,7 @@ func _build_ui():
 	menu_center.offset_bottom = -24
 	menu_overlay.add_child(menu_center)
 	menu_card = PanelContainer.new()
-	menu_card.custom_minimum_size = Vector2(min(440.0, screen_width - 56.0), 0)
+	menu_card.custom_minimum_size = Vector2(min(440.0, initial_viewport_size.x - 56.0), 0)
 	menu_card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	var menu_card_style = StyleBoxFlat.new()
 	menu_card_style.bg_color = Color("#101f32")
