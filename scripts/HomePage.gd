@@ -5,7 +5,6 @@ static func build(owner, s):
 	var game = owner.game
 	owner._add_label("وضعیت کلی شهر", 22)
 	owner._show_welcome_mission_hint()
-	owner._add_label("سطح شهر %d" % s.level, 19)
 	var weekly_city_event = game.get_weekly_city_event()
 	owner._add_label("🌟 رویداد این هفته: %s" % str(weekly_city_event.get("title","")),17)
 	owner._add_label("%s | اثر: %s" % [str(weekly_city_event.get("description","")),str(weekly_city_event.get("effect",""))],14)
@@ -17,18 +16,12 @@ static func build(owner, s):
 		owner._add_label(str(pending_decision.get("description","")),15)
 		for decision_option in pending_decision.get("options", []):
 			owner._add_button(str(decision_option.get("label","انتخاب")),owner,"resolve_city_decision",[str(decision_option.get("id",""))])
-	var rival_standings = game.get_rival_standings()
-	var my_rank = 0
-	for rival_row in rival_standings:
-		if bool(rival_row.get("is_player",false)):
-			my_rank = int(rival_row.get("rank",0))
-	owner._add_label("🏁 جایگاه فعلی شهر در رقابت: رتبه %d از %d" % [my_rank,rival_standings.size()],16)
 	var recent_city_events = s.get("city_event_history",[])
 	if not recent_city_events.is_empty():
 		var recent_event = recent_city_events[recent_city_events.size()-1]
 		owner._add_label("🎲 آخرین اتفاق شهر | روز %d: %s" % [int(recent_event.get("day",s.day)),str(recent_event.get("title","رویداد"))],16)
 
-	owner._add_label("خزانه: %d / %d سکه  |  پول قفل‌شده: %d" % [s.money,game.get_treasury_capacity(),game.get_locked_money()], 20)
+	owner._add_label("خزانه: %d / %d سکه" % [s.money,game.get_treasury_capacity()], 20)
 	owner._add_label("جمعیت: %d نفر  |  شاغل: %d  |  بیکار: %d" % [s.population,game.get_employed_count(),game.get_unemployed_count()], 19)
 	var municipal_economy = s.get("last_economy", {})
 	var municipal_daily_income = int(municipal_economy.get("tax_income",0)) + int(municipal_economy.get("consumer_tax_income",0)) + int(municipal_economy.get("station_income",0)) + int(municipal_economy.get("road_income",0))
@@ -110,8 +103,6 @@ static func build(owner, s):
 		owner._add_label("آخرین تراز روزانه: %d سکه" % int(home_economy.get("net_cashflow",0)), 17)
 		owner._add_label("درآمد ایستگاه‌ها و پایانه‌ها: %d سکه" % int(home_economy.get("station_income",0)), 16)
 		owner._add_label("عوارض جاده‌ای: %d سکه" % int(home_economy.get("road_income",0)), 16)
-	var save_city_button = owner._add_button("💾 ذخیره شهر", owner, "save_now")
-	owner._style_button(save_city_button, false)
 	var brand_handle = owner._add_label("zekamediafa", 13)
 	brand_handle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	brand_handle.add_theme_color_override("font_color", Color("#94a3b8"))
