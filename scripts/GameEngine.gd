@@ -688,9 +688,7 @@ func _normalize_state():
 		var saved_rule = state.storage_rules.get(resource_id, {})
 		if typeof(saved_rule) != TYPE_DICTIONARY:
 			saved_rule = {}
-		state.storage_rules[resource_id] = {"minimum":max(0,int(saved_rule.get("minimum",10))),"maximum":max(10,int(saved_rule.get("maximum",40))),"low_action":str(saved_rule.get("low_action","market")),"high_action":str(saved_rule.get("high_action","market"))}
-		if int(state.storage_rules[resource_id].maximum) <= int(state.storage_rules[resource_id].minimum):
-			state.storage_rules[resource_id].maximum = int(state.storage_rules[resource_id].minimum) + 5
+		state.storage_rules[resource_id] = {"target":max(0,int(saved_rule.get("target",saved_rule.get("maximum",40)))),"low_action":str(saved_rule.get("low_action","market")),"high_action":"market"}
 	if typeof(state.get("market_stock", null)) != TYPE_DICTIONARY:
 		state.market_stock = {}
 	if typeof(state.get("trade_remaining", null)) != TYPE_DICTIONARY:
@@ -993,6 +991,9 @@ func get_storage_rule(resource_id):
 
 func set_storage_rule(resource_id, field, value):
 	return StorageSystem.set_storage_rule(self, resource_id, field, value)
+
+func set_storage_target(resource_id, value):
+	return StorageSystem.set_storage_target(self, resource_id, value)
 
 
 func toggle_storage_action(resource_id, level):
