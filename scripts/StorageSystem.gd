@@ -58,7 +58,7 @@ static func apply_storage_rule(engine, resource_id, manual=false):
 	var target = int(rule.get("target",40))
 	if current < target:
 		if str(rule.get("low_action","market")) == "factory":
-			return {"ok":true,"message":"تأمین %s به تولید کارخانه‌ها سپرده شده است؛ تولید طبق چرخه عادی شهر انجام می‌شود." % engine.RESOURCES[id].name}
+			return {"ok":true,"message":"خرید خودکار %s غیرفعال است؛ این کالا فقط از تولید عادی شهر تأمین می‌شود." % engine.RESOURCES[id].name}
 		var amount_to_buy = min(target-current, min(int(state.market_stock.get(id,0)), engine.get_free_storage()))
 		if amount_to_buy <= 0:
 			return {"ok":false,"message":"برای تأمین %s موجودی بازار یا فضای خالی انبار کافی نیست." % engine.RESOURCES[id].name}
