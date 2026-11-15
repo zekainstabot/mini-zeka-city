@@ -50,7 +50,7 @@ static func build(owner, s):
 			if changed:
 				owner.set_storage_target_slider(str(id), int(round(target_slider.value)))
 		)
-		owner._add_label("اگر موجودی کمتر شود: "+("خرید خودکار از بازار" if str(rule.get("low_action","market")) == "market" else "اولویت تولید کارخانه‌ها"),15)
+		owner._add_label("اگر موجودی کمتر شود: "+("خرید خودکار از بازار" if str(rule.get("low_action","market")) == "market" else "تولید داخلی شهر (بدون خرید بازار)"),15)
 		owner._add_button("تغییر منبع تأمین",owner,"toggle_storage_low_action",[id])
 		owner._add_label("اگر موجودی بیشتر شود: فروش خودکار مازاد به بازار",15)
 		owner.active_section_container = null
