@@ -56,6 +56,9 @@ var clock_label = null
 var clock_save_accumulator = 0.0
 var clock_displayed_second = -1
 var construction_check_accumulator = 0.0
+var construction_hud_refresh_accumulator = 0.0
+var construction_capacity_button = null
+var construction_details_layer = null
 var storage_automation_accumulator = 0.0
 var construction_time_labels = []
 var game_paused = false
@@ -210,6 +213,10 @@ func _process(delta):
 				storage_changed = true
 		if storage_changed and current_page == "storage":
 			show_page("storage")
+	construction_hud_refresh_accumulator += delta
+	if construction_hud_refresh_accumulator >= 1.0:
+		construction_hud_refresh_accumulator = 0.0
+		_update_construction_capacity_button()
 	if construction_check_accumulator >= 1.0:
 		construction_check_accumulator = 0.0
 		_update_construction_time_labels()
@@ -1150,6 +1157,7 @@ func _build_ui():
 	message_label.modulate = Color("#ffffff")
 	root.add_child(message_label)
 	_build_daily_reward_calendar_button()
+	_build_construction_capacity_button()
 
 func _build_daily_reward_calendar_button():
 	daily_reward_button = Button.new()
@@ -1172,6 +1180,161 @@ func _build_daily_reward_calendar_button():
 		daily_reward_button.add_theme_stylebox_override(style_name, transparent_calendar_style)
 	daily_reward_button.pressed.connect(_open_daily_reward_calendar)
 	add_child(daily_reward_button)
+
+
+func _get_available_construction_workers():
+	if game == null:
+		return 0
+	var unemployed = max(0, int(game.get_unemployed_count()))
+	var active_projects = int(game.get_active_construction_count())
+	return clampi(min(int(game.MAX_CONCURRENT_CONSTRUCTIONS), unemployed) - active_projects, 0, int(game.MAX_CONCURRENT_CONSTRUCTIONS))
+
+
+func _build_construction_capacity_button():
+	construction_capacity_button = Button.new()
+	construction_capacity_button.name = "ConstructionCapacityButton"
+	construction_capacity_button.text = "👷  0/2"
+	construction_capacity_button.custom_minimum_size = Vector2(112, 54)
+	construction_capacity_button.anchor_left = 0.0
+	construction_capacity_button.anchor_top = 0.0
+	construction_capacity_button.anchor_right = 0.0
+	construction_capacity_button.anchor_bottom = 0.0
+	construction_capacity_button.position = Vector2(22, 116)
+	construction_capacity_button.z_index = 15
+	construction_capacity_button.layout_direction = Control.LAYOUT_DIRECTION_LTR
+	construction_capacity_button.tooltip_text = "ظرفیت و جزئیات ساخت‌وساز"
+	_apply_font(construction_capacity_button, 19)
+	_style_button(construction_capacity_button, false)
+	construction_capacity_button.pressed.connect(_open_construction_details)
+	add_child(construction_capacity_button)
+	_update_construction_capacity_button()
+
+
+func _update_construction_capacity_button():
+	if construction_capacity_button == null or not is_instance_valid(construction_capacity_button) or game == null:
+		return
+	var available = _get_available_construction_workers()
+	construction_capacity_button.text = "👷  %d/2" % available
+	construction_capacity_button.tooltip_text = "کارگر آزاد برای ساخت‌وساز: %d از ۲" % available
+
+
+func _open_construction_details():
+	if construction_details_layer != null and is_instance_valid(construction_details_layer):
+		construction_details_layer.queue_free()
+	construction_details_layer = CanvasLayer.new()
+	construction_details_layer.name = "ConstructionDetailsLayer"
+	construction_details_layer.layer = 81
+	add_child(construction_details_layer)
+	var backdrop = ColorRect.new()
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.color = Color(0.015, 0.035, 0.065, 0.88)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
+	construction_details_layer.add_child(backdrop)
+	var center = CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.offset_left = 14
+	center.offset_right = -14
+	center.offset_top = 18
+	center.offset_bottom = -18
+	backdrop.add_child(center)
+	var card = PanelContainer.new()
+	card.custom_minimum_size = Vector2(min(520.0, get_viewport_rect().size.x - 36.0), 0)
+	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var card_style = StyleBoxFlat.new()
+	card_style.bg_color = Color("#14243a")
+	card_style.border_color = Color("#f59e0b")
+	card_style.set_border_width_all(2)
+	card_style.set_corner_radius_all(20)
+	card_style.content_margin_left = 16
+	card_style.content_margin_right = 16
+	card_style.content_margin_top = 16
+	card_style.content_margin_bottom = 16
+	card.add_theme_stylebox_override("panel", card_style)
+	center.add_child(card)
+	var layout = VBoxContainer.new()
+	layout.add_theme_constant_override("separation", 10)
+	card.add_child(layout)
+	var header = HBoxContainer.new()
+	layout.add_child(header)
+	var title = Label.new()
+	title.text = PersianText.reshaper("👷 مدیریت ساخت‌وساز")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_font(title, 21)
+	title.add_theme_color_override("font_color", Color("#fde68a"))
+	header.add_child(title)
+	var close_button = Button.new()
+	close_button.text = "✕"
+	close_button.custom_minimum_size = Vector2(42, 40)
+	_apply_font(close_button, 21)
+	_style_button(close_button, false)
+	close_button.pressed.connect(_close_construction_details)
+	header.add_child(close_button)
+	var available = _get_available_construction_workers()
+	var summary = Label.new()
+	summary.text = PersianText.reshaper("کارگر آزاد برای پروژه جدید: %d از ۲" % available)
+	summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_font(summary, 17)
+	summary.add_theme_color_override("font_color", Color("#a7f3d0") if available > 0 else Color("#fca5a5"))
+	layout.add_child(summary)
+	var projects = game.get_construction_status()
+	if projects.is_empty():
+		var empty_label = Label.new()
+		empty_label.text = PersianText.reshaper("در حال حاضر هیچ پروژه‌ای در دست ساخت نیست.")
+		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		empty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_apply_font(empty_label, 16)
+		layout.add_child(empty_label)
+	else:
+		for index in range(projects.size()):
+			var project = projects[index]
+			var project_panel = PanelContainer.new()
+			var project_style = StyleBoxFlat.new()
+			project_style.bg_color = Color("#1e344b")
+			project_style.border_color = Color("#64748b")
+			project_style.set_border_width_all(1)
+			project_style.set_corner_radius_all(12)
+			project_style.content_margin_left = 12
+			project_style.content_margin_right = 12
+			project_style.content_margin_top = 10
+			project_style.content_margin_bottom = 10
+			project_panel.add_theme_stylebox_override("panel", project_style)
+			layout.add_child(project_panel)
+			var project_info = VBoxContainer.new()
+			project_info.add_theme_constant_override("separation", 5)
+			project_panel.add_child(project_info)
+			var project_name = Label.new()
+			project_name.text = PersianText.reshaper("پروژه %d: %s" % [index + 1, str(project.get("name", "ساختمان"))])
+			project_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			_apply_font(project_name, 18)
+			project_name.add_theme_color_override("font_color", Color("#f8fafc"))
+			project_info.add_child(project_name)
+			var location_label = Label.new()
+			location_label.text = PersianText.reshaper("محل ساخت: %s" % str(project.get("district_name", "منطقه صنعتی خارج شهر")))
+			location_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			_apply_font(location_label, 15)
+			location_label.add_theme_color_override("font_color", Color("#cbd5e1"))
+			project_info.add_child(location_label)
+			var remaining = int(project.get("remaining", 0))
+			var time_label = Label.new()
+			time_label.text = PersianText.reshaper("زمان باقی‌مانده: ") + _format_time_display(int(remaining / 60), remaining % 60)
+			time_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			_apply_font(time_label, 16)
+			time_label.add_theme_color_override("font_color", Color("#fde68a"))
+			project_info.add_child(time_label)
+			var cost_label = Label.new()
+			cost_label.text = PersianText.reshaper("هزینه پرداخت‌شده: %s سکه" % str(int(project.get("cost", 0))))
+			cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			_apply_font(cost_label, 14)
+			cost_label.add_theme_color_override("font_color", Color("#cbd5e1"))
+			project_info.add_child(cost_label)
+
+
+func _close_construction_details():
+	if construction_details_layer != null and is_instance_valid(construction_details_layer):
+		construction_details_layer.queue_free()
+	construction_details_layer = null
+
 
 func _open_daily_reward_calendar():
 	if daily_reward_layer != null and is_instance_valid(daily_reward_layer):
