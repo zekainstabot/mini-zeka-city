@@ -33,6 +33,8 @@ var header_label = null
 var brand_label = null
 var city_name_overlay = null
 var city_name_input = null
+var city_name_center_container = null
+var city_name_keyboard_height = -1
 var city_name_setup_first_time = false
 var ui_font = null
 var level_status_bar = null
@@ -158,6 +160,7 @@ func _input(event):
 
 func _process(delta):
 	_update_ambient_background(delta)
+	_update_city_name_keyboard_position()
 	if not touch_scroll_dragging and abs(horizontal_scroll_velocity) > 8.0 and game_scroll_container != null and is_instance_valid(game_scroll_container):
 		var horizontal_bar = game_scroll_container.get_h_scroll_bar()
 		var max_horizontal = max(0.0, horizontal_bar.max_value - horizontal_bar.page)
@@ -508,6 +511,20 @@ func _finish_startup_loading():
 
 
 
+func _update_city_name_keyboard_position():
+	if city_name_center_container == null or not is_instance_valid(city_name_center_container):
+		return
+	var keyboard_height = DisplayServer.virtual_keyboard_get_height()
+	if keyboard_height == city_name_keyboard_height:
+		return
+	city_name_keyboard_height = keyboard_height
+	# Move the complete name-entry card upward while the Android keyboard is open.
+	# The capped offset keeps the title and action buttons visible on short screens.
+	var upward_shift = minf(float(keyboard_height) * 0.35, 140.0) if keyboard_height > 0 else 0.0
+	city_name_center_container.offset_top = 24.0 - upward_shift
+	city_name_center_container.offset_bottom = -24.0 - upward_shift
+
+
 func _open_city_name_setup(first_time = false):
 	city_name_setup_first_time = bool(first_time)
 	if city_name_overlay != null and is_instance_valid(city_name_overlay):
@@ -534,6 +551,8 @@ func _open_city_name_setup(first_time = false):
 	center.offset_top = 24
 	center.offset_bottom = -24
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	city_name_center_container = center
+	city_name_keyboard_height = -1
 	city_name_overlay.add_child(center)
 	var card = PanelContainer.new()
 	card.custom_minimum_size = Vector2(max(0.0, min(520.0, get_viewport_rect().size.x - 48.0)), 0)
@@ -655,6 +674,8 @@ func _close_city_name_setup():
 			layer.queue_free()
 	city_name_overlay = null
 	city_name_input = null
+	city_name_center_container = null
+	city_name_keyboard_height = -1
 
 
 func _on_viewport_size_changed():
