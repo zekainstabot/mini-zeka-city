@@ -123,6 +123,3 @@ static func build(owner, s):
 					owner._add_label("سود در انتظار انتقال خودکار %s: %d سکه" % [str(building_definition.get("name", "ساختمان")), int(building.get("balance", 0))], 15)
 	if district_ids.size() == 0:
 		owner._add_label("هنوز ساختمانی در محله‌ای ساخته نشده است.", 15)
-	var has_started_first_building = not s.get("constructions", []).is_empty() or s.get("buildings", []).size() > 1
-	if has_started_first_building:
-		owner._add_label("💡 برای دیدن جزئیات ساختمان‌ها و وضعیت ساخت‌وساز، به بخش «شهر من» برو.", 17)
