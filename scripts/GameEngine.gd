@@ -363,7 +363,6 @@ func claim_login_reward():
 	var xp_message = _award_xp(xp)
 	state["login_reward_streak"] = day
 	state["login_reward_last_claim_unix"] = int(Time.get_unix_time_from_system())
-	save_game()
 	var special_text = ""
 	if day == 7:
 		state["login_reward_golden_medals"] = int(state.get("login_reward_golden_medals", 0)) + 1
