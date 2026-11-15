@@ -971,7 +971,8 @@ func _open_daily_reward_calendar():
 		day_label.add_theme_color_override("font_color", Color("#fde68a") if day == 7 else Color("#f8fafc"))
 		row_layout.add_child(day_label)
 		var prize_label = Label.new()
-		prize_label.text = PersianText.reshaper("%s\n%d سکه  +  %d XP" % [str(reward_data.title), int(reward_data.coins), int(reward_data.xp)])
+		var item_text = "\n🏅 " + str(reward_data.get("item", "")) if reward_data.has("item") else ""
+		prize_label.text = PersianText.reshaper("%s\n%d سکه  +  %d XP%s" % [str(reward_data.title), int(reward_data.coins), int(reward_data.xp), item_text])
 		prize_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		prize_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_apply_font(prize_label, 14)
