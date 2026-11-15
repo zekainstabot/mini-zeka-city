@@ -330,14 +330,14 @@ func _open_city_name_setup(first_time = false):
 	city_name_overlay.add_child(shade)
 	var center = CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	center.offset_left = 18
-	center.offset_right = -18
-	center.offset_top = 18
-	center.offset_bottom = -18
+	center.offset_left = 24
+	center.offset_right = -24
+	center.offset_top = 24
+	center.offset_bottom = -24
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	city_name_overlay.add_child(center)
 	var card = PanelContainer.new()
-	card.custom_minimum_size = Vector2(min(520.0, get_viewport_rect().size.x - 36.0), 0)
+	card.custom_minimum_size = Vector2(max(0.0, min(520.0, get_viewport_rect().size.x - 48.0)), 0)
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color("#14243a")
 	style.border_color = Color("#38bdf8")
@@ -475,10 +475,14 @@ func _apply_responsive_layout():
 	last_layout_viewport_size = viewport_size
 	var compact = viewport_size.x < 900.0
 	var narrow = viewport_size.x < 380.0
-	main_layout.offset_left = 12 if narrow else (18 if compact else 24)
-	main_layout.offset_right = -12 if narrow else (-18 if compact else -24)
-	main_layout.offset_top = 8 if viewport_size.y < 500.0 else (12 if compact else 22)
-	main_layout.offset_bottom = -8 if viewport_size.y < 500.0 else (12 if compact else -22)
+	var short_screen = viewport_size.y < 500.0
+	var horizontal_margin = 18.0 if narrow else (22.0 if compact else 28.0)
+	var top_margin = 18.0 if short_screen else (40.0 if compact else 36.0)
+	var bottom_margin = 18.0 if short_screen else (28.0 if compact else 26.0)
+	main_layout.offset_left = horizontal_margin
+	main_layout.offset_right = -horizontal_margin
+	main_layout.offset_top = top_margin
+	main_layout.offset_bottom = -bottom_margin
 	main_layout.add_theme_constant_override("separation", 8 if viewport_size.y < 500.0 else (12 if compact else 12))
 	if main_navigation_grid != null and is_instance_valid(main_navigation_grid):
 		# Keep three columns on wider landscape phones so navigation does not
@@ -540,12 +544,17 @@ func _build_ui():
 	root.name = "MainLayout"
 	root.anchor_right = 1
 	root.anchor_bottom = 1
-	var screen_width = get_viewport_rect().size.x
-	var compact_layout = screen_width < 900
-	root.offset_left = 28 if compact_layout else 24
-	root.offset_top = 28 if compact_layout else 34
-	root.offset_right = -32 if compact_layout else -24
-	root.offset_bottom = -16 if compact_layout else -22
+	var initial_viewport_size = get_viewport_rect().size
+	var compact_layout = initial_viewport_size.x < 900.0
+	var narrow_layout = initial_viewport_size.x < 380.0
+	var short_screen = initial_viewport_size.y < 500.0
+	var horizontal_margin = 18.0 if narrow_layout else (22.0 if compact_layout else 28.0)
+	var top_margin = 18.0 if short_screen else (40.0 if compact_layout else 36.0)
+	var bottom_margin = 18.0 if short_screen else (28.0 if compact_layout else 26.0)
+	root.offset_left = horizontal_margin
+	root.offset_top = top_margin
+	root.offset_right = -horizontal_margin
+	root.offset_bottom = -bottom_margin
 	root.add_theme_constant_override("separation", 16 if compact_layout else 12)
 	add_child(root)
 	header_label = Label.new()
