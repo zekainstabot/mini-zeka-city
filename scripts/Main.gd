@@ -855,6 +855,26 @@ func _build_ui():
 	help_button.add_theme_color_override("font_color_pressed", Color("#ffffff"))
 	help_button.connect("pressed", Callable(self, "_open_help"))
 	menu_row.add_child(help_button)
+
+	# Move the existing controls beside the daily calendar without changing
+	# their callbacks or modal behavior. Keep them as floating top-level controls.
+	menu_row.remove_child(menu_button)
+	menu_row.remove_child(help_button)
+	menu_row.visible = false
+	menu_button.anchor_left = 0.0
+	menu_button.anchor_top = 0.0
+	menu_button.anchor_right = 0.0
+	menu_button.anchor_bottom = 0.0
+	menu_button.position = Vector2(105, 48)
+	menu_button.z_index = 15
+	add_child(menu_button)
+	help_button.anchor_left = 0.0
+	help_button.anchor_top = 0.0
+	help_button.anchor_right = 0.0
+	help_button.anchor_bottom = 0.0
+	help_button.position = Vector2(181, 50)
+	help_button.z_index = 15
+	add_child(help_button)
 	# Full-screen modal menu dims the city and separates menu actions
 	# from the navigation and city controls behind it.
 	var menu_layer = CanvasLayer.new()
