@@ -818,7 +818,7 @@ func _build_ui():
 	nav.add_theme_constant_override("v_separation", 8)
 	root.add_child(nav)
 	navigation_buttons.clear()
-	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بانک و امور مالی","p":"bank"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار و تجارت","p":"commerce"},{"t":"زیرساخت و توسعه شهر","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش","p":"report"},{"t":"پیشرفت و مأموریت‌ها","p":"missions"},{"t":"🏆 رتبه‌بندی","p":"ranking"}]:
+	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بانک و امور مالی","p":"bank"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار و تجارت","p":"commerce"},{"t":"توسعه شهر","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش","p":"report"},{"t":"پیشرفت و مأموریت‌ها","p":"missions"},{"t":"🏆 رتبه‌بندی","p":"ranking"}]:
 		var nav_item = VBoxContainer.new()
 		nav_item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		nav_item.add_theme_constant_override("separation", 2)
@@ -829,7 +829,7 @@ func _build_ui():
 				"bank": nav_title = "بانک"
 				"private_economy": nav_title = "اقتصاد"
 				"commerce": nav_title = "بازار"
-				"transport": nav_title = "زیرساخت"
+				"transport": nav_title = "توسعه شهر"
 				"missions": nav_title = "پیشرفت"
 				"progress": nav_title = "پیشرفت"
 		var b = Button.new()
