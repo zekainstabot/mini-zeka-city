@@ -21,7 +21,6 @@ static func build(owner, s):
 		var recent_event = recent_city_events[recent_city_events.size()-1]
 		owner._add_label("🎲 آخرین اتفاق شهر | روز %d: %s" % [int(recent_event.get("day",s.day)),str(recent_event.get("title","رویداد"))],16)
 
-	owner._add_label("خزانه: %d / %d سکه" % [s.money,game.get_treasury_capacity()], 20)
 	owner._add_label("جمعیت: %d نفر  |  شاغل: %d  |  بیکار: %d" % [s.population,game.get_employed_count(),game.get_unemployed_count()], 19)
 	var municipal_economy = s.get("last_economy", {})
 	var municipal_daily_income = int(municipal_economy.get("tax_income",0)) + int(municipal_economy.get("consumer_tax_income",0)) + int(municipal_economy.get("station_income",0)) + int(municipal_economy.get("road_income",0))
