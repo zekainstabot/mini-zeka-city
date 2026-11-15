@@ -74,7 +74,8 @@ var storage_section_expanded = {}
 var storage_production_expanded = false
 var current_district_expanded = {}
 var active_section_container = null
-var mission_reward_badge = null
+var mission_navigation_button = null
+var mission_navigation_title = ""
 var mission_badge_refresh_timer = 0.0
 var mission_target_building_id = ""
 var mission_target_building_button = null
@@ -790,17 +791,6 @@ func _build_ui():
 		var nav_item = VBoxContainer.new()
 		nav_item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		nav_item.add_theme_constant_override("separation", 2)
-		if item.p == "missions":
-			mission_reward_badge = Label.new()
-			mission_reward_badge.text = ""
-			mission_reward_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			mission_reward_badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			mission_reward_badge.custom_minimum_size = Vector2(0, 30)
-			mission_reward_badge.add_theme_color_override("font_color", Color("#facc15"))
-			mission_reward_badge.add_theme_color_override("font_color_shadow", Color("#111827"))
-			mission_reward_badge.modulate = Color("#ffffff")
-			_apply_font(mission_reward_badge, 17)
-			nav_item.add_child(mission_reward_badge)
 		var nav_title = str(item.t)
 		if compact_layout:
 			match str(item.p):
@@ -824,6 +814,8 @@ func _build_ui():
 		if str(item.p) == "missions":
 			b.alignment = HORIZONTAL_ALIGNMENT_RIGHT
 			b.text_direction = Control.TEXT_DIRECTION_RTL
+			mission_navigation_button = b
+			mission_navigation_title = nav_title
 		navigation_buttons.append(b)
 		b.connect("pressed", Callable(self, "_on_navigation_pressed").bind(item.p, b, nav_title))
 		nav_item.add_child(b)
@@ -939,8 +931,8 @@ func _update_mission_reward_badge():
 			ready_count += 1
 		break
 
-	mission_reward_badge.text = PersianText.reshaper("🎁 %d جایزه آماده" % ready_count if ready_count > 0 else "")
-	mission_reward_badge.visible = ready_count > 0
+	if mission_navigation_button != null and is_instance_valid(mission_navigation_button):
+		mission_navigation_button.text = PersianText.reshaper(mission_navigation_title + (" 🎁" if ready_count > 0 else ""))
 
 func _create_menu_action(title, callback):
 	var button = Button.new()
