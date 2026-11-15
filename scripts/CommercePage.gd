@@ -99,20 +99,79 @@ static func build(owner, s):
 static func _add_quantity_slider(owner, caption, maximum):
 	var safe_maximum = max(0, int(maximum))
 	var selected_amount = 1 if safe_maximum > 0 else 0
-	var label = owner._add_label(caption+" : %d از %d" % [selected_amount, safe_maximum], 15)
+
+	# A compact card keeps the caption, live value and touch slider together.
+	var card = PanelContainer.new()
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var card_style = StyleBoxFlat.new()
+	card_style.bg_color = Color("#1B2838")
+	card_style.border_color = Color("#34465B")
+	card_style.set_border_width_all(1)
+	card_style.set_corner_radius_all(12)
+	card_style.content_margin_left = 12
+	card_style.content_margin_right = 12
+	card_style.content_margin_top = 8
+	card_style.content_margin_bottom = 8
+	card.add_theme_stylebox_override("panel", card_style)
+
+	var layout = VBoxContainer.new()
+	layout.add_theme_constant_override("separation", 3)
+	card.add_child(layout)
+
+	var value_label = Label.new()
+	value_label.text = owner.PersianText.reshaper(caption + " : %d از %d" % [selected_amount, safe_maximum])
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	owner._apply_font(value_label, 15)
+	value_label.add_theme_color_override("font_color", Color("#F8FAFC"))
+	layout.add_child(value_label)
+
 	var slider = HSlider.new()
 	slider.min_value = 1
 	slider.max_value = max(1, safe_maximum)
 	slider.step = 1
 	slider.value = selected_amount
-	# فضای بزرگ‌تر برای لمس و کشیدن راحت اسلایدر روی گوشی
-	slider.custom_minimum_size = Vector2(0, 56)
+	slider.custom_minimum_size = Vector2(0, 58)
 	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	slider.focus_mode = Control.FOCUS_NONE
 	slider.editable = safe_maximum > 0
+
+	var track = StyleBoxFlat.new()
+	track.bg_color = Color("#46566A")
+	track.set_corner_radius_all(6)
+	track.content_margin_top = 5
+	track.content_margin_bottom = 5
+	slider.add_theme_stylebox_override("slider", track)
+	var filled_track = StyleBoxFlat.new()
+	filled_track.bg_color = Color("#36A3D9")
+	filled_track.set_corner_radius_all(6)
+	filled_track.content_margin_top = 5
+	filled_track.content_margin_bottom = 5
+	slider.add_theme_stylebox_override("grabber_area", filled_track)
+	slider.add_theme_stylebox_override("grabber_area_highlight", filled_track)
+	layout.add_child(slider)
+
+	var limits = HBoxContainer.new()
+	limits.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var min_label = Label.new()
+	min_label.text = owner.PersianText.reshaper("۱")
+	min_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	min_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	owner._apply_font(min_label, 12)
+	min_label.add_theme_color_override("font_color", Color("#AAB8C8"))
+	var max_label = Label.new()
+	max_label.text = owner.PersianText.reshaper(str(safe_maximum))
+	max_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	max_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	owner._apply_font(max_label, 12)
+	max_label.add_theme_color_override("font_color", Color("#AAB8C8"))
+	limits.add_child(min_label)
+	limits.add_child(max_label)
+	layout.add_child(limits)
+
 	var parent = owner.active_section_container if owner.active_section_container != null else owner.content
-	parent.add_child(slider)
+	parent.add_child(card)
 	slider.value_changed.connect(func(value):
-		label.text = owner.PersianText.reshaper(caption+" : %d از %d" % [int(round(value)), safe_maximum])
+		value_label.text = owner.PersianText.reshaper(caption + " : %d از %d" % [int(round(value)), safe_maximum])
 	)
 	return slider
