@@ -26,7 +26,7 @@ static func _add_home_services_panel(owner, city_state):
 		total_coverage += int(city_state.get("services", {}).get(service_id, 0))
 	var average_coverage = int(round(float(total_coverage) / float(max(1, service_count))))
 	var header = Button.new()
-	header.text = owner.PersianText.reshaper(("%s  🏙️  خدمات و زیرساخت شهر" % ("▼" if owner.home_city_details_expanded else "▶")) + "     میانگین پوشش: %d%%" % average_coverage)
+	header.text = owner.PersianText.reshaper(("%s  🏙️  خدمات شهری" % ("▼" if owner.home_city_details_expanded else "▶")) + "     میانگین پوشش: %d%%" % average_coverage)
 	header.custom_minimum_size = Vector2(0, 62 if compact else 54)
 	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -72,6 +72,40 @@ static func _add_home_services_panel(owner, city_state):
 		for building_id in service_data.get("buildings", []):
 			building_total += owner.game.get_building_count(str(building_id))
 		owner._add_service_metric_card(grid, str(service_data.get("name", service_id)), coverage, need, building_total, compact)
+
+	var road_title = Label.new()
+	road_title.text = owner.PersianText.reshaper("پوشش جاده‌ای")
+	road_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	owner._apply_font(road_title, 18)
+	road_title.add_theme_color_override("font_color", Color("#f8fafc"))
+	body.add_child(road_title)
+
+	# Road coverage is represented by the current road-network development level.
+	# Each of the three upgrade levels contributes one third of the indicator.
+	var road_level = int(clamp(int(city_state.get("road_level", 1)), 0, 3))
+	var road_coverage = int(round(float(road_level) * 100.0 / 3.0))
+	var road_status = Label.new()
+	road_status.text = owner.PersianText.reshaper("توسعه شبکه جاده‌ای: %d٪  |  سطح %d از ۳" % [road_coverage, road_level])
+	road_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	owner._apply_font(road_status, 15)
+	road_status.add_theme_color_override("font_color", Color("#86efac") if road_coverage >= 70 else (Color("#fcd34d") if road_coverage >= 40 else Color("#fca5a5")))
+	body.add_child(road_status)
+
+	var road_bar = ProgressBar.new()
+	road_bar.min_value = 0
+	road_bar.max_value = 100
+	road_bar.value = road_coverage
+	road_bar.show_percentage = false
+	road_bar.custom_minimum_size = Vector2(0, 9)
+	var road_fill = StyleBoxFlat.new()
+	road_fill.bg_color = Color("#22c55e") if road_coverage >= 70 else (Color("#f59e0b") if road_coverage >= 40 else Color("#ef4444"))
+	road_fill.set_corner_radius_all(4)
+	road_bar.add_theme_stylebox_override("fg", road_fill)
+	var road_track = StyleBoxFlat.new()
+	road_track.bg_color = Color("#334155")
+	road_track.set_corner_radius_all(4)
+	road_bar.add_theme_stylebox_override("bg", road_track)
+	body.add_child(road_bar)
 
 	var infra_title = Label.new()
 	infra_title.text = owner.PersianText.reshaper("زیرساخت‌های پشتیبان")
