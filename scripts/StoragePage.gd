@@ -15,7 +15,7 @@ static func build(owner, s):
 			for resource_id in production_totals.keys():
 				owner._add_label("%s : %d در روز" % [str(game.get_resource_definitions()[resource_id].name), int(production_totals[resource_id])], 18)
 	owner._add_label("ظرفیت: %d | مصرف‌شده: %d | فضای خالی: %d" % [game.get_storage_capacity(),game.get_storage_used(),game.get_free_storage()])
-	owner._add_label("برای هر ماده حداقل و حداکثر موجودی تعیین کن. تنظیمات در پایان هر روز اجرا می‌شوند.",15)
+	owner._add_label("برای هر کالا موجودی هدف تعیین کن؛ انبار هر ۶۰ ثانیه به‌صورت خودکار بررسی می‌شود.",15)
 	owner._add_label("اگر موجودی از حداقل کمتر شود، می‌توانی خرید از بازار یا افزایش تولید کارخانه را انتخاب کنی؛ اگر از حداکثر بیشتر شود، فروش خودکار انجام می‌شود.",15)
 	for id in game.get_resource_definitions().keys():
 		var resource_name = str(game.get_resource_definitions()[id].name)
@@ -33,43 +33,26 @@ static func build(owner, s):
 		owner.content.add_child(section_body)
 		owner.active_section_container = section_body
 		owner._add_label("موجودی انبار: %d | موجودی بازار: %d" % [current_amount,market_amount],16)
-		owner._add_label("حداقل موجودی: %d | حداکثر موجودی: %d" % [int(rule.get("minimum",10)),int(rule.get("maximum",40))],16)
-		var minimum_slider_label = owner._add_label("تنظیم حداقل موجودی: %d" % int(rule.get("minimum",10)),15)
-		var minimum_slider = HSlider.new()
-		minimum_slider.min_value = 0
-		minimum_slider.max_value = max(0, int(rule.get("maximum",40)) - 5)
-		minimum_slider.step = 5
-		minimum_slider.value = clampf(float(rule.get("minimum",10)), minimum_slider.min_value, minimum_slider.max_value)
-		minimum_slider.custom_minimum_size = Vector2(0, 42)
-		minimum_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		owner.active_section_container.add_child(minimum_slider)
-		minimum_slider.value_changed.connect(func(value):
-			minimum_slider_label.text = owner.PersianText.reshaper("تنظیم حداقل موجودی: %d" % int(round(value)))
+		var target_value = int(rule.get("target", rule.get("maximum",40)))
+		var target_label = owner._add_label("موجودی هدف: %d" % target_value,16)
+		var target_slider = HSlider.new()
+		target_slider.min_value = 0
+		target_slider.max_value = max(1, game.get_storage_capacity())
+		target_slider.step = 5
+		target_slider.value = clampf(float(target_value), target_slider.min_value, target_slider.max_value)
+		target_slider.custom_minimum_size = Vector2(0, 42)
+		target_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		owner.active_section_container.add_child(target_slider)
+		target_slider.value_changed.connect(func(value):
+			target_label.text = owner.PersianText.reshaper("موجودی هدف: %d" % int(round(value)))
 		)
-		minimum_slider.drag_ended.connect(func(changed):
+		target_slider.drag_ended.connect(func(changed):
 			if changed:
-				owner.set_storage_rule_slider(str(id), "minimum", int(round(minimum_slider.value)))
+				owner.set_storage_target_slider(str(id), int(round(target_slider.value)))
 		)
-		var maximum_slider_label = owner._add_label("تنظیم حداکثر موجودی: %d" % int(rule.get("maximum",40)),15)
-		var maximum_slider = HSlider.new()
-		maximum_slider.min_value = int(rule.get("minimum",10)) + 5
-		maximum_slider.max_value = max(1000, int(rule.get("maximum",40)))
-		maximum_slider.step = 5
-		maximum_slider.value = clampf(float(rule.get("maximum",40)), maximum_slider.min_value, maximum_slider.max_value)
-		maximum_slider.custom_minimum_size = Vector2(0, 42)
-		maximum_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		owner.active_section_container.add_child(maximum_slider)
-		maximum_slider.value_changed.connect(func(value):
-			maximum_slider_label.text = owner.PersianText.reshaper("تنظیم حداکثر موجودی: %d" % int(round(value)))
-		)
-		maximum_slider.drag_ended.connect(func(changed):
-			if changed:
-				owner.set_storage_rule_slider(str(id), "maximum", int(round(maximum_slider.value)))
-		)
-		owner._add_label("وقتی موجودی کم شد: "+("خرید از بازار" if str(rule.get("low_action","market")) == "market" else "افزایش تولید کارخانه"),15)
-		owner._add_button("تغییر روش تأمین",owner,"toggle_storage_low_action",[id])
-		owner._add_label("وقتی موجودی زیاد شد: "+("فروش به بازار" if str(rule.get("high_action","market")) == "market" else "فروش از فروشگاه‌ها"),15)
-		owner._add_button("تغییر روش فروش",owner,"toggle_storage_high_action",[id])
+		owner._add_label("اگر موجودی کمتر شود: "+("خرید خودکار از بازار" if str(rule.get("low_action","market")) == "market" else "اولویت تولید کارخانه‌ها"),15)
+		owner._add_button("تغییر منبع تأمین",owner,"toggle_storage_low_action",[id])
+		owner._add_label("اگر موجودی بیشتر شود: فروش خودکار مازاد به بازار",15)
 		owner._add_button("اجرای تنظیمات همین ماده",owner,"run_storage_rule",[id])
 		owner.active_section_container = null
 	owner._add_label("ذخیره درختان جنگل: %d / ۱۰۰" % game.get_forest_tree_count())
