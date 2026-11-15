@@ -2151,6 +2151,11 @@ func adjust_storage_rule(resource_id, field, delta):
 	show_page("storage")
 	_show_message(result.message)
 
+func set_storage_rule_slider(resource_id, field, value):
+	var result = game.set_storage_rule(str(resource_id), str(field), int(value))
+	show_page("storage")
+	_show_message(result.message)
+
 func toggle_storage_low_action(resource_id):
 	var result = game.toggle_storage_action(str(resource_id), "low")
 	show_page("storage")
