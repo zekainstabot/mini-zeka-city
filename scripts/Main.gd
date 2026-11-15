@@ -1253,8 +1253,7 @@ func _update_day_night_hud():
 	if day_night_day_label != null and is_instance_valid(day_night_day_label):
 		day_night_day_label.text = PersianText.reshaper("روز %d" % int(game.state.get("day", 1)))
 	if day_night_timer_label != null and is_instance_valid(day_night_timer_label):
-		var phase_name = "تا غروب" if is_daytime else "تا طلوع"
-		day_night_timer_label.text = PersianText.reshaper(phase_name + " ") + _format_time_display(int(phase_remaining / 60), phase_remaining % 60)
+		day_night_timer_label.text = _format_time_display(int(phase_remaining / 60), phase_remaining % 60)
 
 
 func _get_available_construction_workers():
