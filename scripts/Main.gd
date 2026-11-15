@@ -1139,17 +1139,20 @@ func _build_daily_reward_calendar_button():
 	daily_reward_button.name = "DailyRewardCalendarButton"
 	daily_reward_button.text = "📅"
 	daily_reward_button.tooltip_text = "تقویم جایزه‌های ورود"
-	daily_reward_button.custom_minimum_size = Vector2(54, 52)
-	# Keep the calendar at the upper-left with enough inset from the phone edges.
+	daily_reward_button.custom_minimum_size = Vector2(66, 62)
+	# Keep the calendar near the upper-left, slightly inset and visually light.
 	daily_reward_button.layout_direction = Control.LAYOUT_DIRECTION_LTR
 	daily_reward_button.anchor_left = 0.0
 	daily_reward_button.anchor_top = 0.0
 	daily_reward_button.anchor_right = 0.0
 	daily_reward_button.anchor_bottom = 0.0
-	daily_reward_button.position = Vector2(18, 48)
+	daily_reward_button.position = Vector2(30, 48)
 	daily_reward_button.z_index = 15
-	_apply_font(daily_reward_button, 25)
+	_apply_font(daily_reward_button, 30)
 	_style_button(daily_reward_button, false)
+	var transparent_calendar_style = StyleBoxEmpty.new()
+	for style_name in ["normal", "hover", "pressed", "disabled", "focus"]:
+		daily_reward_button.add_theme_stylebox_override(style_name, transparent_calendar_style)
 	daily_reward_button.pressed.connect(_open_daily_reward_calendar)
 	add_child(daily_reward_button)
 
@@ -1219,10 +1222,13 @@ func _open_daily_reward_calendar():
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	layout.add_child(scroll)
-	var days_column = VBoxContainer.new()
-	days_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	days_column.add_theme_constant_override("separation", 7)
-	scroll.add_child(days_column)
+	# Seven reward tiles: four in the first row and three in the second.
+	var days_grid = GridContainer.new()
+	days_grid.columns = 4
+	days_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	days_grid.add_theme_constant_override("h_separation", 7)
+	days_grid.add_theme_constant_override("v_separation", 7)
+	scroll.add_child(days_grid)
 	var rewards = game.get_login_reward_calendar()
 	var next_day = int(status.next_day)
 	var streak = int(status.streak)
@@ -1230,35 +1236,40 @@ func _open_daily_reward_calendar():
 		var day = int(reward_data.day)
 		var claimed = (day == 7) if streak == 7 and next_day == 1 else (day <= streak)
 		var is_next = day == next_day
-		var row = PanelContainer.new()
-		var row_style = StyleBoxFlat.new()
-		row_style.bg_color = Color("#183b35") if claimed else (Color("#4a3715") if is_next and bool(status.can_claim) else Color("#1e293b"))
-		row_style.border_color = Color("#fbbf24") if day == 7 else (Color("#34d399") if claimed else Color("#475569"))
-		row_style.set_border_width_all(2 if day == 7 or is_next else 1)
-		row_style.set_corner_radius_all(12)
-		row_style.content_margin_left = 10
-		row_style.content_margin_right = 10
-		row_style.content_margin_top = 8
-		row_style.content_margin_bottom = 8
-		row.add_theme_stylebox_override("panel", row_style)
-		days_column.add_child(row)
-		var row_layout = HBoxContainer.new()
-		row_layout.add_theme_constant_override("separation", 8)
-		row.add_child(row_layout)
+		var tile = PanelContainer.new()
+		tile.custom_minimum_size = Vector2(0, 116)
+		tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var tile_style = StyleBoxFlat.new()
+		tile_style.bg_color = Color("#183b35") if claimed else (Color("#4a3715") if is_next and bool(status.can_claim) else Color("#1e293b"))
+		tile_style.border_color = Color("#fbbf24") if day == 7 else (Color("#34d399") if claimed else Color("#475569"))
+		tile_style.set_border_width_all(2 if day == 7 or is_next else 1)
+		tile_style.set_corner_radius_all(12)
+		tile_style.content_margin_left = 4
+		tile_style.content_margin_right = 4
+		tile_style.content_margin_top = 7
+		tile_style.content_margin_bottom = 6
+		tile.add_theme_stylebox_override("panel", tile_style)
+		days_grid.add_child(tile)
+		var tile_layout = VBoxContainer.new()
+		tile_layout.alignment = BoxContainer.ALIGNMENT_CENTER
+		tile_layout.add_theme_constant_override("separation", 4)
+		tile.add_child(tile_layout)
 		var day_label = Label.new()
-		day_label.text = PersianText.reshaper("روز %d%s" % [day, "  👑" if day == 7 else ""])
-		day_label.custom_minimum_size = Vector2(78, 0)
-		_apply_font(day_label, 16)
+		day_label.text = PersianText.reshaper("روز %d%s" % [day, " 👑" if day == 7 else ""])
+		day_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		day_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_apply_font(day_label, 13)
 		day_label.add_theme_color_override("font_color", Color("#fde68a") if day == 7 else Color("#f8fafc"))
-		row_layout.add_child(day_label)
+		tile_layout.add_child(day_label)
 		var prize_label = Label.new()
 		var item_text = "\n🏅 " + str(reward_data.get("item", "")) if reward_data.has("item") else ""
-		prize_label.text = PersianText.reshaper("%s\n%d سکه  +  %d XP%s" % [str(reward_data.title), int(reward_data.coins), int(reward_data.xp), item_text])
-		prize_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		prize_label.text = PersianText.reshaper("%d سکه\n%d XP%s" % [int(reward_data.coins), int(reward_data.xp), item_text])
+		prize_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		prize_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		_apply_font(prize_label, 14)
+		prize_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		_apply_font(prize_label, 12)
 		prize_label.add_theme_color_override("font_color", Color("#ffffff"))
-		row_layout.add_child(prize_label)
+		tile_layout.add_child(prize_label)
 		var state_label = Label.new()
 		if claimed:
 			state_label.text = "✓"
@@ -1269,10 +1280,9 @@ func _open_daily_reward_calendar():
 			state_label.text = "%02d:%02d" % [int(remain / 3600), int((remain % 3600) / 60)]
 		else:
 			state_label.text = "🔒"
-		state_label.custom_minimum_size = Vector2(64, 0)
 		state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_apply_font(state_label, 14)
-		row_layout.add_child(state_label)
+		tile_layout.add_child(state_label)
 	var footer = Label.new()
 	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	footer.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
