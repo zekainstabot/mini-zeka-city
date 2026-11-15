@@ -1133,6 +1133,7 @@ func _build_ui():
 		var nav_title = str(item.t)
 		if compact_layout:
 			match str(item.p):
+				"home": nav_title = "شهر من"
 				"buildings": nav_title = "ساختمان"
 				"bank": nav_title = "بانک"
 				"private_economy": nav_title = "اقتصاد"
