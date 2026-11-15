@@ -6,13 +6,9 @@ static func build(owner, s):
 	owner._add_label("وضعیت کلی شهر", 22)
 	owner._show_welcome_mission_hint()
 	owner._add_label("روز %d  |  سطح شهر %d" % [s.day,s.level], 19)
-	var login_reward_status = game.get_login_reward_status()
-	owner._add_label("🎁 زنجیره ورود: %d روز | هدیه امروز: %d سکه" % [int(login_reward_status.streak),int(login_reward_status.reward)],16)
 	var weekly_city_event = game.get_weekly_city_event()
 	owner._add_label("🌟 رویداد این هفته: %s" % str(weekly_city_event.get("title","")),17)
 	owner._add_label("%s | اثر: %s" % [str(weekly_city_event.get("description","")),str(weekly_city_event.get("effect",""))],14)
-	var login_reward_button = owner._add_button("🎁 دریافت هدیه ورود روزانه",owner,"claim_login_reward")
-	login_reward_button.disabled = bool(login_reward_status.claimed) or not bool(login_reward_status.logged_in)
 
 	var pending_decision = game.get_pending_city_decision()
 	if not pending_decision.is_empty():
