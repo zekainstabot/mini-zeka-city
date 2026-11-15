@@ -52,7 +52,10 @@ var home_economy_expanded = false
 var clock_cycle_seconds = 0.0
 var ambient_background = null
 var ambient_background_color = Color("#172536")
-var clock_label = null
+var day_night_hud = null
+var day_night_icon_label = null
+var day_night_timer_label = null
+var day_night_day_label = null
 var clock_save_accumulator = 0.0
 var clock_displayed_second = -1
 var construction_check_accumulator = 0.0
@@ -235,14 +238,11 @@ func _process(delta):
 		if current_page == "home":
 			show_page("home")
 			_show_message("یک روز جدید در شهر آغاز شد.")
-	# The game clock changes once per second; do not reshape and assign the same label every frame.
+	# Refresh the independent day/night HUD once per in-game second.
 	var displayed_second = int(floor(clock_cycle_seconds))
 	if displayed_second != clock_displayed_second:
 		clock_displayed_second = displayed_second
-		if clock_label != null and is_instance_valid(clock_label):
-			var phase = "روز" if clock_cycle_seconds < 420.0 else "شب"
-			var phase_remaining = int(420.0 - clock_cycle_seconds) if phase == "روز" else int(600.0 - clock_cycle_seconds)
-			clock_label.text = PersianText.reshaper("%s | زمان باقی‌مانده: " % phase) + _format_time_display(int(phase_remaining / 60), phase_remaining % 60)
+		_update_day_night_hud()
 	if clock_save_accumulator >= 15.0:
 		clock_save_accumulator = 0.0
 		var citizen_reports_changed = game.check_citizen_reports()
@@ -1157,6 +1157,7 @@ func _build_ui():
 	message_label.modulate = Color("#ffffff")
 	root.add_child(message_label)
 	_build_daily_reward_calendar_button()
+	_build_day_night_hud()
 	_build_construction_capacity_button()
 
 func _build_daily_reward_calendar_button():
@@ -1180,6 +1181,80 @@ func _build_daily_reward_calendar_button():
 		daily_reward_button.add_theme_stylebox_override(style_name, transparent_calendar_style)
 	daily_reward_button.pressed.connect(_open_daily_reward_calendar)
 	add_child(daily_reward_button)
+
+
+func _build_day_night_hud():
+	day_night_hud = PanelContainer.new()
+	day_night_hud.name = "DayNightHud"
+	day_night_hud.anchor_left = 1.0
+	day_night_hud.anchor_right = 1.0
+	day_night_hud.anchor_top = 0.0
+	day_night_hud.anchor_bottom = 0.0
+	day_night_hud.offset_left = -190.0
+	day_night_hud.offset_right = -18.0
+	day_night_hud.offset_top = 48.0
+	day_night_hud.offset_bottom = 108.0
+	day_night_hud.custom_minimum_size = Vector2(172, 60)
+	day_night_hud.z_index = 15
+	day_night_hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var hud_style = StyleBoxFlat.new()
+	hud_style.bg_color = Color("#172b3e")
+	hud_style.border_color = Color("#52718b")
+	hud_style.set_border_width_all(1)
+	hud_style.set_corner_radius_all(15)
+	hud_style.content_margin_left = 9
+	hud_style.content_margin_right = 9
+	hud_style.content_margin_top = 5
+	hud_style.content_margin_bottom = 5
+	day_night_hud.add_theme_stylebox_override("panel", hud_style)
+	add_child(day_night_hud)
+
+	var row = HBoxContainer.new()
+	row.layout_direction = Control.LAYOUT_DIRECTION_LTR
+	row.add_theme_constant_override("separation", 8)
+	day_night_hud.add_child(row)
+
+	day_night_icon_label = Label.new()
+	day_night_icon_label.text = "☀️"
+	day_night_icon_label.custom_minimum_size = Vector2(42, 42)
+	day_night_icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	day_night_icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_apply_font(day_night_icon_label, 29)
+	row.add_child(day_night_icon_label)
+
+	var details = VBoxContainer.new()
+	details.alignment = BoxContainer.ALIGNMENT_CENTER
+	details.add_theme_constant_override("separation", 1)
+	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(details)
+
+	day_night_day_label = Label.new()
+	day_night_day_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	day_night_day_label.add_theme_color_override("font_color", Color("#f8fafc"))
+	_apply_font(day_night_day_label, 14)
+	details.add_child(day_night_day_label)
+
+	day_night_timer_label = Label.new()
+	day_night_timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	day_night_timer_label.add_theme_color_override("font_color", Color("#cbd5e1"))
+	_apply_font(day_night_timer_label, 14)
+	details.add_child(day_night_timer_label)
+
+	_update_day_night_hud()
+
+
+func _update_day_night_hud():
+	if day_night_hud == null or not is_instance_valid(day_night_hud) or game == null:
+		return
+	var is_daytime = clock_cycle_seconds < 420.0
+	var phase_remaining = max(0, int((420.0 if is_daytime else 600.0) - clock_cycle_seconds))
+	if day_night_icon_label != null and is_instance_valid(day_night_icon_label):
+		day_night_icon_label.text = "☀️" if is_daytime else "🌙"
+	if day_night_day_label != null and is_instance_valid(day_night_day_label):
+		day_night_day_label.text = PersianText.reshaper("روز %d" % int(game.state.get("day", 1)))
+	if day_night_timer_label != null and is_instance_valid(day_night_timer_label):
+		var phase_name = "تا غروب" if is_daytime else "تا طلوع"
+		day_night_timer_label.text = PersianText.reshaper(phase_name + " ") + _format_time_display(int(phase_remaining / 60), phase_remaining % 60)
 
 
 func _get_available_construction_workers():
