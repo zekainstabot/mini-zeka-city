@@ -192,6 +192,7 @@ func new_game():
 		"login_reward_claimed_day_serial": -1,
 		"login_reward_streak": 0,
 		"login_reward_last_claim_unix": 0,
+		"login_reward_golden_medals": 0,
 		"city_event_history": [],
 		"city_event_next_day": 3,
 		"resident_requests": [],
@@ -301,7 +302,7 @@ func _get_login_reward_definitions():
 		{"day":4,"coins":400,"xp":20,"title":"گنج کوچک"},
 		{"day":5,"coins":650,"xp":30,"title":"صندوق ارزشمند"},
 		{"day":6,"coins":1000,"xp":50,"title":"گنجینه بزرگ"},
-		{"day":7,"coins":3000,"xp":150,"title":"صندوق طلایی ویژه"}
+		{"day":7,"coins":3000,"xp":150,"title":"صندوق طلایی ویژه","item":"مدال طلایی وفاداری"}
 	]
 
 func _refresh_login_reward_cycle():
@@ -363,7 +364,11 @@ func claim_login_reward():
 	state["login_reward_streak"] = day
 	state["login_reward_last_claim_unix"] = int(Time.get_unix_time_from_system())
 	save_game()
-	var special_text = " 🎉 صندوق طلایی ویژه روز هفتم!" if day == 7 else ""
+	var special_text = ""
+	if day == 7:
+		state["login_reward_golden_medals"] = int(state.get("login_reward_golden_medals", 0)) + 1
+		special_text = " 🎉 صندوق طلایی و مدال طلایی وفاداری هم گرفتی!"
+	save_game()
 	return {"ok":true,"message":"جایزه روز %d دریافت شد: %d سکه + %d تجربه.%s %s" % [day, reward, xp, special_text, xp_message]}
 
 func _process_city_event(report):
@@ -754,6 +759,7 @@ func _normalize_state():
 	state["login_reward_claimed_day_serial"] = int(state.get("login_reward_claimed_day_serial", -1))
 	state["login_reward_streak"] = int(clamp(int(state.get("login_reward_streak", 0)), 0, 7))
 	state["login_reward_last_claim_unix"] = max(0, int(state.get("login_reward_last_claim_unix", 0)))
+	state["login_reward_golden_medals"] = max(0, int(state.get("login_reward_golden_medals", 0)))
 	if typeof(state.get("city_event_history", null)) != TYPE_ARRAY:
 		state["city_event_history"] = []
 	while state.city_event_history.size() > 20:
