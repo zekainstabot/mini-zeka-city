@@ -1059,7 +1059,7 @@ func _get_daily_production_totals():
 	return totals
 
 func _update_mission_reward_badge():
-	if mission_reward_badge == null or not is_instance_valid(mission_reward_badge) or game == null:
+	if game == null:
 		return
 	var ready_count = 0
 
