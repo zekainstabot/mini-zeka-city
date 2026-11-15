@@ -2064,15 +2064,6 @@ func show_page(page):
 	var s = game.state
 	_update_progress_hud()
 	_update_mission_reward_badge()
-	if page == "home":
-		var active_constructions = game.get_construction_status()
-		_add_label("ظرفیت ساخت‌وساز: %d از %d پروژه فعال" % [game.get_active_construction_count(), game.MAX_CONCURRENT_CONSTRUCTIONS], 17)
-		if active_constructions.size() > 0:
-			_add_label("🏗️ پروژه‌های در حال ساخت", 19)
-			for project in active_constructions:
-				var seconds_left = int(project.remaining)
-				var time_label = _add_label("%s | زمان باقی‌مانده: %02d:%02d" % [str(project.name), int(seconds_left / 60), seconds_left % 60], 16)
-				construction_time_labels.append({"label":time_label,"name":str(project.name)})
 	match page:
 		"home":
 			HomePage.build(self, s)
