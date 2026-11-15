@@ -14,7 +14,13 @@ func _run_tests():
 	await process_frame
 	var main = MainScene.instantiate()
 	get_root().add_child(main)
-	await process_frame
+	# Main._ready() intentionally awaits several loading milestones before it
+	# builds the playable UI. Wait for the real UI instead of assuming one frame.
+	var startup_wait_frames = 0
+	while main.header_label == null and startup_wait_frames < 240:
+		await process_frame
+		startup_wait_frames += 1
+	assert(main.header_label != null, "Main UI did not finish startup within 240 frames")
 	if main.city_name_input != null and is_instance_valid(main.city_name_input):
 		main._choose_random_city_name()
 		assert(not main.city_name_input.text.strip_edges().is_empty())
