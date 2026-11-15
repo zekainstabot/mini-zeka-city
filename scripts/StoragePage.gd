@@ -34,38 +34,38 @@ static func build(owner, s):
 		owner.active_section_container = section_body
 		owner._add_label("موجودی انبار: %d | موجودی بازار: %d" % [current_amount,market_amount],16)
 		owner._add_label("حداقل موجودی: %d | حداکثر موجودی: %d" % [int(rule.get("minimum",10)),int(rule.get("maximum",40))],16)
-		var controls = HBoxContainer.new()
-		controls.add_theme_constant_override("separation",6)
-		controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		owner.active_section_container.add_child(controls)
-		var low_down = Button.new()
-		low_down.text = owner.PersianText.reshaper("حداقل −")
-		owner._style_button(low_down,false)
-		owner._apply_font(low_down,16)
-		low_down.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		low_down.connect("pressed", Callable(owner, "adjust_storage_rule").bind(id,"minimum",-5))
-		controls.add_child(low_down)
-		var low_up = Button.new()
-		low_up.text = owner.PersianText.reshaper("حداقل +")
-		owner._style_button(low_up,false)
-		owner._apply_font(low_up,16)
-		low_up.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		low_up.connect("pressed", Callable(owner, "adjust_storage_rule").bind(id,"minimum",5))
-		controls.add_child(low_up)
-		var high_down = Button.new()
-		high_down.text = owner.PersianText.reshaper("حداکثر −")
-		owner._style_button(high_down,false)
-		owner._apply_font(high_down,16)
-		high_down.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		high_down.connect("pressed", Callable(owner, "adjust_storage_rule").bind(id,"maximum",-5))
-		controls.add_child(high_down)
-		var high_up = Button.new()
-		high_up.text = owner.PersianText.reshaper("حداکثر +")
-		owner._style_button(high_up,false)
-		owner._apply_font(high_up,16)
-		high_up.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		high_up.connect("pressed", Callable(owner, "adjust_storage_rule").bind(id,"maximum",5))
-		controls.add_child(high_up)
+		var minimum_slider_label = owner._add_label("تنظیم حداقل موجودی: %d" % int(rule.get("minimum",10)),15)
+		var minimum_slider = HSlider.new()
+		minimum_slider.min_value = 0
+		minimum_slider.max_value = max(0, int(rule.get("maximum",40)) - 5)
+		minimum_slider.step = 5
+		minimum_slider.value = clampf(float(rule.get("minimum",10)), minimum_slider.min_value, minimum_slider.max_value)
+		minimum_slider.custom_minimum_size = Vector2(0, 42)
+		minimum_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		owner.active_section_container.add_child(minimum_slider)
+		minimum_slider.value_changed.connect(func(value):
+			minimum_slider_label.text = owner.PersianText.reshaper("تنظیم حداقل موجودی: %d" % int(round(value)))
+		)
+		minimum_slider.drag_ended.connect(func(changed):
+			if changed:
+				owner.set_storage_rule_slider(str(id), "minimum", int(round(minimum_slider.value))
+		)
+		var maximum_slider_label = owner._add_label("تنظیم حداکثر موجودی: %d" % int(rule.get("maximum",40)),15)
+		var maximum_slider = HSlider.new()
+		maximum_slider.min_value = int(rule.get("minimum",10)) + 5
+		maximum_slider.max_value = max(1000, int(rule.get("maximum",40)))
+		maximum_slider.step = 5
+		maximum_slider.value = clampf(float(rule.get("maximum",40)), maximum_slider.min_value, maximum_slider.max_value)
+		maximum_slider.custom_minimum_size = Vector2(0, 42)
+		maximum_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		owner.active_section_container.add_child(maximum_slider)
+		maximum_slider.value_changed.connect(func(value):
+			maximum_slider_label.text = owner.PersianText.reshaper("تنظیم حداکثر موجودی: %d" % int(round(value)))
+		)
+		maximum_slider.drag_ended.connect(func(changed):
+			if changed:
+				owner.set_storage_rule_slider(str(id), "maximum", int(round(maximum_slider.value))
+		)
 		owner._add_label("وقتی موجودی کم شد: "+("خرید از بازار" if str(rule.get("low_action","market")) == "market" else "افزایش تولید کارخانه"),15)
 		owner._add_button("تغییر روش تأمین",owner,"toggle_storage_low_action",[id])
 		owner._add_label("وقتی موجودی زیاد شد: "+("فروش به بازار" if str(rule.get("high_action","market")) == "market" else "فروش از فروشگاه‌ها"),15)
