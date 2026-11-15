@@ -1835,6 +1835,43 @@ func resolve_private_request(request_id, approved):
 	show_page("private_economy")
 	_show_message(result.message)
 
+func _add_policy_slider(title, current_value, minimum_value, maximum_value, step_value, method_name, unit_text):
+	var group = VBoxContainer.new()
+	group.add_theme_constant_override("separation", 5)
+	group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.add_child(group)
+	var title_label = Label.new()
+	title_label.text = PersianText.reshaper(str(title))
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	title_label.text_direction = Control.TEXT_DIRECTION_RTL
+	_apply_font(title_label, 16)
+	group.add_child(title_label)
+	var value_label = Label.new()
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	value_label.text = PersianText.reshaper("%s %s" % [str(int(current_value)), str(unit_text)])
+	_apply_font(value_label, 19)
+	value_label.add_theme_color_override("font_color", Color("#f5d477"))
+	group.add_child(value_label)
+	var slider = HSlider.new()
+	slider.min_value = float(minimum_value)
+	slider.max_value = float(maximum_value)
+	slider.step = float(step_value)
+	slider.value = clampf(float(current_value), float(minimum_value), float(maximum_value))
+	slider.custom_minimum_size = Vector2(0, 38)
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	group.add_child(slider)
+	slider.value_changed.connect(func(value):
+		value_label.text = PersianText.reshaper("%s %s" % [str(int(round(value))), str(unit_text)])
+	)
+	slider.drag_ended.connect(func(changed):
+		if changed:
+			var target_value = int(round(slider.value / float(step_value))) * int(step_value)
+			var delta = target_value - int(current_value)
+			if delta != 0:
+				call(method_name, delta)
+	)
+	return slider
+
 func adjust_business_tax(delta):
 	var result = game.adjust_business_tax(delta)
 	show_page("municipality")
