@@ -96,6 +96,10 @@ var daily_reward_layer = null
 var daily_reward_button = null
 var help_previous_page = "home"
 var help_scroll_original_index = 5
+var startup_loading_layer = null
+var startup_loading_bar = null
+var startup_loading_label = null
+var startup_loading_percent = null
 
 func _input(event):
 	if game != null:
@@ -283,20 +287,29 @@ func _notification(what):
 		game.save_game()
 
 func _ready():
-	# The entire interface is Persian, so make the root layout RTL and let
-	# dynamically-created controls inherit the same direction.
+	# Show a lightweight loading screen before doing any synchronous startup work.
 	layout_direction = Control.LAYOUT_DIRECTION_RTL
+	_create_startup_loading_screen()
+	await _set_startup_progress(3, "آماده‌سازی محیط بازی...")
+
 	_load_ui_font()
+	await _set_startup_progress(12, "بارگذاری فونت و رابط فارسی...")
+
 	audio_manager = AudioManagerScript.new()
 	add_child(audio_manager)
+	await _set_startup_progress(20, "آماده‌سازی صداها...")
+
 	game = EngineScript.new()
+	await _set_startup_progress(34, "آماده‌سازی اطلاعات شهر...")
+
 	var has_existing_save = game.load_game()
 	if not has_existing_save:
 		game.new_game()
-		# First launch starts in portrait. Later launches always use the
-		# orientation saved by the player.
+		# First launch starts in portrait. Later launches always use the saved orientation.
 		game.state["screen_orientation"] = "portrait"
 		game.save_game()
+	await _set_startup_progress(52, "بارگذاری اطلاعات و ذخیره شهر...")
+
 	var saved_orientation = str(game.state.get("screen_orientation", "portrait"))
 	if saved_orientation not in ["auto", "portrait", "landscape"]:
 		saved_orientation = "portrait"
@@ -304,23 +317,141 @@ func _ready():
 		game.save_game()
 	_apply_screen_orientation(saved_orientation)
 	game.register_login_today()
+	await _set_startup_progress(63, "به‌روزرسانی وضعیت روزانه...")
+
 	game.get_daily_missions()
 	game.get_weekly_challenge()
 	last_activity_ticks = Time.get_ticks_msec()
 	_apply_offline_progress()
 	clock_cycle_seconds = float(game.state.get("clock_cycle_seconds", 0))
 	last_audio_night_mode = clock_cycle_seconds >= 420.0
-	audio_manager.set_night_mode(last_audio_night_mode)
+	# Configure audio without generating long PCM streams during the loading screen.
+	audio_manager.configure_startup_night_mode(last_audio_night_mode)
 	set_process(true)
+	await _set_startup_progress(76, "ساخت صفحه‌های بازی...")
+
 	_build_ui()
 	last_layout_viewport_size = Vector2.ZERO
 	_apply_responsive_layout()
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
+	await _set_startup_progress(90, "آماده‌سازی شهر و منوها...")
+
 	show_page("home")
 	if str(game.state.get("city_name", "")).strip_edges() == "":
 		_open_city_name_setup(true)
 	else:
 		_show_offline_summary()
+	await _set_startup_progress(100, "آماده‌ای! خوش اومدی به مینی زکا سیتی")
+	_finish_startup_loading()
+	# Start ambient audio only after the first playable frame; avoid generating it twice.
+	audio_manager.call_deferred("start_ambience")
+
+
+func _create_startup_loading_screen():
+	var layer = CanvasLayer.new()
+	layer.name = "StartupLoadingLayer"
+	layer.layer = 200
+	add_child(layer)
+	startup_loading_layer = layer
+
+	var background = ColorRect.new()
+	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background.color = Color("#091522")
+	background.mouse_filter = Control.MOUSE_FILTER_STOP
+	layer.add_child(background)
+
+	var center = CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.offset_left = 24
+	center.offset_right = -24
+	center.offset_top = 24
+	center.offset_bottom = -24
+	layer.add_child(center)
+
+	var card = PanelContainer.new()
+	card.custom_minimum_size = Vector2(0, 220)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var card_style = StyleBoxFlat.new()
+	card_style.bg_color = Color("#14283b")
+	card_style.border_color = Color("#25617e")
+	card_style.set_border_width_all(1)
+	card_style.set_corner_radius_all(22)
+	card_style.content_margin_left = 24
+	card_style.content_margin_right = 24
+	card_style.content_margin_top = 26
+	card_style.content_margin_bottom = 26
+	card.add_theme_stylebox_override("panel", card_style)
+	center.add_child(card)
+
+	var layout = VBoxContainer.new()
+	layout.add_theme_constant_override("separation", 16)
+	card.add_child(layout)
+
+	var brand = Label.new()
+	brand.text = "✦  ZEKAMEDIAFA  ✦"
+	brand.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_font(brand, 14)
+	brand.add_theme_color_override("font_color", Color("#7dd3fc"))
+	layout.add_child(brand)
+
+	var title = Label.new()
+	title.text = "مینی زکا سیتی"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_font(title, 27)
+	title.add_theme_color_override("font_color", Color("#ffffff"))
+	layout.add_child(title)
+
+	startup_loading_label = Label.new()
+	startup_loading_label.text = "در حال آماده‌سازی بازی..."
+	startup_loading_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_font(startup_loading_label, 15)
+	startup_loading_label.add_theme_color_override("font_color", Color("#cbd5e1"))
+	layout.add_child(startup_loading_label)
+
+	startup_loading_bar = ProgressBar.new()
+	startup_loading_bar.min_value = 0
+	startup_loading_bar.max_value = 100
+	startup_loading_bar.value = 0
+	startup_loading_bar.show_percentage = false
+	startup_loading_bar.custom_minimum_size = Vector2(0, 17)
+	var track = StyleBoxFlat.new()
+	track.bg_color = Color("#26394b")
+	track.set_corner_radius_all(9)
+	var fill = StyleBoxFlat.new()
+	fill.bg_color = Color("#38bdf8")
+	fill.set_corner_radius_all(9)
+	startup_loading_bar.add_theme_stylebox_override("background", track)
+	startup_loading_bar.add_theme_stylebox_override("fill", fill)
+	layout.add_child(startup_loading_bar)
+
+	startup_loading_percent = Label.new()
+	startup_loading_percent.text = "۰٪"
+	startup_loading_percent.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_font(startup_loading_percent, 17)
+	startup_loading_percent.add_theme_color_override("font_color", Color("#7dd3fc"))
+	layout.add_child(startup_loading_percent)
+
+
+func _set_startup_progress(value: int, message: String):
+	var safe_value = clampi(value, 0, 100)
+	if startup_loading_bar != null and is_instance_valid(startup_loading_bar):
+		startup_loading_bar.value = safe_value
+	if startup_loading_label != null and is_instance_valid(startup_loading_label):
+		startup_loading_label.text = PersianText.reshaper(message)
+	if startup_loading_percent != null and is_instance_valid(startup_loading_percent):
+		startup_loading_percent.text = "%d٪" % safe_value
+	# Yield so the updated progress is actually drawn before the next stage runs.
+	await get_tree().process_frame
+
+
+func _finish_startup_loading():
+	if startup_loading_layer != null and is_instance_valid(startup_loading_layer):
+		startup_loading_layer.queue_free()
+	startup_loading_layer = null
+	startup_loading_bar = null
+	startup_loading_label = null
+	startup_loading_percent = null
 
 
 
