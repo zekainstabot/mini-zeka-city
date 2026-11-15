@@ -239,6 +239,13 @@ static func _add_building_category_items(owner, category):
 		building_ids.append(str(id))
 	building_ids.sort_custom(Callable(owner, "_sort_building_ids_by_unlock_priority"))
 	for id in building_ids:
+		var already_under_construction = false
+		for project in owner.game.state.get("constructions", []):
+			if str(project.get("id", "")) == id:
+				already_under_construction = true
+				break
+		if already_under_construction:
+			continue
 		var data = definitions[id]
 		visible_buildings += 1
 		var s = owner.game.state
