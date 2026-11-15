@@ -90,7 +90,10 @@ static func build(owner, s):
 				owner._add_button("لغو قرارداد "+contract_resource.name,owner,"cancel_import",[contract_index])
 		for import_city_id in game.get_daily_trade_city_ids():
 			var import_city = game.get_import_cities()[import_city_id]
-			owner._add_button("قرارداد ۷ روزه: ۲ واحد چوب از "+import_city.name,owner,"make_import_contract",[import_city_id,"wood",2,7])
+			var contract_max = min(10, game.get_transport_daily_capacity())
+			var contract_slider = _add_quantity_slider(owner, "مقدار روزانه قرارداد چوب از "+import_city.name, contract_max)
+			var contract_button = owner._add_button("ثبت قرارداد ۷ روزه از "+import_city.name,owner,"make_import_contract_from_slider",[import_city_id,contract_slider,7])
+			contract_button.disabled = contract_max <= 0
 
 
 static func _add_quantity_slider(owner, caption, maximum):
