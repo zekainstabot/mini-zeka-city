@@ -1901,7 +1901,7 @@ func show_page(page):
 	var s = game.state
 	_update_progress_hud()
 	_update_mission_reward_badge()
-	if page == "home" or page == "buildings":
+	if page == "home":
 		var active_constructions = game.get_construction_status()
 		_add_label("ظرفیت ساخت‌وساز: %d از %d پروژه فعال" % [game.get_active_construction_count(), game.MAX_CONCURRENT_CONSTRUCTIONS], 17)
 		if active_constructions.size() > 0:
