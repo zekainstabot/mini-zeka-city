@@ -22,6 +22,11 @@ static func get_storage_rule(engine, resource_id):
 	state.storage_rules[str(resource_id)] = rule
 	return rule
 
+static func set_storage_rule(engine, resource_id, field, value):
+	if str(field) not in ["minimum", "maximum"]:
+		return {"ok":false,"message":"تنظیم انبار نامعتبر است."}
+	return set_storage_target(engine, resource_id, value)
+
 static func set_storage_target(engine, resource_id, value):
 	var state = engine.state
 	if not engine.RESOURCES.has(str(resource_id)):
