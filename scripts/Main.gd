@@ -52,6 +52,7 @@ var ambient_background = null
 var ambient_background_color = Color("#172536")
 var clock_label = null
 var clock_save_accumulator = 0.0
+var clock_displayed_second = -1
 var construction_check_accumulator = 0.0
 var storage_automation_accumulator = 0.0
 var construction_time_labels = []
@@ -205,11 +206,14 @@ func _process(delta):
 		if current_page == "home":
 			show_page("home")
 			_show_message("یک روز جدید در شهر آغاز شد.")
-	if clock_label != null and is_instance_valid(clock_label):
-		var remaining = max(0, int(600.0 - clock_cycle_seconds))
-		var phase = "روز" if clock_cycle_seconds < 420.0 else "شب"
-		var phase_remaining = int(420.0 - clock_cycle_seconds) if phase == "روز" else int(600.0 - clock_cycle_seconds)
-		clock_label.text = PersianText.reshaper("%s | زمان باقی‌مانده: " % phase) + _format_time_display(int(phase_remaining / 60), phase_remaining % 60)
+	# The game clock changes once per second; do not reshape and assign the same label every frame.
+	var displayed_second = int(floor(clock_cycle_seconds))
+	if displayed_second != clock_displayed_second:
+		clock_displayed_second = displayed_second
+		if clock_label != null and is_instance_valid(clock_label):
+			var phase = "روز" if clock_cycle_seconds < 420.0 else "شب"
+			var phase_remaining = int(420.0 - clock_cycle_seconds) if phase == "روز" else int(600.0 - clock_cycle_seconds)
+			clock_label.text = PersianText.reshaper("%s | زمان باقی‌مانده: " % phase) + _format_time_display(int(phase_remaining / 60), phase_remaining % 60)
 	if clock_save_accumulator >= 15.0:
 		clock_save_accumulator = 0.0
 		var citizen_reports_changed = game.check_citizen_reports()
