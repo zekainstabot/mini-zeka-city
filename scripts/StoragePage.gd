@@ -16,7 +16,7 @@ static func build(owner, s):
 				owner._add_label("%s : %d در روز" % [str(game.get_resource_definitions()[resource_id].name), int(production_totals[resource_id])], 18)
 	owner._add_label("ظرفیت: %d | مصرف‌شده: %d | فضای خالی: %d" % [game.get_storage_capacity(),game.get_storage_used(),game.get_free_storage()])
 	owner._add_label("برای هر کالا موجودی هدف تعیین کن؛ انبار هر ۶۰ ثانیه به‌صورت خودکار بررسی می‌شود.",15)
-	owner._add_label("اگر موجودی از حداقل کمتر شود، می‌توانی خرید از بازار یا افزایش تولید کارخانه را انتخاب کنی؛ اگر از حداکثر بیشتر شود، فروش خودکار انجام می‌شود.",15)
+	owner._add_label("کمتر از هدف: تأمین از منبع انتخابی. بیشتر از هدف: فروش مازاد به بازار، با رعایت ظرفیت بازار و خزانه.",15)
 	for id in game.get_resource_definitions().keys():
 		var resource_name = str(game.get_resource_definitions()[id].name)
 		var rule = game.get_storage_rule(id)
@@ -53,6 +53,5 @@ static func build(owner, s):
 		owner._add_label("اگر موجودی کمتر شود: "+("خرید خودکار از بازار" if str(rule.get("low_action","market")) == "market" else "اولویت تولید کارخانه‌ها"),15)
 		owner._add_button("تغییر منبع تأمین",owner,"toggle_storage_low_action",[id])
 		owner._add_label("اگر موجودی بیشتر شود: فروش خودکار مازاد به بازار",15)
-		owner._add_button("اجرای تنظیمات همین ماده",owner,"run_storage_rule",[id])
 		owner.active_section_container = null
 	owner._add_label("ذخیره درختان جنگل: %d / ۱۰۰" % game.get_forest_tree_count())
