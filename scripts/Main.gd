@@ -523,7 +523,7 @@ func _build_ui():
 	var screen_width = get_viewport_rect().size.x
 	var compact_layout = screen_width < 900
 	root.offset_left = 28 if compact_layout else 24
-	root.offset_top = 16 if compact_layout else 22
+	root.offset_top = 28 if compact_layout else 34
 	root.offset_right = -32 if compact_layout else -24
 	root.offset_bottom = -16 if compact_layout else -22
 	root.add_theme_constant_override("separation", 16 if compact_layout else 12)
