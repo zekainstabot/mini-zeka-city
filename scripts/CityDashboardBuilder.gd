@@ -27,7 +27,7 @@ static func _add_home_services_panel(owner, city_state):
 	var average_coverage = int(round(float(total_coverage) / float(max(1, service_count))))
 	var header = Button.new()
 	header.text = owner.PersianText.reshaper(("%s  🏙️  خدمات شهری" % ("▼" if owner.home_city_details_expanded else "▶")) + "     میانگین پوشش: %d%%" % average_coverage)
-	header.custom_minimum_size = Vector2(0, 62 if compact else 54)
+	header.custom_minimum_size = Vector2(0, 82 if owner.get_viewport_rect().size.x < 500.0 else (62 if compact else 54))
 	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	owner._apply_font(header, 19 if compact else 17)
@@ -146,7 +146,7 @@ static func _add_service_metric_card(owner, parent, title_text, coverage, need, 
 	title.text = owner.PersianText.reshaper("%s  (%d ساختمان)" % [title_text, building_count])
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	title.custom_minimum_size = Vector2(0, 38 if compact else 32)
+	title.custom_minimum_size = Vector2(0, 52 if owner.get_viewport_rect().size.x < 500.0 else (38 if compact else 32))
 	owner._apply_font(title, 16 if compact else 15)
 	title.add_theme_color_override("font_color", Color("#f8fafc"))
 	stack.add_child(title)
