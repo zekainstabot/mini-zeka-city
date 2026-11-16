@@ -14,6 +14,7 @@ func _run_tests():
 	await process_frame
 	var main = MainScene.instantiate()
 	get_root().add_child(main)
+	print("UI TEST: waiting for startup UI")
 	# Main._ready() intentionally awaits several loading milestones before it
 	# builds the playable UI. Wait for the real UI instead of assuming one frame.
 	var startup_wait_frames = 0
@@ -21,6 +22,7 @@ func _run_tests():
 		await process_frame
 		startup_wait_frames += 1
 	assert(main.header_label != null, "Main UI did not finish startup within 240 frames")
+	print("UI TEST: startup UI ready after %d frames" % startup_wait_frames)
 	if main.city_name_input != null and is_instance_valid(main.city_name_input):
 		main._choose_random_city_name()
 		assert(not main.city_name_input.text.strip_edges().is_empty())
@@ -48,6 +50,7 @@ func _run_tests():
 	assert(main._get_geographic_rank_name(9) == "آبادی بزرگ")
 	assert(main._get_geographic_rank_name(10) == "روستای کوچک")
 	for page in ["home","buildings","citizens","bank","municipality","private_economy","commerce","transport","imports","storage","report","missions","progress","ranking","settings","audio","help"]:
+		print("UI TEST: opening page %s" % page)
 		main.show_page(page)
 		if page == "ranking":
 			assert(main.content.get_child_count() >= 12)
@@ -58,6 +61,7 @@ func _run_tests():
 			assert(main.content.get_child_count() >= 18)
 		if page == "help":
 			assert(main.content.get_child_count() > 30)
+		print("UI TEST: page %s ready (%d controls)" % [page, main.content.get_child_count()])
 	main.home_city_details_expanded = true
 	main.show_page("home")
 	assert(main.content.get_child_count() > 0)
@@ -70,6 +74,7 @@ func _run_tests():
 	main.game.state["pending_offline_days"] = 2
 	main.game.state["pending_offline_income"] = 350
 	main.game.state["pending_offline_summary_ready"] = true
+	print("UI TEST: opening offline summary")
 	main._show_offline_summary()
 	assert(main.offline_summary_popup is Control)
 	assert(main.offline_summary_popup.name == "WelcomeBackOverlay")
