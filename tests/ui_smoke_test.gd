@@ -104,7 +104,9 @@ func _run_tests():
 	assert(offline_center is CenterContainer)
 	var offline_card = offline_center.get_child(0)
 	assert(offline_card is PanelContainer)
-	var offline_layout = offline_card.get_child(0)
+	var offline_scroll = offline_card.get_child(0)
+	assert(offline_scroll is ScrollContainer)
+	var offline_layout = offline_scroll.get_child(0)
 	assert(offline_layout is VBoxContainer)
 	# Match the current welcome-back card: icon, heading, intro, stats,
 	# news heading/panel, primary action, and reassurance text.
