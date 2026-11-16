@@ -15,6 +15,7 @@ const CityEconomySystem = preload("res://scripts/CityEconomySystem.gd")
 const CityProgressSystem = preload("res://scripts/CityProgressSystem.gd")
 
 const SAVE_PATH = "user://mini_zeka_city_save.json"
+const MAX_REPORT_EVENTS = 120
 const STORAGE_RESERVE = 50
 const MAX_CONCURRENT_CONSTRUCTIONS = 2
 const DISTRICT_HOUSE_LIMIT = 20
@@ -540,6 +541,8 @@ func add_report_event(message, persist=true, metadata={}):
 		for key in metadata.keys():
 			event[key] = metadata[key]
 	state.report_events.append(event)
+	while state.report_events.size() > MAX_REPORT_EVENTS:
+		state.report_events.pop_front()
 	if persist:
 		save_game()
 
@@ -553,7 +556,7 @@ func review_report_event(event_id):
 			return true
 	return false
 
-func check_citizen_reports():
+func check_citizen_reports(persist=true):
 	if typeof(state.get("citizens", null)) != TYPE_ARRAY:
 		return false
 	_ensure_building_locations()
@@ -640,7 +643,7 @@ func check_citizen_reports():
 					state.report_events[event_index] = event
 					changed = true
 	state["active_service_report_keys"] = current_keys
-	if changed:
+	if changed and bool(persist):
 		save_game()
 	return changed
 
@@ -1122,8 +1125,8 @@ func _get_district_population():
 	return CityServicesSystem._get_district_population(self)
 
 
-func _calculate_district_service_coverage(need_id):
-	return CityServicesSystem._calculate_district_service_coverage(self, need_id)
+func _calculate_district_service_coverage(need_id, cached_population=null):
+	return CityServicesSystem._calculate_district_service_coverage(self, need_id, cached_population)
 
 
 func _get_service_capacity(need_id):
