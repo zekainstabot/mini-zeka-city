@@ -191,7 +191,7 @@ func _request_music_stream(mode):
 	var err = _music_thread.start(Callable(self, "_generate_ambient_music_data").bind(mode == "night"))
 	if err != OK:
 		_music_thread = null
-		_finish_music_generation(mode, _generate_ambient_music_data(mode == "night"))
+		push_warning("Ambient music generation unavailable on this platform; skipping background music to keep gameplay responsive.")
 
 func _finish_music_generation(mode, generated):
 	if typeof(generated) != TYPE_DICTIONARY or not generated.has("data"):
@@ -248,7 +248,7 @@ func _request_environment_stream(key):
 	var err = _environment_thread.start(Callable(self, "_generate_environment_data").bind(mode, is_night))
 	if err != OK:
 		_environment_thread = null
-		_finish_environment_generation(key, _generate_environment_data(mode, is_night))
+		push_warning("Ambient soundscape generation unavailable on this platform; skipping environment audio to keep gameplay responsive.")
 
 func _finish_environment_generation(key, generated):
 	if typeof(generated) != TYPE_DICTIONARY or not generated.has("data"):
