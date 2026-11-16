@@ -223,7 +223,7 @@ func _request_environment_stream(key):
 	if _environment_thread != null and _environment_thread.is_started():
 		_pending_environment_key = key
 		return
-	var mode = "night" if key == "night" else environment_mode
+	var mode = "night" if key == "night" else key.substr(4)
 	var is_night = key == "night"
 	_environment_thread_key = key
 	_environment_thread = Thread.new()
