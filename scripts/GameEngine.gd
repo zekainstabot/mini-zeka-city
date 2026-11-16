@@ -599,7 +599,7 @@ func check_citizen_reports(persist=true):
 	var district_population = _get_district_population()
 	var service_snapshot = {}
 	for need_id in need_names.keys():
-		service_snapshot[need_id] = _calculate_district_service_coverage(need_id)
+		service_snapshot[need_id] = _calculate_district_service_coverage(need_id, district_population)
 	for district in state.get("districts", []):
 		var district_id = str(district.get("id", ""))
 		var residents = int(district_population.get(district_id, 0))
