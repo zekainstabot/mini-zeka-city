@@ -205,10 +205,69 @@ func _apply_environment(force_restart=false):
 		environment_player.stop()
 		return
 	environment_player.volume_db = linear_to_db(max(0.001, environment_volume))
+	var key = _get_environment_cache_key()
 	if force_restart or environment_player.stream == null:
-		environment_player.stream = _make_environment_stream(environment_mode, night_mode)
-	if not environment_player.playing:
+		_request_environment_stream(key)
+	elif not environment_player.playing:
 		environment_player.play()
+
+func _get_environment_cache_key():
+	return "night" if night_mode else "day_" + environment_mode
+
+func _request_environment_stream(key):
+	if _environment_stream_cache.has(key):
+		environment_player.stream = _environment_stream_cache[key]
+		if environment_enabled and not environment_player.playing:
+			environment_player.play()
+		return
+	if _environment_thread != null and _environment_thread.is_started():
+		_pending_environment_key = key
+		return
+	var mode = "night" if key == "night" else environment_mode
+	var is_night = key == "night"
+	_environment_thread_key = key
+	_environment_thread = Thread.new()
+	var err = _environment_thread.start(Callable(self, "_generate_environment_data").bind(mode, is_night))
+	if err != OK:
+		_environment_thread = null
+		_finish_environment_generation(key, _generate_environment_data(mode, is_night))
+
+func _finish_environment_generation(key, generated):
+	if typeof(generated) != TYPE_DICTIONARY or not generated.has("data"):
+		return
+	var stream = AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = SAMPLE_RATE
+	stream.stereo = false
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_begin = 0
+	stream.loop_end = int(generated.get("sample_count", 0))
+	stream.data = generated.data
+	_environment_stream_cache[key] = stream
+	if key == _get_environment_cache_key() and environment_enabled and environment_player != null:
+		environment_player.stream = stream
+		if not environment_player.playing:
+			environment_player.play()
+
+func _poll_ambience_generation():
+	if _music_thread != null and _music_thread.is_started() and not _music_thread.is_alive():
+		var mode = _music_thread_mode
+		var generated = _music_thread.wait_to_finish()
+		_music_thread = null
+		_finish_music_generation(mode, generated)
+		var pending = _pending_music_mode
+		_pending_music_mode = ""
+		if pending != "" and not _music_stream_cache.has(pending):
+			_request_music_stream(pending)
+	if _environment_thread != null and _environment_thread.is_started() and not _environment_thread.is_alive():
+		var key = _environment_thread_key
+		var generated = _environment_thread.wait_to_finish()
+		_environment_thread = null
+		_finish_environment_generation(key, generated)
+		var pending = _pending_environment_key
+		_pending_environment_key = ""
+		if pending != "" and not _environment_stream_cache.has(pending):
+			_request_environment_stream(pending)
 
 func play_sfx(kind="click"):
 	# Browser exports may block autoplay until the first user gesture; resume ambience on interaction.
