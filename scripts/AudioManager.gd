@@ -188,7 +188,7 @@ func _request_music_stream(mode):
 		return
 	_music_thread_mode = mode
 	_music_thread = Thread.new()
-	var err = _music_thread.start(Callable(self, "_generate_ambient_music_data").bind(mode == "night"))
+	var err = _music_thread.start(Callable(self, "_generate_ambient_music_data").bind(mode == "night"), Thread.PRIORITY_LOW)
 	if err != OK:
 		_music_thread = null
 		push_warning("Ambient music generation unavailable on this platform; skipping background music to keep gameplay responsive.")
@@ -245,7 +245,7 @@ func _request_environment_stream(key):
 	var is_night = key == "night"
 	_environment_thread_key = key
 	_environment_thread = Thread.new()
-	var err = _environment_thread.start(Callable(self, "_generate_environment_data").bind(mode, is_night))
+	var err = _environment_thread.start(Callable(self, "_generate_environment_data").bind(mode, is_night), Thread.PRIORITY_LOW)
 	if err != OK:
 		_environment_thread = null
 		push_warning("Ambient soundscape generation unavailable on this platform; skipping environment audio to keep gameplay responsive.")
