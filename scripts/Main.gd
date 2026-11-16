@@ -386,102 +386,179 @@ func _create_startup_loading_screen():
 	add_child(layer)
 	startup_loading_layer = layer
 
+	# A true edge-to-edge loading page: no popup, card, or in-game menu.
 	var background = ColorRect.new()
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background.color = Color("#091522")
+	background.color = Color("#071522")
 	background.mouse_filter = Control.MOUSE_FILTER_STOP
 	layer.add_child(background)
 
-	var center = CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var loading_safe = _get_safe_area_insets()
-	center.offset_left = loading_safe.x + 16.0
-	center.offset_right = -(loading_safe.z + 16.0)
-	center.offset_top = loading_safe.y + 24.0
-	center.offset_bottom = -(loading_safe.w + 16.0)
-	layer.add_child(center)
+	# Subtle upper and lower atmosphere bands.
+	var upper_glow = ColorRect.new()
+	upper_glow.anchor_left = 0.0
+	upper_glow.anchor_right = 1.0
+	upper_glow.anchor_top = 0.0
+	upper_glow.anchor_bottom = 0.46
+	upper_glow.offset_bottom = 0.0
+	upper_glow.color = Color(0.08, 0.25, 0.34, 0.30)
+	upper_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(upper_glow)
 
-	var card = PanelContainer.new()
-	card.custom_minimum_size = Vector2(0, 285)
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var card_style = StyleBoxFlat.new()
-	card_style.bg_color = Color("#14283b")
-	card_style.border_color = Color("#25617e")
-	card_style.set_border_width_all(1)
-	card_style.set_corner_radius_all(22)
-	card_style.content_margin_left = 24
-	card_style.content_margin_right = 24
-	card_style.content_margin_top = 26
-	card_style.content_margin_bottom = 26
-	card.add_theme_stylebox_override("panel", card_style)
-	center.add_child(card)
+	var lower_glow = ColorRect.new()
+	lower_glow.anchor_left = 0.0
+	lower_glow.anchor_right = 1.0
+	lower_glow.anchor_top = 0.72
+	lower_glow.anchor_bottom = 1.0
+	lower_glow.color = Color(0.03, 0.20, 0.19, 0.22)
+	lower_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(lower_glow)
 
-	var layout = VBoxContainer.new()
-	layout.add_theme_constant_override("separation", 16)
-	card.add_child(layout)
+	# A quiet skyline gives the loading page a city-building identity.
+	var skyline = Control.new()
+	skyline.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	skyline.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(skyline)
+	var viewport_size = get_viewport_rect().size
+	var skyline_base = viewport_size.y * 0.91
+	var building_specs = [
+		[0.00, 0.15, 0.10], [0.09, 0.22, 0.08], [0.17, 0.12, 0.12],
+		[0.29, 0.19, 0.09], [0.39, 0.27, 0.10], [0.50, 0.16, 0.11],
+		[0.61, 0.23, 0.09], [0.70, 0.14, 0.12], [0.82, 0.21, 0.09],
+		[0.91, 0.17, 0.11]
+	]
+	for spec in building_specs:
+		var building = ColorRect.new()
+		building.position = Vector2(viewport_size.x * float(spec[0]), skyline_base - viewport_size.y * float(spec[1]))
+		building.size = Vector2(viewport_size.x * float(spec[2]), viewport_size.y * float(spec[1]))
+		building.color = Color("#102b3a")
+		building.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		skyline.add_child(building)
+		for row in range(3):
+			for column in range(2):
+				var window_light = ColorRect.new()
+				window_light.position = Vector2(7.0 + column * max(13.0, building.size.x * 0.38), 12.0 + row * 23.0)
+				window_light.size = Vector2(5, 8)
+				window_light.color = Color(0.95, 0.73, 0.39, 0.55 if (row + column) % 2 == 0 else 0.22)
+				window_light.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				building.add_child(window_light)
+
+	var safe = _get_safe_area_insets()
+	var page = VBoxContainer.new()
+	page.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	page.offset_left = safe.x + 28.0
+	page.offset_right = -(safe.z + 28.0)
+	page.offset_top = safe.y + 30.0
+	page.offset_bottom = -(safe.w + 28.0)
+	page.add_theme_constant_override("separation", 10)
+	page.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(page)
 
 	var brand = Label.new()
-	brand.text = "✦  ZEKAMEDIAFA  ✦"
+	brand.text = "ZEKAMEDIAFA  •  PRESENTS"
 	brand.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_apply_font(brand, 14)
-	brand.add_theme_color_override("font_color", Color("#7dd3fc"))
-	layout.add_child(brand)
+	brand.add_theme_font_size_override("font_size", 12)
+	brand.add_theme_color_override("font_color", Color("#75cdbd"))
+	page.add_child(brand)
+
+	var top_space = Control.new()
+	top_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	top_space.custom_minimum_size.y = 12
+	page.add_child(top_space)
+
+	var emblem_wrap = CenterContainer.new()
+	emblem_wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page.add_child(emblem_wrap)
+	var emblem = TextureRect.new()
+	emblem.custom_minimum_size = Vector2(184, 184)
+	emblem.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	emblem.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	emblem.texture = load("res://assets/minizekacity-icon.svg")
+	emblem_wrap.add_child(emblem)
 
 	var title = Label.new()
 	title.text = "مینی زکا سیتی"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_apply_font(title, 27)
-	title.add_theme_color_override("font_color", Color("#ffffff"))
-	layout.add_child(title)
+	_apply_font(title, 31)
+	title.add_theme_color_override("font_color", Color("#f7f4e9"))
+	page.add_child(title)
+
+	var subtitle = Label.new()
+	subtitle.text = "شهر خودت را بساز؛ آینده را مدیریت کن"
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_font(subtitle, 15)
+	subtitle.add_theme_color_override("font_color", Color("#9cc9c8"))
+	page.add_child(subtitle)
+
+	var divider = ColorRect.new()
+	divider.custom_minimum_size = Vector2(72, 3)
+	divider.color = Color("#e8bd70")
+	divider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	page.add_child(divider)
+
+	var progress_space = Control.new()
+	progress_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	progress_space.custom_minimum_size.y = 12
+	page.add_child(progress_space)
 
 	startup_loading_label = Label.new()
-	startup_loading_label.text = "در حال آماده‌سازی بازی..."
+	startup_loading_label.text = "در حال آماده‌سازی شهر..."
 	startup_loading_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_apply_font(startup_loading_label, 15)
-	startup_loading_label.add_theme_color_override("font_color", Color("#cbd5e1"))
-	layout.add_child(startup_loading_label)
+	startup_loading_label.add_theme_color_override("font_color", Color("#d8e6e7"))
+	page.add_child(startup_loading_label)
 
 	startup_loading_bar = ProgressBar.new()
 	startup_loading_bar.min_value = 0
 	startup_loading_bar.max_value = 100
 	startup_loading_bar.value = 0
 	startup_loading_bar.show_percentage = false
-	startup_loading_bar.custom_minimum_size = Vector2(0, 17)
+	startup_loading_bar.custom_minimum_size = Vector2(0, 13)
 	var track = StyleBoxFlat.new()
-	track.bg_color = Color("#26394b")
-	track.set_corner_radius_all(9)
+	track.bg_color = Color("#203746")
+	track.set_corner_radius_all(7)
 	var fill = StyleBoxFlat.new()
-	fill.bg_color = Color("#38bdf8")
-	fill.set_corner_radius_all(9)
+	fill.bg_color = Color("#55d6b3")
+	fill.set_corner_radius_all(7)
 	startup_loading_bar.add_theme_stylebox_override("background", track)
 	startup_loading_bar.add_theme_stylebox_override("fill", fill)
-	layout.add_child(startup_loading_bar)
+	page.add_child(startup_loading_bar)
 
 	startup_loading_percent = Label.new()
 	startup_loading_percent.text = "۰٪"
 	startup_loading_percent.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_apply_font(startup_loading_percent, 17)
-	startup_loading_percent.add_theme_color_override("font_color", Color("#7dd3fc"))
-	layout.add_child(startup_loading_percent)
+	startup_loading_percent.add_theme_color_override("font_color", Color("#f0c878"))
+	page.add_child(startup_loading_percent)
 
 	var tip_heading = Label.new()
-	tip_heading.text = "💡 نکته‌ای برای شهرت"
+	tip_heading.text = "✦  نکته‌ای برای شهرت"
 	tip_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_apply_font(tip_heading, 14)
-	tip_heading.add_theme_color_override("font_color", Color("#fbbf24"))
-	layout.add_child(tip_heading)
+	tip_heading.add_theme_color_override("font_color", Color("#f0c878"))
+	page.add_child(tip_heading)
 
 	startup_tip_label = Label.new()
 	startup_tip_label.text = ""
 	startup_tip_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	startup_tip_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	startup_tip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	startup_tip_label.custom_minimum_size = Vector2(0, 48)
+	startup_tip_label.custom_minimum_size = Vector2(0, 54)
 	_apply_font(startup_tip_label, 14)
-	startup_tip_label.add_theme_color_override("font_color", Color("#dbeafe"))
-	layout.add_child(startup_tip_label)
+	startup_tip_label.add_theme_color_override("font_color", Color("#c4d9df"))
+	page.add_child(startup_tip_label)
 	_show_next_startup_tip()
+
+	var footer = Label.new()
+	footer.text = "BUILD YOUR CITY  •  SHAPE YOUR FUTURE"
+	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	footer.add_theme_font_size_override("font_size", 10)
+	footer.add_theme_color_override("font_color", Color("#62828d"))
+	page.add_child(footer)
+
+	var bottom_space = Control.new()
+	bottom_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	bottom_space.custom_minimum_size.y = 8
+	page.add_child(bottom_space)
 
 	startup_tip_timer = Timer.new()
 	startup_tip_timer.wait_time = 4.0
