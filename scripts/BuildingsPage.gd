@@ -68,7 +68,8 @@ static func build(owner, s):
 	if not active_projects.is_empty():
 		owner._add_label("🏗️ پروژه‌های در حال ساخت", 18)
 		var projects_by_district = {}
-		for project in active_projects:
+		for project_index in range(active_projects.size()):
+			var project = active_projects[project_index]
 			var project_district = str(project.get("district_name", "منطقه صنعتی خارج شهر"))
 			if not projects_by_district.has(project_district):
 				projects_by_district[project_district] = []
@@ -81,6 +82,9 @@ static func build(owner, s):
 				var project_name = str(project.get("name", "ساختمان"))
 				var progress_text = "کمتر از یک دقیقه" if remaining_seconds > 0 and remaining_minutes <= 1 else "%d دقیقه" % remaining_minutes
 				owner._add_label("🚧 %s — زمان باقی‌مانده: %s" % [project_name, progress_text], 15)
+				var speedup_cost = max(1, int(ceil(float(remaining_seconds) / 300.0)))
+				var speedup_button = owner._add_button("💎 تکمیل فوری — %d جم" % speedup_cost, owner, "speed_up_construction", [project_index])
+				owner._style_button(speedup_button, false)
 	owner._add_label("ساختمان‌ها:", 18)
 	var district_ids = []
 	var district_names = {}
