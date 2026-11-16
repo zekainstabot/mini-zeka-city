@@ -25,6 +25,8 @@ var _music_thread_mode = ""
 var _environment_thread_key = ""
 var _pending_music_mode = ""
 var _pending_environment_key = ""
+var _music_generation_unavailable = false
+var _environment_generation_unavailable = false
 
 func _process(_delta):
 	_poll_ambience_generation()
@@ -178,6 +180,8 @@ func _apply_music(force_restart=false):
 		music_player.play()
 
 func _request_music_stream(mode):
+	if _music_generation_unavailable:
+		return
 	if _music_stream_cache.has(mode):
 		music_player.stream = _music_stream_cache[mode]
 		if music_enabled and not music_player.playing:
@@ -191,6 +195,7 @@ func _request_music_stream(mode):
 	var err = _music_thread.start(Callable(self, "_generate_ambient_music_data").bind(mode == "night"), Thread.PRIORITY_LOW)
 	if err != OK:
 		_music_thread = null
+		_music_generation_unavailable = true
 		push_warning("Ambient music generation unavailable on this platform; skipping background music to keep gameplay responsive.")
 
 func _finish_music_generation(mode, generated):
@@ -233,6 +238,8 @@ func _get_environment_cache_key():
 	return "night" if night_mode else "day_" + environment_mode
 
 func _request_environment_stream(key):
+	if _environment_generation_unavailable:
+		return
 	if _environment_stream_cache.has(key):
 		environment_player.stream = _environment_stream_cache[key]
 		if environment_enabled and not environment_player.playing:
@@ -248,6 +255,7 @@ func _request_environment_stream(key):
 	var err = _environment_thread.start(Callable(self, "_generate_environment_data").bind(mode, is_night), Thread.PRIORITY_LOW)
 	if err != OK:
 		_environment_thread = null
+		_environment_generation_unavailable = true
 		push_warning("Ambient soundscape generation unavailable on this platform; skipping environment audio to keep gameplay responsive.")
 
 func _finish_environment_generation(key, generated):
