@@ -1,13 +1,19 @@
 extends RefCounted
 class_name PersianText
 
-# Godot 4's TextServerAdvanced performs Arabic/Persian glyph shaping and
-# Unicode bidirectional layout natively. Keep the old method name so existing
-# UI call sites remain compatible, but never reverse or reshape Unicode text.
+# Keep Persian UI numerals consistent. Godot handles Arabic/Persian shaping
+# and bidirectional layout natively; this helper only normalizes digits and
+# optionally wraps long text.
 static func reshaper(value: String, line_length: int = 0) -> String:
-	if line_length <= 0 or value.length() <= line_length:
-		return value
-	var words := value.split(" ", false)
+	var normalized := value
+	var latin_digits := ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+	var persian_digits := ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"]
+	for index in range(latin_digits.size()):
+		normalized = normalized.replace(latin_digits[index], persian_digits[index])
+
+	if line_length <= 0 or normalized.length() <= line_length:
+		return normalized
+	var words := normalized.split(" ", false)
 	var lines: Array[String] = []
 	var current := ""
 	for word in words:
