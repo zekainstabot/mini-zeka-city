@@ -1575,8 +1575,8 @@ func _open_construction_details():
 	center.offset_bottom = -(construction_safe.w + 18.0)
 	backdrop.add_child(center)
 	var card = PanelContainer.new()
-	var reward_viewport = get_viewport_rect().size
-	card.custom_minimum_size = Vector2(min(520.0, reward_viewport.x - reward_safe.x - reward_safe.z - 28.0), 0)
+	var construction_viewport = get_viewport_rect().size
+	card.custom_minimum_size = Vector2(min(520.0, construction_viewport.x - construction_safe.x - construction_safe.z - 28.0), 0)
 	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	var card_style = StyleBoxFlat.new()
 	card_style.bg_color = Color("#14243a")
