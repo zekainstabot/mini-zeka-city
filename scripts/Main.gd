@@ -108,6 +108,7 @@ var help_button = null
 var help_previous_page = "home"
 var help_scroll_original_index = 5
 var startup_loading_layer = null
+var startup_entry_layer = null
 var startup_loading_bar = null
 var startup_loading_label = null
 var startup_loading_percent = null
@@ -319,9 +320,163 @@ func _ready():
 	# any game page or overlay creates additional buttons.
 	get_tree().node_added.connect(_on_ui_node_added)
 	_center_existing_button_texts(self)
-	# Show a lightweight loading screen before doing any synchronous startup work.
 	layout_direction = Control.LAYOUT_DIRECTION_RTL
+	# The first visible screen is the actual game welcome/entry page.
+	_show_startup_entry_screen()
+
+
+func _show_startup_entry_screen():
+	var layer = CanvasLayer.new()
+	layer.name = "StartupEntryLayer"
+	layer.layer = 180
+	add_child(layer)
+	startup_entry_layer = layer
+
+	var background = ColorRect.new()
+	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background.color = Color("#071522")
+	background.mouse_filter = Control.MOUSE_FILTER_STOP
+	layer.add_child(background)
+
+	var atmosphere = ColorRect.new()
+	atmosphere.anchor_left = 0.0
+	atmosphere.anchor_right = 1.0
+	atmosphere.anchor_top = 0.0
+	atmosphere.anchor_bottom = 0.72
+	atmosphere.color = Color(0.06, 0.23, 0.31, 0.28)
+	atmosphere.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(atmosphere)
+
+	# A simple layered skyline makes the entry page feel like the city itself.
+	var skyline = Control.new()
+	skyline.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	skyline.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(skyline)
+	var viewport_size = get_viewport_rect().size
+	var skyline_base = viewport_size.y * 0.91
+	var buildings = [
+		[0.00, 0.17, 0.12], [0.12, 0.25, 0.10], [0.24, 0.14, 0.13],
+		[0.39, 0.22, 0.11], [0.53, 0.31, 0.12], [0.68, 0.19, 0.10],
+		[0.81, 0.26, 0.11], [0.93, 0.16, 0.10]
+	]
+	for spec in buildings:
+		var tower = ColorRect.new()
+		tower.position = Vector2(viewport_size.x * float(spec[0]), skyline_base - viewport_size.y * float(spec[1]))
+		tower.size = Vector2(viewport_size.x * float(spec[2]), viewport_size.y * float(spec[1]))
+		tower.color = Color("#102b3a")
+		tower.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		skyline.add_child(tower)
+		for row in range(3):
+			for column in range(2):
+				var window_light = ColorRect.new()
+				window_light.position = Vector2(8.0 + column * max(14.0, tower.size.x * 0.38), 13.0 + row * 25.0)
+				window_light.size = Vector2(5, 8)
+				window_light.color = Color(0.95, 0.73, 0.39, 0.48 if (row + column) % 2 == 0 else 0.18)
+				window_light.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				tower.add_child(window_light)
+
+	var safe = _get_safe_area_insets()
+	var page = VBoxContainer.new()
+	page.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	page.offset_left = safe.x + 28.0
+	page.offset_right = -(safe.z + 28.0)
+	page.offset_top = safe.y + 28.0
+	page.offset_bottom = -(safe.w + 28.0)
+	page.add_theme_constant_override("separation", 12)
+	page.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(page)
+
+	var top_space = Control.new()
+	top_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page.add_child(top_space)
+
+	var brand = Label.new()
+	brand.text = "Z E K A   C I T Y"
+	brand.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	brand.add_theme_font_size_override("font_size", 13)
+	brand.add_theme_color_override("font_color", Color("#75cdbd"))
+	page.add_child(brand)
+
+	var emblem_wrap = CenterContainer.new()
+	page.add_child(emblem_wrap)
+	var emblem = TextureRect.new()
+	emblem.custom_minimum_size = Vector2(150, 150)
+	emblem.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	emblem.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	emblem.texture = load("res://assets/minizekacity-icon.svg")
+	emblem_wrap.add_child(emblem)
+
+	var title = Label.new()
+	title.text = "مینی زکا سیتی"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_apply_font(title, 32)
+	title.add_theme_color_override("font_color", Color("#fff8e8"))
+	page.add_child(title)
+
+	var subtitle = Label.new()
+	subtitle.text = "از یک زمین خالی تا شهری پر از زندگی"
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_apply_font(subtitle, 15)
+	subtitle.add_theme_color_override("font_color", Color("#a9c9d0"))
+	page.add_child(subtitle)
+
+	var separator = ColorRect.new()
+	separator.custom_minimum_size = Vector2(64, 3)
+	separator.color = Color("#e8bd70")
+	separator.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	page.add_child(separator)
+
+	var middle_space = Control.new()
+	middle_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page.add_child(middle_space)
+
+	var welcome = Label.new()
+	welcome.text = "شهرت منتظرته"
+	welcome.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_font(welcome, 21)
+	welcome.add_theme_color_override("font_color", Color("#f0c878"))
+	page.add_child(welcome)
+
+	var description = Label.new()
+	description.text = "بساز، مدیریت کن و شهر رؤیایی خودت رو گسترش بده."
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_apply_font(description, 13)
+	description.add_theme_color_override("font_color", Color("#c4d9df"))
+	page.add_child(description)
+
+	var enter_button = Button.new()
+	enter_button.text = PersianText.reshaper("ورود به شهر")
+	enter_button.custom_minimum_size = Vector2(0, 58)
+	enter_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_font(enter_button, 18)
+	_style_button(enter_button, true)
+	enter_button.pressed.connect(_start_game_loading)
+	page.add_child(enter_button)
+
+	var footer = Label.new()
+	footer.text = "BUILD YOUR CITY  •  SHAPE YOUR FUTURE"
+	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	footer.add_theme_font_size_override("font_size", 10)
+	footer.add_theme_color_override("font_color", Color("#62828d"))
+	page.add_child(footer)
+
+	var bottom_space = Control.new()
+	bottom_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page.add_child(bottom_space)
+
+
+func _start_game_loading():
+	if game != null:
+		return
+	if startup_entry_layer != null and is_instance_valid(startup_entry_layer):
+		startup_entry_layer.queue_free()
+	startup_entry_layer = null
 	_create_startup_loading_screen()
+	# Give the loading page a rendered frame before beginning initialization.
+	await get_tree().process_frame
 	await _set_startup_progress(3, "آماده‌سازی محیط بازی...")
 
 	_load_ui_font()
@@ -591,16 +746,29 @@ func _show_next_startup_tip():
 	startup_tip_label.text = PersianText.reshaper(tips[startup_tip_index])
 
 
+func _update_startup_progress_visual(value: float):
+	if startup_loading_bar != null and is_instance_valid(startup_loading_bar):
+		startup_loading_bar.value = value
+	if startup_loading_percent != null and is_instance_valid(startup_loading_percent):
+		startup_loading_percent.text = "%d٪" % int(round(value))
+
+
 func _set_startup_progress(value: int, message: String):
 	var safe_value = clampi(value, 0, 100)
-	if startup_loading_bar != null and is_instance_valid(startup_loading_bar):
-		startup_loading_bar.value = safe_value
 	if startup_loading_label != null and is_instance_valid(startup_loading_label):
 		startup_loading_label.text = PersianText.reshaper(message)
-	if startup_loading_percent != null and is_instance_valid(startup_loading_percent):
-		startup_loading_percent.text = "%d٪" % safe_value
-	# Yield so the updated progress is actually drawn before the next stage runs.
-	await get_tree().process_frame
+	var current_value = 0.0
+	if startup_loading_bar != null and is_instance_valid(startup_loading_bar):
+		current_value = startup_loading_bar.value
+	# Each checkpoint is reached only after its real startup task has completed.
+	# Animate between completed checkpoints so the percentage never jumps abruptly.
+	var distance = absf(float(safe_value) - current_value)
+	var duration = clampf(distance * 0.035, 0.16, 0.72)
+	var tween = create_tween()
+	tween.set_trans(Tween.TRANS_CUBIC)
+	tween.set_ease(Tween.EASE_OUT)
+	tween.tween_method(_update_startup_progress_visual, current_value, float(safe_value), duration)
+	await tween.finished
 
 
 func _finish_startup_loading():
