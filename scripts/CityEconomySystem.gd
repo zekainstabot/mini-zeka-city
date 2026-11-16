@@ -62,7 +62,7 @@ static func get_daily_development_support(engine):
 	var treasury_gap = max(0, 3000 - int(state.get("money", 0)))
 	return min(level_support, treasury_gap)
 
-static func end_day(engine, is_offline=false):
+static func end_day(engine, is_offline=false, persist=true):
 	var state = engine.state
 	var report = []
 	var weekly_event = engine.get_weekly_city_event()
@@ -359,7 +359,8 @@ static func end_day(engine, is_offline=false):
 	for report_message in report:
 		engine.add_report_event(str(report_message), false)
 	state.last_report = "\n".join(report)
-	engine.save_game()
+	if bool(persist):
+		engine.save_game()
 	return state.last_report
 
 static func _apply_citizen_payday(engine, citizen, payment):
