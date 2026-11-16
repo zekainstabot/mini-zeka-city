@@ -618,6 +618,10 @@ func _finish_startup_loading():
 func _update_city_name_keyboard_position():
 	if city_name_center_container == null or not is_instance_valid(city_name_center_container):
 		return
+	# Headless/desktop display servers do not expose a virtual keyboard. Avoid
+	# polling the unsupported API every frame; on Android this feature is present.
+	if not DisplayServer.has_feature(DisplayServer.FEATURE_VIRTUAL_KEYBOARD):
+		return
 	var keyboard_height = DisplayServer.virtual_keyboard_get_height()
 	if keyboard_height == city_name_keyboard_height:
 		return
