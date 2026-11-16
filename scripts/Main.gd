@@ -948,7 +948,7 @@ func _apply_responsive_layout():
 	for button in navigation_buttons:
 		if button == null or not is_instance_valid(button):
 			continue
-		button.custom_minimum_size = Vector2(0, 56 if viewport_size.y < 500.0 else (68 if narrow else 58))
+		button.custom_minimum_size = Vector2(0, 52 if viewport_size.y < 500.0 else 58)
 		_apply_font(button, 14 if narrow else (16 if compact else 18))
 		button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
