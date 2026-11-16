@@ -1977,7 +1977,7 @@ func _create_menu_action(title, callback):
 	var phone_layout = get_viewport_rect().size.x < 900
 	# Keep menu actions compact while never exceeding the actual safe viewport.
 	var safe = _get_safe_area_insets()
-	var action_width = min(320.0 if phone_layout else 360.0, get_viewport_rect().size.x - safe.x - safe.z - (32.0 if phone_layout else 64.0))
+	var action_width = min(320.0 if phone_layout else 360.0, get_viewport_rect().size.x - safe.x - safe.z - (72.0 if phone_layout else 96.0))
 	button.custom_minimum_size = Vector2(max(0.0, action_width), 62 if phone_layout else 54)
 	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
