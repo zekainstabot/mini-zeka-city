@@ -156,6 +156,7 @@ static func _update_achievements(engine):
 	for achievement in engine.ACHIEVEMENT_DEFINITIONS:
 		var id = str(achievement.id)
 		if bool(unlocked.get(id, false)):
+			_grant_achievement_gems(engine, achievement, id)
 			continue
 		var done = false
 		match id:
@@ -207,7 +208,21 @@ static func _update_achievements(engine):
 				done = engine.get_building_count("woodcutter") > 0 and engine.get_building_count("sawmill") > 0 and engine.get_building_count("carpenter") > 0
 		if done:
 			unlocked[id] = true
+			_grant_achievement_gems(engine, achievement, id)
 	state["achievements"] = unlocked
+
+static func _grant_achievement_gems(engine, achievement, achievement_id):
+	var state = engine.state
+	var claimed = state.get("achievement_gem_rewards_claimed", {})
+	if typeof(claimed) != TYPE_DICTIONARY:
+		claimed = {}
+	if bool(claimed.get(achievement_id, false)):
+		return
+	var reward = max(0, int(achievement.get("gem_reward", 0)))
+	if reward > 0:
+		state["gems"] = max(0, int(state.get("gems", 0))) + reward
+		claimed[achievement_id] = true
+	state["achievement_gem_rewards_claimed"] = claimed
 
 static func get_achievements(engine):
 	var state = engine.state
