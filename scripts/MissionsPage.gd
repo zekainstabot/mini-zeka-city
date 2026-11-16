@@ -387,30 +387,30 @@ static func _get_achievement_progress(game, achievement_id):
 	var current = 0
 	var goal = 1
 	match achievement_id:
-		"first_expansion":
+		"first_expansion", "buildings_10", "buildings_25", "buildings_50":
 			current = state.get("buildings", []).size()
-			goal = 5
-		"population_20":
+			goal = {"first_expansion":5, "buildings_10":10, "buildings_25":25, "buildings_50":50}[achievement_id]
+		"population_20", "population_50", "population_100":
 			current = int(state.get("population", 0))
-			goal = 20
-		"level_5":
+			goal = {"population_20":20, "population_50":50, "population_100":100}[achievement_id]
+		"level_5", "level_10", "level_20":
 			current = int(state.get("level", 1))
-			goal = 5
-		"treasury_20000":
+			goal = {"level_5":5, "level_10":10, "level_20":20}[achievement_id]
+		"treasury_20000", "treasury_50000", "treasury_100000":
 			current = int(state.get("money", 0))
-			goal = 20000
-		"happy_city":
+			goal = {"treasury_20000":20000, "treasury_50000":50000, "treasury_100000":100000}[achievement_id]
+		"happy_city", "happiness_95":
 			current = int(state.get("satisfaction", 0))
-			goal = 85
-		"login_streak_7":
+			goal = 85 if achievement_id == "happy_city" else 95
+		"login_streak_7", "login_streak_30":
 			current = int(state.get("login_streak", 0))
-			goal = 7
-		"trade_50":
+			goal = 7 if achievement_id == "login_streak_7" else 30
+		"trade_50", "trade_100", "trade_500":
 			current = int(state.get("trade_exported_units_total", 0))
-			goal = 50
-		"two_districts":
+			goal = {"trade_50":50, "trade_100":100, "trade_500":500}[achievement_id]
+		"two_districts", "five_districts":
 			current = state.get("districts", []).size()
-			goal = 2
+			goal = 2 if achievement_id == "two_districts" else 5
 		"production_chain":
 			current = int(game.get_building_count("woodcutter") > 0) + int(game.get_building_count("sawmill") > 0) + int(game.get_building_count("carpenter") > 0)
 			goal = 3
