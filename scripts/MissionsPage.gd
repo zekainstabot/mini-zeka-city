@@ -291,3 +291,127 @@ static func build(owner, s):
 			card_body.add_child(claim_button)
 	if visible_missions == 0:
 		owner._add_label("آموزش هنوز شروع نشده است؛ بازی را ادامه بده.", 17)
+
+	# Achievements live inside the Missions screen so players can track long-term goals here.
+	var achievement_list = game.get_achievements()
+	var unlocked_achievements = 0
+	for achievement in achievement_list:
+		if bool(achievement.get("unlocked", false)):
+			unlocked_achievements += 1
+	owner._add_label("━━━━━━━━━━━━━━━━━━━━", 14)
+	owner._add_label("🏅 دستاوردها و افتخارات", 23)
+	owner._add_label("با پیشرفت شهر نشان‌های افتخار بگیر؛ دستاوردها دائمی هستند و با دریافت جایزه مأموریت فرق دارند.", 16)
+	var achievement_summary = PanelContainer.new()
+	var achievement_summary_style = StyleBoxFlat.new()
+	achievement_summary_style.bg_color = Color("#332b18")
+	achievement_summary_style.border_color = Color("#d6a63c")
+	achievement_summary_style.set_border_width_all(2)
+	achievement_summary_style.set_corner_radius_all(12)
+	achievement_summary_style.content_margin_left = 12
+	achievement_summary_style.content_margin_right = 12
+	achievement_summary_style.content_margin_top = 10
+	achievement_summary_style.content_margin_bottom = 10
+	achievement_summary.add_theme_stylebox_override("panel", achievement_summary_style)
+	achievement_summary.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	owner.content.add_child(achievement_summary)
+	var achievement_summary_label = Label.new()
+	achievement_summary_label.text = owner.PersianText.reshaper("نشان‌های کسب‌شده: %d از %d" % [unlocked_achievements, achievement_list.size()])
+	achievement_summary_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	owner._apply_font(achievement_summary_label, 19)
+	achievement_summary_label.add_theme_color_override("font_color", Color("#fde68a"))
+	achievement_summary.add_child(achievement_summary_label)
+
+	for achievement in achievement_list:
+		var achievement_id = str(achievement.get("id", ""))
+		var achievement_progress = _get_achievement_progress(game, achievement_id)
+		var achievement_unlocked = bool(achievement.get("unlocked", false))
+		var achievement_card = PanelContainer.new()
+		achievement_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var achievement_card_style = StyleBoxFlat.new()
+		achievement_card_style.bg_color = Color("#3a301b") if achievement_unlocked else Color("#202b3b")
+		achievement_card_style.border_color = Color("#eabf54") if achievement_unlocked else Color("#475569")
+		achievement_card_style.set_border_width_all(2)
+		achievement_card_style.set_corner_radius_all(12)
+		achievement_card_style.content_margin_left = 12
+		achievement_card_style.content_margin_right = 12
+		achievement_card_style.content_margin_top = 10
+		achievement_card_style.content_margin_bottom = 10
+		achievement_card.add_theme_stylebox_override("panel", achievement_card_style)
+		owner.content.add_child(achievement_card)
+		var achievement_body = VBoxContainer.new()
+		achievement_body.add_theme_constant_override("separation", 5)
+		achievement_card.add_child(achievement_body)
+		var achievement_title = Label.new()
+		achievement_title.text = owner.PersianText.reshaper(("🏅 " if achievement_unlocked else "🔒 ") + str(achievement.get("title", "دستاورد")))
+		achievement_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		achievement_title.text_direction = Control.TEXT_DIRECTION_RTL
+		achievement_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		owner._apply_font(achievement_title, 18)
+		achievement_title.add_theme_color_override("font_color", Color("#fde68a") if achievement_unlocked else Color("#f8fafc"))
+		achievement_body.add_child(achievement_title)
+		var achievement_description = Label.new()
+		achievement_description.text = owner.PersianText.reshaper(str(achievement.get("description", "")))
+		achievement_description.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		achievement_description.text_direction = Control.TEXT_DIRECTION_RTL
+		achievement_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		owner._apply_font(achievement_description, 15)
+		achievement_description.add_theme_color_override("font_color", Color("#e2e8f0"))
+		achievement_body.add_child(achievement_description)
+		var achievement_progress_label = Label.new()
+		var progress_text = "دستاورد باز شد؛ آفرین!" if achievement_unlocked else "پیشرفت: %s از %s" % [str(achievement_progress.current), str(achievement_progress.goal)]
+		achievement_progress_label.text = owner.PersianText.reshaper(progress_text)
+		achievement_progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		achievement_progress_label.text_direction = Control.TEXT_DIRECTION_RTL
+		owner._apply_font(achievement_progress_label, 14)
+		achievement_progress_label.add_theme_color_override("font_color", Color("#fcd34d") if achievement_unlocked else Color("#bfdbfe"))
+		achievement_body.add_child(achievement_progress_label)
+		var achievement_bar = ProgressBar.new()
+		achievement_bar.min_value = 0
+		achievement_bar.max_value = max(1, int(achievement_progress.goal))
+		achievement_bar.value = achievement_bar.max_value if achievement_unlocked else min(int(achievement_progress.current), int(achievement_progress.goal))
+		achievement_bar.show_percentage = false
+		achievement_bar.custom_minimum_size = Vector2(0, 10)
+		var achievement_fill = StyleBoxFlat.new()
+		achievement_fill.bg_color = Color("#eabf54") if achievement_unlocked else Color("#38bdf8")
+		achievement_fill.set_corner_radius_all(5)
+		achievement_bar.add_theme_stylebox_override("fg", achievement_fill)
+		var achievement_background = StyleBoxFlat.new()
+		achievement_background.bg_color = Color("#334155")
+		achievement_background.set_corner_radius_all(5)
+		achievement_bar.add_theme_stylebox_override("bg", achievement_background)
+		achievement_body.add_child(achievement_bar)
+
+
+static func _get_achievement_progress(game, achievement_id):
+	var state = game.state
+	var current = 0
+	var goal = 1
+	match achievement_id:
+		"first_expansion":
+			current = state.get("buildings", []).size()
+			goal = 5
+		"population_20":
+			current = int(state.get("population", 0))
+			goal = 20
+		"level_5":
+			current = int(state.get("level", 1))
+			goal = 5
+		"treasury_20000":
+			current = int(state.get("money", 0))
+			goal = 20000
+		"happy_city":
+			current = int(state.get("satisfaction", 0))
+			goal = 85
+		"login_streak_7":
+			current = int(state.get("login_streak", 0))
+			goal = 7
+		"trade_50":
+			current = int(state.get("trade_exported_units_total", 0))
+			goal = 50
+		"two_districts":
+			current = state.get("districts", []).size()
+			goal = 2
+		"production_chain":
+			current = int(game.get_building_count("woodcutter") > 0) + int(game.get_building_count("sawmill") > 0) + int(game.get_building_count("carpenter") > 0)
+			goal = 3
+	return {"current":min(current, goal), "goal":goal}
