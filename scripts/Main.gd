@@ -218,8 +218,12 @@ func _process(delta):
 			var storage_result = game.apply_storage_rule(str(resource_id), false)
 			if bool(storage_result.get("ok", false)) and (str(storage_result.get("message","")).begins_with("خرید انجام شد:") or str(storage_result.get("message","")).begins_with("فروش ")):
 				storage_changed = true
-		if storage_changed and current_page == "storage":
-			show_page("storage")
+		if storage_changed:
+			# Auto-trading may adjust several resources in one pass; persist once
+			# after the batch instead of serializing the whole city per resource.
+			game.save_game()
+			if current_page == "storage":
+				show_page("storage")
 	construction_hud_refresh_accumulator += delta
 	if construction_hud_refresh_accumulator >= 1.0:
 		construction_hud_refresh_accumulator = 0.0
