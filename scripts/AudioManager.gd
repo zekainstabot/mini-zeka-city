@@ -155,9 +155,43 @@ func _apply_music(force_restart=false):
 		return
 	music_player.volume_db = linear_to_db(max(0.001, music_volume))
 	if force_restart or music_player.stream == null:
-		music_player.stream = _make_ambient_music(night_mode)
-	if not music_player.playing:
+		_request_music_stream("night" if night_mode else "day")
+	elif not music_player.playing:
 		music_player.play()
+
+func _request_music_stream(mode):
+	if _music_stream_cache.has(mode):
+		music_player.stream = _music_stream_cache[mode]
+		if music_enabled and not music_player.playing:
+			music_player.play()
+		return
+	if _music_thread != null and _music_thread.is_started():
+		_pending_music_mode = mode
+		return
+	_music_thread_mode = mode
+	_music_thread = Thread.new()
+	var err = _music_thread.start(Callable(self, "_generate_ambient_music_data").bind(mode == "night"))
+	if err != OK:
+		_music_thread = null
+		_finish_music_generation(mode, _generate_ambient_music_data(mode == "night"))
+
+func _finish_music_generation(mode, generated):
+	if typeof(generated) != TYPE_DICTIONARY or not generated.has("data"):
+		return
+	var stream = AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = SAMPLE_RATE
+	stream.stereo = true
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_begin = 0
+	stream.loop_end = int(generated.get("sample_count", 0))
+	stream.data = generated.data
+	_music_stream_cache[mode] = stream
+	var current_mode = "night" if night_mode else "day"
+	if mode == current_mode and music_enabled and music_player != null:
+		music_player.stream = stream
+		if not music_player.playing:
+			music_player.play()
 
 func _apply_effects():
 	for voice in effects_players:
