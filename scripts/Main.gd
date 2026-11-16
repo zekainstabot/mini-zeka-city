@@ -343,14 +343,14 @@ func _start_game_loading():
 	_set_startup_progress(3, "آماده‌سازی محیط بازی...")
 
 	_load_ui_font()
-	await _set_startup_progress(12, "بارگذاری فونت و رابط فارسی...")
+	_set_startup_progress(12, "بارگذاری فونت و رابط فارسی...")
 
 	audio_manager = AudioManagerScript.new()
 	add_child(audio_manager)
-	await _set_startup_progress(20, "آماده‌سازی صداها...")
+	_set_startup_progress(20, "آماده‌سازی صداها...")
 
 	game = EngineScript.new()
-	await _set_startup_progress(34, "آماده‌سازی اطلاعات شهر...")
+	_set_startup_progress(34, "آماده‌سازی اطلاعات شهر...")
 
 	var has_existing_save = game.load_game()
 	if not has_existing_save:
@@ -358,7 +358,7 @@ func _start_game_loading():
 		# First launch starts in portrait. Later launches always use the saved orientation.
 		game.state["screen_orientation"] = "portrait"
 		game.save_game()
-	await _set_startup_progress(52, "بارگذاری اطلاعات و ذخیره شهر...")
+	_set_startup_progress(52, "بارگذاری اطلاعات و ذخیره شهر...")
 
 	var saved_orientation = str(game.state.get("screen_orientation", "portrait"))
 	if saved_orientation not in ["auto", "portrait", "landscape"]:
@@ -367,7 +367,7 @@ func _start_game_loading():
 		game.save_game()
 	_apply_screen_orientation(saved_orientation)
 	game.register_login_today()
-	await _set_startup_progress(63, "به‌روزرسانی وضعیت روزانه...")
+	_set_startup_progress(63, "به‌روزرسانی وضعیت روزانه...")
 
 	game.get_daily_missions()
 	game.get_weekly_challenge()
@@ -378,20 +378,21 @@ func _start_game_loading():
 	# Configure audio without generating long PCM streams during the loading screen.
 	audio_manager.configure_startup_night_mode(last_audio_night_mode)
 	set_process(true)
-	await _set_startup_progress(76, "ساخت صفحه‌های بازی...")
+	_set_startup_progress(76, "ساخت صفحه‌های بازی...")
 
 	_build_ui()
 	last_layout_viewport_size = Vector2.ZERO
 	_apply_responsive_layout()
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
-	await _set_startup_progress(90, "آماده‌سازی شهر و منوها...")
+	_set_startup_progress(90, "آماده‌سازی شهر و منوها...")
 
 	show_page("home")
 	if str(game.state.get("city_name", "")).strip_edges() == "":
 		_open_city_name_setup(true)
 	else:
 		_show_offline_summary()
-	await _set_startup_progress(100, "آماده‌ای! خوش اومدی به مینی زکا سیتی")
+	_set_startup_progress(100, "آماده‌ای! خوش اومدی به مینی زکا سیتی")
+	await _wait_for_startup_progress()
 	_finish_startup_loading()
 	# Start ambient audio only after the first playable frame; avoid generating it twice.
 	audio_manager.call_deferred("start_ambience")
