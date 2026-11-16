@@ -3178,6 +3178,14 @@ func claim_mission(index):
 	show_page("missions")
 	_show_message(result.message)
 
+func speed_up_construction(construction_index):
+	var result = game.speed_up_construction(int(construction_index))
+	show_page("buildings")
+	_show_message(str(result.get("message", "")))
+	if bool(result.get("ok", false)):
+		audio_manager.play_sfx("construction")
+
+
 func save_now():
 	var ok = game.save_game()
 	_show_message("شهر ذخیره شد." if ok else "ذخیره‌سازی ناموفق بود.")
