@@ -15,10 +15,8 @@ func _run_tests():
 	var main = MainScene.instantiate()
 	get_root().add_child(main)
 	await process_frame
-	assert(main.startup_entry_layer != null and is_instance_valid(main.startup_entry_layer), "Startup entry screen was not shown first")
-	print("UI TEST: entering game from startup screen")
-	await main._start_game_loading()
-	print("UI TEST: waiting for startup UI")
+	assert(main.startup_loading_layer != null and is_instance_valid(main.startup_loading_layer), "Full-screen loading screen was not shown on launch")
+	print("UI TEST: waiting for automatic startup loading")
 	# Main._ready() intentionally awaits several loading milestones before it
 	# builds the playable UI. Wait for the real UI instead of assuming one frame.
 	var startup_wait_frames = 0
