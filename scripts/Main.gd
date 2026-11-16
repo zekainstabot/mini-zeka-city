@@ -873,7 +873,7 @@ func _apply_safe_area_to_floating_controls():
 			help_button.position = Vector2(inset.x + (116.0 if usable_width >= 310.0 else 12.0), inset.y + (16.0 if usable_width >= 310.0 else 68.0))
 			_apply_font(help_button, 20)
 		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
-			construction_capacity_button.custom_minimum_size = Vector2(144, 60)
+			construction_capacity_button.custom_minimum_size = Vector2(144, 68)
 			construction_capacity_button.position = Vector2(inset.x + 12.0, inset.y + (76.0 if usable_width >= 310.0 else 122.0))
 			_apply_font(construction_capacity_button, 12)
 	else:
@@ -948,7 +948,7 @@ func _apply_responsive_layout():
 	for button in navigation_buttons:
 		if button == null or not is_instance_valid(button):
 			continue
-		button.custom_minimum_size = Vector2(0, 56 if viewport_size.y < 500.0 else (64 if narrow else 58))
+		button.custom_minimum_size = Vector2(0, 56 if viewport_size.y < 500.0 else (68 if narrow else 58))
 		_apply_font(button, 14 if narrow else (16 if compact else 18))
 		button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1551,7 +1551,11 @@ func _update_construction_capacity_button():
 	# beneath the engineer icon instead of hiding them only in the popup.
 	var viewport_width = get_viewport_rect().size.x
 	if viewport_width < 500.0:
-		var compact_project_caption = "پروژه‌ای فعال نیست" if projects.is_empty() else str(projects[0].get("name", "ساختمان")) + (" +%d" % (projects.size() - 1) if projects.size() > 1 else "")
+		var compact_project_caption = "بدون پروژه" if projects.is_empty() else str(projects[0].get("name", "ساختمان"))
+		if compact_project_caption.length() > 10:
+			compact_project_caption = compact_project_caption.substr(0, 10) + "…"
+		if projects.size() > 1:
+			compact_project_caption += " +%d" % (projects.size() - 1)
 		construction_capacity_button.text = "👷  %d/2\n🏗️  %s" % [available, compact_project_caption]
 	else:
 		construction_capacity_button.text = "👷  %d/2\n🏗️  %s" % [available, project_caption]
