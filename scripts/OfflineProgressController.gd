@@ -60,7 +60,7 @@ static func _show_offline_summary(owner):
 	var safe_area = owner._get_safe_area_insets()
 	var compact = viewport_size.x < 700.0
 	var popup_width = min(500.0, viewport_size.x - safe_area.x - safe_area.z - 32.0)
-	var popup_height = min(560.0, max(280.0, viewport_size.y - safe_area.y - safe_area.w - 180.0))
+	var popup_height = max(180.0, min(560.0, viewport_size.y - safe_area.y - safe_area.w - 32.0))
 
 	# Remove duplicate/empty report lines and show only the three most useful items.
 	var digest_items = owner.game.state.get("pending_offline_digest", [])
