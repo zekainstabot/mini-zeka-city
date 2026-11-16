@@ -2313,24 +2313,45 @@ func _add_progress_missions_tabs(active_page):
 	tabs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tabs.add_theme_constant_override("separation", 8)
 	content.add_child(tabs)
+	var missions_selected = str(active_page) == "missions"
 	var missions_button = Button.new()
 	missions_button.text = PersianText.reshaper("🎯 مأموریت‌ها")
 	missions_button.custom_minimum_size = Vector2(0, 50 if get_viewport_rect().size.x < 900 else 44)
 	missions_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_font(missions_button, 17)
-	_style_button(missions_button, str(active_page) == "missions")
-	missions_button.disabled = str(active_page) == "missions"
+	_style_progress_missions_tab(missions_button, missions_selected)
+	missions_button.disabled = missions_selected
 	missions_button.pressed.connect(Callable(self, "show_page").bind("missions"))
 	tabs.add_child(missions_button)
+	var progress_selected = str(active_page) == "progress"
 	var progress_button = Button.new()
 	progress_button.text = PersianText.reshaper("📈 پیشرفت شهر")
 	progress_button.custom_minimum_size = Vector2(0, 50 if get_viewport_rect().size.x < 900 else 44)
 	progress_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_font(progress_button, 17)
-	_style_button(progress_button, str(active_page) == "progress")
-	progress_button.disabled = str(active_page) == "progress"
+	_style_progress_missions_tab(progress_button, progress_selected)
+	progress_button.disabled = progress_selected
 	progress_button.pressed.connect(Callable(self, "show_page").bind("progress"))
 	tabs.add_child(progress_button)
+
+func _style_progress_missions_tab(button, selected):
+	var normal_color = Color("#2563eb") if selected else Color("#263445")
+	var hover_color = Color("#1d4ed8") if selected else Color("#34465c")
+	var pressed_color = Color("#1e40af") if selected else Color("#1e293b")
+	var border_color = Color("#93c5fd") if selected else Color("#526579")
+	var normal_style = MainUITheme.button_style(normal_color, border_color)
+	var hover_style = MainUITheme.button_style(hover_color, border_color)
+	var pressed_style = MainUITheme.button_style(pressed_color, border_color)
+	button.flat = false
+	button.focus_mode = Control.FOCUS_NONE
+	button.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
+	button.add_theme_stylebox_override("normal", normal_style)
+	button.add_theme_stylebox_override("hover", hover_style)
+	button.add_theme_stylebox_override("focus", hover_style)
+	button.add_theme_stylebox_override("pressed", pressed_style)
+	button.add_theme_stylebox_override("disabled", normal_style)
+	for color_name in ["font_color", "font_color_hover", "font_color_focus", "font_color_pressed", "font_color_disabled"]:
+		button.add_theme_color_override(color_name, Color("#ffffff"))
 
 func _on_navigation_pressed(page, button, title):
 	var civic_page_locked = page in ["municipality", "private_economy"] and not game.has_municipal_hall()
