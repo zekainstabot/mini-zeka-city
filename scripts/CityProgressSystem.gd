@@ -156,7 +156,7 @@ static func _update_achievements(engine):
 	for achievement in engine.ACHIEVEMENT_DEFINITIONS:
 		var id = str(achievement.id)
 		if bool(unlocked.get(id, false)):
-			_grant_achievement_gems(engine, achievement, id)
+			_grant_achievement_zeka_coins(engine, achievement, id)
 			continue
 		var done = false
 		match id:
@@ -208,31 +208,31 @@ static func _update_achievements(engine):
 				done = engine.get_building_count("woodcutter") > 0 and engine.get_building_count("sawmill") > 0 and engine.get_building_count("carpenter") > 0
 		if done:
 			unlocked[id] = true
-			_grant_achievement_gems(engine, achievement, id)
+			_grant_achievement_zeka_coins(engine, achievement, id)
 	state["achievements"] = unlocked
 
-static func _grant_achievement_gems(engine, achievement, achievement_id):
+static func _grant_achievement_zeka_coins(engine, achievement, achievement_id):
 	var state = engine.state
-	var claimed = state.get("achievement_gem_rewards_claimed", {})
+	var claimed = state.get("achievement_zeka_coin_rewards_claimed", {})
 	if typeof(claimed) != TYPE_DICTIONARY:
 		claimed = {}
 	if bool(claimed.get(achievement_id, false)):
 		return
-	var reward = max(0, int(achievement.get("gem_reward", 0)))
+	var reward = max(0, int(achievement.get("zeka_coin_reward", 0)))
 	if reward > 0:
-		state["gems"] = max(0, int(state.get("gems", 0))) + reward
+		state["zeka_coins"] = max(0, int(state.get("zeka_coins", 0))) + reward
 		claimed[achievement_id] = true
-	state["achievement_gem_rewards_claimed"] = claimed
+	state["achievement_zeka_coin_rewards_claimed"] = claimed
 
 static func get_achievements(engine):
 	var state = engine.state
 	var before = state.get("achievements", {}).duplicate(true)
-	var before_gems = int(state.get("gems", 0))
-	var before_claimed = state.get("achievement_gem_rewards_claimed", {}).duplicate(true)
+	var before_zeka_coins = int(state.get("zeka_coins", 0))
+	var before_claimed = state.get("achievement_zeka_coin_rewards_claimed", {}).duplicate(true)
 	engine._update_achievements()
 	# Persist both newly unlocked achievements and one-time rewards for achievements
 	# that were already unlocked in saves created before the gem system.
-	if before != state.get("achievements", {}) or before_gems != int(state.get("gems", 0)) or before_claimed != state.get("achievement_gem_rewards_claimed", {}):
+	if before != state.get("achievements", {}) or before_zeka_coins != int(state.get("zeka_coins", 0)) or before_claimed != state.get("achievement_zeka_coin_rewards_claimed", {}):
 		engine.save_game()
 	var result = []
 	for definition in engine.ACHIEVEMENT_DEFINITIONS:
