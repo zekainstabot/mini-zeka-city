@@ -321,6 +321,7 @@ func _ready():
 	get_tree().node_added.connect(_on_ui_node_added)
 	_center_existing_button_texts(self)
 	layout_direction = Control.LAYOUT_DIRECTION_RTL
+	_load_ui_font()
 	# The first visible screen is the actual game welcome/entry page.
 	_show_startup_entry_screen()
 
