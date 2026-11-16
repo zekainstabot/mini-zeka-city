@@ -708,7 +708,8 @@ func _open_city_name_setup(first_time = false):
 	city_name_keyboard_height = -1
 	city_name_overlay.add_child(center)
 	var card = PanelContainer.new()
-	card.custom_minimum_size = Vector2(max(0.0, min(520.0, get_viewport_rect().size.x - 48.0)), 0)
+	var city_modal_width = get_viewport_rect().size.x - modal_safe.x - modal_safe.z - 32.0
+	card.custom_minimum_size = Vector2(max(0.0, min(520.0, city_modal_width)), 0)
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color("#14243a")
 	style.border_color = Color("#38bdf8")
@@ -2043,7 +2044,8 @@ func _build_exit_confirmation(parent_layer):
 	center.offset_bottom = -(exit_safe.w + 16.0)
 	exit_overlay.add_child(center)
 	var card = PanelContainer.new()
-	card.custom_minimum_size = Vector2(min(420.0, get_viewport_rect().size.x - 44.0), 0)
+	var exit_viewport = get_viewport_rect().size
+	card.custom_minimum_size = Vector2(min(420.0, exit_viewport.x - exit_safe.x - exit_safe.z - 32.0), 0)
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color("#14243a")
 	style.border_color = Color("#f59e0b")
