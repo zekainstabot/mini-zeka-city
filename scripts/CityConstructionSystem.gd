@@ -179,11 +179,12 @@ static func get_construction_status(engine):
 	var state = engine.state
 	var result = []
 	var now = Time.get_unix_time_from_system()
-	for construction in state.get("constructions", []):
+	for construction_index in range(state.get("constructions", []).size()):
+		var construction = state.constructions[construction_index]
 		var id = str(construction.get("id", ""))
 		if not engine.BUILDINGS.has(id):
 			continue
-		result.append({"id":id,"name":str(engine.BUILDINGS[id].name),"remaining":max(0,int(construction.get("finish_at",0))-now),"district_name":str(construction.get("district_name","منطقه صنعتی خارج شهر")),"cost":int(engine.BUILDINGS[id].get("cost",0))})
+		result.append({"construction_index":construction_index,"id":id,"name":str(engine.BUILDINGS[id].name),"remaining":max(0,int(construction.get("finish_at",0))-now),"district_name":str(construction.get("district_name","منطقه صنعتی خارج شهر")),"cost":int(engine.BUILDINGS[id].get("cost",0))})
 	return result
 
 static func speed_up_construction(engine, construction_index):
