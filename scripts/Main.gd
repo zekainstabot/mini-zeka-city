@@ -115,6 +115,7 @@ var startup_loading_percent = null
 var startup_tip_label = null
 var startup_tip_timer = null
 var startup_tip_index = -1
+var startup_progress_tween: Tween = null
 
 func _on_ui_node_added(node):
 	# Enforce one alignment rule for every text button, including buttons
@@ -339,21 +340,17 @@ func _start_game_loading():
 	_create_startup_loading_screen()
 	# The deferred call already starts after the scene enters the tree;
 	# avoid suspending startup on an extra frame before initialization.
-	await _set_startup_progress(3, "آماده‌سازی محیط بازی...")
-	print("STARTUP DEBUG: 3")
+	_set_startup_progress(3, "آماده‌سازی محیط بازی...")
 
 	_load_ui_font()
 	await _set_startup_progress(12, "بارگذاری فونت و رابط فارسی...")
-	print("STARTUP DEBUG: 12")
 
 	audio_manager = AudioManagerScript.new()
 	add_child(audio_manager)
 	await _set_startup_progress(20, "آماده‌سازی صداها...")
-	print("STARTUP DEBUG: 20")
 
 	game = EngineScript.new()
 	await _set_startup_progress(34, "آماده‌سازی اطلاعات شهر...")
-	print("STARTUP DEBUG: 34")
 
 	var has_existing_save = game.load_game()
 	if not has_existing_save:
@@ -362,7 +359,6 @@ func _start_game_loading():
 		game.state["screen_orientation"] = "portrait"
 		game.save_game()
 	await _set_startup_progress(52, "بارگذاری اطلاعات و ذخیره شهر...")
-	print("STARTUP DEBUG: 52")
 
 	var saved_orientation = str(game.state.get("screen_orientation", "portrait"))
 	if saved_orientation not in ["auto", "portrait", "landscape"]:
@@ -372,21 +368,17 @@ func _start_game_loading():
 	_apply_screen_orientation(saved_orientation)
 	game.register_login_today()
 	await _set_startup_progress(63, "به‌روزرسانی وضعیت روزانه...")
-	print("STARTUP DEBUG: 63")
 
 	game.get_daily_missions()
 	game.get_weekly_challenge()
 	last_activity_ticks = Time.get_ticks_msec()
-	print("STARTUP DEBUG: before offline")
 	await _apply_offline_progress()
-	print("STARTUP DEBUG: after offline")
 	clock_cycle_seconds = float(game.state.get("clock_cycle_seconds", 0))
 	last_audio_night_mode = clock_cycle_seconds >= 420.0
 	# Configure audio without generating long PCM streams during the loading screen.
 	audio_manager.configure_startup_night_mode(last_audio_night_mode)
 	set_process(true)
 	await _set_startup_progress(76, "ساخت صفحه‌های بازی...")
-	print("STARTUP DEBUG: 76")
 
 	_build_ui()
 	last_layout_viewport_size = Vector2.ZERO
@@ -631,15 +623,20 @@ func _set_startup_progress(value: int, message: String):
 	var current_value = 0.0
 	if startup_loading_bar != null and is_instance_valid(startup_loading_bar):
 		current_value = startup_loading_bar.value
-	# Each checkpoint is reached only after its real startup task has completed.
-	# Animate between completed checkpoints so the percentage never jumps abruptly.
+	# Checkpoints reflect completed work. Keep the animation running in the
+	# background instead of blocking initialization on every tween.
+	if startup_progress_tween != null and startup_progress_tween.is_running():
+		startup_progress_tween.kill()
 	var distance = absf(float(safe_value) - current_value)
 	var duration = clampf(distance * 0.035, 0.16, 0.72)
-	var tween = create_tween()
-	tween.set_trans(Tween.TRANS_CUBIC)
-	tween.set_ease(Tween.EASE_OUT)
-	tween.tween_method(_update_startup_progress_visual, current_value, float(safe_value), duration)
-	await tween.finished
+	startup_progress_tween = create_tween()
+	startup_progress_tween.set_trans(Tween.TRANS_CUBIC)
+	startup_progress_tween.set_ease(Tween.EASE_OUT)
+	startup_progress_tween.tween_method(_update_startup_progress_visual, current_value, float(safe_value), duration)
+
+func _wait_for_startup_progress():
+	if startup_progress_tween != null and startup_progress_tween.is_running():
+		await startup_progress_tween.finished
 
 
 func _finish_startup_loading():
