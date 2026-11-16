@@ -183,7 +183,12 @@ static func _update_achievements(engine):
 
 static func get_achievements(engine):
 	var state = engine.state
+	var before = state.get("achievements", {}).duplicate(true)
 	engine._update_achievements()
+	# Persist newly earned achievements immediately, including achievements earned
+	# between login sessions (for example after building or exporting goods).
+	if before != state.get("achievements", {}):
+		engine.save_game()
 	var result = []
 	for definition in engine.ACHIEVEMENT_DEFINITIONS:
 		var item = definition.duplicate(true)
