@@ -1541,72 +1541,92 @@ func _open_daily_reward_calendar():
 	daily_reward_layer.name = "DailyRewardCalendarLayer"
 	daily_reward_layer.layer = 80
 	add_child(daily_reward_layer)
+
 	var backdrop = ColorRect.new()
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	backdrop.color = Color(0.015, 0.035, 0.065, 0.88)
+	backdrop.color = Color(0.025, 0.055, 0.085, 0.84)
 	backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
 	daily_reward_layer.add_child(backdrop)
+
 	var center = CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	center.offset_left = 14
 	center.offset_right = -14
-	center.offset_top = 18
-	center.offset_bottom = -18
+	center.offset_top = 26
+	center.offset_bottom = -26
 	backdrop.add_child(center)
+
 	var card = PanelContainer.new()
-	card.custom_minimum_size = Vector2(min(540.0, get_viewport_rect().size.x - 36.0), 0)
+	card.custom_minimum_size = Vector2(min(520.0, get_viewport_rect().size.x - 36.0), 0)
 	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	var card_style = StyleBoxFlat.new()
-	card_style.bg_color = Color("#14243a")
-	card_style.border_color = Color("#fbbf24")
+	card_style.bg_color = Color("#f8fafc")
+	card_style.border_color = Color("#55c9a7")
 	card_style.set_border_width_all(2)
-	card_style.set_corner_radius_all(22)
+	card_style.set_corner_radius_all(26)
 	card_style.content_margin_left = 14
 	card_style.content_margin_right = 14
-	card_style.content_margin_top = 16
-	card_style.content_margin_bottom = 16
+	card_style.content_margin_top = 13
+	card_style.content_margin_bottom = 14
 	card.add_theme_stylebox_override("panel", card_style)
 	center.add_child(card)
+
 	var layout = VBoxContainer.new()
 	layout.add_theme_constant_override("separation", 9)
 	card.add_child(layout)
+
 	var header = HBoxContainer.new()
+	header.alignment = BoxContainer.ALIGNMENT_CENTER
 	layout.add_child(header)
-	var title = Label.new()
-	title.text = PersianText.reshaper("🎁 تقویم جایزه ورود")
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_font(title, 21)
-	title.add_theme_color_override("font_color", Color("#fef3c7"))
-	header.add_child(title)
 	var close_button = Button.new()
 	close_button.text = "✕"
-	close_button.custom_minimum_size = Vector2(42, 40)
-	_apply_font(close_button, 21)
-	_style_button(close_button, false)
+	close_button.custom_minimum_size = Vector2(38, 38)
+	_apply_font(close_button, 19)
+	close_button.add_theme_color_override("font_color", Color("#64748b"))
+	var close_style = StyleBoxFlat.new()
+	close_style.bg_color = Color("#e8eef5")
+	close_style.set_corner_radius_all(19)
+	for style_name in ["normal", "hover", "pressed"]:
+		close_button.add_theme_stylebox_override(style_name, close_style)
 	close_button.pressed.connect(_close_daily_reward_calendar)
 	header.add_child(close_button)
+
+	var gift_icon = Label.new()
+	gift_icon.text = "🎁"
+	gift_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_font(gift_icon, 38)
+	gift_icon.add_theme_color_override("font_color", Color("#0f766e"))
+	layout.add_child(gift_icon)
+
+	var title = Label.new()
+	title.text = PersianText.reshaper("هدیه روزانه")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_font(title, 24)
+	title.add_theme_color_override("font_color", Color("#172b3e"))
+	layout.add_child(title)
+
 	var status = game.get_login_reward_status()
-	var intro_text = "هر جایزه ۲۴ ساعت پس از دریافت قبلی باز می‌شود و تا ۲۴ ساعت فرصت دریافتش را داری؛ اگر این مهلت را از دست بدهی، زنجیره از روز اول شروع می‌شود."
 	var intro = Label.new()
-	intro.text = PersianText.reshaper(intro_text)
+	intro.text = PersianText.reshaper("هر روز وارد شو و جایزه‌ات رو بگیر!")
 	intro.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_apply_font(intro, 13)
-	intro.add_theme_color_override("font_color", Color("#cbd5e1"))
+	_apply_font(intro, 14)
+	intro.add_theme_color_override("font_color", Color("#64748b"))
 	layout.add_child(intro)
+
 	var scroll = ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(0, min(500.0, max(250.0, get_viewport_rect().size.y - 260.0)))
+	scroll.custom_minimum_size = Vector2(0, min(330.0, max(210.0, get_viewport_rect().size.y - 390.0)))
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	layout.add_child(scroll)
-	# Calendar-style layout: seven equal date cells, four above and three below.
+
 	var days_grid = GridContainer.new()
 	days_grid.columns = 4
 	days_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	days_grid.add_theme_constant_override("h_separation", 6)
-	days_grid.add_theme_constant_override("v_separation", 6)
+	days_grid.add_theme_constant_override("h_separation", 7)
+	days_grid.add_theme_constant_override("v_separation", 7)
 	scroll.add_child(days_grid)
+
 	var rewards = game.get_login_reward_calendar()
 	var next_day = int(status.next_day)
 	var streak = int(status.streak)
@@ -1614,81 +1634,108 @@ func _open_daily_reward_calendar():
 		var day = int(reward_data.day)
 		var claimed = (day == 7) if streak == 7 and next_day == 1 else (day <= streak)
 		var is_next = day == next_day
+		var available_now = is_next and bool(status.can_claim)
 		var tile = PanelContainer.new()
-		tile.custom_minimum_size = Vector2(0, 132)
+		tile.custom_minimum_size = Vector2(0, 108)
 		tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var tile_style = StyleBoxFlat.new()
-		tile_style.bg_color = Color("#183b35") if claimed else (Color("#4a3715") if is_next and bool(status.can_claim) else Color("#1e293b"))
-		tile_style.border_color = Color("#fbbf24") if day == 7 else (Color("#34d399") if claimed else (Color("#fbbf24") if is_next else Color("#64748b")))
-		tile_style.set_border_width_all(2 if day == 7 or is_next else 1)
-		tile_style.set_corner_radius_all(9)
+		tile_style.bg_color = Color("#e4f7ef") if claimed else (Color("#fff4d6") if available_now else Color("#edf2f8"))
+		tile_style.border_color = Color("#20a879") if claimed else (Color("#e8ae38") if available_now or day == 7 else Color("#d5dee8"))
+		tile_style.set_border_width_all(2 if available_now or day == 7 else 1)
+		tile_style.set_corner_radius_all(13)
 		tile_style.content_margin_left = 3
 		tile_style.content_margin_right = 3
 		tile_style.content_margin_top = 5
 		tile_style.content_margin_bottom = 5
 		tile.add_theme_stylebox_override("panel", tile_style)
 		days_grid.add_child(tile)
+
 		var tile_layout = VBoxContainer.new()
 		tile_layout.alignment = BoxContainer.ALIGNMENT_CENTER
-		tile_layout.add_theme_constant_override("separation", 3)
+		tile_layout.add_theme_constant_override("separation", 2)
 		tile.add_child(tile_layout)
-		var date_number = Label.new()
-		date_number.text = PersianText.reshaper("%d" % day)
-		date_number.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_apply_font(date_number, 24)
-		date_number.add_theme_color_override("font_color", Color("#fde68a") if day == 7 else Color("#f8fafc"))
-		tile_layout.add_child(date_number)
+
 		var day_caption = Label.new()
-		day_caption.text = PersianText.reshaper("روز %d%s" % [day, " 👑" if day == 7 else ""])
+		day_caption.text = PersianText.reshaper("روز %d%s" % [day, " ⭐" if day == 7 else ""])
 		day_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		day_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		_apply_font(day_caption, 10)
-		day_caption.add_theme_color_override("font_color", Color("#cbd5e1"))
+		_apply_font(day_caption, 12)
+		day_caption.add_theme_color_override("font_color", Color("#475569"))
 		tile_layout.add_child(day_caption)
-		var separator = HSeparator.new()
-		separator.add_theme_color_override("color", Color("#64748b"))
-		tile_layout.add_child(separator)
+
+		var coin_icon = Label.new()
+		coin_icon.text = "🪙"
+		coin_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_apply_font(coin_icon, 20)
+		tile_layout.add_child(coin_icon)
+
 		var prize_label = Label.new()
-		var item_text = "\n🏅 " + str(reward_data.get("item", "")) if reward_data.has("item") else ""
-		prize_label.text = PersianText.reshaper("%d سکه\n%d XP%s" % [int(reward_data.coins), int(reward_data.xp), item_text])
+		prize_label.text = PersianText.reshaper("%s سکه" % str(int(reward_data.coins)))
 		prize_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		prize_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		prize_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		_apply_font(prize_label, 11)
-		prize_label.add_theme_color_override("font_color", Color("#ffffff"))
+		_apply_font(prize_label, 13)
+		prize_label.add_theme_color_override("font_color", Color("#172b3e"))
 		tile_layout.add_child(prize_label)
+
+		var xp_label = Label.new()
+		xp_label.text = PersianText.reshaper("+%d XP" % int(reward_data.xp))
+		xp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_apply_font(xp_label, 10)
+		xp_label.add_theme_color_override("font_color", Color("#64748b"))
+		tile_layout.add_child(xp_label)
+
 		var state_label = Label.new()
 		if claimed:
-			state_label.text = "✓"
-		elif is_next and bool(status.can_claim):
-			state_label.text = "🎁"
+			state_label.text = "✓ دریافت شد"
+		elif available_now:
+			state_label.text = "🎁 آماده"
 		elif is_next:
 			var remain = int(status.seconds_remaining)
 			state_label.text = "%02d:%02d" % [int(remain / 3600), int((remain % 3600) / 60)]
 		else:
 			state_label.text = "🔒"
 		state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_apply_font(state_label, 13)
+		_apply_font(state_label, 10)
+		state_label.add_theme_color_override("font_color", Color("#16845f") if claimed else Color("#8a641d") if available_now else Color("#94a3b8"))
 		tile_layout.add_child(state_label)
+
 	var footer = Label.new()
 	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	footer.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_apply_font(footer, 14)
-	footer.add_theme_color_override("font_color", Color("#a7f3d0"))
+	_apply_font(footer, 13)
+	footer.add_theme_color_override("font_color", Color("#0f766e"))
 	if bool(status.can_claim):
-		footer.text = PersianText.reshaper("جایزه روز %d آماده دریافت است!" % next_day)
+		footer.text = PersianText.reshaper("جایزه روز %d منتظرته!" % next_day)
 	else:
 		var remain_seconds = int(status.seconds_remaining)
-		footer.text = PersianText.reshaper("جایزه بعدی تا %d ساعت و %d دقیقه دیگر باز می‌شود." % [int(remain_seconds / 3600), int((remain_seconds % 3600) / 60)])
+		footer.text = PersianText.reshaper("تا جایزه بعدی: %d ساعت و %d دقیقه" % [int(remain_seconds / 3600), int((remain_seconds % 3600) / 60)])
 	layout.add_child(footer)
+
 	var claim_button = Button.new()
-	claim_button.text = PersianText.reshaper("🎁 دریافت جایزه روز %d" % next_day if bool(status.can_claim) else "⏳ منتظر جایزه بعدی")
-	claim_button.custom_minimum_size = Vector2(0, 52)
+	claim_button.text = PersianText.reshaper("🎁  دریافت جایزه روز %d" % next_day if bool(status.can_claim) else "⏳  منتظر جایزه بعدی")
+	claim_button.custom_minimum_size = Vector2(0, 54)
 	_apply_font(claim_button, 18)
-	_style_button(claim_button, true)
+	var claim_style = StyleBoxFlat.new()
+	claim_style.bg_color = Color("#20b66f")
+	claim_style.border_color = Color("#138653")
+	claim_style.set_border_width_all(1)
+	claim_style.set_corner_radius_all(27)
+	claim_style.content_margin_left = 12
+	claim_style.content_margin_right = 12
+	for style_name in ["normal", "hover", "pressed", "disabled"]:
+		claim_button.add_theme_stylebox_override(style_name, claim_style)
+	claim_button.add_theme_color_override("font_color", Color("#ffffff"))
+	claim_button.add_theme_color_override("font_disabled_color", Color("#e2e8f0"))
 	claim_button.disabled = not bool(status.can_claim)
 	claim_button.pressed.connect(claim_login_reward)
 	layout.add_child(claim_button)
+
+	var hint = Label.new()
+	hint.text = PersianText.reshaper("با از دست دادن مهلت ۲۴ ساعته، زنجیره از روز اول شروع می‌شود.")
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_apply_font(hint, 10)
+	hint.add_theme_color_override("font_color", Color("#94a3b8"))
+	layout.add_child(hint)
 
 func _close_daily_reward_calendar():
 	if daily_reward_layer != null and is_instance_valid(daily_reward_layer):
