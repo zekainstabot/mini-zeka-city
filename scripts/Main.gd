@@ -295,7 +295,7 @@ func _update_construction_time_labels():
 			label.text = PersianText.reshaper("%s | زمان باقی‌مانده: " % str(project.name)) + _format_time_display(int(seconds_left / 60), seconds_left % 60)
 
 func _apply_offline_progress():
-	return OfflineProgressController._apply_offline_progress(self)
+	return await OfflineProgressController._apply_offline_progress(self)
 
 
 func _show_offline_summary():
@@ -371,7 +371,7 @@ func _start_game_loading():
 	game.get_daily_missions()
 	game.get_weekly_challenge()
 	last_activity_ticks = Time.get_ticks_msec()
-	_apply_offline_progress()
+	await _apply_offline_progress()
 	clock_cycle_seconds = float(game.state.get("clock_cycle_seconds", 0))
 	last_audio_night_mode = clock_cycle_seconds >= 420.0
 	# Configure audio without generating long PCM streams during the loading screen.
