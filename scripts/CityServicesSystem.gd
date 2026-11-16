@@ -32,9 +32,9 @@ static func _get_district_population(engine):
 		populations[fallback_id] = int(populations.get(fallback_id, 0)) + remaining
 	return populations
 
-static func _calculate_district_service_coverage(engine, need_id):
+static func _calculate_district_service_coverage(engine, need_id, cached_population=null):
 	var state = engine.state
-	var district_population = engine._get_district_population()
+	var district_population = cached_population if typeof(cached_population) == TYPE_DICTIONARY else engine._get_district_population()
 	var served = {}
 	var coverage = {}
 	var total_population = 0
@@ -156,7 +156,7 @@ static func _update_city_services(engine, report):
 		var district_id = str(district.get("id", ""))
 		district_status[district_id] = {"population":int(district_population.get(district_id, 0)),"services":{}}
 	for need_id in need_ids:
-		var service_data = engine._calculate_district_service_coverage(need_id)
+		var service_data = engine._calculate_district_service_coverage(need_id, district_population)
 		var served = service_data.get("served", {})
 		var total_served = int(service_data.get("total_served", 0))
 		if need_id == "food":
