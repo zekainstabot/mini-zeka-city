@@ -161,20 +161,48 @@ static func _update_achievements(engine):
 		match id:
 			"first_expansion":
 				done = state.get("buildings", []).size() >= 5
+			"buildings_10":
+				done = state.get("buildings", []).size() >= 10
+			"buildings_25":
+				done = state.get("buildings", []).size() >= 25
+			"buildings_50":
+				done = state.get("buildings", []).size() >= 50
 			"population_20":
 				done = int(state.get("population", 0)) >= 20
+			"population_50":
+				done = int(state.get("population", 0)) >= 50
+			"population_100":
+				done = int(state.get("population", 0)) >= 100
 			"level_5":
 				done = int(state.get("level", 1)) >= 5
+			"level_10":
+				done = int(state.get("level", 1)) >= 10
+			"level_20":
+				done = int(state.get("level", 1)) >= 20
 			"treasury_20000":
 				done = int(state.get("money", 0)) >= 20000
+			"treasury_50000":
+				done = int(state.get("money", 0)) >= 50000
+			"treasury_100000":
+				done = int(state.get("money", 0)) >= 100000
 			"happy_city":
 				done = int(state.get("satisfaction", 0)) >= 85
+			"happiness_95":
+				done = int(state.get("satisfaction", 0)) >= 95
 			"login_streak_7":
 				done = int(state.get("login_streak", 0)) >= 7
+			"login_streak_30":
+				done = int(state.get("login_streak", 0)) >= 30
 			"trade_50":
 				done = int(state.get("trade_exported_units_total", 0)) >= 50
+			"trade_100":
+				done = int(state.get("trade_exported_units_total", 0)) >= 100
+			"trade_500":
+				done = int(state.get("trade_exported_units_total", 0)) >= 500
 			"two_districts":
 				done = state.get("districts", []).size() >= 2
+			"five_districts":
+				done = state.get("districts", []).size() >= 5
 			"production_chain":
 				done = engine.get_building_count("woodcutter") > 0 and engine.get_building_count("sawmill") > 0 and engine.get_building_count("carpenter") > 0
 		if done:
