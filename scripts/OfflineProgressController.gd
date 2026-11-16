@@ -50,9 +50,9 @@ static func _show_offline_summary(owner):
 	var income = int(owner.game.state.get("pending_offline_income", 0))
 	var viewport_size = owner.get_viewport_rect().size
 	var compact = viewport_size.x < 700.0
-	var popup_width = min(520.0, viewport_size.x - 28.0)
+	var popup_width = min(500.0, viewport_size.x - 32.0)
 
-	# Keep only distinct, useful events from the offline report.
+	# Remove duplicate/empty report lines and show only the three most useful items.
 	var digest_items = owner.game.state.get("pending_offline_digest", [])
 	var unique_digest_items: Array = []
 	var seen_digest_items: Dictionary = {}
@@ -63,7 +63,6 @@ static func _show_offline_summary(owner):
 		seen_digest_items[line] = true
 		unique_digest_items.append(line)
 
-	# A lightweight in-game sheet replaces the fragile PopupPanel sizing.
 	var overlay = Control.new()
 	overlay.name = "WelcomeBackOverlay"
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -71,18 +70,19 @@ static func _show_offline_summary(owner):
 	overlay.z_index = 100
 	overlay.process_mode = Node.PROCESS_MODE_ALWAYS
 	owner.offline_summary_popup = overlay
+
 	var shade = ColorRect.new()
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	shade.color = Color(0.025, 0.055, 0.09, 0.82)
+	shade.color = Color(0.015, 0.035, 0.055, 0.86)
 	shade.mouse_filter = Control.MOUSE_FILTER_STOP
 	overlay.add_child(shade)
 
 	var center = CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	center.offset_left = 14
-	center.offset_right = -14
-	center.offset_top = 14
-	center.offset_bottom = -14
+	center.offset_left = 16
+	center.offset_right = -16
+	center.offset_top = 18
+	center.offset_bottom = -18
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	overlay.add_child(center)
 
@@ -90,135 +90,178 @@ static func _show_offline_summary(owner):
 	card.custom_minimum_size = Vector2(popup_width, 0)
 	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	var card_style = StyleBoxFlat.new()
-	card_style.bg_color = Color("#14243a")
-	card_style.border_color = Color("#3b647e")
+	card_style.bg_color = Color("#102438")
+	card_style.border_color = Color("#31566a")
 	card_style.set_border_width_all(1)
-	card_style.set_corner_radius_all(20)
-	card_style.content_margin_left = 16 if compact else 24
-	card_style.content_margin_right = 16 if compact else 24
-	card_style.content_margin_top = 16 if compact else 22
-	card_style.content_margin_bottom = 16 if compact else 22
+	card_style.set_corner_radius_all(24)
+	card_style.content_margin_left = 18 if compact else 26
+	card_style.content_margin_right = 18 if compact else 26
+	card_style.content_margin_top = 20 if compact else 26
+	card_style.content_margin_bottom = 18 if compact else 24
 	card.add_theme_stylebox_override("panel", card_style)
 	center.add_child(card)
 
 	var layout = VBoxContainer.new()
-	layout.add_theme_constant_override("separation", 10 if compact else 13)
+	layout.add_theme_constant_override("separation", 12 if compact else 15)
 	card.add_child(layout)
 
+	var icon_wrap = CenterContainer.new()
+	layout.add_child(icon_wrap)
+	var icon_circle = PanelContainer.new()
+	var icon_style = StyleBoxFlat.new()
+	icon_style.bg_color = Color("#1d4c50")
+	icon_style.set_corner_radius_all(40)
+	icon_style.content_margin_left = 13
+	icon_style.content_margin_right = 13
+	icon_style.content_margin_top = 9
+	icon_style.content_margin_bottom = 9
+	icon_circle.add_theme_stylebox_override("panel", icon_style)
+	icon_wrap.add_child(icon_circle)
+	var icon_label = Label.new()
+	icon_label.text = "⌂"
+	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	owner._apply_font(icon_label, 31)
+	icon_label.add_theme_color_override("font_color", Color("#8ee4c8"))
+	icon_circle.add_child(icon_label)
+
 	var heading = Label.new()
-	heading.text = owner.PersianText.reshaper("خوش برگشتی به %s! 👋" % str(owner.game.state.get("city_name", "شهرت")))
+	heading.text = owner.PersianText.reshaper("خوش برگشتی! 👋")
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	heading.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	owner._apply_font(heading, 21 if compact else 25)
-	heading.add_theme_color_override("font_color", Color("#ffffff"))
+	owner._apply_font(heading, 23 if compact else 27)
+	heading.add_theme_color_override("font_color", Color("#fff8e8"))
 	layout.add_child(heading)
 
+	var city_name = str(owner.game.state.get("city_name", "شهرت")).strip_edges()
 	var intro = Label.new()
-	intro.text = owner.PersianText.reshaper("این مدت شهر تنها نبوده؛ ببین در غیابت چه خبر بوده.")
+	intro.text = owner.PersianText.reshaper("دلمون برای شهرت تنگ شده بود!\nدر این مدت، %s منتظر برگشتت بود." % city_name)
 	intro.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	owner._apply_font(intro, 12 if compact else 14)
-	intro.add_theme_color_override("font_color", Color("#cbd5e1"))
+	owner._apply_font(intro, 13 if compact else 15)
+	intro.add_theme_color_override("font_color", Color("#b9cbd5"))
 	layout.add_child(intro)
 
 	var stats = HBoxContainer.new()
-	stats.add_theme_constant_override("separation", 8)
+	stats.add_theme_constant_override("separation", 10)
 	layout.add_child(stats)
+
 	var days_card = PanelContainer.new()
 	days_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var days_style = StyleBoxFlat.new()
-	days_style.bg_color = Color("#203f62")
-	days_style.set_corner_radius_all(12)
-	days_style.content_margin_top = 10
-	days_style.content_margin_bottom = 10
+	days_style.bg_color = Color("#1c3c57")
+	days_style.set_corner_radius_all(15)
+	days_style.content_margin_top = 12
+	days_style.content_margin_bottom = 12
 	days_style.content_margin_left = 6
 	days_style.content_margin_right = 6
 	days_card.add_theme_stylebox_override("panel", days_style)
 	stats.add_child(days_card)
-	var days_label = Label.new()
-	days_label.text = owner.PersianText.reshaper("%d روز دور از شهر" % days)
-	days_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	days_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	owner._apply_font(days_label, 14 if compact else 17)
-	days_label.add_theme_color_override("font_color", Color("#dbeafe"))
-	days_card.add_child(days_label)
+	var days_content = VBoxContainer.new()
+	days_content.add_theme_constant_override("separation", 3)
+	days_card.add_child(days_content)
+	var days_value = Label.new()
+	days_value.text = owner.PersianText.reshaper("%d" % days)
+	days_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	owner._apply_font(days_value, 25 if compact else 29)
+	days_value.add_theme_color_override("font_color", Color("#ffffff"))
+	days_content.add_child(days_value)
+	var days_caption = Label.new()
+	days_caption.text = owner.PersianText.reshaper("روز دوری از شهر")
+	days_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	owner._apply_font(days_caption, 11 if compact else 13)
+	days_caption.add_theme_color_override("font_color", Color("#b9d8eb"))
+	days_content.add_child(days_caption)
 
 	var income_card = PanelContainer.new()
 	income_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var income_style = StyleBoxFlat.new()
-	income_style.bg_color = Color("#174b3d") if income > 0 else Color("#29384b")
-	income_style.set_corner_radius_all(12)
-	income_style.content_margin_top = 10
-	income_style.content_margin_bottom = 10
+	income_style.bg_color = Color("#17483e") if income > 0 else Color("#263747")
+	income_style.set_corner_radius_all(15)
+	income_style.content_margin_top = 12
+	income_style.content_margin_bottom = 12
 	income_style.content_margin_left = 6
 	income_style.content_margin_right = 6
 	income_card.add_theme_stylebox_override("panel", income_style)
 	stats.add_child(income_card)
-	var income_label = Label.new()
-	income_label.text = owner.PersianText.reshaper("%s سکه درآمد" % str(income))
-	income_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	income_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	owner._apply_font(income_label, 14 if compact else 17)
-	income_label.add_theme_color_override("font_color", Color("#86efac") if income > 0 else Color("#e2e8f0"))
-	income_card.add_child(income_label)
+	var income_content = VBoxContainer.new()
+	income_content.add_theme_constant_override("separation", 3)
+	income_card.add_child(income_content)
+	var income_value = Label.new()
+	income_value.text = owner.PersianText.reshaper("%s" % str(income))
+	income_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	owner._apply_font(income_value, 25 if compact else 29)
+	income_value.add_theme_color_override("font_color", Color("#9af0c0") if income > 0 else Color("#e2e8f0"))
+	income_content.add_child(income_value)
+	var income_caption = Label.new()
+	income_caption.text = owner.PersianText.reshaper("سکه درآمد آماده دریافت")
+	income_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	owner._apply_font(income_caption, 11 if compact else 13)
+	income_caption.add_theme_color_override("font_color", Color("#b9d8c9"))
+	income_content.add_child(income_caption)
 
 	var news_title = Label.new()
-	news_title.text = owner.PersianText.reshaper("📌 اتفاقات مهم شهر")
+	news_title.text = owner.PersianText.reshaper("📰  خبرهای شهر")
 	news_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	owner._apply_font(news_title, 15 if compact else 17)
-	news_title.add_theme_color_override("font_color", Color("#fbbf24"))
+	owner._apply_font(news_title, 14 if compact else 16)
+	news_title.add_theme_color_override("font_color", Color("#f2c879"))
 	layout.add_child(news_title)
 
-	var news_scroll = ScrollContainer.new()
-	news_scroll.custom_minimum_size = Vector2(0, min(112.0, max(42.0, float(min(unique_digest_items.size(), 3)) * 36.0)))
-	news_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	news_scroll.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	news_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	layout.add_child(news_scroll)
+	var news_panel = PanelContainer.new()
+	var news_style = StyleBoxFlat.new()
+	news_style.bg_color = Color("#172f43")
+	news_style.set_corner_radius_all(14)
+	news_style.content_margin_left = 12
+	news_style.content_margin_right = 12
+	news_style.content_margin_top = 10
+	news_style.content_margin_bottom = 10
+	news_panel.add_theme_stylebox_override("panel", news_style)
+	layout.add_child(news_panel)
+
 	var news_list = VBoxContainer.new()
-	news_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	news_list.add_theme_constant_override("separation", 6)
-	news_scroll.add_child(news_list)
+	news_list.add_theme_constant_override("separation", 8)
+	news_panel.add_child(news_list)
 	if unique_digest_items.is_empty():
 		var calm = Label.new()
-		calm.text = owner.PersianText.reshaper("اتفاق ویژه‌ای ثبت نشده؛ شهر آرام بوده است.")
+		calm.text = owner.PersianText.reshaper("همه‌چیز آروم بوده؛ شهر به سلامت منتظرت مونده 😊")
 		calm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		calm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		owner._apply_font(calm, 12 if compact else 14)
-		calm.add_theme_color_override("font_color", Color("#cbd5e1"))
+		calm.add_theme_color_override("font_color", Color("#c6d8df"))
 		news_list.add_child(calm)
 	else:
-		for index in range(min(unique_digest_items.size(), 8)):
+		for index in range(min(unique_digest_items.size(), 3)):
 			var event_label = Label.new()
 			var event_text = str(unique_digest_items[index]).replace("نویدشهر", "یکی از شهرهای رقیب")
-			event_label.text = owner.PersianText.reshaper("• " + event_text)
+			event_label.text = owner.PersianText.reshaper("•  " + event_text)
 			event_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 			event_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			event_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			owner._apply_font(event_label, 12 if compact else 14)
-			event_label.add_theme_color_override("font_color", Color("#e2e8f0"))
+			event_label.add_theme_color_override("font_color", Color("#e1edf0"))
 			news_list.add_child(event_label)
 
+	var action_button = Button.new()
 	if income > 0:
-		var claim = Button.new()
-		claim.text = owner.PersianText.reshaper("واریز %s سکه به خزانه" % str(income))
-		claim.custom_minimum_size = Vector2(0, 48 if compact else 52)
-		claim.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		owner._apply_font(claim, 14 if compact else 16)
-		owner._style_button(claim, false)
-		claim.pressed.connect(Callable(owner, "_claim_offline_income"))
-		layout.add_child(claim)
+		action_button.text = owner.PersianText.reshaper("دریافت %s سکه و ورود به شهر" % str(income))
+		action_button.pressed.connect(Callable(owner, "_claim_offline_income"))
+	else:
+		action_button.text = owner.PersianText.reshaper("بزن بریم، ورود به شهر")
+		action_button.pressed.connect(Callable(owner, "_close_offline_summary"))
+	action_button.custom_minimum_size = Vector2(0, 52 if compact else 56)
+	action_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	owner._apply_font(action_button, 14 if compact else 16)
+	owner._style_button(action_button, true)
+	layout.add_child(action_button)
 
-	var continue_button = Button.new()
-	continue_button.text = owner.PersianText.reshaper("ادامه بازی")
-	continue_button.custom_minimum_size = Vector2(0, 44 if compact else 48)
-	continue_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	owner._apply_font(continue_button, 14 if compact else 16)
-	owner._style_button(continue_button, true)
-	continue_button.pressed.connect(Callable(owner, "_close_offline_summary"))
-	layout.add_child(continue_button)
+	var reassurance = Label.new()
+	reassurance.text = owner.PersianText.reshaper("هر وقت آماده‌ای، ادامه بده.")
+	reassurance.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	owner._apply_font(reassurance, 10 if compact else 11)
+	reassurance.add_theme_color_override("font_color", Color("#819aa8"))
+	layout.add_child(reassurance)
 
 	owner.add_child(overlay)
+
 
 static func _close_offline_summary(owner):
 	if owner.offline_summary_popup != null and is_instance_valid(owner.offline_summary_popup):
