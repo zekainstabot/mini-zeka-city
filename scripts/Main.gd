@@ -947,7 +947,7 @@ func _apply_responsive_layout():
 	for button in navigation_buttons:
 		if button == null or not is_instance_valid(button):
 			continue
-		button.custom_minimum_size = Vector2(0, 48 if viewport_size.y < 500.0 else (52 if narrow else 58))
+		button.custom_minimum_size = Vector2(0, 56 if viewport_size.y < 500.0 else (64 if narrow else 58))
 		_apply_font(button, 14 if narrow else (16 if compact else 18))
 		button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -2216,11 +2216,17 @@ func _add_label(text, size=18):
 func _add_button(text, button_target, callback, args=[]):
 	var button = Button.new()
 	button.text = PersianText.reshaper(text)
-	button.custom_minimum_size = Vector2(0, 58 if get_viewport_rect().size.x < 900 else 50)
+	var viewport_width = get_viewport_rect().size.x
+	var compact = viewport_width < 900.0
+	var base_height = 58.0 if compact else 50.0
+	var estimated_line_width = maxf(140.0, viewport_width - (52.0 if compact else 80.0))
+	var characters_per_line = maxf(18.0, estimated_line_width / (13.0 if compact else 11.0))
+	var estimated_lines = maxi(1, int(ceil(float(str(text).length()) / characters_per_line)))
+	button.custom_minimum_size = Vector2(0, maxf(base_height, float(estimated_lines * 30 + 20)))
 	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	button.text_direction = Control.TEXT_DIRECTION_RTL
-	_apply_font(button, 19 if get_viewport_rect().size.x < 900 else 17)
+	_apply_font(button, 19 if compact else 17)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_button(button, false)
 	if audio_manager != null and button_target != audio_manager:
