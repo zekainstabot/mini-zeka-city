@@ -227,10 +227,12 @@ static func _grant_achievement_gems(engine, achievement, achievement_id):
 static func get_achievements(engine):
 	var state = engine.state
 	var before = state.get("achievements", {}).duplicate(true)
+	var before_gems = int(state.get("gems", 0))
+	var before_claimed = state.get("achievement_gem_rewards_claimed", {}).duplicate(true)
 	engine._update_achievements()
-	# Persist newly earned achievements immediately, including achievements earned
-	# between login sessions (for example after building or exporting goods).
-	if before != state.get("achievements", {}):
+	# Persist both newly unlocked achievements and one-time rewards for achievements
+	# that were already unlocked in saves created before the gem system.
+	if before != state.get("achievements", {}) or before_gems != int(state.get("gems", 0)) or before_claimed != state.get("achievement_gem_rewards_claimed", {}):
 		engine.save_game()
 	var result = []
 	for definition in engine.ACHIEVEMENT_DEFINITIONS:
