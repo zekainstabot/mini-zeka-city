@@ -1226,8 +1226,8 @@ func get_daily_development_support():
 	return CityEconomySystem.get_daily_development_support(self)
 
 
-func end_day(is_offline=false):
-	return CityEconomySystem.end_day(self, is_offline)
+func end_day(is_offline=false, persist=true):
+	return CityEconomySystem.end_day(self, is_offline, persist)
 
 
 func _apply_citizen_payday(citizen, payment):
