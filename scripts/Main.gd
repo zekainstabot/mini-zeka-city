@@ -1393,7 +1393,7 @@ func _build_construction_capacity_button():
 	construction_capacity_button = Button.new()
 	construction_capacity_button.name = "ConstructionCapacityButton"
 	construction_capacity_button.text = "👷  0/2"
-	construction_capacity_button.custom_minimum_size = Vector2(112, 54)
+	construction_capacity_button.custom_minimum_size = Vector2(158, 70)
 	construction_capacity_button.anchor_left = 0.0
 	construction_capacity_button.anchor_top = 0.0
 	construction_capacity_button.anchor_right = 0.0
@@ -1402,7 +1402,7 @@ func _build_construction_capacity_button():
 	construction_capacity_button.z_index = 15
 	construction_capacity_button.layout_direction = Control.LAYOUT_DIRECTION_LTR
 	construction_capacity_button.tooltip_text = "ظرفیت و جزئیات ساخت‌وساز"
-	_apply_font(construction_capacity_button, 19)
+	_apply_font(construction_capacity_button, 15)
 	_style_button(construction_capacity_button, false)
 	construction_capacity_button.pressed.connect(_open_construction_details)
 	add_child(construction_capacity_button)
@@ -1413,8 +1413,17 @@ func _update_construction_capacity_button():
 	if construction_capacity_button == null or not is_instance_valid(construction_capacity_button) or game == null:
 		return
 	var available = _get_available_construction_workers()
-	construction_capacity_button.text = "👷  %d/2" % available
-	construction_capacity_button.tooltip_text = "کارگر آزاد برای ساخت‌وساز: %d از ۲" % available
+	var projects = game.get_construction_status()
+	var project_caption = "پروژه‌ای فعال نیست"
+	if not projects.is_empty():
+		var names: Array[String] = []
+		for project in projects:
+			names.append(str(project.get("name", "ساختمان")))
+		project_caption = "در حال ساخت: " + "، ".join(names)
+	# Keep the builder count visible and show active building names directly
+	# beneath the engineer icon instead of hiding them only in the popup.
+	construction_capacity_button.text = "👷  %d/2\n🏗️  %s" % [available, project_caption]
+	construction_capacity_button.tooltip_text = "کارگر آزاد: %d از ۲ | %s" % [available, project_caption]
 
 
 func _open_construction_details():
