@@ -337,9 +337,8 @@ func _start_game_loading():
 		startup_entry_layer.queue_free()
 	startup_entry_layer = null
 	_create_startup_loading_screen()
-	# Give the loading page a rendered frame before beginning initialization.
-	await get_tree().process_frame
-	print("STARTUP DEBUG: first frame")
+	# The deferred call already starts after the scene enters the tree;
+	# avoid suspending startup on an extra frame before initialization.
 	await _set_startup_progress(3, "آماده‌سازی محیط بازی...")
 	print("STARTUP DEBUG: 3")
 
