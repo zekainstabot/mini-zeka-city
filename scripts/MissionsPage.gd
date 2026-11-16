@@ -315,7 +315,7 @@ static func build(owner, s):
 	achievement_summary.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	owner.content.add_child(achievement_summary)
 	var achievement_summary_label = Label.new()
-	achievement_summary_label.text = owner.PersianText.reshaper("نشان‌های کسب‌شده: %d از %d" % [unlocked_achievements, achievement_list.size()])
+	achievement_summary_label.text = owner.PersianText.reshaper("💎 موجودی جم: %d     |     نشان‌های کسب‌شده: %d از %d" % [game.get_gems(), unlocked_achievements, achievement_list.size()])
 	achievement_summary_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	owner._apply_font(achievement_summary_label, 19)
 	achievement_summary_label.add_theme_color_override("font_color", Color("#fde68a"))
@@ -357,6 +357,13 @@ static func build(owner, s):
 		owner._apply_font(achievement_description, 15)
 		achievement_description.add_theme_color_override("font_color", Color("#e2e8f0"))
 		achievement_body.add_child(achievement_description)
+		var gem_reward_label = Label.new()
+		gem_reward_label.text = owner.PersianText.reshaper("💎 پاداش این دستاورد: %d جم%s" % [int(achievement.get("gem_reward", 0)), " — دریافت شد" if achievement_unlocked else " — پس از تکمیل"])
+		gem_reward_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		gem_reward_label.text_direction = Control.TEXT_DIRECTION_RTL
+		owner._apply_font(gem_reward_label, 14)
+		gem_reward_label.add_theme_color_override("font_color", Color("#fcd34d"))
+		achievement_body.add_child(gem_reward_label)
 		var achievement_progress_label = Label.new()
 		var progress_text = "دستاورد باز شد؛ آفرین!" if achievement_unlocked else "پیشرفت: %s از %s" % [str(achievement_progress.current), str(achievement_progress.goal)]
 		achievement_progress_label.text = owner.PersianText.reshaper(progress_text)
