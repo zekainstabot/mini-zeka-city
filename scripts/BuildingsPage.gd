@@ -82,7 +82,9 @@ static func build(owner, s):
 				var progress_text = "کمتر از یک دقیقه" if remaining_seconds > 0 and remaining_minutes <= 1 else "%d دقیقه" % remaining_minutes
 				owner._add_label("🚧 %s — زمان باقی‌مانده: %s" % [project_name, progress_text], 15)
 				var speedup_cost = max(1, int(ceil(float(remaining_seconds) / 300.0)))
-				var speedup_button = owner._add_button("💎 تکمیل فوری — %d جم" % speedup_cost, owner, "speed_up_construction", [int(project.get("construction_index", -1))])
+				var speedup_button = owner._add_button("تکمیل فوری — %d ZC" % speedup_cost, owner, "speed_up_construction", [int(project.get("construction_index", -1))])
+				speedup_button.icon = load("res://assets/zeka-coin.svg")
+				speedup_button.icon_max_width = 26
 				owner._style_button(speedup_button, false)
 	owner._add_label("ساختمان‌ها:", 18)
 	var district_ids = []
