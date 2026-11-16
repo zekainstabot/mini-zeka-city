@@ -57,8 +57,10 @@ static func _show_offline_summary(owner):
 
 	var income = int(owner.game.state.get("pending_offline_income", 0))
 	var viewport_size = owner.get_viewport_rect().size
+	var safe_area = owner._get_safe_area_insets()
 	var compact = viewport_size.x < 700.0
-	var popup_width = min(500.0, viewport_size.x - 32.0)
+	var popup_width = min(500.0, viewport_size.x - safe_area.x - safe_area.z - 32.0)
+	var popup_height = min(560.0, max(280.0, viewport_size.y - safe_area.y - safe_area.w - 180.0))
 
 	# Remove duplicate/empty report lines and show only the three most useful items.
 	var digest_items = owner.game.state.get("pending_offline_digest", [])
@@ -87,16 +89,17 @@ static func _show_offline_summary(owner):
 
 	var center = CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	center.offset_left = 16
-	center.offset_right = -16
-	center.offset_top = 18
-	center.offset_bottom = -18
+	center.offset_left = safe_area.x + 16.0
+	center.offset_right = -(safe_area.z + 16.0)
+	center.offset_top = safe_area.y + 16.0
+	center.offset_bottom = -(safe_area.w + 16.0)
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	overlay.add_child(center)
 
 	var card = PanelContainer.new()
-	card.custom_minimum_size = Vector2(popup_width, 0)
+	card.custom_minimum_size = Vector2(popup_width, popup_height)
 	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	card.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var card_style = StyleBoxFlat.new()
 	card_style.bg_color = Color("#102438")
 	card_style.border_color = Color("#31566a")
@@ -109,9 +112,16 @@ static func _show_offline_summary(owner):
 	card.add_theme_stylebox_override("panel", card_style)
 	center.add_child(card)
 
+	var scroll = ScrollContainer.new()
+	scroll.name = "WelcomeBackScroll"
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	card.add_child(scroll)
 	var layout = VBoxContainer.new()
+	layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	layout.add_theme_constant_override("separation", 12 if compact else 15)
-	card.add_child(layout)
+	scroll.add_child(layout)
 
 	var icon_wrap = CenterContainer.new()
 	layout.add_child(icon_wrap)
@@ -176,6 +186,8 @@ static func _show_offline_summary(owner):
 	var days_caption = Label.new()
 	days_caption.text = owner.PersianText.reshaper("روز دوری از شهر")
 	days_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	days_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	days_caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	owner._apply_font(days_caption, 11 if compact else 13)
 	days_caption.add_theme_color_override("font_color", Color("#b9d8eb"))
 	days_content.add_child(days_caption)
@@ -203,6 +215,8 @@ static func _show_offline_summary(owner):
 	var income_caption = Label.new()
 	income_caption.text = owner.PersianText.reshaper("سکه درآمد آماده دریافت")
 	income_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	income_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	income_caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	owner._apply_font(income_caption, 11 if compact else 13)
 	income_caption.add_theme_color_override("font_color", Color("#b9d8c9"))
 	income_content.add_child(income_caption)
