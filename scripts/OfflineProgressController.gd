@@ -16,13 +16,17 @@ static func _apply_offline_progress(owner):
 	if offline_days > 0:
 		owner.game.state["pending_offline_digest"] = []
 	for day_index in range(offline_days):
-		var offline_report = owner.game.end_day(true)
+		var offline_report = owner.game.end_day(true, false)
 		var digest = str(offline_report).split("\n")
 		for digest_line in digest:
 			var clean_line = str(digest_line).strip_edges()
 			clean_line = clean_line.replace("نویدشهر", "یکی از شهرهای رقیب")
 			if clean_line != "" and (clean_line.find("رویداد") >= 0 or clean_line.find("تصمیم") >= 0 or clean_line.find("رقبا") >= 0 or clean_line.find("درخواست") >= 0 or clean_line.find("تبریک") >= 0 or clean_line.find("تولید") >= 0):
 				owner.game.state["pending_offline_digest"].append(clean_line)
+		# Yield between simulated days so the loading screen can keep rendering.
+		var progress_value = 63 + int(round(float(day_index + 1) / float(max(1, offline_days)) * 10.0))
+		await owner._set_startup_progress(progress_value, "شبیه‌سازی روزهای گذشته: %d از %d" % [day_index + 1, offline_days])
+		await owner.get_tree().process_frame
 	while owner.game.state["pending_offline_digest"].size() > 8:
 		owner.game.state["pending_offline_digest"].pop_front()
 	var offline_net = int(owner.game.state.get("money", money_before)) - money_before
