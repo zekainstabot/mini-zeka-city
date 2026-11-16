@@ -956,7 +956,7 @@ func _apply_responsive_layout():
 		menu_card.custom_minimum_size = Vector2(min(440.0, available_modal_width), 0)
 		var menu_scroll = menu_card.find_child("PhoneMenuScroll", true, false)
 		if menu_scroll is ScrollContainer:
-			menu_scroll.custom_minimum_size.y = maxf(120.0, minf(560.0, viewport_size.y - safe_area_insets.y - safe_area_insets.w - 190.0))
+			menu_scroll.custom_minimum_size.y = maxf(80.0, minf(560.0, viewport_size.y - safe_area_insets.y - safe_area_insets.w - 190.0))
 	if menu_overlay != null and is_instance_valid(menu_overlay):
 		var menu_center = menu_overlay.find_child("MenuSafeCenter", true, false)
 		if menu_center is Control:
@@ -964,6 +964,9 @@ func _apply_responsive_layout():
 			menu_center.offset_right = -(safe_area_insets.z + 16.0)
 			menu_center.offset_top = safe_area_insets.y + 16.0
 			menu_center.offset_bottom = -(safe_area_insets.w + 16.0)
+	if city_name_center_container != null and is_instance_valid(city_name_center_container):
+		city_name_keyboard_height = -1
+		_update_city_name_keyboard_position()
 	if help_overlay != null and is_instance_valid(help_overlay):
 		var help_center = help_overlay.find_child("HelpSafeCenter", true, false)
 		if help_center is Control:
@@ -1737,14 +1740,14 @@ func _open_daily_reward_calendar():
 	var gift_icon = Label.new()
 	gift_icon.text = "🎁"
 	gift_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_apply_font(gift_icon, 38)
+	_apply_font(gift_icon, 28 if compact_reward_layout else 38)
 	gift_icon.add_theme_color_override("font_color", Color("#0f766e"))
 	layout.add_child(gift_icon)
 
 	var title = Label.new()
 	title.text = PersianText.reshaper("هدیه روزانه")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_apply_font(title, 24)
+	_apply_font(title, 20 if compact_reward_layout else 24)
 	title.add_theme_color_override("font_color", Color("#172b3e"))
 	layout.add_child(title)
 
@@ -1753,13 +1756,13 @@ func _open_daily_reward_calendar():
 	intro.text = PersianText.reshaper("هر روز وارد شو و جایزه‌ات رو بگیر!")
 	intro.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_apply_font(intro, 14)
+	_apply_font(intro, 12 if compact_reward_layout else 14)
 	intro.add_theme_color_override("font_color", Color("#64748b"))
 	layout.add_child(intro)
 
 	var scroll = ScrollContainer.new()
 	var reward_available_height = reward_viewport.y - reward_safe.y - reward_safe.w
-	scroll.custom_minimum_size = Vector2(0, maxf(90.0, minf(330.0, reward_available_height - (340.0 if compact_reward_layout else 390.0))))
+	scroll.custom_minimum_size = Vector2(0, maxf(60.0, minf(330.0, reward_available_height - (340.0 if compact_reward_layout else 390.0))))
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	layout.add_child(scroll)
@@ -1856,8 +1859,8 @@ func _open_daily_reward_calendar():
 
 	var claim_button = Button.new()
 	claim_button.text = PersianText.reshaper("🎁  دریافت جایزه روز %d" % next_day if bool(status.can_claim) else "⏳  منتظر جایزه بعدی")
-	claim_button.custom_minimum_size = Vector2(0, 54)
-	_apply_font(claim_button, 18)
+	claim_button.custom_minimum_size = Vector2(0, 48 if compact_reward_layout else 54)
+	_apply_font(claim_button, 16 if compact_reward_layout else 18)
 	var claim_style = StyleBoxFlat.new()
 	claim_style.bg_color = Color("#20b66f")
 	claim_style.border_color = Color("#138653")
@@ -1877,7 +1880,7 @@ func _open_daily_reward_calendar():
 	hint.text = PersianText.reshaper("با از دست دادن مهلت ۲۴ ساعته، زنجیره از روز اول شروع می‌شود.")
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_apply_font(hint, 10)
+	_apply_font(hint, 9 if compact_reward_layout else 10)
 	hint.add_theme_color_override("font_color", Color("#94a3b8"))
 	layout.add_child(hint)
 
