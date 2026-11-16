@@ -658,6 +658,8 @@ func save_game():
 func _normalize_state():
 	if typeof(state.get("report_events", null)) != TYPE_ARRAY:
 		state["report_events"] = []
+	while state.report_events.size() > MAX_REPORT_EVENTS:
+		state.report_events.pop_front()
 	var next_report_id = max(1, int(state.get("next_report_event_id", 1)))
 	for report_index in range(state.report_events.size()):
 		var report_event = state.report_events[report_index]
