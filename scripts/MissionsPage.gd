@@ -321,6 +321,9 @@ static func build(owner, s):
 	var achievement_summary_label = Label.new()
 	achievement_summary_label.text = owner.PersianText.reshaper("موجودی Zeka Coin: %d     |     نشان‌های کسب‌شده: %d از %d" % [game.get_zeka_coins(), unlocked_achievements, achievement_list.size()])
 	achievement_summary_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	achievement_summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	achievement_summary_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	achievement_summary_label.custom_minimum_size = Vector2.ZERO
 	owner._apply_font(achievement_summary_label, 19)
 	achievement_summary_label.add_theme_color_override("font_color", Color("#fde68a"))
 	achievement_summary_row.add_child(achievement_summary_label)
