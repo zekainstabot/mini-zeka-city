@@ -849,10 +849,15 @@ func _apply_safe_area_to_floating_controls():
 	if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
 		construction_capacity_button.position = Vector2(inset.x + 16.0, inset.y + 96.0)
 	if day_night_hud != null and is_instance_valid(day_night_hud):
-		day_night_hud.offset_right = -(inset.z + 16.0)
-		day_night_hud.offset_left = -(inset.z + 188.0)
-		day_night_hud.offset_top = inset.y + 24.0
-		day_night_hud.offset_bottom = inset.y + 84.0
+		# Pin the clock to the upper-right safe corner, away from the left-side controls.
+		day_night_hud.anchor_left = 1.0
+		day_night_hud.anchor_right = 1.0
+		day_night_hud.anchor_top = 0.0
+		day_night_hud.anchor_bottom = 0.0
+		day_night_hud.offset_left = -(inset.z + 166.0)
+		day_night_hud.offset_right = -(inset.z + 14.0)
+		day_night_hud.offset_top = inset.y + 18.0
+		day_night_hud.offset_bottom = inset.y + 74.0
 
 func _apply_responsive_layout():
 	if main_layout == null or not is_instance_valid(main_layout):
@@ -1343,13 +1348,12 @@ func _build_day_night_hud():
 	day_night_hud.anchor_right = 1.0
 	day_night_hud.anchor_top = 0.0
 	day_night_hud.anchor_bottom = 0.0
-	day_night_hud.offset_left = -190.0
-	day_night_hud.offset_right = -18.0
-	# Keep the clock below the calendar, menu and help buttons.
-	# On narrow phones the previous top-right placement overlapped the help button.
-	day_night_hud.offset_top = 122.0
-	day_night_hud.offset_bottom = 182.0
-	day_night_hud.custom_minimum_size = Vector2(172, 60)
+	day_night_hud.offset_left = -166.0
+	day_night_hud.offset_right = -14.0
+	# The clock belongs in the upper-right corner; all floating action buttons stay on the left.
+	day_night_hud.offset_top = 18.0
+	day_night_hud.offset_bottom = 74.0
+	day_night_hud.custom_minimum_size = Vector2(152, 56)
 	day_night_hud.z_index = 15
 	day_night_hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var hud_style = StyleBoxFlat.new()
