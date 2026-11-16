@@ -339,17 +339,22 @@ func _start_game_loading():
 	_create_startup_loading_screen()
 	# Give the loading page a rendered frame before beginning initialization.
 	await get_tree().process_frame
+	print("STARTUP DEBUG: first frame")
 	await _set_startup_progress(3, "آماده‌سازی محیط بازی...")
+	print("STARTUP DEBUG: 3")
 
 	_load_ui_font()
 	await _set_startup_progress(12, "بارگذاری فونت و رابط فارسی...")
+	print("STARTUP DEBUG: 12")
 
 	audio_manager = AudioManagerScript.new()
 	add_child(audio_manager)
 	await _set_startup_progress(20, "آماده‌سازی صداها...")
+	print("STARTUP DEBUG: 20")
 
 	game = EngineScript.new()
 	await _set_startup_progress(34, "آماده‌سازی اطلاعات شهر...")
+	print("STARTUP DEBUG: 34")
 
 	var has_existing_save = game.load_game()
 	if not has_existing_save:
@@ -358,6 +363,7 @@ func _start_game_loading():
 		game.state["screen_orientation"] = "portrait"
 		game.save_game()
 	await _set_startup_progress(52, "بارگذاری اطلاعات و ذخیره شهر...")
+	print("STARTUP DEBUG: 52")
 
 	var saved_orientation = str(game.state.get("screen_orientation", "portrait"))
 	if saved_orientation not in ["auto", "portrait", "landscape"]:
@@ -367,17 +373,21 @@ func _start_game_loading():
 	_apply_screen_orientation(saved_orientation)
 	game.register_login_today()
 	await _set_startup_progress(63, "به‌روزرسانی وضعیت روزانه...")
+	print("STARTUP DEBUG: 63")
 
 	game.get_daily_missions()
 	game.get_weekly_challenge()
 	last_activity_ticks = Time.get_ticks_msec()
+	print("STARTUP DEBUG: before offline")
 	await _apply_offline_progress()
+	print("STARTUP DEBUG: after offline")
 	clock_cycle_seconds = float(game.state.get("clock_cycle_seconds", 0))
 	last_audio_night_mode = clock_cycle_seconds >= 420.0
 	# Configure audio without generating long PCM streams during the loading screen.
 	audio_manager.configure_startup_night_mode(last_audio_night_mode)
 	set_process(true)
 	await _set_startup_progress(76, "ساخت صفحه‌های بازی...")
+	print("STARTUP DEBUG: 76")
 
 	_build_ui()
 	last_layout_viewport_size = Vector2.ZERO
