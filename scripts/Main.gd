@@ -1852,7 +1852,8 @@ func _update_mission_reward_badge():
 			ready_count += 1
 		break
 
-	# Count only the first mission that is actually visible in the progression list.
+	# Count every completed, unclaimed mission that is currently eligible for a reward.
+	# Side missions are independent, so several of them can be claimable at once.
 	for mission in game.get_missions():
 		var definition = {}
 		for item in game.MISSION_DEFINITIONS:
@@ -1864,14 +1865,12 @@ func _update_mission_reward_badge():
 		var is_legacy = bool(definition.get("legacy", false))
 		var is_claimed = bool(mission.get("claimed", false))
 		var is_unlocked = bool(mission.get("unlocked", false))
-		if is_legacy:
-			if is_claimed or not bool(mission.get("completed", false)):
-				continue
-		elif is_claimed or not is_unlocked:
+		var is_completed = bool(mission.get("completed", false))
+		if is_claimed or not is_completed:
 			continue
-		if bool(mission.get("completed", false)):
-			ready_count += 1
-		break
+		if not is_legacy and not is_unlocked:
+			continue
+		ready_count += 1
 
 	if mission_navigation_button != null and is_instance_valid(mission_navigation_button):
 		mission_navigation_button.text = PersianText.reshaper(mission_navigation_title + (" 🎁" if ready_count > 0 else ""))
