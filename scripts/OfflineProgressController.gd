@@ -25,7 +25,7 @@ static func _apply_offline_progress(owner):
 				owner.game.state["pending_offline_digest"].append(clean_line)
 		# Yield between simulated days so the loading screen can keep rendering.
 		var progress_value = 63 + int(round(float(day_index + 1) / float(max(1, offline_days)) * 10.0))
-		await owner._set_startup_progress(progress_value, "شبیه‌سازی روزهای گذشته: %d از %d" % [day_index + 1, offline_days])
+		owner._set_startup_progress(progress_value, "شبیه‌سازی روزهای گذشته: %d از %d" % [day_index + 1, offline_days])
 		await owner.get_tree().process_frame
 	# Always yield once, including a first launch with no offline days, so the
 	# startup coroutine completes predictably in headless and mobile runtimes.
