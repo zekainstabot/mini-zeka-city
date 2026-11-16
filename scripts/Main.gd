@@ -1315,8 +1315,10 @@ func _build_day_night_hud():
 	day_night_hud.anchor_bottom = 0.0
 	day_night_hud.offset_left = -190.0
 	day_night_hud.offset_right = -18.0
-	day_night_hud.offset_top = 48.0
-	day_night_hud.offset_bottom = 108.0
+	# Keep the clock below the calendar, menu and help buttons.
+	# On narrow phones the previous top-right placement overlapped the help button.
+	day_night_hud.offset_top = 122.0
+	day_night_hud.offset_bottom = 182.0
 	day_night_hud.custom_minimum_size = Vector2(172, 60)
 	day_night_hud.z_index = 15
 	day_night_hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
