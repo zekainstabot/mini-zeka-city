@@ -912,6 +912,8 @@ func _apply_safe_area_to_floating_controls():
 			_apply_font(day_night_day_label, 12 if narrow else 14)
 		if day_night_timer_label != null and is_instance_valid(day_night_timer_label):
 			_apply_font(day_night_timer_label, 12 if narrow else 14)
+	if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
+		_update_construction_capacity_button()
 
 func _apply_responsive_layout():
 	if main_layout == null or not is_instance_valid(main_layout):
@@ -941,7 +943,7 @@ func _apply_responsive_layout():
 	if main_navigation_grid != null and is_instance_valid(main_navigation_grid):
 		# Keep three columns on wider landscape phones so navigation does not
 		# consume most of the short screen; use two on portrait phones.
-		main_navigation_grid.columns = 3 if viewport_size.x >= 650.0 and viewport_size.x > viewport_size.y else (1 if narrow else 2)
+		main_navigation_grid.columns = 3 if viewport_size.x >= 650.0 and viewport_size.x > viewport_size.y else 2
 	for button in navigation_buttons:
 		if button == null or not is_instance_valid(button):
 			continue
@@ -949,8 +951,8 @@ func _apply_responsive_layout():
 		_apply_font(button, 14 if narrow else (16 if compact else 18))
 		button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var available_modal_width = maxf(0.0, viewport_size.x - safe_area_insets.x - safe_area_insets.z - 32.0)
 	if menu_card != null and is_instance_valid(menu_card):
-		var available_modal_width = maxf(0.0, viewport_size.x - safe_area_insets.x - safe_area_insets.z - 32.0)
 		menu_card.custom_minimum_size = Vector2(min(440.0, available_modal_width), 0)
 		var menu_scroll = menu_card.find_child("PhoneMenuScroll", true, false)
 		if menu_scroll is ScrollContainer:
@@ -971,7 +973,7 @@ func _apply_responsive_layout():
 			help_center.offset_bottom = -(safe_area_insets.w + 16.0)
 		var help_card = help_overlay.find_child("HelpModalCard", true, false)
 		if help_card is Control:
-			help_card.custom_minimum_size = Vector2(minf(560.0, available_modal_width), maxf(0.0, viewport_size.y - safe_area_insets.y - safe_area_insets.w - 32.0))
+			help_card.custom_minimum_size = Vector2(minf(560.0, available_modal_width), minf(760.0, maxf(0.0, viewport_size.y - safe_area_insets.y - safe_area_insets.w - 32.0)))
 	if header_label != null and is_instance_valid(header_label):
 		_apply_font(header_label, 22 if compact else 26)
 	if game != null and content != null and is_instance_valid(content):
@@ -1696,7 +1698,8 @@ func _open_daily_reward_calendar():
 	backdrop.add_child(center)
 
 	var card = PanelContainer.new()
-	card.custom_minimum_size = Vector2(min(520.0, get_viewport_rect().size.x - 36.0), 0)
+	var reward_viewport = get_viewport_rect().size
+	card.custom_minimum_size = Vector2(min(520.0, reward_viewport.x - reward_safe.x - reward_safe.z - 28.0), 0)
 	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	var card_style = StyleBoxFlat.new()
 	card_style.bg_color = Color("#f8fafc")
