@@ -17,6 +17,24 @@ var environment_volume = 0.18
 var environment_mode = "city"
 var night_mode = false
 var _tone_stream_cache: Dictionary = {}
+var _music_stream_cache: Dictionary = {}
+var _environment_stream_cache: Dictionary = {}
+var _music_thread = null
+var _environment_thread = null
+var _music_thread_mode = ""
+var _environment_thread_key = ""
+var _pending_music_mode = ""
+var _pending_environment_key = ""
+
+func _process(_delta):
+	_poll_ambience_generation()
+
+func _exit_tree():
+	# Join workers during shutdown so no background task outlives this manager.
+	if _music_thread != null and _music_thread.is_started():
+		_music_thread.wait_to_finish()
+	if _environment_thread != null and _environment_thread.is_started():
+		_environment_thread.wait_to_finish()
 
 func _ready():
 	settings.load(SETTINGS_PATH)
