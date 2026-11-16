@@ -62,11 +62,11 @@ static func apply_storage_rule(engine, resource_id, manual=false):
 		var amount_to_buy = min(target-current, min(int(state.market_stock.get(id,0)), engine.get_free_storage()))
 		if amount_to_buy <= 0:
 			return {"ok":false,"message":"برای تأمین %s موجودی بازار یا فضای خالی انبار کافی نیست." % engine.RESOURCES[id].name}
-		var buy_result = engine.buy_resource(id, amount_to_buy)
+		var buy_result = engine.buy_resource(id, amount_to_buy, bool(manual))
 		return {"ok":bool(buy_result.get("ok",false)),"message":str(buy_result.get("message","خرید خودکار انجام نشد."))}
 	if current > target:
 		var amount_to_sell = current-target
-		var sell_result = engine.sell_resource(id, amount_to_sell)
+		var sell_result = engine.sell_resource(id, amount_to_sell, bool(manual))
 		return {"ok":bool(sell_result.get("ok",false)),"message":str(sell_result.get("message","فروش خودکار انجام نشد."))}
 	return {"ok":true,"message":"موجودی "+engine.RESOURCES[id].name+" روی مقدار هدف قرار دارد."}
 
