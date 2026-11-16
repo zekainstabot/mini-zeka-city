@@ -44,6 +44,26 @@ func _run_tests():
 	assert(main.ui_font is Font)
 	main.game = EngineScript.new()
 	main.game.new_game()
+	# Exercise responsive layouts at narrow-phone, reference portrait, and landscape sizes.
+	get_root().size = Vector2i(360, 800)
+	await process_frame
+	main._apply_responsive_layout()
+	await process_frame
+	assert(navigation_grid.columns == 2, "Narrow portrait navigation must stay in two columns")
+	assert(not main.daily_reward_button.get_global_rect().intersects(main.day_night_hud.get_global_rect()), "Calendar overlaps the clock on a narrow phone")
+	assert(not main.menu_button.get_global_rect().intersects(main.day_night_hud.get_global_rect()), "Menu overlaps the clock on a narrow phone")
+	assert(not main.help_button.get_global_rect().intersects(main.day_night_hud.get_global_rect()), "Help overlaps the clock on a narrow phone")
+	assert(not main.construction_capacity_button.get_global_rect().intersects(main.day_night_hud.get_global_rect()), "Construction shortcut overlaps the clock")
+	get_root().size = Vector2i(1280, 720)
+	await process_frame
+	main._apply_responsive_layout()
+	await process_frame
+	assert(navigation_grid.columns == 3, "Landscape navigation must use three columns")
+	assert(not main.help_button.get_global_rect().intersects(main.day_night_hud.get_global_rect()), "Help overlaps the clock in landscape")
+	get_root().size = Vector2i(720, 1280)
+	await process_frame
+	main._apply_responsive_layout()
+	await process_frame
 	assert(main._get_geographic_rank_name(1) == "آبادی کوچک")
 	assert(main._get_geographic_rank_name(3) == "آبادی کوچک")
 	assert(main._get_geographic_rank_name(4) == "آبادی")
