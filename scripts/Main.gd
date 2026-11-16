@@ -906,24 +906,19 @@ func _apply_safe_area_to_floating_controls():
 		# with the calendar, menu, or help shortcuts.
 		var ultra_narrow = usable_width < 310.0
 		var hud_width = maxf(100.0, usable_width - 24.0) if ultra_narrow else (136.0 if narrow else 152.0)
+		day_night_hud.anchor_left = 0.0
+		day_night_hud.anchor_right = 0.0
 		day_night_hud.anchor_top = 0.0
 		day_night_hud.anchor_bottom = 0.0
 		if ultra_narrow:
 			# If even the three shortcuts and clock cannot fit side-by-side,
 			# stack the clock beneath the construction shortcut.
-			day_night_hud.anchor_left = 0.0
-			day_night_hud.anchor_right = 0.0
-			day_night_hud.offset_left = inset.x + 12.0
-			day_night_hud.offset_right = inset.x + 12.0 + hud_width
-			day_night_hud.offset_top = inset.y + 198.0
-			day_night_hud.offset_bottom = inset.y + 250.0
+			day_night_hud.position = Vector2(inset.x + 12.0, inset.y + 198.0)
 		else:
-			day_night_hud.anchor_left = 1.0
-			day_night_hud.anchor_right = 1.0
-			day_night_hud.offset_left = -(inset.z + hud_width + 12.0)
-			day_night_hud.offset_right = -(inset.z + 12.0)
-			day_night_hud.offset_top = inset.y + 16.0
-			day_night_hud.offset_bottom = inset.y + (68.0 if narrow else 72.0)
+			# Use an explicit viewport-relative position instead of right anchors:
+			# some Android stretch configurations give the root Control a narrower
+			# local width than the viewport, which can pull anchored HUDs off-screen.
+			day_night_hud.position = Vector2(viewport_size.x - inset.z - hud_width - 12.0, inset.y + 16.0)
 		day_night_hud.custom_minimum_size = Vector2(hud_width, 52.0 if narrow else 56.0)
 		day_night_hud.size = Vector2(hud_width, 52.0 if narrow else 56.0)
 		if day_night_icon_label != null and is_instance_valid(day_night_icon_label):
