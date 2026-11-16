@@ -33,10 +33,12 @@ static func build(owner, s):
 	var recruitment_mode = str(s.get("citizen_recruitment_mode","auto"))
 	var is_auto_recruitment = recruitment_mode == "auto"
 	var next_recruitment_mode = "manual" if is_auto_recruitment else "auto"
-	var current_recruitment_label = "خودکار" if is_auto_recruitment else "دستی"
-	var next_recruitment_label = "دستی" if is_auto_recruitment else "خودکار"
-	owner._add_label("روش جذب شهروند", 18)
-	var recruitment_toggle = owner._add_button("جذب %s ✓  |  تغییر به جذب %s" % [current_recruitment_label,next_recruitment_label], owner, "set_recruitment_mode", [next_recruitment_mode])
+	var current_recruitment_label = "جذب خودکار" if is_auto_recruitment else "جذب دستی"
+	var recruitment_toggle = owner._add_button(current_recruitment_label, owner, "set_recruitment_mode", [next_recruitment_mode])
+	# A compact centered toggle: its label always shows the currently active mode.
+	recruitment_toggle.custom_minimum_size = Vector2(156, 44)
+	recruitment_toggle.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	owner._apply_font(recruitment_toggle, 16)
 	owner._style_button(recruitment_toggle, true)
 	owner._add_label("درخواست‌های در انتظار: %d" % s.get("citizen_requests", []).size(), 18)
 	for request_index in range(s.get("citizen_requests", []).size()):
