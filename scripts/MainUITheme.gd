@@ -6,8 +6,8 @@ static func button_style(bg_color, border_color):
 	style.border_color = border_color
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(15)
-	style.content_margin_left = 14
-	style.content_margin_right = 14
+	style.content_margin_left = 10
+	style.content_margin_right = 10
 	style.content_margin_top = 10
 	style.content_margin_bottom = 10
 	return style
