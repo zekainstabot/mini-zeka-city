@@ -49,6 +49,7 @@ func _run_tests():
 	await process_frame
 	main._apply_responsive_layout()
 	await process_frame
+	print("UI TEST: narrow viewport=", main.get_viewport_rect().size, " calendar=", main.daily_reward_button.get_global_rect(), " clock=", main.day_night_hud.get_global_rect(), " safe=", main.safe_area_insets)
 	assert(navigation_grid.columns == 2, "Narrow portrait navigation must stay in two columns")
 	assert(not main.daily_reward_button.get_global_rect().intersects(main.day_night_hud.get_global_rect()), "Calendar overlaps the clock on a narrow phone")
 	assert(not main.menu_button.get_global_rect().intersects(main.day_night_hud.get_global_rect()), "Menu overlaps the clock on a narrow phone")
