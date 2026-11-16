@@ -186,6 +186,29 @@ static func get_construction_status(engine):
 		result.append({"id":id,"name":str(engine.BUILDINGS[id].name),"remaining":max(0,int(construction.get("finish_at",0))-now),"district_name":str(construction.get("district_name","منطقه صنعتی خارج شهر")),"cost":int(engine.BUILDINGS[id].get("cost",0))})
 	return result
 
+static func speed_up_construction(engine, construction_index):
+	var state = engine.state
+	var projects = state.get("constructions", [])
+	if construction_index < 0 or construction_index >= projects.size():
+		return {"ok":false,"message":"پروژه ساخت پیدا نشد؛ صفحه را دوباره باز کن."}
+	var project = projects[construction_index]
+	var now = int(Time.get_unix_time_from_system())
+	var remaining = max(0, int(project.get("finish_at", now)) - now)
+	if remaining <= 0:
+		process_constructions(engine)
+		return {"ok":false,"message":"این ساختمان آماده تکمیل است."}
+	var gem_cost = max(1, int(ceil(float(remaining) / 300.0)))
+	var current_gems = max(0, int(state.get("gems", 0)))
+	if current_gems < gem_cost:
+		return {"ok":false,"message":"جم کافی نداری؛ برای تکمیل این ساختمان %d جم لازم است و موجودی تو %d جم است." % [gem_cost, current_gems]}
+	state["gems"] = current_gems - gem_cost
+	project["finish_at"] = now
+	projects[construction_index] = project
+	state["constructions"] = projects
+	process_constructions(engine)
+	engine.save_game()
+	return {"ok":true,"message":"ساختمان فوراً تکمیل شد؛ %d جم مصرف شد." % gem_cost}
+
 static func demolish(engine, index):
 	var state = engine.state
 	if index < 0 or index >= state.buildings.size():
