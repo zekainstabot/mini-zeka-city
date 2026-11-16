@@ -64,7 +64,7 @@ static func build(engine, id):
 		return {"ok":false,"message":"ظرفیت ساخت‌وساز تکمیل است؛ حداکثر ۲ پروژه هم‌زمان می‌توانند فعال باشند."}
 	var data = engine.BUILDINGS[id]
 	if int(state.population) < int(data.get("unlock", 0)):
-		return {"ok":false,"message":"برای ساخت این ساختمان جمعیت کافی نیست."}
+		return {"ok":false,"message":"برای ساخت این ساختمان ZCعیت کافی نیست."}
 	if int(state.level) < int(data.get("level_unlock", 1)):
 		return {"ok":false,"message":"برای ساخت این ساختمان باید به سطح %d برسی." % int(data.get("level_unlock", 1))}
 	if id == "central_bank" and int(state.get("central_bank_rebuild_days_left", 0)) > 0:
@@ -198,17 +198,17 @@ static func speed_up_construction(engine, construction_index):
 	if remaining <= 0:
 		process_constructions(engine)
 		return {"ok":false,"message":"این ساختمان آماده تکمیل است."}
-	var gem_cost = max(1, int(ceil(float(remaining) / 300.0)))
-	var current_gems = max(0, int(state.get("gems", 0)))
-	if current_gems < gem_cost:
-		return {"ok":false,"message":"جم کافی نداری؛ برای تکمیل این ساختمان %d جم لازم است و موجودی تو %d جم است." % [gem_cost, current_gems]}
-	state["gems"] = current_gems - gem_cost
+	var coin_cost = max(1, int(ceil(float(remaining) / 300.0)))
+	var current_coins = max(0, int(state.get("zeka_coins", 0)))
+	if current_coins < coin_cost:
+		return {"ok":false,"message":"ZC کافی نداری؛ برای تکمیل این ساختمان %d ZC لازم است و موجودی تو %d ZC است." % [coin_cost, current_coins]}
+	state["zeka_coins"] = current_coins - coin_cost
 	project["finish_at"] = now
 	projects[construction_index] = project
 	state["constructions"] = projects
 	process_constructions(engine)
 	engine.save_game()
-	return {"ok":true,"message":"ساختمان فوراً تکمیل شد؛ %d جم مصرف شد." % gem_cost}
+	return {"ok":true,"message":"ساختمان فوراً تکمیل شد؛ %d ZC مصرف شد." % coin_cost}
 
 static func demolish(engine, index):
 	var state = engine.state
