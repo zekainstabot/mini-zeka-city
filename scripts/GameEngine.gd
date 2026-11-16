@@ -199,8 +199,8 @@ func new_game():
 		"resident_requests": [],
 		"next_resident_request_id": 1,
 		"achievements": {},
-		"gems": 0,
-		"achievement_gem_rewards_claimed": {},
+		"zeka_coins": 0,
+		"achievement_zeka_coin_rewards_claimed": {},
 		"city_records": {},
 		"long_term_project_claimed": [],
 		"weekly_challenge": {},
@@ -773,9 +773,14 @@ func _normalize_state():
 		state["resident_requests"] = []
 	if typeof(state.get("achievements", null)) != TYPE_DICTIONARY:
 		state["achievements"] = {}
-	state["gems"] = max(0, int(state.get("gems", 0)))
-	if typeof(state.get("achievement_gem_rewards_claimed", null)) != TYPE_DICTIONARY:
-		state["achievement_gem_rewards_claimed"] = {}
+	# Migrate existing saves without losing the player's previously earned balance.
+	if not state.has("zeka_coins"):
+		state["zeka_coins"] = max(0, int(state.get("gems", 0)))
+	state.erase("gems")
+	state["zeka_coins"] = max(0, int(state.get("zeka_coins", 0)))
+	if typeof(state.get("achievement_zeka_coin_rewards_claimed", null)) != TYPE_DICTIONARY:
+		state["achievement_zeka_coin_rewards_claimed"] = state.get("achievement_gem_rewards_claimed", {}) if typeof(state.get("achievement_gem_rewards_claimed", null)) == TYPE_DICTIONARY else {}
+	state.erase("achievement_gem_rewards_claimed")
 	if typeof(state.get("city_records", null)) != TYPE_DICTIONARY:
 		state["city_records"] = {}
 	if typeof(state.get("long_term_project_claimed", null)) != TYPE_ARRAY:
@@ -1096,8 +1101,8 @@ func speed_up_construction(construction_index):
 	return CityConstructionSystem.speed_up_construction(self, construction_index)
 
 
-func get_gems():
-	return max(0, int(state.get("gems", 0)))
+func get_zeka_coins():
+	return max(0, int(state.get("zeka_coins", 0)))
 
 
 func demolish(index):
