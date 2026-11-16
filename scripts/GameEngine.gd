@@ -1345,10 +1345,10 @@ func _refresh_trade_capacity():
 	return TradeSystem._refresh_trade_capacity(self)
 
 
-func buy_resource(id, amount):
-	return TradeSystem.buy_resource(self, id, amount)
+func buy_resource(id, amount, persist=true):
+	return TradeSystem.buy_resource(self, id, amount, persist)
 
 
-func sell_resource(id, amount):
-	return TradeSystem.sell_resource(self, id, amount)
+func sell_resource(id, amount, persist=true):
+	return TradeSystem.sell_resource(self, id, amount, persist)
 
