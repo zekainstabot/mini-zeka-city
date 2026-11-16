@@ -250,7 +250,7 @@ static func _refresh_trade_capacity(engine):
 		state.trade_remaining[city_id] = int(engine.TRADE_CITIES[city_id].daily_capacity)
 		state.trade_demand_remaining[city_id] = engine.TRADE_CITIES[city_id].demand.duplicate(true)
 
-static func buy_resource(engine, id, amount):
+static func buy_resource(engine, id, amount, persist=true):
 	var state = engine.state
 	if not engine.RESOURCES.has(id) or amount <= 0:
 		return {"ok":false,"message":"درخواست خرید نامعتبر است."}
@@ -268,7 +268,7 @@ static func buy_resource(engine, id, amount):
 	engine.save_game()
 	return {"ok":true,"message":"خرید انجام شد: "+str(amount)+" واحد "+engine.RESOURCES[id].name}
 
-static func sell_resource(engine, id, amount):
+static func sell_resource(engine, id, amount, persist=true):
 	var state = engine.state
 	if not engine.RESOURCES.has(id) or amount <= 0:
 		return {"ok":false,"message":"درخواست فروش نامعتبر است."}
