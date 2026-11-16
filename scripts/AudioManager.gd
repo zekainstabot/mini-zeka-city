@@ -319,7 +319,7 @@ func play_sfx(kind="click"):
 		selected_player.stream = tone_stream
 	selected_player.play()
 
-func _make_environment_stream(mode, is_night):
+func _generate_environment_data(mode, is_night):
 	var duration = 6.0
 	var sample_count = int(SAMPLE_RATE * duration)
 	var bytes = PackedByteArray()
@@ -366,17 +366,9 @@ func _make_environment_stream(mode, is_night):
 		var value = int(clamp(sample * edge * 5200.0, -32767.0, 32767.0))
 		bytes[i * 2] = value & 0xff
 		bytes[i * 2 + 1] = (value >> 8) & 0xff
-	var stream = AudioStreamWAV.new()
-	stream.format = AudioStreamWAV.FORMAT_16_BITS
-	stream.mix_rate = SAMPLE_RATE
-	stream.stereo = false
-	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	stream.loop_begin = 0
-	stream.loop_end = sample_count
-	stream.data = bytes
-	return stream
+	return {"data":bytes,"sample_count":sample_count}
 
-func _make_ambient_music(is_night):
+func _generate_ambient_music_data(is_night):
 	# A gentle, original city theme: warm sustained chords, rounded bass and a
 	# lightly played bell-like motif. The 4-bar loop is kept musically smooth.
 	var duration = 12.0
@@ -450,15 +442,7 @@ func _make_ambient_music(is_night):
 		bytes[offset + 2] = right_value & 0xff
 		bytes[offset + 3] = (right_value >> 8) & 0xff
 
-	var stream = AudioStreamWAV.new()
-	stream.format = AudioStreamWAV.FORMAT_16_BITS
-	stream.mix_rate = SAMPLE_RATE
-	stream.stereo = true
-	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	stream.loop_begin = 0
-	stream.loop_end = sample_count
-	stream.data = bytes
-	return stream
+	return {"data":bytes,"sample_count":sample_count}
 
 func _make_tone_stream(tones, master_gain):
 	var duration = 0.0
