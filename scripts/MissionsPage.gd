@@ -378,6 +378,9 @@ static func build(owner, s):
 		coin_reward_label.text = owner.PersianText.reshaper("پاداش ZC: %d%s" % [int(achievement.get("zeka_coin_reward", 0)), " — دریافت شد" if achievement_unlocked else " — پس از تکمیل"])
 		coin_reward_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		coin_reward_label.text_direction = Control.TEXT_DIRECTION_RTL
+		coin_reward_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		coin_reward_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		coin_reward_label.custom_minimum_size = Vector2.ZERO
 		owner._apply_font(coin_reward_label, 14)
 		coin_reward_label.add_theme_color_override("font_color", Color("#fcd34d"))
 		coin_reward_row.add_child(coin_reward_label)
