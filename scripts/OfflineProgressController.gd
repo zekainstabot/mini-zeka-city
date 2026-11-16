@@ -27,6 +27,10 @@ static func _apply_offline_progress(owner):
 		var progress_value = 63 + int(round(float(day_index + 1) / float(max(1, offline_days)) * 10.0))
 		await owner._set_startup_progress(progress_value, "شبیه‌سازی روزهای گذشته: %d از %d" % [day_index + 1, offline_days])
 		await owner.get_tree().process_frame
+	# Always yield once, including a first launch with no offline days, so the
+	# startup coroutine completes predictably in headless and mobile runtimes.
+	if offline_days <= 0:
+		await owner.get_tree().process_frame
 	while owner.game.state["pending_offline_digest"].size() > 8:
 		owner.game.state["pending_offline_digest"].pop_front()
 	var offline_net = int(owner.game.state.get("money", money_before)) - money_before
