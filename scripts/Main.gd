@@ -862,35 +862,43 @@ func _apply_safe_area_to_floating_controls():
 		var icon_size = Vector2(46, 46)
 		if daily_reward_button != null and is_instance_valid(daily_reward_button):
 			daily_reward_button.custom_minimum_size = icon_size
+			daily_reward_button.size = icon_size
 			daily_reward_button.position = Vector2(inset.x + 12.0, inset.y + 16.0)
 			_apply_font(daily_reward_button, 22)
 		if menu_button != null and is_instance_valid(menu_button):
 			menu_button.custom_minimum_size = icon_size
+			menu_button.size = icon_size
 			menu_button.position = Vector2(inset.x + 64.0, inset.y + 16.0)
 			_apply_font(menu_button, 20)
 		if help_button != null and is_instance_valid(help_button):
 			help_button.custom_minimum_size = icon_size
+			help_button.size = icon_size
 			help_button.position = Vector2(inset.x + (116.0 if usable_width >= 310.0 else 12.0), inset.y + (16.0 if usable_width >= 310.0 else 68.0))
 			_apply_font(help_button, 20)
 		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
 			construction_capacity_button.custom_minimum_size = Vector2(144, 68)
+			construction_capacity_button.size = Vector2(144, 68)
 			construction_capacity_button.position = Vector2(inset.x + 12.0, inset.y + (76.0 if usable_width >= 310.0 else 122.0))
 			_apply_font(construction_capacity_button, 12)
 	else:
 		if daily_reward_button != null and is_instance_valid(daily_reward_button):
 			daily_reward_button.custom_minimum_size = Vector2(56, 54)
+			daily_reward_button.size = Vector2(56, 54)
 			daily_reward_button.position = Vector2(inset.x + 16.0, inset.y + 18.0)
 			_apply_font(daily_reward_button, 25)
 		if menu_button != null and is_instance_valid(menu_button):
 			menu_button.custom_minimum_size = Vector2(56, 54)
+			menu_button.size = Vector2(56, 54)
 			menu_button.position = Vector2(inset.x + 82.0, inset.y + 18.0)
 			_apply_font(menu_button, 23)
 		if help_button != null and is_instance_valid(help_button):
 			help_button.custom_minimum_size = Vector2(50, 50)
+			help_button.size = Vector2(50, 50)
 			help_button.position = Vector2(inset.x + 148.0, inset.y + 20.0)
 			_apply_font(help_button, 22)
 		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
 			construction_capacity_button.custom_minimum_size = Vector2(158, 70)
+			construction_capacity_button.size = Vector2(158, 70)
 			construction_capacity_button.position = Vector2(inset.x + 16.0, inset.y + 96.0)
 			_apply_font(construction_capacity_button, 15)
 	if day_night_hud != null and is_instance_valid(day_night_hud):
@@ -906,6 +914,7 @@ func _apply_safe_area_to_floating_controls():
 		day_night_hud.offset_top = inset.y + 16.0
 		day_night_hud.offset_bottom = inset.y + (68.0 if narrow else 72.0)
 		day_night_hud.custom_minimum_size = Vector2(hud_width, 52.0 if narrow else 56.0)
+		day_night_hud.size = Vector2(hud_width, 52.0 if narrow else 56.0)
 		if day_night_icon_label != null and is_instance_valid(day_night_icon_label):
 			day_night_icon_label.custom_minimum_size = Vector2(32, 36) if narrow else Vector2(42, 42)
 			_apply_font(day_night_icon_label, 22 if narrow else 29)
