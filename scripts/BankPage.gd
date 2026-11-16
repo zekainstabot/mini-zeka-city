@@ -25,6 +25,7 @@ static func build(owner, s):
 		var loan_button = owner._add_button("درخواست وام %d سکه‌ای — %d روزه" % [int(loan_option.amount),int(loan_option.days)],owner,"request_bank_loan",[int(loan_option.amount),int(loan_option.days)])
 		loan_button.disabled = not game.has_central_bank() or game.get_bank_loan_limit() < int(loan_option.amount) or player_active_loans >= 2
 		if loan_button.disabled:
+		owner._style_button(loan_button, false)
 			loan_button.text += " 🔒"
 	for loan_index in range(s.get("bank_loans",[]).size()):
 		var loan = s.bank_loans[loan_index]
@@ -33,10 +34,12 @@ static func build(owner, s):
 			var manual_button = owner._add_button("پرداخت دستی قسط وام #%d — تا %d سکه" % [int(loan.get("id",loan_index+1)),min(int(loan.get("remaining",0)),int(loan.get("daily_installment",0)))],owner,"repay_bank_loan_manual",[loan_index])
 			manual_button.disabled = int(loan.get("last_manual_payment_day",0)) == int(s.get("day",1)) or game.get_available_money() <= 0
 			if manual_button.disabled:
+		owner._style_button(manual_button, false)
 				manual_button.text += " 🔒"
 			var full_button = owner._add_button("تسویه کامل وام #%d — %d سکه" % [int(loan.get("id",loan_index+1)),int(loan.get("remaining",0))],owner,"repay_bank_loan",[loan_index])
 			full_button.disabled = game.get_available_money() < int(loan.get("remaining",0))
 			if full_button.disabled:
+		owner._style_button(full_button, false)
 				full_button.text += " 🔒"
 	owner._add_label("🏧 سپرده‌گذاری",19)
 	owner._add_label("سود کل سپرده: ۷ روز ۳٪ | ۱۴ روز ۷٪ | ۳۰ روز ۱۵٪؛ برداشت پیش از سررسید بدون سود است.",14)
@@ -44,6 +47,7 @@ static func build(owner, s):
 		var deposit_button = owner._add_button("سپرده %d سکه‌ای — %d روزه" % [int(deposit_option.amount),int(deposit_option.days)],owner,"open_bank_deposit",[int(deposit_option.amount),int(deposit_option.days)])
 		deposit_button.disabled = game.get_building_count("municipal_bank") <= 0 or game.get_available_money() < int(deposit_option.amount)
 		if deposit_button.disabled:
+		owner._style_button(deposit_button, false)
 			deposit_button.text += " 🔒"
 	for deposit_index in range(s.get("bank_deposits",[]).size()):
 		var deposit = s.bank_deposits[deposit_index]
@@ -51,7 +55,8 @@ static func build(owner, s):
 		if deposit_status == "withdrawn":
 			continue
 		owner._add_label("سپرده #%d | اصل: %d | سود: %d | سررسید: روز %d | %s" % [int(deposit.get("id",deposit_index+1)),int(deposit.get("principal",0)),int(deposit.get("interest",0)),int(deposit.get("maturity_day",0)),"آماده برداشت" if deposit_status == "matured" or int(s.day) >= int(deposit.get("maturity_day",0)) else "در حال سپرده"],15)
-		owner._add_button("برداشت سپرده #%d" % int(deposit.get("id",deposit_index+1)),owner,"withdraw_bank_savings",[deposit_index])
+		var withdraw_button = owner._add_button("برداشت سپرده #%d" % int(deposit.get("id",deposit_index+1)),owner,"withdraw_bank_savings",[deposit_index])
+		owner._style_button(withdraw_button, false)
 	owner._add_label("📜 گردش حساب و سوابق مالی",19)
 	if s.get("bank_transactions",[]).is_empty():
 		owner._add_label("هنوز تراکنش بانکی ثبت نشده است.",15)
