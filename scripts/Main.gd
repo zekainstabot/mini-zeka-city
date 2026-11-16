@@ -118,14 +118,17 @@ var startup_tip_index = -1
 var startup_progress_tween: Tween = null
 
 func _on_ui_node_added(node):
-	# Enforce one alignment rule for every text button, including buttons
-	# created later by page builders, dialogs, popups, and overlays.
+	# Enforce consistent, readable text layout for every dynamically-created button.
 	if node is Button:
 		node.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		node.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		node.text_direction = Control.TEXT_DIRECTION_RTL
 
 func _center_existing_button_texts(node):
 	if node is Button:
 		node.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		node.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		node.text_direction = Control.TEXT_DIRECTION_RTL
 	for child in node.get_children():
 		_center_existing_button_texts(child)
 
@@ -851,24 +854,64 @@ func _get_safe_area_insets():
 
 func _apply_safe_area_to_floating_controls():
 	var inset = safe_area_insets
-	if daily_reward_button != null and is_instance_valid(daily_reward_button):
-		daily_reward_button.position = Vector2(inset.x + 16.0, inset.y + 24.0)
-	if menu_button != null and is_instance_valid(menu_button):
-		menu_button.position = Vector2(inset.x + 105.0, inset.y + 24.0)
-	if help_button != null and is_instance_valid(help_button):
-		help_button.position = Vector2(inset.x + 181.0, inset.y + 26.0)
-	if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
-		construction_capacity_button.position = Vector2(inset.x + 16.0, inset.y + 96.0)
+	var viewport_size = get_viewport_rect().size
+	var narrow = viewport_size.x < 500.0
+	var usable_width = viewport_size.x - inset.x - inset.z
+	if narrow:
+		var icon_size = Vector2(46, 46)
+		if daily_reward_button != null and is_instance_valid(daily_reward_button):
+			daily_reward_button.custom_minimum_size = icon_size
+			daily_reward_button.position = Vector2(inset.x + 12.0, inset.y + 16.0)
+			_apply_font(daily_reward_button, 22)
+		if menu_button != null and is_instance_valid(menu_button):
+			menu_button.custom_minimum_size = icon_size
+			menu_button.position = Vector2(inset.x + 64.0, inset.y + 16.0)
+			_apply_font(menu_button, 20)
+		if help_button != null and is_instance_valid(help_button):
+			help_button.custom_minimum_size = icon_size
+			help_button.position = Vector2(inset.x + (116.0 if usable_width >= 310.0 else 12.0), inset.y + (16.0 if usable_width >= 310.0 else 68.0))
+			_apply_font(help_button, 20)
+		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
+			construction_capacity_button.custom_minimum_size = Vector2(144, 60)
+			construction_capacity_button.position = Vector2(inset.x + 12.0, inset.y + (76.0 if usable_width >= 310.0 else 122.0))
+			_apply_font(construction_capacity_button, 12)
+	else:
+		if daily_reward_button != null and is_instance_valid(daily_reward_button):
+			daily_reward_button.custom_minimum_size = Vector2(56, 54)
+			daily_reward_button.position = Vector2(inset.x + 16.0, inset.y + 18.0)
+			_apply_font(daily_reward_button, 25)
+		if menu_button != null and is_instance_valid(menu_button):
+			menu_button.custom_minimum_size = Vector2(56, 54)
+			menu_button.position = Vector2(inset.x + 82.0, inset.y + 18.0)
+			_apply_font(menu_button, 23)
+		if help_button != null and is_instance_valid(help_button):
+			help_button.custom_minimum_size = Vector2(50, 50)
+			help_button.position = Vector2(inset.x + 148.0, inset.y + 20.0)
+			_apply_font(help_button, 22)
+		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
+			construction_capacity_button.custom_minimum_size = Vector2(158, 70)
+			construction_capacity_button.position = Vector2(inset.x + 16.0, inset.y + 96.0)
+			_apply_font(construction_capacity_button, 15)
 	if day_night_hud != null and is_instance_valid(day_night_hud):
-		# Pin the clock to the upper-right safe corner, away from the left-side controls.
+		# The clock uses a narrower footprint on small phones so it never collides
+		# with the calendar, menu, or help shortcuts.
+		var hud_width = 136.0 if narrow else 152.0
 		day_night_hud.anchor_left = 1.0
 		day_night_hud.anchor_right = 1.0
 		day_night_hud.anchor_top = 0.0
 		day_night_hud.anchor_bottom = 0.0
-		day_night_hud.offset_left = -(inset.z + 166.0)
-		day_night_hud.offset_right = -(inset.z + 14.0)
-		day_night_hud.offset_top = inset.y + 18.0
-		day_night_hud.offset_bottom = inset.y + 74.0
+		day_night_hud.offset_left = -(inset.z + hud_width + 12.0)
+		day_night_hud.offset_right = -(inset.z + 12.0)
+		day_night_hud.offset_top = inset.y + 16.0
+		day_night_hud.offset_bottom = inset.y + (68.0 if narrow else 72.0)
+		day_night_hud.custom_minimum_size = Vector2(hud_width, 52.0 if narrow else 56.0)
+		if day_night_icon_label != null and is_instance_valid(day_night_icon_label):
+			day_night_icon_label.custom_minimum_size = Vector2(32, 36) if narrow else Vector2(42, 42)
+			_apply_font(day_night_icon_label, 22 if narrow else 29)
+		if day_night_day_label != null and is_instance_valid(day_night_day_label):
+			_apply_font(day_night_day_label, 12 if narrow else 14)
+		if day_night_timer_label != null and is_instance_valid(day_night_timer_label):
+			_apply_font(day_night_timer_label, 12 if narrow else 14)
 
 func _apply_responsive_layout():
 	if main_layout == null or not is_instance_valid(main_layout):
@@ -885,7 +928,7 @@ func _apply_responsive_layout():
 	var compact = viewport_size.x < 900.0
 	var narrow = viewport_size.x < 380.0
 	var short_screen = viewport_size.y < 500.0
-	var horizontal_margin = 16.0 if narrow else 22.0
+	var horizontal_margin = 12.0 if narrow else 22.0
 	var top_margin = 24.0 if not short_screen else 18.0
 	var bottom_margin = 24.0 if not short_screen else 18.0
 	safe_area_insets = _get_safe_area_insets()
@@ -902,10 +945,33 @@ func _apply_responsive_layout():
 	for button in navigation_buttons:
 		if button == null or not is_instance_valid(button):
 			continue
-		button.custom_minimum_size = Vector2(0, 48 if viewport_size.y < 500.0 else (58 if compact else 58))
-		_apply_font(button, 15 if narrow else (16 if compact else 18))
+		button.custom_minimum_size = Vector2(0, 48 if viewport_size.y < 500.0 else (52 if narrow else 58))
+		_apply_font(button, 14 if narrow else (16 if compact else 18))
+		button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	if menu_card != null and is_instance_valid(menu_card):
-		menu_card.custom_minimum_size = Vector2(max(220.0, min(440.0, viewport_size.x - (24.0 if narrow else 40.0))), 0)
+		var available_modal_width = maxf(0.0, viewport_size.x - safe_area_insets.x - safe_area_insets.z - 32.0)
+		menu_card.custom_minimum_size = Vector2(min(440.0, available_modal_width), 0)
+		var menu_scroll = menu_card.find_child("PhoneMenuScroll", true, false)
+		if menu_scroll is ScrollContainer:
+			menu_scroll.custom_minimum_size.y = maxf(120.0, minf(560.0, viewport_size.y - safe_area_insets.y - safe_area_insets.w - 190.0))
+	if menu_overlay != null and is_instance_valid(menu_overlay):
+		var menu_center = menu_overlay.find_child("MenuSafeCenter", true, false)
+		if menu_center is Control:
+			menu_center.offset_left = safe_area_insets.x + 16.0
+			menu_center.offset_right = -(safe_area_insets.z + 16.0)
+			menu_center.offset_top = safe_area_insets.y + 16.0
+			menu_center.offset_bottom = -(safe_area_insets.w + 16.0)
+	if help_overlay != null and is_instance_valid(help_overlay):
+		var help_center = help_overlay.find_child("HelpSafeCenter", true, false)
+		if help_center is Control:
+			help_center.offset_left = safe_area_insets.x + 16.0
+			help_center.offset_right = -(safe_area_insets.z + 16.0)
+			help_center.offset_top = safe_area_insets.y + 16.0
+			help_center.offset_bottom = -(safe_area_insets.w + 16.0)
+		var help_card = help_overlay.find_child("HelpModalCard", true, false)
+		if help_card is Control:
+			help_card.custom_minimum_size = Vector2(minf(560.0, available_modal_width), maxf(0.0, viewport_size.y - safe_area_insets.y - safe_area_insets.w - 32.0))
 	if header_label != null and is_instance_valid(header_label):
 		_apply_font(header_label, 22 if compact else 26)
 	if game != null and content != null and is_instance_valid(content):
@@ -1069,6 +1135,7 @@ func _build_ui():
 	help_overlay.visible = false
 	menu_layer.add_child(help_overlay)
 	var help_center = CenterContainer.new()
+	help_center.name = "HelpSafeCenter"
 	help_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var help_safe = _get_safe_area_insets()
 	help_center.offset_left = help_safe.x + 16.0
@@ -1077,7 +1144,9 @@ func _build_ui():
 	help_center.offset_bottom = -(help_safe.w + 16.0)
 	help_overlay.add_child(help_center)
 	var help_card = PanelContainer.new()
-	help_card.custom_minimum_size = Vector2(min(560.0, initial_viewport_size.x - 40.0), min(760.0, get_viewport_rect().size.y - 40.0))
+	help_card.name = "HelpModalCard"
+	var initial_safe = _get_safe_area_insets()
+	help_card.custom_minimum_size = Vector2(min(560.0, initial_viewport_size.x - initial_safe.x - initial_safe.z - 32.0), min(760.0, initial_viewport_size.y - initial_safe.y - initial_safe.w - 32.0))
 	help_card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	var help_card_style = StyleBoxFlat.new()
 	help_card_style.bg_color = Color("#101f32")
@@ -1121,6 +1190,7 @@ func _build_ui():
 	help_body.add_theme_constant_override("separation", 10)
 	help_layout.add_child(help_body)
 	var menu_center = CenterContainer.new()
+	menu_center.name = "MenuSafeCenter"
 	menu_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var menu_safe = _get_safe_area_insets()
 	menu_center.offset_left = menu_safe.x + 16.0
@@ -1129,7 +1199,8 @@ func _build_ui():
 	menu_center.offset_bottom = -(menu_safe.w + 16.0)
 	menu_overlay.add_child(menu_center)
 	menu_card = PanelContainer.new()
-	menu_card.custom_minimum_size = Vector2(min(440.0, initial_viewport_size.x - 56.0), 0)
+	var menu_initial_safe = _get_safe_area_insets()
+	menu_card.custom_minimum_size = Vector2(min(440.0, initial_viewport_size.x - menu_initial_safe.x - menu_initial_safe.z - 32.0), 0)
 	menu_card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	var menu_card_style = StyleBoxFlat.new()
 	menu_card_style.bg_color = Color("#101f32")
@@ -1267,6 +1338,9 @@ func _build_ui():
 				"missions": nav_title = "پیشرفت"
 				"progress": nav_title = "پیشرفت"
 		var b = Button.new()
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		b.text_direction = Control.TEXT_DIRECTION_RTL
 		var civic_page_locked = item.p in ["municipality", "private_economy"] and not game.has_municipal_hall()
 		b.text = PersianText.reshaper(nav_title + (" 🔒" if civic_page_locked else ""))
 		# Keep locked entries tappable so the player can learn how to unlock them.
@@ -1282,7 +1356,7 @@ func _build_ui():
 			b.alignment = HORIZONTAL_ALIGNMENT_CENTER
 			b.text_direction = Control.TEXT_DIRECTION_RTL
 		if str(item.p) == "missions":
-			b.alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			b.alignment = HORIZONTAL_ALIGNMENT_CENTER
 			b.text_direction = Control.TEXT_DIRECTION_RTL
 			mission_navigation_button = b
 			mission_navigation_title = nav_title
@@ -1446,6 +1520,8 @@ func _build_construction_capacity_button():
 	construction_capacity_button.position = Vector2(22, 116)
 	construction_capacity_button.z_index = 15
 	construction_capacity_button.layout_direction = Control.LAYOUT_DIRECTION_LTR
+	construction_capacity_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	construction_capacity_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	construction_capacity_button.tooltip_text = "ظرفیت و جزئیات ساخت‌وساز"
 	_apply_font(construction_capacity_button, 15)
 	_style_button(construction_capacity_button, false)
@@ -1467,7 +1543,12 @@ func _update_construction_capacity_button():
 		project_caption = "در حال ساخت: " + "، ".join(names)
 	# Keep the builder count visible and show active building names directly
 	# beneath the engineer icon instead of hiding them only in the popup.
-	construction_capacity_button.text = "👷  %d/2\n🏗️  %s" % [available, project_caption]
+	var viewport_width = get_viewport_rect().size.x
+	if viewport_width < 500.0:
+		var compact_project_caption = "پروژه‌ای فعال نیست" if projects.is_empty() else str(projects[0].get("name", "ساختمان")) + (" +%d" % (projects.size() - 1) if projects.size() > 1 else "")
+		construction_capacity_button.text = "👷  %d/2\n🏗️  %s" % [available, compact_project_caption]
+	else:
+		construction_capacity_button.text = "👷  %d/2\n🏗️  %s" % [available, project_caption]
 	construction_capacity_button.tooltip_text = "کارگر آزاد: %d از ۲ | %s" % [available, project_caption]
 
 
@@ -1492,7 +1573,8 @@ func _open_construction_details():
 	center.offset_bottom = -(construction_safe.w + 18.0)
 	backdrop.add_child(center)
 	var card = PanelContainer.new()
-	card.custom_minimum_size = Vector2(min(520.0, get_viewport_rect().size.x - 36.0), 0)
+	var reward_viewport = get_viewport_rect().size
+	card.custom_minimum_size = Vector2(min(520.0, reward_viewport.x - reward_safe.x - reward_safe.z - 28.0), 0)
 	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	var card_style = StyleBoxFlat.new()
 	card_style.bg_color = Color("#14243a")
@@ -1606,10 +1688,11 @@ func _open_daily_reward_calendar():
 
 	var center = CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	center.offset_left = 14
-	center.offset_right = -14
-	center.offset_top = 26
-	center.offset_bottom = -26
+	var reward_safe = _get_safe_area_insets()
+	center.offset_left = reward_safe.x + 14.0
+	center.offset_right = -(reward_safe.z + 14.0)
+	center.offset_top = reward_safe.y + 14.0
+	center.offset_bottom = -(reward_safe.w + 14.0)
 	backdrop.add_child(center)
 
 	var card = PanelContainer.new()
@@ -1628,7 +1711,8 @@ func _open_daily_reward_calendar():
 	center.add_child(card)
 
 	var layout = VBoxContainer.new()
-	layout.add_theme_constant_override("separation", 9)
+	var compact_reward_layout = reward_viewport.y < 560.0
+	layout.add_theme_constant_override("separation", 5 if compact_reward_layout else 9)
 	card.add_child(layout)
 
 	var header = HBoxContainer.new()
@@ -1671,13 +1755,14 @@ func _open_daily_reward_calendar():
 	layout.add_child(intro)
 
 	var scroll = ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(0, min(330.0, max(210.0, get_viewport_rect().size.y - 390.0)))
+	var reward_available_height = reward_viewport.y - reward_safe.y - reward_safe.w
+	scroll.custom_minimum_size = Vector2(0, maxf(90.0, minf(330.0, reward_available_height - (340.0 if compact_reward_layout else 390.0))))
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	layout.add_child(scroll)
 
 	var days_grid = GridContainer.new()
-	days_grid.columns = 4
+	days_grid.columns = 2 if reward_viewport.x - reward_safe.x - reward_safe.z < 560.0 else 4
 	days_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	days_grid.add_theme_constant_override("h_separation", 7)
 	days_grid.add_theme_constant_override("v_separation", 7)
@@ -1692,7 +1777,7 @@ func _open_daily_reward_calendar():
 		var is_next = day == next_day
 		var available_now = is_next and bool(status.can_claim)
 		var tile = PanelContainer.new()
-		tile.custom_minimum_size = Vector2(0, 108)
+		tile.custom_minimum_size = Vector2(0, 116 if days_grid.columns == 2 else 108)
 		tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var tile_style = StyleBoxFlat.new()
 		tile_style.bg_color = Color("#e4f7ef") if claimed else (Color("#fff4d6") if available_now else Color("#edf2f8"))
@@ -1879,9 +1964,13 @@ func _create_menu_action(title, callback):
 	var button = Button.new()
 	button.text = PersianText.reshaper(title)
 	var phone_layout = get_viewport_rect().size.x < 900
-	# Keep menu actions compact and centered instead of stretching edge-to-edge.
-	var action_width = min(320.0 if phone_layout else 360.0, get_viewport_rect().size.x - (88.0 if phone_layout else 160.0))
-	button.custom_minimum_size = Vector2(max(220.0, action_width), 62 if phone_layout else 54)
+	# Keep menu actions compact while never exceeding the actual safe viewport.
+	var safe = _get_safe_area_insets()
+	var action_width = min(320.0 if phone_layout else 360.0, get_viewport_rect().size.x - safe.x - safe.z - (32.0 if phone_layout else 64.0))
+	button.custom_minimum_size = Vector2(max(0.0, action_width), 62 if phone_layout else 54)
+	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.text_direction = Control.TEXT_DIRECTION_RTL
 	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_apply_font(button, 19 if phone_layout else 17)
 	_style_button(button, false)
@@ -1941,10 +2030,11 @@ func _build_exit_confirmation(parent_layer):
 	parent_layer.add_child(exit_overlay)
 	var center = CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	center.offset_left = 18
-	center.offset_right = -18
-	center.offset_top = 18
-	center.offset_bottom = -18
+	var exit_safe = _get_safe_area_insets()
+	center.offset_left = exit_safe.x + 16.0
+	center.offset_right = -(exit_safe.z + 16.0)
+	center.offset_top = exit_safe.y + 16.0
+	center.offset_bottom = -(exit_safe.w + 16.0)
 	exit_overlay.add_child(center)
 	var card = PanelContainer.new()
 	card.custom_minimum_size = Vector2(min(420.0, get_viewport_rect().size.x - 44.0), 0)
@@ -2119,8 +2209,11 @@ func _add_label(text, size=18):
 
 func _add_button(text, button_target, callback, args=[]):
 	var button = Button.new()
-	button.text = PersianText.reshaper(text + "  ")
+	button.text = PersianText.reshaper(text)
 	button.custom_minimum_size = Vector2(0, 58 if get_viewport_rect().size.x < 900 else 50)
+	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.text_direction = Control.TEXT_DIRECTION_RTL
 	_apply_font(button, 19 if get_viewport_rect().size.x < 900 else 17)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_button(button, false)
