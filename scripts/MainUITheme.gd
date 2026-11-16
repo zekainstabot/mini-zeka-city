@@ -34,6 +34,11 @@ static func _get_button_styles(navigation: bool) -> Dictionary:
 
 static func style_button(button, navigation=false):
 	button.flat = false
+	# One consistent text rule across every menu, card, popup, and page:
+	# centered Persian text with wrapping instead of clipping on narrow screens.
+	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	button.text_direction = Control.TEXT_DIRECTION_RTL
 	# Activate after touch release so Android cannot leave a menu button stuck
 	# in the pressed/blue state while the next screen is displayed.
 	button.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
