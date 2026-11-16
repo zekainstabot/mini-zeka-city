@@ -253,7 +253,7 @@ func _process(delta):
 		_update_day_night_hud()
 	if clock_save_accumulator >= 15.0:
 		clock_save_accumulator = 0.0
-		var citizen_reports_changed = game.check_citizen_reports()
+		var citizen_reports_changed = game.check_citizen_reports(false)
 		if citizen_reports_changed and current_page == "report":
 			show_page("report")
 		game.state["clock_last_unix"] = Time.get_unix_time_from_system()
@@ -2140,7 +2140,7 @@ func _show_message(text):
 	if report_text in ["برای ساخت این ساختمان جمعیت کافی نیست.", "به ساختمان موردنیاز این مأموریت رفتی."]:
 		return
 	if game != null and report_text != "" and game.has_method("add_report_event"):
-		game.add_report_event(report_text)
+		game.add_report_event(report_text, false)
 
 func review_report_event(event_id):
 	if game.review_report_event(event_id):
