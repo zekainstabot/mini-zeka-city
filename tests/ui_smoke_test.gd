@@ -99,7 +99,7 @@ func _run_tests():
 	assert(main._get_geographic_rank_name(7) == "آبادی بزرگ")
 	assert(main._get_geographic_rank_name(9) == "آبادی بزرگ")
 	assert(main._get_geographic_rank_name(10) == "روستای کوچک")
-	for page in ["home","buildings","citizens","bank","municipality","private_economy","commerce","transport","imports","storage","report","missions","progress","ranking","settings","audio","help"]:
+	for page in ["home","map","buildings","citizens","bank","municipality","private_economy","commerce","transport","imports","storage","report","missions","progress","ranking","settings","audio","help"]:
 		print("UI TEST: opening page %s" % page)
 		main.show_page(page)
 		if page == "ranking":
@@ -112,6 +112,14 @@ func _run_tests():
 		if page == "help":
 			assert(main.content.get_child_count() > 30)
 		print("UI TEST: page %s ready (%d controls)" % [page, main.content.get_child_count()])
+	main.show_page("map")
+	assert(main.content.find_child("DistrictMapPanel", true, false) is PanelContainer, "District map panel is missing")
+	assert(main.content.find_child("DistrictMapGrid", true, false) is GridContainer, "District map grid is missing for the generated starter district")
+	var map_overview = main.game.get_districts_overview()
+	if not map_overview.get("districts", []).is_empty():
+		main.select_map_district(str(map_overview.districts[0].get("id", "")))
+		assert(main.content.find_child("SelectedDistrictDetails", true, false) is PanelContainer, "Selecting a map district must show its details")
+	main.show_page("home")
 	main.home_city_details_expanded = true
 	main.show_page("home")
 	assert(main.content.get_child_count() > 0)
