@@ -113,11 +113,14 @@ func _run_tests():
 			assert(main.content.get_child_count() > 30)
 		print("UI TEST: page %s ready (%d controls)" % [page, main.content.get_child_count()])
 	main.show_page("map")
-	assert(main.content.find_child("DistrictMapPanel", true, false) is PanelContainer, "District map panel is missing")
-	assert(main.content.find_child("DistrictMapGrid", true, false) is GridContainer, "District map grid is missing for the generated starter district")
+	var map_canvas = main.content.find_child("CityMapCanvas", true, false)
+	assert(map_canvas is PanelContainer, "City map canvas is missing")
 	var map_overview = main.game.get_districts_overview()
-	if not map_overview.get("districts", []).is_empty():
-		main.select_map_district(str(map_overview.districts[0].get("id", "")))
+	var map_districts = map_overview.get("districts", [])
+	if not map_districts.is_empty():
+		var first_district_id = str(map_districts[0].get("id", ""))
+		assert(map_canvas.find_child("DistrictTile_" + first_district_id, true, false) is PanelContainer, "Generated district tile is missing from the city map")
+		main.select_map_district(first_district_id)
 		assert(main.content.find_child("SelectedDistrictDetails", true, false) is PanelContainer, "Selecting a map district must show its details")
 	main.show_page("home")
 	main.home_city_details_expanded = true
