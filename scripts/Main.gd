@@ -871,8 +871,10 @@ func _apply_safe_area_to_floating_controls():
 	var viewport_size = get_viewport_rect().size
 	var narrow = viewport_size.x < 500.0
 	var usable_width = viewport_size.x - inset.x - inset.z
+	var right_edge = viewport_size.x - inset.z
 	if narrow:
 		var icon_size = Vector2(46, 46)
+		# Left rail: calendar, menu, and help.
 		if daily_reward_button != null and is_instance_valid(daily_reward_button):
 			daily_reward_button.custom_minimum_size = icon_size
 			daily_reward_button.size = icon_size
@@ -883,23 +885,21 @@ func _apply_safe_area_to_floating_controls():
 			menu_button.size = icon_size
 			menu_button.position = Vector2(inset.x + 64.0, inset.y + 16.0)
 			_apply_font(menu_button, 20)
-		# On narrow phones, keep the clock on the upper-right and arrange
-		# shortcuts in two rows on the left. Five icons in one row collide
-		# with the clock on common 360px Android screens.
 		if help_button != null and is_instance_valid(help_button):
 			help_button.custom_minimum_size = icon_size
 			help_button.size = icon_size
 			help_button.position = Vector2(inset.x + 12.0, inset.y + 68.0)
 			_apply_font(help_button, 20)
+		# Right rail: rankings and reports, kept clear of the clock.
 		if ranking_button != null and is_instance_valid(ranking_button):
 			ranking_button.custom_minimum_size = icon_size
 			ranking_button.size = icon_size
-			ranking_button.position = Vector2(inset.x + 64.0, inset.y + 68.0)
+			ranking_button.position = Vector2(right_edge - 58.0, inset.y + 16.0)
 			_apply_font(ranking_button, 19)
 		if report_button != null and is_instance_valid(report_button):
 			report_button.custom_minimum_size = icon_size
 			report_button.size = icon_size
-			report_button.position = Vector2(inset.x + 116.0, inset.y + 68.0)
+			report_button.position = Vector2(right_edge - 58.0, inset.y + 68.0)
 			_apply_font(report_button, 25)
 		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
 			construction_capacity_button.custom_minimum_size = Vector2(144, 68)
@@ -925,12 +925,12 @@ func _apply_safe_area_to_floating_controls():
 		if ranking_button != null and is_instance_valid(ranking_button):
 			ranking_button.custom_minimum_size = Vector2(50, 50)
 			ranking_button.size = Vector2(50, 50)
-			ranking_button.position = Vector2(inset.x + 206.0, inset.y + 20.0)
+			ranking_button.position = Vector2(right_edge - 108.0, inset.y + 20.0)
 			_apply_font(ranking_button, 21)
 		if report_button != null and is_instance_valid(report_button):
 			report_button.custom_minimum_size = Vector2(50, 50)
 			report_button.size = Vector2(50, 50)
-			report_button.position = Vector2(inset.x + 264.0, inset.y + 20.0)
+			report_button.position = Vector2(right_edge - 50.0, inset.y + 20.0)
 			_apply_font(report_button, 25)
 		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
 			construction_capacity_button.custom_minimum_size = Vector2(158, 70)
@@ -938,8 +938,8 @@ func _apply_safe_area_to_floating_controls():
 			construction_capacity_button.position = Vector2(inset.x + 16.0, inset.y + 96.0)
 			_apply_font(construction_capacity_button, 15)
 	if day_night_hud != null and is_instance_valid(day_night_hud):
-		# The clock uses a narrower footprint on small phones so it never collides
-		# with the calendar, menu, or help shortcuts.
+		# Anchor the clock to the upper-right; reserve a separate right-side
+		# shortcut rail below it on narrow phones.
 		var ultra_narrow = usable_width < 310.0
 		var hud_width = maxf(100.0, usable_width - 24.0) if ultra_narrow else (136.0 if narrow else 152.0)
 		day_night_hud.anchor_left = 0.0
@@ -947,14 +947,9 @@ func _apply_safe_area_to_floating_controls():
 		day_night_hud.anchor_top = 0.0
 		day_night_hud.anchor_bottom = 0.0
 		if ultra_narrow:
-			# If even the three shortcuts and clock cannot fit side-by-side,
-			# stack the clock beneath the construction shortcut.
 			day_night_hud.position = Vector2(inset.x + 12.0, inset.y + 198.0)
 		else:
-			# Use an explicit viewport-relative position instead of right anchors:
-			# some Android stretch configurations give the root Control a narrower
-			# local width than the viewport, which can pull anchored HUDs off-screen.
-			day_night_hud.position = Vector2(viewport_size.x - inset.z - hud_width - 12.0, inset.y + 16.0)
+			day_night_hud.position = Vector2(right_edge - hud_width - 12.0, inset.y + 16.0)
 		day_night_hud.custom_minimum_size = Vector2(hud_width, 52.0 if narrow else 56.0)
 		day_night_hud.size = Vector2(hud_width, 52.0 if narrow else 56.0)
 		if day_night_icon_label != null and is_instance_valid(day_night_icon_label):
