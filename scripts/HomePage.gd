@@ -148,12 +148,8 @@ static func _add_city_overview_panel(owner, city_state):
 	_add_overview_metric(owner, grid, "🧑‍🏭 نیروی کار", "%d شاغل  •  %d بیکار" % [employed, unemployed], Color("#a7f3d0"))
 	_add_overview_metric(owner, grid, "🏅 سطح و اعتبار", "سطح %d  •  اعتبار %d" % [int(city_state.get("level", 1)), int(city_state.get("reputation", 0))], Color("#fde68a"))
 	_add_overview_metric(owner, grid, "😊 رضایت شهروندان", "%d از ۱۰۰" % satisfaction, Color("#c4b5fd"))
-	var coin_balance = Label.new()
-	coin_balance.text = owner.PersianText.reshaper("🪙 موجودی Zeka Coin: %s ZC" % str(owner.game.get_zeka_coins()))
-	coin_balance.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	owner._apply_font(coin_balance, 14)
-	coin_balance.add_theme_color_override("font_color", Color("#fcd34d"))
-	body.add_child(coin_balance)
+	_add_overview_metric(owner, grid, "💰 موجودی خزانه", "%s سکه" % str(int(city_state.get("money", 0))), Color("#fde68a"))
+	_add_overview_metric(owner, grid, "🪙 Zeka Coin", "%s ZC" % str(owner.game.get_zeka_coins()), Color("#fcd34d"))
 
 static func _add_overview_metric(owner, parent, caption, value, value_color):
 	var card = PanelContainer.new()
