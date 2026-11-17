@@ -5,6 +5,8 @@ static func build(owner, s):
 	var game = owner.game
 	owner._add_label("وضعیت کلی شهر", 22)
 	owner._show_welcome_mission_hint()
+	_add_city_overview_panel(owner, s)
+	_add_active_construction_panel(owner)
 	var weekly_city_event = game.get_weekly_city_event()
 	owner._add_label("🌟 رویداد این هفته: %s" % str(weekly_city_event.get("title","")),17)
 	owner._add_label("%s | اثر: %s" % [str(weekly_city_event.get("description","")),str(weekly_city_event.get("effect",""))],14)
@@ -105,3 +107,131 @@ static func build(owner, s):
 	var brand_handle = owner._add_label("zekamediafa", 13)
 	brand_handle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	brand_handle.add_theme_color_override("font_color", Color("#94a3b8"))
+
+static func _add_city_overview_panel(owner, city_state):
+	var panel = PanelContainer.new()
+	panel.name = "HomeOverviewPanel"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color("#172b40")
+	style.border_color = Color("#3b607d")
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(14)
+	style.content_margin_left = 10
+	style.content_margin_right = 10
+	style.content_margin_top = 10
+	style.content_margin_bottom = 10
+	panel.add_theme_stylebox_override("panel", style)
+	owner.content.add_child(panel)
+
+	var body = VBoxContainer.new()
+	body.add_theme_constant_override("separation", 8)
+	panel.add_child(body)
+	var heading = Label.new()
+	heading.text = owner.PersianText.reshaper("نمای کلی شهر")
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	owner._apply_font(heading, 18)
+	heading.add_theme_color_override("font_color", Color("#f8fafc"))
+	body.add_child(heading)
+
+	var grid = GridContainer.new()
+	grid.name = "CityOverviewGrid"
+	grid.columns = 2
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	body.add_child(grid)
+	var employed = owner.game.get_employed_count()
+	var unemployed = owner.game.get_unemployed_count()
+	var satisfaction = int(city_state.get("satisfaction", 50))
+	_add_overview_metric(owner, grid, "👥 جمعیت", "%d نفر" % int(city_state.get("population", 0)), Color("#bfdbfe"))
+	_add_overview_metric(owner, grid, "🧑‍🏭 نیروی کار", "%d شاغل  •  %d بیکار" % [employed, unemployed], Color("#a7f3d0"))
+	_add_overview_metric(owner, grid, "🏅 سطح و اعتبار", "سطح %d  •  اعتبار %d" % [int(city_state.get("level", 1)), int(city_state.get("reputation", 0))], Color("#fde68a"))
+	_add_overview_metric(owner, grid, "😊 رضایت شهروندان", "%d از ۱۰۰" % satisfaction, Color("#c4b5fd"))
+	var treasury = Label.new()
+	treasury.text = owner.PersianText.reshaper("💰 خزانه آزاد: %s سکه  |  🔒 قفل‌شده: %s سکه" % [str(owner.game.get_available_money()), str(owner.game.get_locked_money())])
+	treasury.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	treasury.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	owner._apply_font(treasury, 14)
+	treasury.add_theme_color_override("font_color", Color("#e2e8f0"))
+	body.add_child(treasury)
+	var coin_balance = Label.new()
+	coin_balance.text = owner.PersianText.reshaper("🪙 موجودی Zeka Coin: %s ZC" % str(owner.game.get_zeka_coins()))
+	coin_balance.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	owner._apply_font(coin_balance, 14)
+	coin_balance.add_theme_color_override("font_color", Color("#fcd34d"))
+	body.add_child(coin_balance)
+
+static func _add_overview_metric(owner, parent, caption, value, value_color):
+	var card = PanelContainer.new()
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color("#223b53")
+	style.border_color = Color("#3b526a")
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(10)
+	style.content_margin_left = 7
+	style.content_margin_right = 7
+	style.content_margin_top = 7
+	style.content_margin_bottom = 7
+	card.add_theme_stylebox_override("panel", style)
+	parent.add_child(card)
+	var stack = VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 3)
+	card.add_child(stack)
+	var title = Label.new()
+	title.text = owner.PersianText.reshaper(caption)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	owner._apply_font(title, 13)
+	title.add_theme_color_override("font_color", Color("#cbd5e1"))
+	stack.add_child(title)
+	var amount = Label.new()
+	amount.text = owner.PersianText.reshaper(value)
+	amount.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	amount.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	owner._apply_font(amount, 15)
+	amount.add_theme_color_override("font_color", value_color)
+	stack.add_child(amount)
+
+static func _add_active_construction_panel(owner):
+	var projects = owner.game.get_construction_status()
+	if projects.is_empty():
+		return
+	var panel = PanelContainer.new()
+	panel.name = "HomeConstructionPanel"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color("#302b20")
+	style.border_color = Color("#a16207")
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(12)
+	style.content_margin_left = 10
+	style.content_margin_right = 10
+	style.content_margin_top = 9
+	style.content_margin_bottom = 9
+	panel.add_theme_stylebox_override("panel", style)
+	owner.content.add_child(panel)
+	var body = VBoxContainer.new()
+	body.add_theme_constant_override("separation", 7)
+	panel.add_child(body)
+	var heading = Label.new()
+	heading.text = owner.PersianText.reshaper("🏗️ پروژه‌های در حال ساخت  •  %d از ۲" % projects.size())
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	owner._apply_font(heading, 18)
+	heading.add_theme_color_override("font_color", Color("#fde68a"))
+	body.add_child(heading)
+	for project in projects:
+		var remaining = max(0, int(project.get("remaining", 0)))
+		var time_text = "%02d:%02d" % [int(remaining / 60), remaining % 60]
+		var detail = Label.new()
+		detail.text = owner.PersianText.reshaper("🔨 %s\n📍 %s  •  زمان باقی‌مانده: %s" % [str(project.get("name", "ساختمان")), str(project.get("district_name", "منطقه شهر")), time_text])
+		detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		owner._apply_font(detail, 15)
+		detail.add_theme_color_override("font_color", Color("#f8fafc"))
+		body.add_child(detail)
+	var manage = owner._add_button("مدیریت پروژه‌های ساخت‌وساز", owner, "show_page", ["buildings"])
+	owner._style_button(manage, false)
+	body.add_child(manage)
+
