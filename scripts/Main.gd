@@ -1153,7 +1153,7 @@ func _create_bottom_navigation(parent: VBoxContainer, compact_layout: bool):
 		{"id":"development","icon":"🏗️","label":"توسعه","page":"development"},
 		{"id":"missions","icon":"🏆","label":"دستاوردها","page":"missions"},
 		{"id":"home","icon":"🏠","label":"شهر من","page":"home"},
-		{"id":"commerce","icon":"🛒","label":"بازار","page":"commerce"},
+		{"id":"commerce","icon":"🛒","label":"بازار و انبار","page":"commerce"},
 		{"id":"bank","icon":"👛","label":"کیف پول","page":"bank"}
 	]
 	for entry in entries:
@@ -1185,7 +1185,8 @@ func _update_bottom_navigation():
 	var active_id = ""
 	match current_page:
 		"home": active_id = "home"
-		"development", "buildings", "transport", "storage": active_id = "development"
+		"development", "buildings", "transport": active_id = "development"
+		"storage", "commerce", "imports": active_id = "commerce"
 		"missions", "progress": active_id = "missions"
 		"commerce": active_id = "commerce"
 		"bank": active_id = "bank"
@@ -1448,9 +1449,9 @@ func _build_ui():
 	menu_panel.add_child(navigation_heading)
 	var menu_groups = [
 		{"title":"🏙️ شهر من","items":[{"t":"🏠 نمای کلی شهر و شهروندان","p":"home"},{"t":"🏛 شهرداری و خدمات شهری","p":"municipality"},{"t":"🏢 اقتصاد خصوصی و کسب‌وکارها","p":"private_economy"},{"t":"📋 گزارش‌ها و مشکلات شهر","p":"report"}]},
-		{"title":"🏗️ توسعه","items":[{"t":"🏗 ساختمان‌ها و ساخت‌وساز","p":"buildings"},{"t":"📦 انبار و مدیریت منابع","p":"storage"},{"t":"📈 توسعه شهر و حمل‌ونقل","p":"transport"}]},
+		{"title":"🏗️ توسعه","items":[{"t":"🏗 ساختمان‌ها و ساخت‌وساز","p":"buildings"},{"t":"📈 توسعه شهر و حمل‌ونقل","p":"transport"}]},
 		{"title":"🏆 دستاوردها","items":[{"t":"🎯 مأموریت‌ها و اهداف روزانه","p":"missions"},{"t":"🏅 پیشرفت و دستاوردها","p":"progress"},{"t":"🥇 رتبه‌بندی شهرها","p":"ranking"}]},
-		{"title":"🛒 بازار","items":[{"t":"🛍 خرید و فروش منابع","p":"commerce"},{"t":"🚚 واردات و صادرات","p":"commerce"}]},
+		{"title":"🛒 بازار و انبار","items":[{"t":"🛍 خرید و فروش منابع","p":"commerce"},{"t":"📦 مدیریت انبار و تولید","p":"storage"},{"t":"🚚 واردات و صادرات","p":"imports"}]},
 		{"title":"👛 کیف پول","items":[{"t":"🏦 بانک و امور مالی","p":"bank"}]},
 		{"title":"⚙️ تنظیمات","items":[{"t":"🔊 صدا و موسیقی","action":"open_audio_settings"},{"t":"🎮 تنظیمات بازی","action":"open_game_settings"},{"t":"💾 ذخیره بازی","action":"save_from_menu"},{"t":"🔄 شروع دوباره شهر","action":"confirm_restart_from_menu"},{"t":"❔ راهنمای بازی","action":"open_help"}]}
 	]
@@ -2752,7 +2753,6 @@ func show_page(page):
 			_add_label("🏗️ توسعه شهر", 25)
 			_add_label("تمام ابزارهای ساخت، گسترش و مدیریت زیرساخت‌های شهر در این بخش قرار دارند.", 16)
 			_add_button("🏗️ ساختمان‌ها و ساخت‌وساز", self, "show_page", ["buildings"])
-			_add_button("📦 انبار و مدیریت منابع", self, "show_page", ["storage"])
 			_add_button("🛣️ توسعه شهر و حمل‌ونقل", self, "show_page", ["transport"])
 		"home":
 			HomePage.build(self, s)
@@ -2769,6 +2769,7 @@ func show_page(page):
 		"private_economy":
 			PrivateEconomyPage.build(self, s)
 		"commerce":
+			_add_button("📦 مدیریت انبار و تولید", self, "show_page", ["storage"])
 			CommercePage.build(self, s)
 		"transport":
 			TransportPage.build(self, s)
