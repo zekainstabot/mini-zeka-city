@@ -1165,7 +1165,7 @@ func _create_bottom_navigation(parent: VBoxContainer, compact_layout: bool):
 		{"id":"missions","icon":"🏆","label":"دستاوردها","page":"missions"},
 		{"id":"home","icon":"🏠","label":"شهر من","page":"home"},
 		{"id":"commerce","icon":"🛒","label":"بازار و انبار","page":"commerce"},
-		{"id":"bank","icon":"👛","label":"کیف پول","page":"bank"}
+		{"id":"bank","icon":"🏦","label":"بانک","page":"bank"}
 	]
 	for entry in entries:
 		var button = Button.new()
@@ -1463,7 +1463,7 @@ func _build_ui():
 		{"title":"🏗️ توسعه","items":[{"t":"🏗 ساختمان‌ها و ساخت‌وساز","p":"buildings"},{"t":"📈 توسعه شهر و حمل‌ونقل","p":"transport"}]},
 		{"title":"🏆 دستاوردها","items":[{"t":"🎯 مأموریت‌ها و اهداف روزانه","p":"missions"},{"t":"🏅 پیشرفت و دستاوردها","p":"progress"}]},
 		{"title":"🛒 بازار و انبار","items":[{"t":"🛍 خرید و فروش منابع","p":"commerce"},{"t":"📦 مدیریت انبار و تولید","p":"storage"},{"t":"🚚 واردات و صادرات","p":"imports"}]},
-		{"title":"👛 کیف پول","items":[{"t":"🏦 بانک و امور مالی","p":"bank"}]},
+		{"title":"🏦 امور اقتصادی","items":[{"t":"🏦 بانک","p":"bank"}]},
 		{"title":"⚙️ تنظیمات","items":[{"t":"🔊 صدا و موسیقی","action":"open_audio_settings"},{"t":"🎮 تنظیمات بازی","action":"open_game_settings"},{"t":"💾 ذخیره بازی","action":"save_from_menu"},{"t":"🔄 شروع دوباره شهر","action":"confirm_restart_from_menu"},{"t":"❔ راهنمای بازی","action":"open_help"}]}
 	]
 	for group in menu_groups:
