@@ -105,6 +105,7 @@ var daily_reward_layer = null
 var daily_reward_button = null
 var menu_button = null
 var help_button = null
+var ranking_button: Button = null
 var help_previous_page = "home"
 var help_scroll_original_index = 5
 var startup_loading_layer = null
@@ -886,6 +887,11 @@ func _apply_safe_area_to_floating_controls():
 			help_button.size = icon_size
 			help_button.position = Vector2(inset.x + (116.0 if usable_width >= 310.0 else 12.0), inset.y + (16.0 if usable_width >= 310.0 else 68.0))
 			_apply_font(help_button, 20)
+		if ranking_button != null and is_instance_valid(ranking_button):
+			ranking_button.custom_minimum_size = icon_size
+			ranking_button.size = icon_size
+			ranking_button.position = Vector2(inset.x + (168.0 if usable_width >= 310.0 else 64.0), inset.y + (16.0 if usable_width >= 310.0 else 68.0))
+			_apply_font(ranking_button, 19)
 		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
 			construction_capacity_button.custom_minimum_size = Vector2(144, 68)
 			construction_capacity_button.size = Vector2(144, 68)
@@ -907,6 +913,11 @@ func _apply_safe_area_to_floating_controls():
 			help_button.size = Vector2(50, 50)
 			help_button.position = Vector2(inset.x + 148.0, inset.y + 20.0)
 			_apply_font(help_button, 22)
+		if ranking_button != null and is_instance_valid(ranking_button):
+			ranking_button.custom_minimum_size = Vector2(50, 50)
+			ranking_button.size = Vector2(50, 50)
+			ranking_button.position = Vector2(inset.x + 206.0, inset.y + 20.0)
+			_apply_font(ranking_button, 21)
 		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
 			construction_capacity_button.custom_minimum_size = Vector2(158, 70)
 			construction_capacity_button.size = Vector2(158, 70)
@@ -1450,7 +1461,7 @@ func _build_ui():
 	var menu_groups = [
 		{"title":"🏙️ شهر من","items":[{"t":"🏠 نمای کلی شهر و شهروندان","p":"home"},{"t":"🏛 شهرداری و خدمات شهری","p":"municipality"},{"t":"🏢 اقتصاد خصوصی و کسب‌وکارها","p":"private_economy"},{"t":"📋 گزارش‌ها و مشکلات شهر","p":"report"}]},
 		{"title":"🏗️ توسعه","items":[{"t":"🏗 ساختمان‌ها و ساخت‌وساز","p":"buildings"},{"t":"📈 توسعه شهر و حمل‌ونقل","p":"transport"}]},
-		{"title":"🏆 دستاوردها","items":[{"t":"🎯 مأموریت‌ها و اهداف روزانه","p":"missions"},{"t":"🏅 پیشرفت و دستاوردها","p":"progress"},{"t":"🥇 رتبه‌بندی شهرها","p":"ranking"}]},
+		{"title":"🏆 دستاوردها","items":[{"t":"🎯 مأموریت‌ها و اهداف روزانه","p":"missions"},{"t":"🏅 پیشرفت و دستاوردها","p":"progress"}]},
 		{"title":"🛒 بازار و انبار","items":[{"t":"🛍 خرید و فروش منابع","p":"commerce"},{"t":"📦 مدیریت انبار و تولید","p":"storage"},{"t":"🚚 واردات و صادرات","p":"imports"}]},
 		{"title":"👛 کیف پول","items":[{"t":"🏦 بانک و امور مالی","p":"bank"}]},
 		{"title":"⚙️ تنظیمات","items":[{"t":"🔊 صدا و موسیقی","action":"open_audio_settings"},{"t":"🎮 تنظیمات بازی","action":"open_game_settings"},{"t":"💾 ذخیره بازی","action":"save_from_menu"},{"t":"🔄 شروع دوباره شهر","action":"confirm_restart_from_menu"},{"t":"❔ راهنمای بازی","action":"open_help"}]}
@@ -1574,7 +1585,7 @@ func _build_ui():
 	nav.add_theme_constant_override("v_separation", 8)
 	root.add_child(nav)
 	navigation_buttons.clear()
-	for item in [{"t":"شهر من و شهروندان","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"بانک و امور مالی","p":"bank"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار و تجارت","p":"commerce"},{"t":"توسعه شهر","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش","p":"report"},{"t":"پیشرفت و مأموریت‌ها","p":"missions"},{"t":"🏆 رتبه‌بندی","p":"ranking"}]:
+	for item in [{"t":"شهر من و شهروندان","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"بانک و امور مالی","p":"bank"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار و تجارت","p":"commerce"},{"t":"توسعه شهر","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش","p":"report"},{"t":"پیشرفت و مأموریت‌ها","p":"missions"}]:
 		var nav_item = VBoxContainer.new()
 		nav_item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		nav_item.add_theme_constant_override("separation", 2)
@@ -1653,8 +1664,26 @@ func _build_ui():
 	message_label.modulate = Color("#ffffff")
 	root.add_child(message_label)
 	_build_daily_reward_calendar_button()
+	_build_ranking_button()
 	_build_day_night_hud()
 	_build_construction_capacity_button()
+
+func _build_ranking_button():
+	ranking_button = Button.new()
+	ranking_button.name = "TopRankingButton"
+	ranking_button.text = "🏆"
+	ranking_button.tooltip_text = "رتبه‌بندی شهرها"
+	ranking_button.custom_minimum_size = Vector2(50, 50)
+	ranking_button.anchor_left = 0.0
+	ranking_button.anchor_top = 0.0
+	ranking_button.anchor_right = 0.0
+	ranking_button.anchor_bottom = 0.0
+	ranking_button.position = Vector2(206, 20)
+	ranking_button.z_index = 15
+	_apply_font(ranking_button, 21)
+	_style_button(ranking_button, true)
+	ranking_button.pressed.connect(func(): show_page("ranking"))
+	add_child(ranking_button)
 
 func _build_daily_reward_calendar_button():
 	daily_reward_button = Button.new()
