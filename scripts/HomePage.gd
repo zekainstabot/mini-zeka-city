@@ -7,6 +7,8 @@ static func build(owner, s):
 	owner._show_welcome_mission_hint()
 	_add_city_overview_panel(owner, s)
 	_add_active_construction_panel(owner)
+	var map_button = owner._add_button("🗺️ مشاهده نقشه محله‌ها", owner, "show_page", ["map"])
+	owner._style_button(map_button, false)
 	var weekly_city_event = game.get_weekly_city_event()
 	owner._add_label("🌟 رویداد این هفته: %s" % str(weekly_city_event.get("title","")),17)
 	owner._add_label("%s | اثر: %s" % [str(weekly_city_event.get("description","")),str(weekly_city_event.get("effect",""))],14)
