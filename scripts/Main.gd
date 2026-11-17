@@ -116,6 +116,10 @@ var startup_tip_label = null
 var startup_tip_timer = null
 var startup_tip_index = -1
 var startup_progress_tween: Tween = null
+var currency_hud = null
+var money_balance_label = null
+var zeka_coin_balance_label = null
+var currency_refresh_accumulator = 0.0
 
 func _on_ui_node_added(node):
 	# Enforce consistent, readable text layout for every dynamically-created button.
@@ -194,6 +198,11 @@ func _process(delta):
 		horizontal_scroll_velocity = lerp(horizontal_scroll_velocity, 0.0, min(1.0, delta * 7.5))
 	else:
 		horizontal_scroll_velocity = 0.0
+	if game != null:
+		currency_refresh_accumulator += delta
+		if currency_refresh_accumulator >= 0.5:
+			currency_refresh_accumulator = 0.0
+			_refresh_currency_hud()
 	if game == null or game_paused:
 		return
 	if last_activity_ticks > 0 and Time.get_ticks_msec() - last_activity_ticks <= 90000:
@@ -1027,6 +1036,90 @@ func _update_ambient_background(delta, immediate=false):
 		ambient_background_color = ambient_background_color.lerp(target, clamp(float(delta) * 0.045, 0.0, 1.0))
 	ambient_background.color = ambient_background_color
 
+
+func _create_currency_hud(parent: VBoxContainer, compact_layout: bool):
+	currency_hud = HBoxContainer.new()
+	currency_hud.name = "CurrencyHud"
+	currency_hud.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	currency_hud.add_theme_constant_override("separation", 10 if compact_layout else 14)
+	parent.add_child(currency_hud)
+
+	var money_card = _create_currency_card("💰", "پول شهر", compact_layout)
+	money_balance_label = money_card.get_node("Content/Details/Amount")
+	currency_hud.add_child(money_card)
+
+	var coin_card = _create_currency_card("🪙", "Zeka Coin", compact_layout)
+	zeka_coin_balance_label = coin_card.get_node("Content/Details/Amount")
+	currency_hud.add_child(coin_card)
+	_refresh_currency_hud()
+
+
+func _create_currency_card(icon_text: String, title_text: String, compact_layout: bool) -> PanelContainer:
+	var card = PanelContainer.new()
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.custom_minimum_size = Vector2(0, 66 if compact_layout else 72)
+	var panel_style = StyleBoxFlat.new()
+	panel_style.bg_color = Color("#526f89")
+	panel_style.border_color = Color("#d8e8f2")
+	panel_style.set_border_width_all(2)
+	panel_style.set_corner_radius_all(30)
+	panel_style.content_margin_left = 9
+	panel_style.content_margin_right = 10
+	panel_style.content_margin_top = 5
+	panel_style.content_margin_bottom = 5
+	card.add_theme_stylebox_override("panel", panel_style)
+
+	var content_row = HBoxContainer.new()
+	content_row.name = "Content"
+	content_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	content_row.add_theme_constant_override("separation", 7)
+	card.add_child(content_row)
+
+	var icon = Label.new()
+	icon.text = icon_text
+	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	icon.custom_minimum_size = Vector2(38 if compact_layout else 44, 42)
+	_apply_font(icon, 29 if compact_layout else 33)
+	content_row.add_child(icon)
+
+	var details = VBoxContainer.new()
+	details.name = "Details"
+	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	details.alignment = BoxContainer.ALIGNMENT_CENTER
+	details.add_theme_constant_override("separation", 0)
+	content_row.add_child(details)
+
+	var title = Label.new()
+	title.text = title_text
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_color_override("font_color", Color("#e3edf5"))
+	_apply_font(title, 11 if compact_layout else 12)
+	details.add_child(title)
+
+	var amount = Label.new()
+	amount.name = "Amount"
+	amount.text = "0"
+	amount.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	amount.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	amount.add_theme_color_override("font_color", Color("#ffffff"))
+	amount.add_theme_color_override("font_shadow_color", Color("#20394f"))
+	amount.add_theme_constant_override("shadow_offset_y", 1)
+	amount.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	amount.clip_text = true
+	_apply_font(amount, 21 if compact_layout else 24)
+	details.add_child(amount)
+	return card
+
+
+func _refresh_currency_hud():
+	if game == null:
+		return
+	if money_balance_label != null and is_instance_valid(money_balance_label):
+		money_balance_label.text = PersianText.reshaper(str(int(game.state.get("money", 0))))
+	if zeka_coin_balance_label != null and is_instance_valid(zeka_coin_balance_label):
+		zeka_coin_balance_label.text = PersianText.reshaper(str(game.get_zeka_coins()))
+
 func _build_ui():
 	ambient_background = ColorRect.new()
 	ambient_background.name = "SoftDayNightBackground"
@@ -1073,6 +1166,7 @@ func _build_ui():
 	brand_label.add_theme_constant_override("shadow_offset_y", 1)
 	_apply_font(brand_label, 12 if compact_layout else 14)
 	root.add_child(brand_label)
+	_create_currency_hud(root, compact_layout)
 	var menu_row = HBoxContainer.new()
 	menu_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	root.add_child(menu_row)
@@ -2514,6 +2608,7 @@ func show_page(page):
 	var s = game.state
 	_update_progress_hud()
 	_update_mission_reward_badge()
+	_refresh_currency_hud()
 	match page:
 		"home":
 			HomePage.build(self, s)
