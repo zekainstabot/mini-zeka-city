@@ -120,6 +120,8 @@ var currency_hud = null
 var money_balance_label = null
 var zeka_coin_balance_label = null
 var currency_refresh_accumulator = 0.0
+var bottom_navigation_bar = null
+var bottom_navigation_buttons = {}
 
 func _on_ui_node_added(node):
 	# Enforce consistent, readable text layout for every dynamically-created button.
@@ -966,6 +968,11 @@ func _apply_responsive_layout():
 	_apply_safe_area_to_floating_controls()
 	main_layout.add_theme_constant_override("separation", 8 if viewport_size.y < 500.0 else (12 if compact else 12))
 	if main_navigation_grid != null and is_instance_valid(main_navigation_grid):
+		main_navigation_grid.visible = false
+	# The five-item dock is the primary navigation on every screen size.
+	if bottom_navigation_bar != null and is_instance_valid(bottom_navigation_bar):
+		bottom_navigation_bar.custom_minimum_size.y = 82 if compact else 88
+	if main_navigation_grid != null and is_instance_valid(main_navigation_grid):
 		# Keep three columns on wider landscape phones so navigation does not
 		# consume most of the short screen; use two on portrait phones.
 		main_navigation_grid.columns = 3 if viewport_size.x >= 650.0 and viewport_size.x > viewport_size.y else 2
@@ -1119,6 +1126,93 @@ func _refresh_currency_hud():
 		money_balance_label.text = PersianText.reshaper(str(int(game.state.get("money", 0))))
 	if zeka_coin_balance_label != null and is_instance_valid(zeka_coin_balance_label):
 		zeka_coin_balance_label.text = PersianText.reshaper(str(game.get_zeka_coins()))
+
+
+func _create_bottom_navigation(parent: VBoxContainer, compact_layout: bool):
+	bottom_navigation_bar = PanelContainer.new()
+	bottom_navigation_bar.name = "BottomNavigationBar"
+	bottom_navigation_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bottom_navigation_bar.custom_minimum_size = Vector2(0, 82 if compact_layout else 88)
+	var dock_style = StyleBoxFlat.new()
+	dock_style.bg_color = Color("#34485b")
+	dock_style.border_color = Color("#8297a8")
+	dock_style.border_width_top = 1
+	dock_style.content_margin_left = 4
+	dock_style.content_margin_right = 4
+	dock_style.content_margin_top = 5
+	dock_style.content_margin_bottom = 3
+	bottom_navigation_bar.add_theme_stylebox_override("panel", dock_style)
+	parent.add_child(bottom_navigation_bar)
+
+	var dock_row = HBoxContainer.new()
+	dock_row.add_theme_constant_override("separation", 3)
+	dock_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	bottom_navigation_bar.add_child(dock_row)
+	bottom_navigation_buttons.clear()
+	var entries = [
+		{"id":"settings","icon":"⚙️","label":"تنظیمات","page":""},
+		{"id":"missions","icon":"🏆","label":"دستاوردها","page":"missions"},
+		{"id":"home","icon":"🏠","label":"خانه","page":"home"},
+		{"id":"commerce","icon":"🛒","label":"بازار","page":"commerce"},
+		{"id":"bank","icon":"👛","label":"کیف پول","page":"bank"}
+	]
+	for entry in entries:
+		var button = Button.new()
+		button.name = "BottomNav_" + str(entry.id)
+		button.text = str(entry.icon) + "\n" + str(entry.label)
+		button.custom_minimum_size = Vector2(0, 70 if compact_layout else 76)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.size_flags_stretch_ratio = 1.0
+		button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		button.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+		button.autowrap_mode = TextServer.AUTOWRAP_OFF
+		button.add_theme_color_override("font_color", Color("#e5edf5"))
+		button.add_theme_color_override("font_hover_color", Color("#ffffff"))
+		_apply_font(button, 15 if compact_layout else 16)
+		button.flat = true
+		button.pressed.connect(func():
+			if str(entry.id) == "settings":
+				_toggle_game_menu()
+			else:
+				show_page(str(entry.page))
+		)
+		dock_row.add_child(button)
+		bottom_navigation_buttons[str(entry.id)] = button
+	_update_bottom_navigation()
+
+
+func _update_bottom_navigation():
+	if bottom_navigation_buttons.is_empty():
+		return
+	var active_id = ""
+	match current_page:
+		"home": active_id = "home"
+		"missions", "progress": active_id = "missions"
+		"commerce": active_id = "commerce"
+		"bank": active_id = "bank"
+	for id in bottom_navigation_buttons.keys():
+		var button = bottom_navigation_buttons[id]
+		if button == null or not is_instance_valid(button):
+			continue
+		var selected = str(id) == active_id
+		var style = StyleBoxFlat.new()
+		style.bg_color = Color("#17159a") if selected else Color(0, 0, 0, 0)
+		style.set_corner_radius_all(20 if selected else 8)
+		style.content_margin_top = 8 if selected else 4
+		style.content_margin_bottom = 4
+		style.content_margin_left = 2
+		style.content_margin_right = 2
+		button.add_theme_stylebox_override("normal", style)
+		var hover = style.duplicate()
+		if not selected:
+			hover.bg_color = Color("#405a70")
+		button.add_theme_stylebox_override("hover", hover)
+		button.add_theme_stylebox_override("pressed", hover)
+		button.add_theme_color_override("font_color", Color("#ffffff") if selected else Color("#e5edf5"))
+		button.scale = Vector2(1.0, 1.0)
+		if selected:
+			button.custom_minimum_size.y = 78 if bottom_navigation_bar != null and get_viewport_rect().size.x < 900.0 else 84
+
 
 func _build_ui():
 	ambient_background = ColorRect.new()
@@ -1347,6 +1441,26 @@ func _build_ui():
 	menu_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	menu_panel.add_theme_constant_override("separation", 12)
 	menu_scroll.add_child(menu_panel)
+	var navigation_heading = Label.new()
+	navigation_heading.text = PersianText.reshaper("بخش‌های شهر")
+	navigation_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_font(navigation_heading, 17 if compact_layout else 16)
+	navigation_heading.add_theme_color_override("font_color", Color("#7dd3fc"))
+	menu_panel.add_child(navigation_heading)
+	for menu_item in [{"t":"🏠 شهر من و شهروندان","p":"home"},{"t":"🏗 ساختمان‌ها","p":"buildings"},{"t":"🏛 شهرداری","p":"municipality"},{"t":"🏢 اقتصاد خصوصی","p":"private_economy"},{"t":"📦 انبار","p":"storage"},{"t":"📈 توسعه شهر","p":"transport"},{"t":"🏆 پیشرفت و مأموریت‌ها","p":"missions"},{"t":"🥇 رتبه‌بندی شهرها","p":"ranking"},{"t":"📋 گزارش شهر","p":"report"}]:
+		var section_button = Button.new()
+		section_button.text = PersianText.reshaper(str(menu_item.t))
+		section_button.custom_minimum_size = Vector2(0, 48 if compact_layout else 44)
+		section_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_apply_font(section_button, 16 if compact_layout else 15)
+		_style_button(section_button, true)
+		section_button.pressed.connect(func():
+			_close_game_menu()
+			show_page(str(menu_item.p))
+		)
+		menu_panel.add_child(section_button)
+	var menu_divider = HSeparator.new()
+	menu_panel.add_child(menu_divider)
 	menu_pause_button = _create_menu_action("⏸ توقف بازی", "toggle_pause")
 	_create_menu_action("🔊 صدا و موسیقی", "open_audio_settings")
 	_create_menu_action("⚙️ تنظیمات بازی", "open_game_settings")
@@ -1494,6 +1608,7 @@ func _build_ui():
 	vertical_bar.visible = false
 	horizontal_bar.modulate = Color(1, 1, 1, 0)
 	vertical_bar.modulate = Color(1, 1, 1, 0)
+	_create_bottom_navigation(root, compact_layout)
 	horizontal_bar.custom_minimum_size = Vector2(0, 0)
 	vertical_bar.custom_minimum_size = Vector2(0, 0)
 	content = VBoxContainer.new()
@@ -2609,6 +2724,7 @@ func show_page(page):
 	_update_progress_hud()
 	_update_mission_reward_badge()
 	_refresh_currency_hud()
+	_update_bottom_navigation()
 	match page:
 		"home":
 			HomePage.build(self, s)
