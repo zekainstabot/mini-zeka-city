@@ -1442,23 +1442,38 @@ func _build_ui():
 	menu_panel.add_theme_constant_override("separation", 12)
 	menu_scroll.add_child(menu_panel)
 	var navigation_heading = Label.new()
-	navigation_heading.text = PersianText.reshaper("بخش‌های شهر")
+	navigation_heading.text = PersianText.reshaper("همه بخش‌های بازی")
 	navigation_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_apply_font(navigation_heading, 17 if compact_layout else 16)
 	navigation_heading.add_theme_color_override("font_color", Color("#7dd3fc"))
 	menu_panel.add_child(navigation_heading)
-	for menu_item in [{"t":"🏠 شهر من و شهروندان","p":"home"},{"t":"🏗 ساختمان‌ها","p":"buildings"},{"t":"🏛 شهرداری","p":"municipality"},{"t":"🏢 اقتصاد خصوصی","p":"private_economy"},{"t":"📦 انبار","p":"storage"},{"t":"📈 توسعه شهر","p":"transport"},{"t":"🏆 پیشرفت و مأموریت‌ها","p":"missions"},{"t":"🥇 رتبه‌بندی شهرها","p":"ranking"},{"t":"📋 گزارش شهر","p":"report"}]:
-		var section_button = Button.new()
-		section_button.text = PersianText.reshaper(str(menu_item.t))
-		section_button.custom_minimum_size = Vector2(0, 48 if compact_layout else 44)
-		section_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_apply_font(section_button, 16 if compact_layout else 15)
-		_style_button(section_button, true)
-		section_button.pressed.connect(func():
-			_close_game_menu()
-			show_page(str(menu_item.p))
-		)
-		menu_panel.add_child(section_button)
+	var menu_groups = [
+		{"title":"🏙 مدیریت شهر","items":[{"t":"🏠 شهر من و شهروندان","p":"home"},{"t":"🏛 شهرداری","p":"municipality"},{"t":"🏢 اقتصاد خصوصی","p":"private_economy"}]},
+		{"title":"🏗 ساخت‌وساز و توسعه","items":[{"t":"🏗 ساختمان‌ها","p":"buildings"},{"t":"📈 توسعه شهر و حمل‌ونقل","p":"transport"},{"t":"📦 انبار و ذخیره‌سازی","p":"storage"}]},
+		{"title":"💰 بازار و امور مالی","items":[{"t":"🛒 بازار و تجارت","p":"commerce"},{"t":"🏦 بانک و امور مالی","p":"bank"}]},
+		{"title":"🏆 پیشرفت و رقابت","items":[{"t":"🎯 مأموریت‌ها و دستاوردها","p":"missions"},{"t":"🥇 رتبه‌بندی شهرها","p":"ranking"}]},
+		{"title":"📊 اطلاعات شهر","items":[{"t":"📋 گزارش شهر","p":"report"}]}
+	]
+	for group in menu_groups:
+		var group_heading = Label.new()
+		group_heading.text = PersianText.reshaper(str(group.title))
+		group_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		group_heading.custom_minimum_size = Vector2(0, 32)
+		_apply_font(group_heading, 16 if compact_layout else 15)
+		group_heading.add_theme_color_override("font_color", Color("#7dd3fc"))
+		menu_panel.add_child(group_heading)
+		for menu_item in group.items:
+			var section_button = Button.new()
+			section_button.text = PersianText.reshaper(str(menu_item.t))
+			section_button.custom_minimum_size = Vector2(0, 48 if compact_layout else 44)
+			section_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			_apply_font(section_button, 16 if compact_layout else 15)
+			_style_button(section_button, true)
+			section_button.pressed.connect(func():
+				_close_game_menu()
+				show_page(str(menu_item.p))
+			)
+			menu_panel.add_child(section_button)
 	var menu_divider = HSeparator.new()
 	menu_panel.add_child(menu_divider)
 	menu_pause_button = _create_menu_action("⏸ توقف بازی", "toggle_pause")
