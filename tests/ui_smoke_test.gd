@@ -113,8 +113,9 @@ func _run_tests():
 			assert(main.content.get_child_count() > 30)
 		print("UI TEST: page %s ready (%d controls)" % [page, main.content.get_child_count()])
 	main.show_page("map")
-	var map_canvas = main.content.find_child("CityMapCanvas", true, false)
-	assert(map_canvas is PanelContainer, "City map canvas is missing")
+	# Search from the scene root so nested page layout wrappers are included.
+	var map_canvas = main.find_child("CityMapCanvas", true, false)
+	assert(map_canvas is PanelContainer, "City map canvas is missing from the active scene")
 	var map_overview = main.game.get_districts_overview()
 	var map_districts = map_overview.get("districts", [])
 	if not map_districts.is_empty():
