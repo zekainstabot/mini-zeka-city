@@ -168,6 +168,12 @@ func _input(event):
 			touch_scroll_axis = ""
 			touch_scroll_dragging = false
 		else:
+			if touch_scroll_active and touch_scroll_dragging and touch_scroll_axis == "horizontal":
+				var swipe_delta = event.position.x - touch_scroll_start.x
+				if swipe_delta < -90.0 and current_page != "map":
+					show_page("map")
+				elif swipe_delta > 90.0 and current_page == "map":
+					show_page("home")
 			touch_scroll_active = false
 			touch_scroll_dragging = false
 			touch_scroll_axis = ""
@@ -182,10 +188,8 @@ func _input(event):
 		if touch_scroll_dragging:
 			var delta_position = event.position - touch_scroll_last_position
 			if touch_scroll_axis == "horizontal":
-				var horizontal_bar = game_scroll_container.get_h_scroll_bar()
-				var max_horizontal = max(0.0, horizontal_bar.max_value - horizontal_bar.page)
-				game_scroll_container.scroll_horizontal = int(clamp(float(game_scroll_container.scroll_horizontal) - delta_position.x * 1.25, 0.0, max_horizontal))
-				horizontal_scroll_velocity = -delta_position.x * 13.0
+				# Horizontal swipes navigate to/from the city map; do not scroll the page sideways.
+				horizontal_scroll_velocity = 0.0
 			elif touch_scroll_axis == "vertical":
 				var delta_y = event.position.y - touch_scroll_last_y
 				var bar = game_scroll_container.get_v_scroll_bar()
@@ -2816,8 +2820,6 @@ func show_page(page):
 			HomePage.build(self, s)
 		"map":
 			MapPage.build(self, s)
-			_add_label("مدیریت شهروندان", 24)
-			CitizensPage.build(self, s)
 		"buildings":
 			BuildingsPage.build(self, s)
 		"citizens":
