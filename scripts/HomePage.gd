@@ -231,7 +231,14 @@ static func _add_active_construction_panel(owner):
 		owner._apply_font(detail, 15)
 		detail.add_theme_color_override("font_color", Color("#f8fafc"))
 		body.add_child(detail)
-	var manage = owner._add_button("مدیریت پروژه‌های ساخت‌وساز", owner, "show_page", ["buildings"])
+	var manage = Button.new()
+	manage.text = owner.PersianText.reshaper("مدیریت پروژه‌های ساخت‌وساز")
+	manage.custom_minimum_size = Vector2(0, 52)
+	manage.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	manage.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	manage.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	owner._apply_font(manage, 16)
 	owner._style_button(manage, false)
+	manage.pressed.connect(Callable(owner, "show_page").bind("buildings"))
 	body.add_child(manage)
 
