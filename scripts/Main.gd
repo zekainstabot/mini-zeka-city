@@ -883,25 +883,28 @@ func _apply_safe_area_to_floating_controls():
 			menu_button.size = icon_size
 			menu_button.position = Vector2(inset.x + 64.0, inset.y + 16.0)
 			_apply_font(menu_button, 20)
+		# On narrow phones, keep the clock on the upper-right and arrange
+		# shortcuts in two rows on the left. Five icons in one row collide
+		# with the clock on common 360px Android screens.
 		if help_button != null and is_instance_valid(help_button):
 			help_button.custom_minimum_size = icon_size
 			help_button.size = icon_size
-			help_button.position = Vector2(inset.x + (116.0 if usable_width >= 310.0 else 12.0), inset.y + (16.0 if usable_width >= 310.0 else 68.0))
+			help_button.position = Vector2(inset.x + 12.0, inset.y + 68.0)
 			_apply_font(help_button, 20)
 		if ranking_button != null and is_instance_valid(ranking_button):
 			ranking_button.custom_minimum_size = icon_size
 			ranking_button.size = icon_size
-			ranking_button.position = Vector2(inset.x + (168.0 if usable_width >= 310.0 else 64.0), inset.y + (16.0 if usable_width >= 310.0 else 68.0))
+			ranking_button.position = Vector2(inset.x + 64.0, inset.y + 68.0)
 			_apply_font(ranking_button, 19)
 		if report_button != null and is_instance_valid(report_button):
 			report_button.custom_minimum_size = icon_size
 			report_button.size = icon_size
-			report_button.position = Vector2(inset.x + (220.0 if usable_width >= 310.0 else 116.0), inset.y + (16.0 if usable_width >= 310.0 else 68.0))
+			report_button.position = Vector2(inset.x + 116.0, inset.y + 68.0)
 			_apply_font(report_button, 25)
 		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
 			construction_capacity_button.custom_minimum_size = Vector2(144, 68)
 			construction_capacity_button.size = Vector2(144, 68)
-			construction_capacity_button.position = Vector2(inset.x + 12.0, inset.y + (76.0 if usable_width >= 310.0 else 122.0))
+			construction_capacity_button.position = Vector2(inset.x + 12.0, inset.y + 122.0)
 			_apply_font(construction_capacity_button, 12)
 	else:
 		if daily_reward_button != null and is_instance_valid(daily_reward_button):
