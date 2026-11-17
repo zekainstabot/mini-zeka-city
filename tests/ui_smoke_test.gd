@@ -130,7 +130,7 @@ func _run_tests():
 	var overview_panel = main.content.find_child("HomeOverviewPanel", true, false)
 	assert(overview_panel is PanelContainer, "Home page city overview panel is missing")
 	var overview_grid = overview_panel.find_child("CityOverviewGrid", true, false)
-	assert(overview_grid is GridContainer and overview_grid.get_child_count() == 4, "Home overview metrics are incomplete")
+	assert(overview_grid is GridContainer and overview_grid.get_child_count() == 6, "Home overview must show all six city metrics")
 	main.game.state["constructions"] = [{"id":"small_house","finish_at":int(Time.get_unix_time_from_system()) + 125,"district_name":"محله آزمایشی"}]
 	main.show_page("home")
 	var construction_panel = main.content.find_child("HomeConstructionPanel", true, false)
