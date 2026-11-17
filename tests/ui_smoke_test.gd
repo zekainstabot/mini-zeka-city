@@ -56,6 +56,7 @@ func _run_tests():
 	assert(not main.daily_reward_button.get_global_rect().intersects(main.menu_button.get_global_rect()), "Calendar overlaps the menu shortcut")
 	assert(not main.menu_button.get_global_rect().intersects(main.help_button.get_global_rect()), "Menu overlaps the help shortcut")
 	var top_shortcuts = [main.daily_reward_button, main.menu_button, main.help_button, main.ranking_button, main.report_button]
+	print("UI TEST: narrow clock rect=", main.day_night_hud.get_global_rect(), " shortcuts=", top_shortcuts.map(func(button): return [button.name, button.get_global_rect()]))
 	for i in range(top_shortcuts.size()):
 		for j in range(i + 1, top_shortcuts.size()):
 			assert(not top_shortcuts[i].get_global_rect().intersects(top_shortcuts[j].get_global_rect()), "Top shortcuts overlap on a narrow phone")
