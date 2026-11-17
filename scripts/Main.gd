@@ -1452,7 +1452,7 @@ func _build_ui():
 		{"title":"🏆 دستاوردها","items":[{"t":"🎯 مأموریت‌ها و اهداف روزانه","p":"missions"},{"t":"🏅 پیشرفت و دستاوردها","p":"progress"},{"t":"🥇 رتبه‌بندی شهرها","p":"ranking"}]},
 		{"title":"🛒 بازار","items":[{"t":"🛍 خرید و فروش منابع","p":"commerce"},{"t":"🚚 واردات و صادرات","p":"commerce"}]},
 		{"title":"👛 کیف پول","items":[{"t":"🏦 بانک و امور مالی","p":"bank"}]},
-		{"title":"⚙️ تنظیمات","items":[{"t":"🔊 صدا و موسیقی","action":"open_audio_settings"},{"t":"🎮 تنظیمات بازی","action":"open_game_settings"},{"t":"⏸ توقف یا ادامه بازی","action":"toggle_pause"},{"t":"💾 ذخیره بازی","action":"save_from_menu"},{"t":"🔄 شروع دوباره شهر","action":"confirm_restart_from_menu"},{"t":"❔ راهنمای بازی","action":"open_help"}]}
+		{"title":"⚙️ تنظیمات","items":[{"t":"🔊 صدا و موسیقی","action":"open_audio_settings"},{"t":"🎮 تنظیمات بازی","action":"open_game_settings"},{"t":"💾 ذخیره بازی","action":"save_from_menu"},{"t":"🔄 شروع دوباره شهر","action":"confirm_restart_from_menu"},{"t":"❔ راهنمای بازی","action":"open_help"}]}
 	]
 	for group in menu_groups:
 		var group_heading = Label.new()
@@ -1488,10 +1488,6 @@ func _build_ui():
 	var menu_divider = HSeparator.new()
 	menu_panel.add_child(menu_divider)
 	menu_pause_button = _create_menu_action("⏸ توقف بازی", "toggle_pause")
-	_create_menu_action("🔊 صدا و موسیقی", "open_audio_settings")
-	_create_menu_action("⚙️ تنظیمات بازی", "open_game_settings")
-	_create_menu_action("💾 ذخیره بازی", "save_from_menu")
-	_create_menu_action("🔄 شروع دوباره شهر", "confirm_restart_from_menu")
 	_create_menu_action("✕ بستن منو", "_close_game_menu")
 	menu_button.connect("pressed", Callable(self, "_toggle_game_menu"))
 	restart_confirm_panel = VBoxContainer.new()
