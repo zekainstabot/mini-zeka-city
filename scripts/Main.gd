@@ -15,6 +15,7 @@ const CommercePage = preload("res://scripts/CommercePage.gd")
 const TransportPage = preload("res://scripts/TransportPage.gd")
 const ImportsPage = preload("res://scripts/ImportsPage.gd")
 const HomePage = preload("res://scripts/HomePage.gd")
+const MapPage = preload("res://scripts/MapPage.gd")
 const BuildingsPage = preload("res://scripts/BuildingsPage.gd")
 const StoragePage = preload("res://scripts/StoragePage.gd")
 const RankingPage = preload("res://scripts/RankingPage.gd")
@@ -27,6 +28,7 @@ var audio_manager = null
 var last_audio_night_mode = false
 var audio_warning_cooldown = 0.0
 var current_page = "home"
+var selected_map_district_id = ""
 var message_label = null
 var content = null
 var header_label = null
@@ -2812,6 +2814,8 @@ func show_page(page):
 			_add_button("🛣️ توسعه شهر و حمل‌ونقل", self, "show_page", ["transport"])
 		"home":
 			HomePage.build(self, s)
+		"map":
+			MapPage.build(self, s)
 			_add_label("مدیریت شهروندان", 24)
 			CitizensPage.build(self, s)
 		"buildings":
@@ -3611,3 +3615,7 @@ func speed_up_construction(construction_index):
 func save_now():
 	var ok = game.save_game()
 	_show_message("شهر ذخیره شد." if ok else "ذخیره‌سازی ناموفق بود.")
+
+func select_map_district(district_id):
+	selected_map_district_id = str(district_id)
+	show_page("map")
