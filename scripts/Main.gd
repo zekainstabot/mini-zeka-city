@@ -1448,11 +1448,11 @@ func _build_ui():
 	navigation_heading.add_theme_color_override("font_color", Color("#7dd3fc"))
 	menu_panel.add_child(navigation_heading)
 	var menu_groups = [
-		{"title":"🏙 مدیریت شهر","items":[{"t":"🏠 شهر من و شهروندان","p":"home"},{"t":"🏛 شهرداری","p":"municipality"},{"t":"🏢 اقتصاد خصوصی","p":"private_economy"}]},
-		{"title":"🏗 ساخت‌وساز و توسعه","items":[{"t":"🏗 ساختمان‌ها","p":"buildings"},{"t":"📈 توسعه شهر و حمل‌ونقل","p":"transport"},{"t":"📦 انبار و ذخیره‌سازی","p":"storage"}]},
-		{"title":"💰 بازار و امور مالی","items":[{"t":"🛒 بازار و تجارت","p":"commerce"},{"t":"🏦 بانک و امور مالی","p":"bank"}]},
-		{"title":"🏆 پیشرفت و رقابت","items":[{"t":"🎯 مأموریت‌ها و دستاوردها","p":"missions"},{"t":"🥇 رتبه‌بندی شهرها","p":"ranking"}]},
-		{"title":"📊 اطلاعات شهر","items":[{"t":"📋 گزارش شهر","p":"report"}]}
+		{"title":"🏙️ شهر من","items":[{"t":"🏠 نمای کلی شهر و شهروندان","p":"home"},{"t":"🏗 ساختمان‌ها و ساخت‌وساز","p":"buildings"},{"t":"🏛 شهرداری و خدمات شهری","p":"municipality"},{"t":"🏢 اقتصاد خصوصی و کسب‌وکارها","p":"private_economy"},{"t":"📦 انبار و مدیریت منابع","p":"storage"},{"t":"📈 توسعه شهر و حمل‌ونقل","p":"transport"},{"t":"📋 گزارش‌ها و مشکلات شهر","p":"report"}]},
+		{"title":"🏆 دستاوردها","items":[{"t":"🎯 مأموریت‌ها و اهداف روزانه","p":"missions"},{"t":"🏅 پیشرفت و دستاوردها","p":"progress"},{"t":"🥇 رتبه‌بندی شهرها","p":"ranking"}]},
+		{"title":"🛒 بازار","items":[{"t":"🛍 خرید و فروش منابع","p":"commerce"},{"t":"🚚 واردات و صادرات","p":"commerce"}]},
+		{"title":"👛 کیف پول","items":[{"t":"🏦 بانک و امور مالی","p":"bank"}]},
+		{"title":"⚙️ تنظیمات","items":[{"t":"🔊 صدا و موسیقی","action":"open_audio_settings"},{"t":"🎮 تنظیمات بازی","action":"open_game_settings"},{"t":"⏸ توقف یا ادامه بازی","action":"toggle_pause"},{"t":"💾 ذخیره بازی","action":"save_from_menu"},{"t":"🔄 شروع دوباره شهر","action":"confirm_restart_from_menu"},{"t":"❔ راهنمای بازی","action":"open_help"}]}
 	]
 	for group in menu_groups:
 		var group_heading = Label.new()
@@ -1469,10 +1469,21 @@ func _build_ui():
 			section_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			_apply_font(section_button, 16 if compact_layout else 15)
 			_style_button(section_button, true)
-			section_button.pressed.connect(func():
-				_close_game_menu()
-				show_page(str(menu_item.p))
-			)
+			if menu_item.has("action"):
+				var action_name = str(menu_item.action)
+				section_button.pressed.connect(func():
+					_close_game_menu()
+					if action_name == "open_help":
+						_open_help()
+					else:
+						call(action_name)
+				)
+			else:
+				var target_page = str(menu_item.p)
+				section_button.pressed.connect(func():
+					_close_game_menu()
+					show_page(target_page)
+				)
 			menu_panel.add_child(section_button)
 	var menu_divider = HSeparator.new()
 	menu_panel.add_child(menu_divider)
