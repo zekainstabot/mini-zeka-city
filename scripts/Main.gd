@@ -894,7 +894,7 @@ func _apply_safe_area_to_floating_controls():
 		if help_button != null and is_instance_valid(help_button):
 			help_button.custom_minimum_size = icon_size
 			help_button.size = icon_size
-			help_button.position = Vector2(inset.x + 12.0, inset.y + 76.0)
+			help_button.position = Vector2(inset.x + 12.0, inset.y + 90.0)
 			_apply_font(help_button, 20)
 		# Right rail: rankings and reports, kept clear of the clock.
 		if ranking_button != null and is_instance_valid(ranking_button):
@@ -905,12 +905,12 @@ func _apply_safe_area_to_floating_controls():
 		if report_button != null and is_instance_valid(report_button):
 			report_button.custom_minimum_size = icon_size
 			report_button.size = icon_size
-			report_button.position = Vector2(right_edge - 58.0, inset.y + 152.0)
+			report_button.position = Vector2(right_edge - 58.0, inset.y + 166.0)
 			_apply_font(report_button, 25)
 		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
 			construction_capacity_button.custom_minimum_size = Vector2(144, 68)
 			construction_capacity_button.size = Vector2(144, 68)
-			construction_capacity_button.position = Vector2(inset.x + 12.0, inset.y + 136.0)
+			construction_capacity_button.position = Vector2(inset.x + 12.0, inset.y + 148.0)
 			_apply_font(construction_capacity_button, 12)
 	else:
 		if daily_reward_button != null and is_instance_valid(daily_reward_button):
