@@ -894,12 +894,12 @@ func _apply_safe_area_to_floating_controls():
 		if ranking_button != null and is_instance_valid(ranking_button):
 			ranking_button.custom_minimum_size = icon_size
 			ranking_button.size = icon_size
-			ranking_button.position = Vector2(right_edge - 58.0, inset.y + 16.0)
+			ranking_button.position = Vector2(right_edge - 58.0, inset.y + 76.0)
 			_apply_font(ranking_button, 19)
 		if report_button != null and is_instance_valid(report_button):
 			report_button.custom_minimum_size = icon_size
 			report_button.size = icon_size
-			report_button.position = Vector2(right_edge - 58.0, inset.y + 68.0)
+			report_button.position = Vector2(right_edge - 58.0, inset.y + 128.0)
 			_apply_font(report_button, 25)
 		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
 			construction_capacity_button.custom_minimum_size = Vector2(144, 68)
@@ -925,12 +925,12 @@ func _apply_safe_area_to_floating_controls():
 		if ranking_button != null and is_instance_valid(ranking_button):
 			ranking_button.custom_minimum_size = Vector2(50, 50)
 			ranking_button.size = Vector2(50, 50)
-			ranking_button.position = Vector2(right_edge - 108.0, inset.y + 20.0)
+			ranking_button.position = Vector2(right_edge - 50.0, inset.y + 80.0)
 			_apply_font(ranking_button, 21)
 		if report_button != null and is_instance_valid(report_button):
 			report_button.custom_minimum_size = Vector2(50, 50)
 			report_button.size = Vector2(50, 50)
-			report_button.position = Vector2(right_edge - 50.0, inset.y + 20.0)
+			report_button.position = Vector2(right_edge - 50.0, inset.y + 138.0)
 			_apply_font(report_button, 25)
 		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
 			construction_capacity_button.custom_minimum_size = Vector2(158, 70)
