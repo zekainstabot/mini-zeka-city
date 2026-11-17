@@ -1150,9 +1150,9 @@ func _create_bottom_navigation(parent: VBoxContainer, compact_layout: bool):
 	bottom_navigation_bar.add_child(dock_row)
 	bottom_navigation_buttons.clear()
 	var entries = [
-		{"id":"settings","icon":"⚙️","label":"تنظیمات","page":""},
+		{"id":"development","icon":"🏗️","label":"توسعه","page":"development"},
 		{"id":"missions","icon":"🏆","label":"دستاوردها","page":"missions"},
-		{"id":"home","icon":"🏠","label":"خانه","page":"home"},
+		{"id":"home","icon":"🏠","label":"شهر من","page":"home"},
 		{"id":"commerce","icon":"🛒","label":"بازار","page":"commerce"},
 		{"id":"bank","icon":"👛","label":"کیف پول","page":"bank"}
 	]
@@ -1170,11 +1170,9 @@ func _create_bottom_navigation(parent: VBoxContainer, compact_layout: bool):
 		button.add_theme_color_override("font_hover_color", Color("#ffffff"))
 		_apply_font(button, 15 if compact_layout else 16)
 		button.flat = true
+		var target_page = str(entry.page)
 		button.pressed.connect(func():
-			if str(entry.id) == "settings":
-				_toggle_game_menu()
-			else:
-				show_page(str(entry.page))
+			show_page(target_page)
 		)
 		dock_row.add_child(button)
 		bottom_navigation_buttons[str(entry.id)] = button
@@ -1187,6 +1185,7 @@ func _update_bottom_navigation():
 	var active_id = ""
 	match current_page:
 		"home": active_id = "home"
+		"development", "buildings", "transport", "storage": active_id = "development"
 		"missions", "progress": active_id = "missions"
 		"commerce": active_id = "commerce"
 		"bank": active_id = "bank"
@@ -1448,7 +1447,8 @@ func _build_ui():
 	navigation_heading.add_theme_color_override("font_color", Color("#7dd3fc"))
 	menu_panel.add_child(navigation_heading)
 	var menu_groups = [
-		{"title":"🏙️ شهر من","items":[{"t":"🏠 نمای کلی شهر و شهروندان","p":"home"},{"t":"🏗 ساختمان‌ها و ساخت‌وساز","p":"buildings"},{"t":"🏛 شهرداری و خدمات شهری","p":"municipality"},{"t":"🏢 اقتصاد خصوصی و کسب‌وکارها","p":"private_economy"},{"t":"📦 انبار و مدیریت منابع","p":"storage"},{"t":"📈 توسعه شهر و حمل‌ونقل","p":"transport"},{"t":"📋 گزارش‌ها و مشکلات شهر","p":"report"}]},
+		{"title":"🏙️ شهر من","items":[{"t":"🏠 نمای کلی شهر و شهروندان","p":"home"},{"t":"🏛 شهرداری و خدمات شهری","p":"municipality"},{"t":"🏢 اقتصاد خصوصی و کسب‌وکارها","p":"private_economy"},{"t":"📋 گزارش‌ها و مشکلات شهر","p":"report"}]},
+		{"title":"🏗️ توسعه","items":[{"t":"🏗 ساختمان‌ها و ساخت‌وساز","p":"buildings"},{"t":"📦 انبار و مدیریت منابع","p":"storage"},{"t":"📈 توسعه شهر و حمل‌ونقل","p":"transport"}]},
 		{"title":"🏆 دستاوردها","items":[{"t":"🎯 مأموریت‌ها و اهداف روزانه","p":"missions"},{"t":"🏅 پیشرفت و دستاوردها","p":"progress"},{"t":"🥇 رتبه‌بندی شهرها","p":"ranking"}]},
 		{"title":"🛒 بازار","items":[{"t":"🛍 خرید و فروش منابع","p":"commerce"},{"t":"🚚 واردات و صادرات","p":"commerce"}]},
 		{"title":"👛 کیف پول","items":[{"t":"🏦 بانک و امور مالی","p":"bank"}]},
@@ -2748,6 +2748,12 @@ func show_page(page):
 	_refresh_currency_hud()
 	_update_bottom_navigation()
 	match page:
+		"development":
+			_add_label("🏗️ توسعه شهر", 25)
+			_add_label("تمام ابزارهای ساخت، گسترش و مدیریت زیرساخت‌های شهر در این بخش قرار دارند.", 16)
+			_add_button("🏗️ ساختمان‌ها و ساخت‌وساز", self, "show_page", ["buildings"])
+			_add_button("📦 انبار و مدیریت منابع", self, "show_page", ["storage"])
+			_add_button("🛣️ توسعه شهر و حمل‌ونقل", self, "show_page", ["transport"])
 		"home":
 			HomePage.build(self, s)
 			_add_label("مدیریت شهروندان", 24)
