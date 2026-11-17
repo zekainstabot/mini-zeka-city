@@ -55,7 +55,18 @@ func _run_tests():
 	assert(not main.help_button.get_global_rect().intersects(main.day_night_hud.get_global_rect()), "Help overlaps the clock on a narrow phone")
 	assert(not main.daily_reward_button.get_global_rect().intersects(main.menu_button.get_global_rect()), "Calendar overlaps the menu shortcut")
 	assert(not main.menu_button.get_global_rect().intersects(main.help_button.get_global_rect()), "Menu overlaps the help shortcut")
+	var top_shortcuts = [main.daily_reward_button, main.menu_button, main.help_button, main.ranking_button, main.report_button]
+	for i in range(top_shortcuts.size()):
+		for j in range(i + 1, top_shortcuts.size()):
+			assert(not top_shortcuts[i].get_global_rect().intersects(top_shortcuts[j].get_global_rect()), "Top shortcuts overlap on a narrow phone")
+		assert(not top_shortcuts[i].get_global_rect().intersects(main.day_night_hud.get_global_rect()), "A top shortcut overlaps the clock on a narrow phone")
 	assert(not main.construction_capacity_button.get_global_rect().intersects(main.day_night_hud.get_global_rect()), "Construction shortcut overlaps the clock")
+	assert(not main.construction_capacity_button.get_global_rect().intersects(main.report_button.get_global_rect()), "Construction shortcut overlaps the report shortcut")
+	main.report_button.emit_signal("pressed")
+	assert(main.current_page == "report", "Top report shortcut does not open reports")
+	main.ranking_button.emit_signal("pressed")
+	assert(main.current_page == "ranking", "Top ranking shortcut does not open rankings")
+	main.show_page("home")
 	assert(navigation_grid.get_combined_minimum_size().x <= main_layout.size.x + 1.0, "Narrow navigation exceeds the safe content width")
 	for nav_button in main.navigation_buttons:
 		assert(nav_button.alignment == HORIZONTAL_ALIGNMENT_CENTER, "Navigation button text is not centered")
