@@ -2,6 +2,31 @@ extends RefCounted
 
 # Intercity trade, imports, contracts, shipments, and domestic market operations.
 
+# Shared settlement for every trade channel: domestic market, imports and exports.
+# Callers validate route-specific limits first; this function applies the common
+# money and inventory changes and persists the resulting transaction.
+static func _settle_trade(engine, resource_id, amount, money_delta, inventory_delta=0, market_delta=0):
+	var state = engine.state
+	if not engine.RESOURCES.has(resource_id) or int(amount) <= 0:
+		return {"ok":false,"message":"تسویه معامله نامعتبر است."}
+	var quantity = int(amount)
+	var money_change = int(money_delta)
+	if money_change < 0:
+		if not engine._spend_money(-money_change):
+			return {"ok":false,"message":"پول آزاد کافی نیست."}
+	elif money_change > 0:
+		var accepted = engine._add_money(money_change)
+		if accepted < money_change:
+			return {"ok":false,"message":"ظرفیت خزانه برای دریافت درآمد کافی نیست."}
+	var next_inventory = int(state.resources.get(resource_id, 0)) + int(inventory_delta)
+	var next_market = int(state.market_stock.get(resource_id, 0)) + int(market_delta)
+	if next_inventory < 0 or next_market < 0 or next_market > 100:
+		return {"ok":false,"message":"موجودی کالا برای تسویه معامله کافی نیست."}
+	state.resources[resource_id] = next_inventory
+	state.market_stock[resource_id] = next_market
+	engine.save_game()
+	return {"ok":true}
+
 static func get_import_price(engine, city_id, resource_id):
 	var state = engine.state
 	if not engine.TRADE_CITIES.has(city_id) or not engine.RESOURCES.has(resource_id):
@@ -42,14 +67,18 @@ static func order_import(engine, city_id, resource_id, requested_amount):
 	var total_cost = amount * unit_price + shipping_fee
 	if engine.get_available_money() < total_cost:
 		return {"ok":false,"message":"پول آزاد خزانه برای خرید و کرایه حمل کافی نیست."}
-	engine._spend_money(total_cost)
+	var shipment = {"id":engine._next_shipment_id(),"city_id":city_id,"resource_id":resource_id,"amount":amount,"arrival_day":int(state.day)+int(city.travel_days),"paid":total_cost}
 	city_stock[resource_id] = available - amount
 	state.city_export_stock[city_id] = city_stock
-	var shipment = {"id":engine._next_shipment_id(),"city_id":city_id,"resource_id":resource_id,"amount":amount,"arrival_day":int(state.day)+int(city.travel_days),"paid":total_cost}
 	state.trade_shipments.append(shipment)
+	var settlement = _settle_trade(engine, resource_id, amount, -total_cost)
+	if not settlement.ok:
+		state.trade_shipments.pop_back()
+		city_stock[resource_id] = available
+		state.city_export_stock[city_id] = city_stock
+		return settlement
 	state.transport_used_today = int(state.get("transport_used_today",0)) + amount
 	state.last_import_report = "%d واحد %s از %s سفارش داده شد؛ تحویل روز %d؛ هزینه با حمل: %d سکه." % [amount,engine.RESOURCES[resource_id].name,city.name,int(shipment.arrival_day),total_cost]
-	engine.save_game()
 	return {"ok":true,"message":state.last_import_report}
 
 static func _next_shipment_id(engine):
@@ -131,10 +160,16 @@ static func _dispatch_import_contracts(engine, report):
 		if amount <= 0 or price <= 0 or engine.get_available_money() < total:
 			report.append("قرارداد واردات %s امروز به‌دلیل کمبود کالا، پول یا فضای انبار اجرا نشد." % engine.RESOURCES[resource_id].name)
 		else:
-			engine._spend_money(total)
 			stock[resource_id] = int(stock.get(resource_id,0)) - amount
 			state.city_export_stock[city_id] = stock
 			state.trade_shipments.append({"id":engine._next_shipment_id(),"city_id":city_id,"resource_id":resource_id,"amount":amount,"arrival_day":int(state.day)+int(engine.TRADE_CITIES[city_id].travel_days),"paid":total})
+			var settlement = _settle_trade(engine, resource_id, amount, -total)
+			if not settlement.ok:
+				state.trade_shipments.pop_back()
+				stock[resource_id] = int(stock.get(resource_id,0)) + amount
+				state.city_export_stock[city_id] = stock
+				report.append("قرارداد واردات %s اجرا نشد: %s" % [engine.RESOURCES[resource_id].name, settlement.message])
+				continue
 			state.transport_used_today = int(state.get("transport_used_today",0)) + amount
 			report.append("قرارداد واردات %s: محموله %d واحدی ارسال شد." % [engine.RESOURCES[resource_id].name,amount])
 		contract["days_left"] = int(contract.get("days_left",0)) - 1
@@ -233,15 +268,15 @@ static func trade_with_city(engine, city_id, resource_id, requested_amount):
 	if amount <= 0:
 		return {"ok":false,"message":"موجودی کالا، تقاضای شهر یا ظرفیت خزانه کافی نیست."}
 	var final_revenue = amount * unit_price
-	engine._add_money(final_revenue)
-	state.resources[resource_id] = available - amount
+	var settlement = _settle_trade(engine, resource_id, amount, final_revenue, -amount)
+	if not settlement.ok:
+		return settlement
 	state["trade_exported_units_total"] = int(state.get("trade_exported_units_total", 0)) + amount
 	state.trade_remaining[city_id] = remaining - amount
 	demand_by_resource[resource_id] = demand - amount
 	state.trade_demand_remaining[city_id] = demand_by_resource
 	state.transport_used_today = int(state.get("transport_used_today",0)) + amount
 	state.last_trade_report = "%d واحد %s به %s صادر شد؛ درآمد: %d سکه." % [amount,engine.RESOURCES[resource_id].name,city.name,final_revenue]
-	engine.save_game()
 	return {"ok":true,"message":state.last_trade_report,"amount":amount,"revenue":final_revenue}
 
 static func _refresh_trade_capacity(engine):
@@ -262,10 +297,9 @@ static func buy_resource(engine, id, amount, persist=true):
 		return {"ok":false,"message":"موجودی بازار کافی نیست."}
 	if engine.get_free_storage() < amount:
 		return {"ok":false,"message":"فضای خالی انبار کافی نیست."}
-	engine._spend_money(cost)
-	state.market_stock[id] -= amount
-	state.resources[id] = int(state.resources.get(id, 0)) + amount
-	engine.save_game()
+	var settlement = _settle_trade(engine, id, amount, -cost, amount, -amount)
+	if not settlement.ok:
+		return settlement
 	return {"ok":true,"message":"خرید انجام شد: "+str(amount)+" واحد "+engine.RESOURCES[id].name}
 
 static func sell_resource(engine, id, amount, persist=true):
@@ -284,9 +318,8 @@ static func sell_resource(engine, id, amount, persist=true):
 	amount = min(amount, affordable_amount)
 	if amount <= 0:
 		return {"ok":false,"message":"ظرفیت خزانه پر است؛ فعلاً امکان دریافت درآمد فروش وجود ندارد."}
-	state.resources[id] -= amount
-	state.market_stock[id] += amount
 	var revenue = amount * unit_price
-	var accepted = engine._add_money(revenue)
-	engine.save_game()
-	return {"ok":true,"message":"فروش %d واحد انجام شد؛ درآمد دریافتی: %d سکه." % [amount, accepted]}
+	var settlement = _settle_trade(engine, id, amount, revenue, -amount, amount)
+	if not settlement.ok:
+		return settlement
+	return {"ok":true,"message":"فروش %d واحد انجام شد؛ درآمد دریافتی: %d سکه." % [amount, revenue]
