@@ -662,12 +662,12 @@ func _init():
 	var province_base_supply = int(province_game.TRADE_CITIES.mehrabad.supply.wood)
 	province_game.state.city_export_stock.mehrabad.wood = 0
 	province_game.state.trade_demand_remaining.mehrabad.wood = 0
-	province_game._refresh_trade_capacity()
+	province_game._restock_provincial_trade_supply()
 	var province_restocked = int(province_game.state.city_export_stock.mehrabad.wood)
 	assert(province_restocked > 0)
 	assert(province_restocked <= province_base_supply)
 	assert(int(province_game.state.trade_demand_remaining.mehrabad.wood) == int(province_game.TRADE_CITIES.mehrabad.demand.wood))
-	province_game._refresh_trade_capacity()
+	province_game._restock_provincial_trade_supply()
 	assert(int(province_game.state.city_export_stock.mehrabad.wood) >= province_restocked)
 	assert(int(province_game.state.city_export_stock.mehrabad.wood) <= province_base_supply)
 
