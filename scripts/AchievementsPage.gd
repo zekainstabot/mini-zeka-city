@@ -6,7 +6,7 @@ static func build(owner, s):
 	owner._add_progress_missions_tabs("achievements")
 	var achievements = game.get_achievements()
 	var unlocked_count = 0
-			# unlocked achievements are counted above; coin rewards are shown on each badge.
+	# Unlocked achievements are counted above; coin rewards are shown on each badge.
 	for achievement in achievements:
 		if bool(achievement.get("unlocked", false)):
 			unlocked_count += 1
