@@ -1818,9 +1818,9 @@ func _update_day_night_hud():
 func _get_available_construction_workers():
 	if game == null:
 		return 0
-	var unemployed = max(0, int(game.get_unemployed_count()))
+	# The 2/2 indicator represents free construction crews, not unemployed citizens.
 	var active_projects = int(game.get_active_construction_count())
-	return clampi(min(int(game.MAX_CONCURRENT_CONSTRUCTIONS), unemployed) - active_projects, 0, int(game.MAX_CONCURRENT_CONSTRUCTIONS))
+	return clampi(int(game.MAX_CONCURRENT_CONSTRUCTIONS) - active_projects, 0, int(game.MAX_CONCURRENT_CONSTRUCTIONS))
 
 
 func _build_construction_capacity_button():
@@ -1868,7 +1868,7 @@ func _update_construction_capacity_button():
 		construction_capacity_button.text = "👷  %d/2\n🏗️  %s" % [available, compact_project_caption]
 	else:
 		construction_capacity_button.text = "👷  %d/2\n🏗️  %s" % [available, project_caption]
-	construction_capacity_button.tooltip_text = "کارگر آزاد: %d از ۲ | %s" % [available, project_caption]
+	construction_capacity_button.tooltip_text = "ظرفیت آزاد ساخت‌وساز: %d از ۲ | %s" % [available, project_caption]
 
 
 func _open_construction_details():
@@ -1927,7 +1927,7 @@ func _open_construction_details():
 	header.add_child(close_button)
 	var available = _get_available_construction_workers()
 	var summary = Label.new()
-	summary.text = PersianText.reshaper("کارگر آزاد برای پروژه جدید: %d از ۲" % available)
+	summary.text = PersianText.reshaper("ظرفیت آزاد ساخت‌وساز برای پروژه جدید: %d از ۲" % available)
 	summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_apply_font(summary, 17)
 	summary.add_theme_color_override("font_color", Color("#a7f3d0") if available > 0 else Color("#fca5a5"))
