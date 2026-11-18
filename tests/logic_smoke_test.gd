@@ -588,6 +588,18 @@ func _init():
 	assert(failed_contract_report.size() == 1)
 	assert(str(failed_contract_report[0]).find("اجرا نشد") >= 0)
 
+	# Failed revenue settlement must not leave a partial deposit in the treasury.
+	var atomic_trade_game = EngineScript.new()
+	atomic_trade_game.new_game()
+	var atomic_trade_capacity = atomic_trade_game.get_treasury_capacity()
+	atomic_trade_game.state.money = atomic_trade_capacity - 5
+	var atomic_trade_money_before = int(atomic_trade_game.state.money)
+	var atomic_trade_stock_before = int(atomic_trade_game.state.resources.wood)
+	var atomic_trade_result = TradeSystemScript._settle_trade(atomic_trade_game, "wood", 1, 20, 1)
+	assert(not bool(atomic_trade_result.ok))
+	assert(int(atomic_trade_game.state.money) == atomic_trade_money_before)
+	assert(int(atomic_trade_game.state.resources.wood) == atomic_trade_stock_before)
+
 	# A valid contract dispatches once, charges the treasury and reserves transport capacity.
 	var valid_contract_game = EngineScript.new()
 	valid_contract_game.new_game()
