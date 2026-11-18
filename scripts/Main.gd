@@ -1826,8 +1826,8 @@ func _get_available_construction_workers():
 func _build_construction_capacity_button():
 	construction_capacity_button = Button.new()
 	construction_capacity_button.name = "ConstructionCapacityButton"
-	construction_capacity_button.text = "👷  0/2"
-	construction_capacity_button.custom_minimum_size = Vector2(158, 70)
+	construction_capacity_button.text = "👷  2/2"
+	construction_capacity_button.custom_minimum_size = Vector2(104, 52)
 	construction_capacity_button.anchor_left = 0.0
 	construction_capacity_button.anchor_top = 0.0
 	construction_capacity_button.anchor_right = 0.0
@@ -1835,9 +1835,9 @@ func _build_construction_capacity_button():
 	construction_capacity_button.position = Vector2(22, 116)
 	construction_capacity_button.z_index = 15
 	construction_capacity_button.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	construction_capacity_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	construction_capacity_button.autowrap_mode = TextServer.AUTOWRAP_OFF
 	construction_capacity_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	construction_capacity_button.tooltip_text = "ظرفیت و جزئیات ساخت‌وساز"
+	construction_capacity_button.tooltip_text = "مشاهده پروژه‌های در حال ساخت و پیشنهاد ساخت"
 	_apply_font(construction_capacity_button, 15)
 	_style_button(construction_capacity_button, false)
 	construction_capacity_button.pressed.connect(_open_construction_details)
@@ -1849,26 +1849,9 @@ func _update_construction_capacity_button():
 	if construction_capacity_button == null or not is_instance_valid(construction_capacity_button) or game == null:
 		return
 	var available = _get_available_construction_workers()
-	var projects = game.get_construction_status()
-	var project_caption = "پروژه‌ای فعال نیست"
-	if not projects.is_empty():
-		var names: Array[String] = []
-		for project in projects:
-			names.append(str(project.get("name", "ساختمان")))
-		project_caption = "در حال ساخت: " + "، ".join(names)
-	# Keep the builder count visible and show active building names directly
-	# beneath the engineer icon instead of hiding them only in the popup.
-	var viewport_width = get_viewport_rect().size.x
-	if viewport_width < 500.0:
-		var compact_project_caption = "بدون پروژه" if projects.is_empty() else str(projects[0].get("name", "ساختمان"))
-		if compact_project_caption.length() > 10:
-			compact_project_caption = compact_project_caption.substr(0, 10) + "…"
-		if projects.size() > 1:
-			compact_project_caption += " +%d" % (projects.size() - 1)
-		construction_capacity_button.text = "👷  %d/2\n🏗️  %s" % [available, compact_project_caption]
-	else:
-		construction_capacity_button.text = "👷  %d/2\n🏗️  %s" % [available, project_caption]
-	construction_capacity_button.tooltip_text = "ظرفیت آزاد ساخت‌وساز: %d از ۲ | %s" % [available, project_caption]
+	# Keep the shortcut minimal: only the construction icon and free slots.
+	construction_capacity_button.text = "👷  %d/2" % available
+	construction_capacity_button.tooltip_text = "مشاهده پروژه‌های در حال ساخت و پیشنهاد ساخت"
 
 
 func _open_construction_details():
@@ -1983,6 +1966,95 @@ func _open_construction_details():
 			_apply_font(cost_label, 14)
 			cost_label.add_theme_color_override("font_color", Color("#cbd5e1"))
 			project_info.add_child(cost_label)
+
+	# Offer a practical next-build suggestion based on the city's weakest service.
+	var recommendation = _get_construction_recommendation()
+	if not recommendation.is_empty():
+		var recommendation_panel = PanelContainer.new()
+		var recommendation_style = StyleBoxFlat.new()
+		recommendation_style.bg_color = Color("#203b43")
+		recommendation_style.border_color = Color("#34d399")
+		recommendation_style.set_border_width_all(1)
+		recommendation_style.set_corner_radius_all(12)
+		recommendation_style.content_margin_left = 12
+		recommendation_style.content_margin_right = 12
+		recommendation_style.content_margin_top = 10
+		recommendation_style.content_margin_bottom = 10
+		recommendation_panel.add_theme_stylebox_override("panel", recommendation_style)
+		layout.add_child(recommendation_panel)
+		var recommendation_content = VBoxContainer.new()
+		recommendation_content.add_theme_constant_override("separation", 6)
+		recommendation_panel.add_child(recommendation_content)
+		var recommendation_title = Label.new()
+		recommendation_title.text = PersianText.reshaper("💡 پیشنهاد برای ساخت بعدی")
+		recommendation_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		_apply_font(recommendation_title, 17)
+		recommendation_title.add_theme_color_override("font_color", Color("#6ee7b7"))
+		recommendation_content.add_child(recommendation_title)
+		var recommendation_reason = Label.new()
+		recommendation_reason.text = PersianText.reshaper(str(recommendation.get("reason", "")))
+		recommendation_reason.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		recommendation_reason.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_apply_font(recommendation_reason, 15)
+		recommendation_reason.add_theme_color_override("font_color", Color("#e2e8f0"))
+		recommendation_content.add_child(recommendation_reason)
+		var recommendation_button = Button.new()
+		recommendation_button.text = PersianText.reshaper("مشاهده ساختمان پیشنهادی: %s" % str(recommendation.get("name", "ساختمان")))
+		recommendation_button.custom_minimum_size = Vector2(0, 46)
+		_apply_font(recommendation_button, 15)
+		_style_button(recommendation_button, false)
+		recommendation_button.pressed.connect(_open_recommended_construction.bind(str(recommendation.get("building_id", ""))))
+		recommendation_content.add_child(recommendation_button)
+
+
+func _get_construction_recommendation():
+	if game == null:
+		return {}
+	var needs = game.state.get("needs", {})
+	var candidates = [
+		{"need":"food", "building_id":"grocery_store", "reason":"نیاز غذایی شهروندان پایین است؛ فروشگاه مواد غذایی می‌تواند کمک کند."},
+		{"need":"water", "building_id":"water_tower", "reason":"تأمین آب شهر ضعیف است؛ ساخت برج آب را در اولویت بگذار."},
+		{"need":"power", "building_id":"power_station", "reason":"وضعیت برق شهر نیاز به تقویت دارد؛ نیروگاه جدید بساز."},
+		{"need":"health", "building_id":"clinic", "reason":"سلامت شهروندان نیاز به توجه دارد؛ یک درمانگاه بساز."},
+		{"need":"education", "building_id":"school", "reason":"آموزش شهروندان ضعیف است؛ ساخت مدرسه را پیشنهاد می‌کنم."},
+		{"need":"safety", "building_id":"police_station", "reason":"امنیت شهر پایین است؛ ساخت کلانتری می‌تواند کمک کند."},
+		{"need":"leisure", "building_id":"small_park", "reason":"تفریح شهروندان کم است؛ یک پارک کوچک بساز."},
+		{"need":"sanitation", "buildinging_id":"waste_facility", "reason":"بهداشت محیط شهر نیاز به تقویت دارد؛ مرکز مدیریت پسماند بساز."}
+	]
+	var selected = {}
+	var lowest_value = 101
+	for candidate in candidates:
+		var need_value = int(needs.get(str(candidate.get("need", "")), 100))
+		if need_value < lowest_value:
+			lowest_value = need_value
+			selected = candidate
+	if selected.is_empty() or lowest_value >= 75:
+		selected = {"building_id":"small_park", "reason":"وضعیت خدمات شهر متعادل است؛ برای افزایش رضایت شهروندان، پارک کوچک گزینه خوبی برای پروژه بعدی است."}
+	var building_id = str(selected.get("building_id", selected.get("buildinging_id", "")))
+	var definition = game.get_building_definitions().get(building_id, {})
+	if definition.is_empty():
+		return {}
+	return {"building_id":building_id, "name":str(definition.get("name", "ساختمان")), "reason":str(selected.get("reason", ""))}
+
+
+func _open_recommended_construction(building_id):
+	var definition = game.get_building_definitions().get(str(building_id), {})
+	if definition.is_empty():
+		_show_message("ساختمان پیشنهادی پیدا نشد.")
+		return
+	_close_construction_details()
+	mission_target_building_id = str(building_id)
+	selected_building_category = str(definition.get("category", ""))
+	if selected_building_category == "خانه‌ها":
+		selected_building_group = "مسکونی"
+	elif selected_building_category == "انبارها":
+		selected_building_group = "انبارها"
+	elif selected_building_category in ["کشاورزی", "ماهیگیری", "معادن", "کارخانه‌ها", "کسب‌وکارها"]:
+		selected_building_group = "اقتصادی"
+	else:
+		selected_building_group = "عمومی"
+	show_page("buildings")
+	_show_message("ساختمان پیشنهادی را برای بررسی باز کردم.")
 
 
 func _close_construction_details():
