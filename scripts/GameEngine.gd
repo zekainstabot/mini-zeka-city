@@ -1373,6 +1373,9 @@ func trade_with_city(city_id, resource_id, requested_amount):
 func _refresh_trade_capacity():
 	return TradeSystem._refresh_trade_capacity(self)
 
+func _restock_provincial_trade_supply():
+	return TradeSystem.restock_provincial_supply(self)
+
 
 func buy_resource(id, amount, persist=true):
 	return TradeSystem.buy_resource(self, id, amount, persist)
