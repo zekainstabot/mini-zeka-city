@@ -1113,14 +1113,36 @@ func record_active_play_seconds(seconds):
 		return
 	state["active_play_seconds_today"] = float(state.get("active_play_seconds_today", 0.0)) + min(float(seconds), 1.0)
 
+func _is_important_report_event(message):
+	var text = str(message).strip_edges()
+	if text == "":
+		return false
+	var important_terms = [
+		"🎲 رویداد شهر", "درخواست شهروندان انجام شد", "ساختمان درخواستی شهروندان",
+		"درخواست تازه شهروندان", "🏙️ خبر رقبا", "🔎 کشف راز مخفی", "⚖️ تصمیم مهم شهر",
+		"درخواست جذب شهروند", "شهروند جدید به‌صورت خودکار", "استخراج معدن موقتاً متوقف",
+		"ذخیره معدن آهن تمام", "کسری حقوق", "کامل پرداخت نشد", "ظرفیت خزانه پر است",
+		"درآمد امروز دریافت نشد", "مهلت بازسازی بانک مرکزی", "تبریک!", "ساختمان‌های تازه در دسترس",
+		"محموله", "قرارداد واردات", "وام شماره", "قسط وام پرداخت نشد",
+		"سپرده شماره", "ذخیره غذا تمام شده", "چوب‌بری متوقف شد"
+	]
+	for term in important_terms:
+		if text.find(term) >= 0:
+			return true
+	return false
+
 func add_report_event(message, persist=true):
 	var clean_message = str(message).strip_edges()
-	if clean_message == "":
+	if not _is_important_report_event(clean_message):
 		return
 	if typeof(state.get("report_events", null)) != TYPE_ARRAY:
 		state["report_events"] = []
+	# Avoid storing the same event more than once on the same in-game day.
+	for existing in state.report_events:
+		if int(existing.get("day", -1)) == int(state.get("day", 1)) and str(existing.get("message", "")) == clean_message:
+			return
 	state.report_events.append({"timestamp":OS.get_unix_time(),"day":int(state.get("day", 1)),"message":clean_message})
-	while state.report_events.size() > 100:
+	while state.report_events.size() > 60:
 		state.report_events.pop_front()
 	if persist:
 		save_game()
@@ -1136,7 +1158,13 @@ func save_game():
 func _normalize_state():
 	if typeof(state.get("report_events", null)) != TYPE_ARRAY:
 		state["report_events"] = []
-	while state.report_events.size() > 100:
+	else:
+		var clean_events = []
+		for event in state.report_events:
+			if typeof(event) == TYPE_DICTIONARY and _is_important_report_event(event.get("message", "")):
+				clean_events.append(event)
+		state["report_events"] = clean_events
+	while state.report_events.size() > 60:
 		state.report_events.pop_front()
 	if typeof(state.get("buildings", null)) != TYPE_ARRAY:
 		state.buildings = []
@@ -2670,7 +2698,8 @@ func end_day(is_offline=false):
 	_update_missions()
 	report.append("خلاصه مالی: درآمد ثبت‌شده %d | حقوق %d | نگهداری %d | اقساط شهرداری %d | اقساط شهروندان %d | وام پرداختی به شهروندان %d | تغییر خالص خزانه %d سکه." % [int(state.last_economy.accepted_income), paid_wages, maintenance_paid, bank_repayment_paid, citizen_loan_repayments, citizen_loan_disbursements, int(state.last_economy.net_cashflow)])
 	for report_message in report:
-		add_report_event(str(report_message), false)
+		if _is_important_report_event(report_message):
+			add_report_event(str(report_message), false)
 	state.last_report = "\n".join(report)
 	save_game()
 	return state.last_report
