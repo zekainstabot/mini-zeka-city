@@ -1263,7 +1263,9 @@ func show_page(page):
 			for resident_request in resident_requests:
 				_add_label(str(resident_request.get("title","درخواست شهروندان"))+" | روز "+str(int(resident_request.get("day",s.day))),17)
 				_add_label(str(resident_request.get("description","")),15)
-				_add_button("رفتن به بخش ساخت ساختمان پیشنهادی  ←",self,"go_to_resident_request_building",[str(resident_request.get("building_id",""))])
+				var request_building_button = _add_button("🏗️ ساخت پیشنهادی",self,"go_to_resident_request_building",[str(resident_request.get("building_id",""))])
+				request_building_button.rect_min_size = Vector2(0, 42 if get_viewport_rect().size.x < 900 else 36)
+				_apply_font(request_building_button, 16 if get_viewport_rect().size.x < 900 else 15)
 				if bool(resident_request.get("accepted",false)):
 					_add_label("✓ پذیرفته شده؛ با ساخت ساختمان پیشنهادی، درخواست تکمیل می‌شود.",15)
 				else:
