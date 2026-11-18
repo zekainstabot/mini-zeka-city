@@ -6,11 +6,10 @@ static func build(owner, s):
 	owner._add_progress_missions_tabs("achievements")
 	var achievements = game.get_achievements()
 	var unlocked_count = 0
-	var total_reward = 0
+			# unlocked achievements are counted above; coin rewards are shown on each badge.
 	for achievement in achievements:
 		if bool(achievement.get("unlocked", false)):
 			unlocked_count += 1
-			total_reward += int(achievement.get("zeka_coin_reward", 0))
 	var summary = PanelContainer.new()
 	summary.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var summary_style = StyleBoxFlat.new()
