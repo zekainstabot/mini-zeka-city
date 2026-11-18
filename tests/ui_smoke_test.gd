@@ -50,6 +50,7 @@ func _run_tests():
 	main._apply_responsive_layout()
 	await process_frame
 	assert(navigation_grid.columns == 2, "Narrow portrait navigation must stay in two columns")
+	print("UI GEOMETRY clock=", main.day_night_hud.get_global_rect(), " menu=", main.menu_button.get_global_rect(), " calendar=", main.daily_reward_button.get_global_rect())
 	assert(not main.daily_reward_button.get_global_rect().intersects(main.day_night_hud.get_global_rect()), "Calendar overlaps the clock on a narrow phone")
 	assert(not main.menu_button.get_global_rect().intersects(main.day_night_hud.get_global_rect()), "Menu overlaps the clock on a narrow phone")
 	assert(not main.help_button.get_global_rect().intersects(main.day_night_hud.get_global_rect()), "Help overlaps the clock on a narrow phone")
