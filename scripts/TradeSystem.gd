@@ -4,7 +4,7 @@ extends RefCounted
 
 # Shared settlement for every trade channel: domestic market, imports and exports.
 # Callers validate route-specific limits first; this function applies the common
-# money and inventory changes and persists the resulting transaction.
+# money and inventory changes; the caller persists after route-specific state is updated.
 static func _settle_trade(engine, resource_id, amount, money_delta, inventory_delta=0, market_delta=0):
 	var state = engine.state
 	if not engine.RESOURCES.has(resource_id) or int(amount) <= 0:
@@ -169,7 +169,6 @@ static func _dispatch_import_contracts(engine, report):
 				stock[resource_id] = int(stock.get(resource_id,0)) + amount
 				state.city_export_stock[city_id] = stock
 				report.append("قرارداد واردات %s اجرا نشد: %s" % [engine.RESOURCES[resource_id].name, settlement.message])
-				continue
 			state.transport_used_today = int(state.get("transport_used_today",0)) + amount
 			report.append("قرارداد واردات %s: محموله %d واحدی ارسال شد." % [engine.RESOURCES[resource_id].name,amount])
 		contract["days_left"] = int(contract.get("days_left",0)) - 1
