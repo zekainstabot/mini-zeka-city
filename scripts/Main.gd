@@ -2668,15 +2668,6 @@ func _show_welcome_mission_hint():
 	welcome_icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	heading_row.add_child(welcome_icon)
 
-	var heading = Label.new()
-	heading_row.add_child(heading)
-	heading_row.move_child(heading, 0)
-	heading_row.add_child(welcome_icon)
-	heading_row.remove_child(welcome_icon)
-	heading_row.add_child(welcome_icon)
-	heading_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	heading_row.add_theme_constant_override("separation", 8)
-	heading_row.get_child(0).queue_free()
 	var heading_label = Label.new()
 	heading_label.text = PersianText.reshaper("شروع ماجراجویی در شهر")
 	heading_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
