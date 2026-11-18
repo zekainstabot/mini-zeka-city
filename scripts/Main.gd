@@ -881,7 +881,14 @@ func _apply_safe_area_to_floating_controls():
 	var right_edge = viewport_size.x - inset.z
 	if narrow:
 		var icon_size = Vector2(50, 50)
-		# Row one: daily reward, menu and help on the left; day/night HUD on the right.
+		# These controls use viewport coordinates; clear inherited anchors before positioning.
+		for floating in [daily_reward_button, menu_button, help_button, construction_capacity_button, ranking_button, report_button, day_night_hud]:
+			if floating != null and is_instance_valid(floating):
+				floating.anchor_left = 0.0
+				floating.anchor_top = 0.0
+				floating.anchor_right = 0.0
+				floating.anchor_bottom = 0.0
+		# Row one: daily reward and menu on the left; clock on the right.
 		if daily_reward_button != null and is_instance_valid(daily_reward_button):
 			daily_reward_button.custom_minimum_size = icon_size
 			daily_reward_button.size = icon_size
@@ -2698,8 +2705,9 @@ func _show_welcome_mission_hint():
 	text_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	text_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	text_scroll.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	text_scroll.custom_minimum_size = Vector2(0, 0)
-	text_scroll.custom_maximum_size = Vector2(0, 116 if compact else 132)
+	# ScrollContainer has no custom_maximum_size property in Godot 4.
+	# Keep a bounded viewport; long text scrolls inside it instead of stretching the card.
+	text_scroll.custom_minimum_size = Vector2(0, 116 if compact else 132)
 	text_scroll.clip_contents = true
 	text_scroll.add_child(welcome)
 	layout.add_child(text_scroll)
