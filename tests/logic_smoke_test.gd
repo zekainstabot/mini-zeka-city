@@ -658,12 +658,13 @@ func _init():
 	chain_game.state.level = 4
 	chain_game.state.population = 4
 	chain_game.state.resources.wood = 0
+	var chain_lumber_before = int(chain_game.state.resources.lumber)
 	chain_game.state.buildings.append({"id":"sawmill","workers":0,"balance":0})
 	chain_game.assign_jobs()
 	var chain_report = str(chain_game.end_day(false, false))
 	assert(chain_report.find("کارخانه الوارسازی متوقف شد") >= 0)
 	assert(chain_report.find("چوب کافی نیست") >= 0)
-	assert(int(chain_game.state.resources.lumber) == 0)
+	assert(int(chain_game.state.resources.lumber) == chain_lumber_before)
 
 	# Provincial trade stock recovers gradually and never exceeds the province's base supply.
 	var province_game = EngineScript.new()
@@ -675,6 +676,7 @@ func _init():
 	var province_restocked = int(province_game.state.city_export_stock.mehrabad.wood)
 	assert(province_restocked > 0)
 	assert(province_restocked <= province_base_supply)
+	province_game._refresh_trade_capacity()
 	assert(int(province_game.state.trade_demand_remaining.mehrabad.wood) == int(province_game.TRADE_CITIES.mehrabad.demand.wood))
 	province_game._restock_provincial_trade_supply()
 	assert(int(province_game.state.city_export_stock.mehrabad.wood) >= province_restocked)
