@@ -1113,24 +1113,27 @@ func record_active_play_seconds(seconds):
 		return
 	state["active_play_seconds_today"] = float(state.get("active_play_seconds_today", 0.0)) + min(float(seconds), 1.0)
 
-func _is_important_report_event(message):
+func get_report_event_category(message):
 	var text = str(message).strip_edges()
 	if text == "":
-		return false
-	var important_terms = [
-		"🎲 رویداد شهر", "درخواست شهروندان انجام شد", "ساختمان درخواستی شهروندان",
-		"درخواست تازه شهروندان", "🏙️ خبر رقبا", "🔎 کشف راز مخفی", "⚖️ تصمیم مهم شهر",
-		"درخواست جذب شهروند", "شهروند جدید به‌صورت خودکار", "استخراج معدن موقتاً متوقف",
-		"ذخیره معدن آهن تمام", "کسری حقوق", "کامل پرداخت نشد", "ظرفیت خزانه پر است",
-		"درآمد امروز دریافت نشد", "مهلت بازسازی بانک مرکزی", "تبریک!", "ساختمان‌های تازه در دسترس",
-		"محموله", "قرارداد واردات", "وام شماره", "قسط وام پرداخت نشد",
-		"سپرده شماره", "ذخیره غذا تمام شده", "چوب‌بری متوقف شد"
-	]
-	for term in important_terms:
-		if text.find(term) >= 0:
-			return true
-	return false
+		return ""
+	# Store category in game data; do not print it beside each report.
+	if text.find("🎲 رویداد شهر") >= 0 or text.find("🏙️ خبر رقبا") >= 0 or text.find("🔎 کشف راز مخفی") >= 0 or text.find("⚖️ تصمیم مهم شهر") >= 0:
+		return "events"
+	if text.find("درخواست شهروندان") >= 0 or text.find("ساختمان درخواستی شهروندان") >= 0 or text.find("درخواست تازه شهروندان") >= 0 or text.find("درخواست جذب شهروند") >= 0 or text.find("شهروند جدید به‌صورت خودکار") >= 0:
+		return "citizens"
+	if text.find("کسری حقوق") >= 0 or text.find("کامل پرداخت نشد") >= 0 or text.find("ظرفیت خزانه پر است") >= 0 or text.find("درآمد امروز دریافت نشد") >= 0 or text.find("مهلت بازسازی بانک مرکزی") >= 0 or text.find("وام شماره") >= 0 or text.find("قسط وام پرداخت نشد") >= 0 or text.find("سپرده شماره") >= 0:
+		return "finance"
+	if text.find("تبریک!") >= 0 or text.find("ساختمان‌های تازه در دسترس") >= 0:
+		return "progress"
+	if text.find("محموله") >= 0 or text.find("قرارداد واردات") >= 0:
+		return "trade"
+	if text.find("استخراج معدن موقتاً متوقف") >= 0 or text.find("ذخیره معدن آهن تمام") >= 0 or text.find("ذخیره غذا تمام شده") >= 0 or text.find("چوب‌بری متوقف شد") >= 0:
+		return "issues"
+	return ""
 
+func _is_important_report_event(message):
+	return get_report_event_category(message) != ""
 func add_report_event(message, persist=true):
 	var clean_message = str(message).strip_edges()
 	if not _is_important_report_event(clean_message):
@@ -1141,7 +1144,7 @@ func add_report_event(message, persist=true):
 	for existing in state.report_events:
 		if int(existing.get("day", -1)) == int(state.get("day", 1)) and str(existing.get("message", "")) == clean_message:
 			return
-	state.report_events.append({"timestamp":OS.get_unix_time(),"day":int(state.get("day", 1)),"message":clean_message})
+	state.report_events.append({"timestamp":OS.get_unix_time(),"day":int(state.get("day", 1)),"category":get_report_event_category(clean_message),"message":clean_message})
 	while state.report_events.size() > 60:
 		state.report_events.pop_front()
 	if persist:
@@ -1162,7 +1165,9 @@ func _normalize_state():
 		var clean_events = []
 		for event in state.report_events:
 			if typeof(event) == TYPE_DICTIONARY and _is_important_report_event(event.get("message", "")):
-				clean_events.append(event)
+				var clean_event = event.duplicate(true)
+				clean_event["category"] = get_report_event_category(clean_event.get("message", ""))
+				clean_events.append(clean_event)
 		state["report_events"] = clean_events
 	while state.report_events.size() > 60:
 		state.report_events.pop_front()
