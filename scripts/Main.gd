@@ -910,11 +910,11 @@ func _apply_safe_area_to_floating_controls():
 			help_button.size = icon_size
 			help_button.position = Vector2(right_edge - 162.0, inset.y + 146.0)
 			_apply_font(help_button, 22)
-		# Row two: construction capacity on the left, ranking and reports together on the right.
+		# Swap the day HUD and worker shortcut: workers move to the upper-right; day moves to the left.
 		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
 			construction_capacity_button.custom_minimum_size = Vector2(108, 52)
 			construction_capacity_button.size = Vector2(108, 52)
-			construction_capacity_button.position = Vector2(inset.x + 12.0, inset.y + 82.0)
+			construction_capacity_button.position = Vector2(right_edge - 136.0 - 12.0, inset.y + 16.0)
 			_apply_font(construction_capacity_button, 18)
 		if ranking_button != null and is_instance_valid(ranking_button):
 			ranking_button.custom_minimum_size = icon_size
@@ -946,7 +946,7 @@ func _apply_safe_area_to_floating_controls():
 		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
 			construction_capacity_button.custom_minimum_size = Vector2(108, 54)
 			construction_capacity_button.size = Vector2(108, 54)
-			construction_capacity_button.position = Vector2(inset.x + 16.0, inset.y + 88.0)
+			construction_capacity_button.position = Vector2(right_edge - 152.0 - 12.0, inset.y + 18.0)
 			_apply_font(construction_capacity_button, 18)
 		if ranking_button != null and is_instance_valid(ranking_button):
 			ranking_button.custom_minimum_size = Vector2(56, 56)
@@ -968,9 +968,9 @@ func _apply_safe_area_to_floating_controls():
 		day_night_hud.anchor_top = 0.0
 		day_night_hud.anchor_bottom = 0.0
 		if ultra_narrow:
-			day_night_hud.position = Vector2(inset.x + 12.0, inset.y + 198.0)
+			day_night_hud.position = Vector2(inset.x + 12.0, inset.y + 82.0)
 		else:
-			day_night_hud.position = Vector2(right_edge - hud_width - 12.0, inset.y + 16.0)
+			day_night_hud.position = Vector2(inset.x + 12.0, inset.y + 82.0)
 		day_night_hud.custom_minimum_size = Vector2(hud_width, 52.0 if narrow else 56.0)
 		day_night_hud.size = Vector2(hud_width, 52.0 if narrow else 56.0)
 		if day_night_icon_label != null and is_instance_valid(day_night_icon_label):
