@@ -150,6 +150,11 @@ func _run_tests():
 		assert(map_canvas.find_child("DistrictTile_" + first_district_id, true, false) is PanelContainer, "Generated district tile is missing from the city map")
 		main.select_map_district(first_district_id)
 		assert(main.content.find_child("SelectedDistrictDetails", true, false) is PanelContainer, "Selecting a map district must show its details")
+		var building_dot = map_canvas.find_child("BuildingDot_building_0", true, false)
+		assert(building_dot is Button, "Individual building point is missing from the city map")
+		building_dot.emit_signal("pressed")
+		assert(main.content.find_child("SelectedMapBuildingDetails", true, false) is PanelContainer, "Tapping a building point must show its details")
+		assert(main.selected_map_building_data.get("building_id", "") == "small_house", "Building point selected the wrong building")
 	main.show_page("home")
 	main.home_city_details_expanded = true
 	main.show_page("home")
