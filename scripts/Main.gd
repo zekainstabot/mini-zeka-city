@@ -1460,12 +1460,28 @@ func _build_ui():
 	menu_card_style.shadow_size = 18
 	menu_card.add_theme_stylebox_override("panel", menu_card_style)
 	menu_center.add_child(menu_card)
+	var menu_header = HBoxContainer.new()
+	menu_header.name = "MenuHeader"
+	menu_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	menu_header.add_theme_constant_override("separation", 8)
+	menu_card.add_child(menu_header)
 	var menu_heading = Label.new()
 	menu_heading.text = PersianText.reshaper("منوی بازی")
 	menu_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	menu_heading.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	menu_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_font(menu_heading, 23 if compact_layout else 21)
 	menu_heading.add_theme_color_override("font_color", Color("#f8fafc"))
-	menu_card.add_child(menu_heading)
+	menu_header.add_child(menu_heading)
+	var menu_close_button = Button.new()
+	menu_close_button.name = "MenuCloseButton"
+	menu_close_button.text = "✕"
+	menu_close_button.tooltip_text = "بستن منو"
+	menu_close_button.custom_minimum_size = Vector2(48, 46)
+	_apply_font(menu_close_button, 24)
+	_style_button(menu_close_button, false)
+	menu_close_button.pressed.connect(_close_game_menu)
+	menu_header.add_child(menu_close_button)
 	var menu_scroll = ScrollContainer.new()
 	menu_scroll.name = "PhoneMenuScroll"
 	menu_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1514,7 +1530,7 @@ func _build_ui():
 	var menu_divider = HSeparator.new()
 	menu_panel.add_child(menu_divider)
 	menu_pause_button = _create_menu_action("⏸ توقف بازی", "toggle_pause")
-	_create_menu_action("✕ بستن منو", "_close_game_menu")
+	# The menu is closed from the X button in the card header.
 	menu_button.connect("pressed", Callable(self, "_toggle_game_menu"))
 	restart_confirm_panel = VBoxContainer.new()
 	restart_confirm_panel.visible = false
