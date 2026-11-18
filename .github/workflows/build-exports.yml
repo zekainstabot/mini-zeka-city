@@ -172,6 +172,7 @@ jobs:
           JS
 
       - name: Archive browser RTL screenshot
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: mini-zeka-city-web-rtl-screenshot
@@ -188,6 +189,7 @@ jobs:
           commit_message: "Deploy Mini ZekaCity web build: ${{ github.sha }}"
 
       - name: Archive validated browser build
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: mini-zeka-city-web-build
@@ -352,6 +354,7 @@ jobs:
 
       - name: Archive signed Android Release APK
         if: steps.android_release.outputs.release_ready == 'true'
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: mini-zeka-city-android-release-apk
@@ -359,6 +362,7 @@ jobs:
           retention-days: 30
       - name: Preserve migration diagnostics
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: godot4-migration-diagnostics
