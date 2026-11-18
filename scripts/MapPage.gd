@@ -491,7 +491,7 @@ static func _make_vertical_road():
 	cross_section.add_child(_make_sidewalk(true))
 	var crossing = _make_crosswalk(true)
 	crossing.name = "RoadCrosswalkVertical"
-	road.add_child(crossing)
+	lane.add_child(crossing)
 	return road
 
 
@@ -520,7 +520,7 @@ static func _make_horizontal_road():
 	cross_section.add_child(_make_sidewalk(false))
 	var crossing = _make_crosswalk(false)
 	crossing.name = "RoadCrosswalkHorizontal"
-	road.add_child(crossing)
+	lane.add_child(crossing)
 	return road
 
 
