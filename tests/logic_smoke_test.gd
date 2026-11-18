@@ -15,6 +15,22 @@ func _init():
 	assert(PersianTextScript.reshaper("بازی Godot").find("Godot") >= 0)
 	assert(PersianTextScript.reshaper("دانلود YouTube").find("YouTube") >= 0)
 
+	# A partial daily loan installment must reduce principal without consuming a full repayment day.
+	var partial_loan_game = EngineScript.new()
+	partial_loan_game.new_game()
+	partial_loan_game.state.money = 100
+	partial_loan_game.state.bank_loans = [{
+		"id":1,"principal":1000,"interest":0,"total_due":1000,
+		"remaining":1000,"daily_installment":500,"duration":2,
+		"days_left":2,"status":"active","missed_days":0
+	}]
+	var partial_loan_report = []
+	partial_loan_game._process_bank_day(partial_loan_report)
+	assert(int(partial_loan_game.state.bank_loans[0].remaining) == 900)
+	assert(int(partial_loan_game.state.bank_loans[0].days_left) == 3)
+	assert(int(partial_loan_game.state.bank_loans[0].missed_days) == 1)
+	assert(str(partial_loan_report[0]).contains("پرداخت ناقص"))
+
 	# No more than two construction projects may run at the same time.
 	var construction_limit_game = EngineScript.new()
 	construction_limit_game.new_game()
