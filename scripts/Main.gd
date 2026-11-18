@@ -997,7 +997,8 @@ func _apply_responsive_layout():
 		main_navigation_grid.visible = false
 	# The five-item dock is the primary navigation on every screen size.
 	if bottom_navigation_bar != null and is_instance_valid(bottom_navigation_bar):
-		bottom_navigation_bar.custom_minimum_size.y = 82 if compact else 88
+		# Give the five primary touch targets more height on phones.
+		bottom_navigation_bar.custom_minimum_size.y = 100 if compact else 106
 	if main_navigation_grid != null and is_instance_valid(main_navigation_grid):
 		# Keep three columns on wider landscape phones so navigation does not
 		# consume most of the short screen; use two on portrait phones.
@@ -1186,15 +1187,15 @@ func _create_bottom_navigation(parent: VBoxContainer, compact_layout: bool):
 		var button = Button.new()
 		button.name = "BottomNav_" + str(entry.id)
 		button.text = str(entry.icon) + "\n" + str(entry.label)
-		button.custom_minimum_size = Vector2(0, 70 if compact_layout else 76)
+		button.custom_minimum_size = Vector2(0, 88 if compact_layout else 94)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.size_flags_stretch_ratio = 1.0
 		button.alignment = HORIZONTAL_ALIGNMENT_CENTER
-		button.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
-		button.autowrap_mode = TextServer.AUTOWRAP_OFF
+		button.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		button.add_theme_color_override("font_color", Color("#e5edf5"))
 		button.add_theme_color_override("font_hover_color", Color("#ffffff"))
-		_apply_font(button, 15 if compact_layout else 16)
+		_apply_font(button, 17 if compact_layout else 18)
 		button.flat = true
 		var target_page = str(entry.page)
 		button.pressed.connect(func():
@@ -1236,8 +1237,8 @@ func _update_bottom_navigation():
 		button.add_theme_stylebox_override("pressed", hover)
 		button.add_theme_color_override("font_color", Color("#ffffff") if selected else Color("#e5edf5"))
 		button.scale = Vector2(1.0, 1.0)
-		if selected:
-			button.custom_minimum_size.y = 78 if bottom_navigation_bar != null and get_viewport_rect().size.x < 900.0 else 84
+		# Keep every tab equally large; the active tab is highlighted by color only.
+		button.custom_minimum_size.y = 88 if bottom_navigation_bar != null and get_viewport_rect().size.x < 900.0 else 94
 
 
 func _build_ui():
