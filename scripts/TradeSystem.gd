@@ -18,8 +18,13 @@ static func _settle_trade(engine, resource_id, amount, money_delta, inventory_de
 		if not engine._spend_money(-money_change):
 			return {"ok":false,"message":"پول آزاد کافی نیست."}
 	elif money_change > 0:
+		# Check the full amount before mutating the treasury. _add_money accepts
+		# partial deposits, which would otherwise leave money behind on failure.
+		var treasury_room = max(0, engine.get_treasury_capacity() - int(state.money))
+		if treasury_room < money_change:
+			return {"ok":false,"message":"ظرفیت خزانه برای دریافت درآمد کافی نیست."}
 		var accepted = engine._add_money(money_change)
-		if accepted < money_change:
+		if accepted != money_change:
 			return {"ok":false,"message":"ظرفیت خزانه برای دریافت درآمد کافی نیست."}
 	state.resources[resource_id] = next_inventory
 	state.market_stock[resource_id] = next_market
