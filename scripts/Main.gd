@@ -1365,7 +1365,8 @@ func _build_ui():
 	add_child(menu_layer)
 	menu_overlay = ColorRect.new()
 	menu_overlay.name = "GameMenuBackdrop"
-	menu_overlay.color = Color(0.015, 0.035, 0.065, 0.82)
+	# Keep the modal fully opaque so city labels never bleed through button gaps.
+	menu_overlay.color = Color("#071522")
 	menu_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	menu_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	menu_overlay.visible = false
@@ -1491,6 +1492,7 @@ func _build_ui():
 	]
 	for menu_item in settings_items:
 		var section_button = Button.new()
+		section_button.name = "MenuAction_" + str(menu_item.action)
 		section_button.text = PersianText.reshaper(str(menu_item.t))
 		section_button.custom_minimum_size = Vector2(0, 52 if compact_layout else 48)
 		section_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1498,10 +1500,14 @@ func _build_ui():
 		_style_button(section_button, true)
 		var action_name = str(menu_item.action)
 		section_button.pressed.connect(func():
-			_close_game_menu()
 			if action_name == "open_help":
+				_close_game_menu()
 				_open_help()
+			elif action_name == "confirm_restart_from_menu":
+				# Keep the menu visible while the restart confirmation is shown.
+				confirm_restart_from_menu()
 			else:
+				_close_game_menu()
 				call(action_name)
 		)
 		menu_panel.add_child(section_button)
@@ -1514,6 +1520,8 @@ func _build_ui():
 	restart_confirm_panel.visible = false
 	restart_confirm_panel.add_theme_constant_override("separation", 8)
 	menu_panel.add_child(restart_confirm_panel)
+	# Place the confirmation directly below the restart action, not after the menu footer.
+	menu_panel.move_child(restart_confirm_panel, 6)
 	var restart_confirm_text = Label.new()
 	restart_confirm_text.text = PersianText.reshaper("⚠️ شروع دوباره شهر؟\nتمام پیشرفت فعلی این شهر پاک می‌شود و یک شهر تازه ساخته خواهد شد.")
 	restart_confirm_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -2500,8 +2508,11 @@ func save_from_menu():
 		menu_overlay.visible = false
 
 func confirm_restart_from_menu():
-	if restart_confirm_panel != null:
+	if restart_confirm_panel != null and is_instance_valid(restart_confirm_panel):
 		restart_confirm_panel.visible = true
+		var menu_scroll = menu_panel.get_parent() if menu_panel != null else null
+		if menu_scroll is ScrollContainer:
+			menu_scroll.call_deferred("ensure_control_visible", restart_confirm_panel)
 
 func _cancel_restart():
 	if restart_confirm_panel != null:
