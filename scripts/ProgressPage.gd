@@ -81,13 +81,3 @@ static func build(owner, s):
 	owner._add_label("📊 رکوردهای ثبت‌شده شهر",19)
 	owner._add_label("بیشترین جمعیت ثبت‌شده: %d نفر\nبیشترین موجودی خزانه: %d سکه" % [int(records.get("peak_population",0)),int(records.get("peak_money",0))],16)
 	owner._add_label("بالاترین سطح شهر: %d\nبیشترین رضایت ثبت‌شده: %d از ۱۰۰\nبیشترین تعداد ساختمان: %d" % [int(records.get("peak_level",1)),int(records.get("peak_satisfaction",0)),int(records.get("most_buildings",0))],16)
-	var achievement_list = game.get_achievements()
-	var unlocked_achievements = 0
-	for achievement in achievement_list:
-		if bool(achievement.unlocked):
-			unlocked_achievements += 1
-	owner._add_label("افتخارات به‌دست‌آمده: %d از %d" % [unlocked_achievements,achievement_list.size()],17)
-	for achievement in achievement_list:
-		var achievement_status = "🏅 بازشده" if bool(achievement.unlocked) else "🔒 هنوز باز نشده"
-		owner._add_label(achievement_status+" | "+str(achievement.title),18)
-		owner._add_label(str(achievement.description),15)
