@@ -75,6 +75,7 @@ jobs:
 
       - name: Preserve conversion diagnostics
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: godot4-conversion-diagnostics
