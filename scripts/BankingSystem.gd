@@ -61,7 +61,13 @@ static func repay_bank_loan_manual(engine, loan_index):
 		return {"ok":false,"message":"برای پرداخت قسط، موجودی آزاد خزانه کافی نیست."}
 	engine._spend_money(payment)
 	loan["remaining"] = int(loan.get("remaining",0)) - payment
-	loan["days_left"] = max(0,int(loan.get("days_left",0))-1)
+	if payment >= due:
+		loan["days_left"] = max(0,int(loan.get("days_left",0))-1)
+		loan["missed_days"] = 0
+	else:
+		# A partial installment reduces principal but does not consume a full repayment day.
+		loan["days_left"] = int(loan.get("days_left",0)) + 1
+		loan["missed_days"] = int(loan.get("missed_days",0)) + 1
 	loan["last_manual_payment_day"] = int(state.get("day",1))
 	if int(loan.get("remaining",0)) <= 0:
 		loan["status"] = "paid"
@@ -142,13 +148,20 @@ static func _process_bank_day(engine, report):
 		if payment > 0:
 			engine._spend_money(payment)
 			loan["remaining"] = int(loan.get("remaining",0)) - payment
-			loan["days_left"] = max(0,int(loan.get("days_left",0))-1)
-			loan["missed_days"] = 0
+			if payment >= due:
+				loan["days_left"] = max(0,int(loan.get("days_left",0))-1)
+				loan["missed_days"] = 0
+			else:
+				# Extend the schedule when only part of today's installment can be paid.
+				loan["days_left"] = int(loan.get("days_left",0)) + 1
+				loan["missed_days"] = int(loan.get("missed_days",0)) + 1
 			total_paid += payment
 			engine._record_bank_transaction( "repayment",payment,"قسط روزانه وام شماره %d" % int(loan.get("id",index+1)))
 			if int(loan.remaining) <= 0:
 				loan["status"] = "paid"
 				report.append("وام شماره %d به‌طور کامل تسویه شد." % int(loan.get("id",index+1)))
+			elif payment < due:
+				report.append("پرداخت ناقص قسط: %d از %d سکه؛ سررسید یک روز تمدید شد." % [payment,due])
 			else:
 				report.append("قسط وام: %d سکه؛ مانده بدهی: %d سکه." % [payment,int(loan.remaining)])
 		else:
