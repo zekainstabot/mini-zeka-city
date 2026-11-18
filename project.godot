@@ -7,6 +7,8 @@ config_version=4
 config/name="Mini ZekaCity"
 run/main_scene="res://Main.tscn"
 config/icon=""
+boot_splash/show_image=false
+boot_splash/bg_color=Color(0.062745, 0.094118, 0.152941, 1)
 
 [display]
 window/size/width=720
