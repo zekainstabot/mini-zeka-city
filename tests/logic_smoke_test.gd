@@ -606,5 +606,39 @@ func _init():
 	assert(valid_contract_report.size() == 1)
 	assert(str(valid_contract_report[0]).find("ارسال شد") >= 0)
 
+	# Food shortages must affect the city's food index and citizen satisfaction.
+	var food_shortage_game = EngineScript.new()
+	food_shortage_game.new_game()
+	food_shortage_game.state.population = 2
+	food_shortage_game.state.citizens = [
+		{"id":1,"wallet":100,"savings":0},
+		{"id":2,"wallet":100,"savings":0}
+	]
+	food_shortage_game.state.needs.food = 60
+	food_shortage_game.state.satisfaction = 70
+	food_shortage_game.state.resources.food = 1
+	food_shortage_game.state.buildings.append({"id":"grocery_store","workers":0,"balance":0})
+	food_shortage_game.assign_jobs()
+	var shortage_report = []
+	var shortage_result = food_shortage_game._process_citizen_purchases(shortage_report)
+	assert(int(shortage_result.food_demand) == 2)
+	assert(int(shortage_result.food_units) == 1)
+	assert(int(shortage_result.food_shortage) == 1)
+	assert(int(food_shortage_game.state.needs.food) < 60)
+	assert(int(food_shortage_game.state.satisfaction) < 70)
+	assert(not shortage_report.is_empty())
+
+	# Even with food in storage, having no staffed food shop leaves citizens underserved.
+	var no_food_shop_game = EngineScript.new()
+	no_food_shop_game.new_game()
+	no_food_shop_game.state.needs.food = 60
+	no_food_shop_game.state.resources.food = 5
+	var no_food_shop_report = []
+	var no_food_shop_result = no_food_shop_game._process_citizen_purchases(no_food_shop_report)
+	assert(int(no_food_shop_result.food_units) == 0)
+	assert(int(no_food_shop_result.food_shortage) == int(no_food_shop_result.food_demand))
+	assert(int(no_food_shop_game.state.needs.food) < 60)
+	assert(int(no_food_shop_game.state.resources.food) == 5)
+
 	print("Mini ZekaCity logic smoke tests passed.")
 	quit()
