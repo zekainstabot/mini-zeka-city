@@ -56,6 +56,7 @@ static func build(owner, city_state):
 				map_body.add_child(_make_horizontal_road())
 
 		_add_map_legend(owner, map_body)
+	_add_street_furniture(owner, map_body)
 
 	_add_industrial_zone(owner, map_body, industrial)
 
@@ -370,6 +371,37 @@ static func _add_legend_item(owner, parent, hex_color, label_text):
 	row.add_child(label)
 
 
+
+static func _add_street_furniture(owner, parent):
+	var strip = PanelContainer.new()
+	strip.name = "CityStreetFurniture"
+	strip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	strip.add_theme_stylebox_override("panel", _road_style("#203b3b", "#41615b", 8))
+	parent.add_child(strip)
+	var row = HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 12)
+	strip.add_child(row)
+	_add_street_item(owner, row, "🌳", "درختان خیابانی", "#86c98b")
+	_add_street_item(owner, row, "🚦", "چراغ راهنمایی", "#fbbf24")
+	_add_street_item(owner, row, "🚶", "پیاده‌رو", "#cbd5e1")
+
+
+static func _add_street_item(owner, parent, symbol, title_text, tint):
+	var item = HBoxContainer.new()
+	item.add_theme_constant_override("separation", 3)
+	parent.add_child(item)
+	var icon = Label.new()
+	icon.text = symbol
+	owner._apply_font(icon, 13)
+	icon.add_theme_color_override("font_color", Color(tint))
+	item.add_child(icon)
+	var label = Label.new()
+	label.text = owner.PersianText.reshaper(title_text)
+	owner._apply_font(label, 9)
+	label.add_theme_color_override("font_color", Color("#dbe7e4"))
+	item.add_child(label)
+
 static func _add_industrial_zone(owner, parent, industrial):
 	var zone = PanelContainer.new()
 	zone.name = "IndustrialMapZone"
@@ -435,31 +467,103 @@ static func _add_empty_city(owner, parent):
 
 
 static func _make_vertical_road():
-	var road = ColorRect.new()
-	road.color = Color("#53636a")
-	road.custom_minimum_size = Vector2(13, 90)
+	var road = PanelContainer.new()
+	road.name = "CityRoadVertical"
+	road.custom_minimum_size = Vector2(34, 90)
 	road.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	road.add_theme_stylebox_override("panel", _road_style("#34434c", "#81909a", 2))
+	var cross_section = HBoxContainer.new()
+	cross_section.add_theme_constant_override("separation", 0)
+	road.add_child(cross_section)
+	cross_section.add_child(_make_sidewalk(true))
+	var lane = VBoxContainer.new()
+	lane.name = "RoadLaneVertical"
+	lane.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lane.add_theme_constant_override("separation", 5)
+	lane.alignment = BoxContainer.ALIGNMENT_CENTER
+	cross_section.add_child(lane)
+	for i in range(5):
+		var dash = ColorRect.new()
+		dash.color = Color("#e6c96f")
+		dash.custom_minimum_size = Vector2(2, 9)
+		dash.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		lane.add_child(dash)
+	cross_section.add_child(_make_sidewalk(true))
+	var crossing = _make_crosswalk(true)
+	crossing.name = "RoadCrosswalkVertical"
+	road.add_child(crossing)
 	return road
 
 
 static func _make_horizontal_road():
 	var road = PanelContainer.new()
+	road.name = "CityRoadHorizontal"
 	road.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	road.custom_minimum_size.y = 13
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color("#53636a")
-	road.add_theme_stylebox_override("panel", style)
+	road.custom_minimum_size.y = 34
+	road.add_theme_stylebox_override("panel", _road_style("#34434c", "#81909a", 2))
+	var cross_section = VBoxContainer.new()
+	cross_section.add_theme_constant_override("separation", 0)
+	road.add_child(cross_section)
+	cross_section.add_child(_make_sidewalk(false))
 	var lane = HBoxContainer.new()
+	lane.name = "RoadLaneHorizontal"
+	lane.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	lane.add_theme_constant_override("separation", 8)
 	lane.alignment = BoxContainer.ALIGNMENT_CENTER
-	lane.add_theme_constant_override("separation", 12)
-	road.add_child(lane)
-	for i in range(8):
+	cross_section.add_child(lane)
+	for i in range(9):
 		var dash = ColorRect.new()
-		dash.color = Color("#e5cf83")
-		dash.custom_minimum_size = Vector2(12, 2)
+		dash.color = Color("#e6c96f")
+		dash.custom_minimum_size = Vector2(10, 2)
 		dash.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		lane.add_child(dash)
+	cross_section.add_child(_make_sidewalk(false))
+	var crossing = _make_crosswalk(false)
+	crossing.name = "RoadCrosswalkHorizontal"
+	road.add_child(crossing)
 	return road
+
+
+static func _road_style(fill_color, border_color, radius):
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(fill_color)
+	style.border_color = Color(border_color)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(radius)
+	style.content_margin_left = 2
+	style.content_margin_right = 2
+	style.content_margin_top = 2
+	style.content_margin_bottom = 2
+	return style
+
+
+static func _make_sidewalk(vertical):
+	var sidewalk = ColorRect.new()
+	sidewalk.color = Color("#9aa5a8")
+	if vertical:
+		sidewalk.custom_minimum_size.x = 5
+		sidewalk.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	else:
+		sidewalk.custom_minimum_size.y = 5
+		sidewalk.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return sidewalk
+
+
+static func _make_crosswalk(vertical):
+	var crossing = HBoxContainer.new() if vertical else VBoxContainer.new()
+	crossing.name = "RoadCrosswalk"
+	crossing.alignment = BoxContainer.ALIGNMENT_CENTER
+	crossing.add_theme_constant_override("separation", 3)
+	crossing.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for i in range(5):
+		var stripe = ColorRect.new()
+		stripe.color = Color("#e8edf0")
+		if vertical:
+			stripe.custom_minimum_size = Vector2(3, 10)
+		else:
+			stripe.custom_minimum_size = Vector2(10, 3)
+		crossing.add_child(stripe)
+	return crossing
 
 
 static func _make_expansion_plot(owner):
