@@ -1013,7 +1013,7 @@ func _apply_responsive_layout():
 	# The five-item dock is the primary navigation on every screen size.
 	if bottom_navigation_bar != null and is_instance_valid(bottom_navigation_bar):
 		# Give the five primary touch targets more height on phones.
-		bottom_navigation_bar.custom_minimum_size.y = 124 if compact else 130
+		bottom_navigation_bar.custom_minimum_size.y = 178 if compact else 186
 	if main_navigation_grid != null and is_instance_valid(main_navigation_grid):
 		# Keep three columns on wider landscape phones so navigation does not
 		# consume most of the short screen; use two on portrait phones.
@@ -1174,15 +1174,15 @@ func _create_bottom_navigation(parent: VBoxContainer, compact_layout: bool):
 	bottom_navigation_bar = PanelContainer.new()
 	bottom_navigation_bar.name = "BottomNavigationBar"
 	bottom_navigation_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bottom_navigation_bar.custom_minimum_size = Vector2(0, 158 if compact_layout else 166)
+	bottom_navigation_bar.custom_minimum_size = Vector2(0, 178 if compact_layout else 186)
 	var dock_style = StyleBoxFlat.new()
 	dock_style.bg_color = Color("#34485b")
 	dock_style.border_color = Color("#8297a8")
 	dock_style.border_width_top = 1
 	dock_style.content_margin_left = 4
 	dock_style.content_margin_right = 4
-	dock_style.content_margin_top = 7
-	dock_style.content_margin_bottom = 6
+	dock_style.content_margin_top = 9
+	dock_style.content_margin_bottom = 8
 	bottom_navigation_bar.add_theme_stylebox_override("panel", dock_style)
 	parent.add_child(bottom_navigation_bar)
 
@@ -1203,14 +1203,14 @@ func _create_bottom_navigation(parent: VBoxContainer, compact_layout: bool):
 		button.name = "BottomNav_" + str(entry.id)
 		button.text = str(entry.icon) + "\n" + str(entry.label)
 		button.text_direction = Control.TEXT_DIRECTION_RTL if LanguageManager.is_rtl(ui_language) else Control.TEXT_DIRECTION_LTR
-		button.custom_minimum_size = Vector2(0, 150 if compact_layout else 158)
+		button.custom_minimum_size = Vector2(0, 168 if compact_layout else 176)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.size_flags_stretch_ratio = 1.0
 		button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		button.add_theme_color_override("font_color", Color("#e5edf5"))
 		button.add_theme_color_override("font_hover_color", Color("#ffffff"))
-		_apply_font(button, 23 if compact_layout else 24)
+		_apply_font(button, 25 if compact_layout else 27)
 		button.flat = true
 		var target_page = str(entry.page)
 		button.pressed.connect(func():
@@ -1240,7 +1240,7 @@ func _update_bottom_navigation():
 		var style = StyleBoxFlat.new()
 		style.bg_color = Color("#17159a") if selected else Color(0, 0, 0, 0)
 		style.set_corner_radius_all(20 if selected else 8)
-		style.content_margin_top = 14 if selected else 11
+		style.content_margin_top = 16 if selected else 13
 		style.content_margin_bottom = 7
 		style.content_margin_left = 2
 		style.content_margin_right = 2
@@ -1253,7 +1253,7 @@ func _update_bottom_navigation():
 		button.add_theme_color_override("font_color", Color("#ffffff") if selected else Color("#e5edf5"))
 		button.scale = Vector2(1.0, 1.0)
 		# Keep every tab equally large; the active tab is highlighted by color only.
-		button.custom_minimum_size.y = 150 if bottom_navigation_bar != null and get_viewport_rect().size.x < 900.0 else 158
+		button.custom_minimum_size.y = 168 if bottom_navigation_bar != null and get_viewport_rect().size.x < 900.0 else 176
 
 
 func _build_ui():
