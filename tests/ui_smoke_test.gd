@@ -93,7 +93,7 @@ func _run_tests():
 	main._apply_responsive_layout()
 	await process_frame
 	# Settings menu must fully cover the city and keep restart confirmation inside the modal.
-	assert(is_equal_approx(main.menu_overlay.color.a, 1.0), "Settings menu backdrop must be opaque")
+	assert(main.menu_overlay.color.a >= 0.70 and main.menu_overlay.color.a < 1.0, "Settings menu backdrop must dim the city while preserving its translucent glass style")
 	main._toggle_game_menu()
 	assert(main.menu_overlay.visible and main.menu_panel.visible, "Settings menu did not open")
 	var menu_close = main.menu_overlay.find_child("MenuCloseButton", true, false)
