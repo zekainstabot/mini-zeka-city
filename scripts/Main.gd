@@ -1372,8 +1372,8 @@ func _build_ui():
 	add_child(menu_layer)
 	menu_overlay = ColorRect.new()
 	menu_overlay.name = "GameMenuBackdrop"
-	# Keep the modal fully opaque so city labels never bleed through button gaps.
-	menu_overlay.color = Color("#071522")
+	# A dim translucent backdrop gives the menu a frosted-glass feel.
+	menu_overlay.color = Color(0.025, 0.055, 0.09, 0.72)
 	menu_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	menu_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	menu_overlay.visible = false
@@ -1455,9 +1455,10 @@ func _build_ui():
 	menu_card.custom_minimum_size = Vector2(min(440.0, initial_viewport_size.x - menu_initial_safe.x - menu_initial_safe.z - 32.0), 0)
 	menu_card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	var menu_card_style = StyleBoxFlat.new()
-	menu_card_style.bg_color = Color("#101f32")
-	menu_card_style.border_color = Color("#38bdf8")
-	menu_card_style.set_border_width_all(2)
+	# Frosted-glass style: translucent deep-blue surface, soft edge, and restrained highlight.
+	menu_card_style.bg_color = Color(0.055, 0.12, 0.19, 0.84)
+	menu_card_style.border_color = Color(0.45, 0.78, 0.91, 0.42)
+	menu_card_style.set_border_width_all(1)
 	menu_card_style.set_corner_radius_all(20)
 	menu_card_style.content_margin_left = 18
 	menu_card_style.content_margin_right = 18
@@ -1484,9 +1485,21 @@ func _build_ui():
 	menu_close_button.name = "MenuCloseButton"
 	menu_close_button.text = "✕"
 	menu_close_button.tooltip_text = "بستن منو"
-	menu_close_button.custom_minimum_size = Vector2(48, 46)
-	_apply_font(menu_close_button, 24)
-	_style_button(menu_close_button, false)
+	menu_close_button.custom_minimum_size = Vector2(52, 50)
+	menu_close_button.size_flags_horizontal = Control.SIZE_SHRINK_END
+	menu_close_button.focus_mode = Control.FOCUS_NONE
+	_apply_font(menu_close_button, 27)
+	var menu_close_style = StyleBoxFlat.new()
+	menu_close_style.bg_color = Color(0.72, 0.20, 0.22, 0.82)
+	menu_close_style.border_color = Color(1.0, 0.68, 0.66, 0.72)
+	menu_close_style.set_border_width_all(1)
+	menu_close_style.set_corner_radius_all(16)
+	menu_close_button.add_theme_stylebox_override("normal", menu_close_style)
+	var menu_close_hover = menu_close_style.duplicate()
+	menu_close_hover.bg_color = Color(0.88, 0.25, 0.27, 0.96)
+	menu_close_button.add_theme_stylebox_override("hover", menu_close_hover)
+	menu_close_button.add_theme_color_override("font_color", Color("#ffffff"))
+	menu_close_button.add_theme_color_override("font_hover_color", Color("#ffffff"))
 	menu_close_button.pressed.connect(_close_game_menu)
 	menu_header.add_child(menu_close_button)
 	var menu_scroll = ScrollContainer.new()
@@ -1529,7 +1542,12 @@ func _build_ui():
 			# Bind each action as an immutable signal argument.
 			section_button.pressed.connect(_on_settings_menu_action.bind(action_name))
 		menu_panel.add_child(section_button)
-	var menu_divider = HSeparator.new()
+	# Replace the default bright separator with a subtle glass-like accent line.
+	var menu_divider = ColorRect.new()
+	menu_divider.name = "MenuSoftDivider"
+	menu_divider.custom_minimum_size = Vector2(0, 1)
+	menu_divider.color = Color(0.55, 0.78, 0.91, 0.22)
+	menu_divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	menu_panel.add_child(menu_divider)
 	menu_pause_button = _create_menu_action("⏸ توقف بازی", "toggle_pause")
 	# The menu is closed from the X button in the card header.
