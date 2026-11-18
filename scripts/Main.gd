@@ -880,7 +880,7 @@ func _apply_safe_area_to_floating_controls():
 	var right_edge = viewport_size.x - inset.z
 	if narrow:
 		var icon_size = Vector2(46, 46)
-		# Left rail: calendar, menu, and help.
+		# Row one: daily reward, menu and help on the left; day/night HUD on the right.
 		if daily_reward_button != null and is_instance_valid(daily_reward_button):
 			daily_reward_button.custom_minimum_size = icon_size
 			daily_reward_button.size = icon_size
@@ -889,30 +889,31 @@ func _apply_safe_area_to_floating_controls():
 		if menu_button != null and is_instance_valid(menu_button):
 			menu_button.custom_minimum_size = icon_size
 			menu_button.size = icon_size
-			menu_button.position = Vector2(inset.x + 72.0, inset.y + 16.0)
+			menu_button.position = Vector2(inset.x + 66.0, inset.y + 16.0)
 			_apply_font(menu_button, 20)
 		if help_button != null and is_instance_valid(help_button):
 			help_button.custom_minimum_size = icon_size
 			help_button.size = icon_size
-			help_button.position = Vector2(inset.x + 12.0, inset.y + 90.0)
+			help_button.position = Vector2(inset.x + 120.0, inset.y + 16.0)
 			_apply_font(help_button, 20)
-		# Right rail: rankings and reports, kept clear of the clock.
+		# Row two: construction capacity on the left, ranking and reports together on the right.
+		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
+			construction_capacity_button.custom_minimum_size = Vector2(100, 50)
+			construction_capacity_button.size = Vector2(100, 50)
+			construction_capacity_button.position = Vector2(inset.x + 12.0, inset.y + 82.0)
+			_apply_font(construction_capacity_button, 17)
 		if ranking_button != null and is_instance_valid(ranking_button):
 			ranking_button.custom_minimum_size = icon_size
 			ranking_button.size = icon_size
-			ranking_button.position = Vector2(right_edge - 58.0, inset.y + 98.0)
+			ranking_button.position = Vector2(right_edge - 108.0, inset.y + 84.0)
 			_apply_font(ranking_button, 19)
 		if report_button != null and is_instance_valid(report_button):
 			report_button.custom_minimum_size = icon_size
 			report_button.size = icon_size
-			report_button.position = Vector2(right_edge - 58.0, inset.y + 166.0)
+			report_button.position = Vector2(right_edge - 54.0, inset.y + 84.0)
 			_apply_font(report_button, 25)
-		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
-			construction_capacity_button.custom_minimum_size = Vector2(100, 50)
-			construction_capacity_button.size = Vector2(100, 50)
-			construction_capacity_button.position = Vector2(inset.x + 12.0, inset.y + 148.0)
-			_apply_font(construction_capacity_button, 17)
 	else:
+		# Keep the same two-row visual rhythm on tablets and desktop-sized windows.
 		if daily_reward_button != null and is_instance_valid(daily_reward_button):
 			daily_reward_button.custom_minimum_size = Vector2(56, 54)
 			daily_reward_button.size = Vector2(56, 54)
@@ -928,21 +929,21 @@ func _apply_safe_area_to_floating_controls():
 			help_button.size = Vector2(50, 50)
 			help_button.position = Vector2(inset.x + 148.0, inset.y + 20.0)
 			_apply_font(help_button, 22)
+		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
+			construction_capacity_button.custom_minimum_size = Vector2(100, 50)
+			construction_capacity_button.size = Vector2(100, 50)
+			construction_capacity_button.position = Vector2(inset.x + 16.0, inset.y + 88.0)
+			_apply_font(construction_capacity_button, 17)
 		if ranking_button != null and is_instance_valid(ranking_button):
 			ranking_button.custom_minimum_size = Vector2(50, 50)
 			ranking_button.size = Vector2(50, 50)
-			ranking_button.position = Vector2(right_edge - 50.0, inset.y + 80.0)
+			ranking_button.position = Vector2(right_edge - 108.0, inset.y + 88.0)
 			_apply_font(ranking_button, 21)
 		if report_button != null and is_instance_valid(report_button):
 			report_button.custom_minimum_size = Vector2(50, 50)
 			report_button.size = Vector2(50, 50)
-			report_button.position = Vector2(right_edge - 50.0, inset.y + 138.0)
+			report_button.position = Vector2(right_edge - 52.0, inset.y + 88.0)
 			_apply_font(report_button, 25)
-		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
-			construction_capacity_button.custom_minimum_size = Vector2(100, 50)
-			construction_capacity_button.size = Vector2(100, 50)
-			construction_capacity_button.position = Vector2(inset.x + 16.0, inset.y + 96.0)
-			_apply_font(construction_capacity_button, 17)
 	if day_night_hud != null and is_instance_valid(day_night_hud):
 		# Anchor the clock to the upper-right; reserve a separate right-side
 		# shortcut rail below it on narrow phones.
