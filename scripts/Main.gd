@@ -32,6 +32,7 @@ var last_audio_night_mode = false
 var audio_warning_cooldown = 0.0
 var current_page = "home"
 var selected_map_district_id = ""
+var selected_map_building_data = {}
 var message_label = null
 var content = null
 var header_label = null
@@ -897,12 +898,12 @@ func _apply_safe_area_to_floating_controls():
 		# Row one: menu on the far left, calendar beside it; clock on the right.
 		if daily_reward_button != null and is_instance_valid(daily_reward_button):
 			daily_reward_button.custom_minimum_size = icon_size
-			daily_reward_button.position = Vector2(inset.x + 70.0, inset.y + 16.0)
+			daily_reward_button.position = Vector2(inset.x + 70.0, inset.y + 28.0)
 			daily_reward_button.size = icon_size
 			_apply_font(daily_reward_button, 24)
 		if menu_button != null and is_instance_valid(menu_button):
 			menu_button.custom_minimum_size = icon_size
-			menu_button.position = Vector2(inset.x + 12.0, inset.y + 16.0)
+			menu_button.position = Vector2(inset.x + 12.0, inset.y + 28.0)
 			menu_button.size = icon_size
 			_apply_font(menu_button, 22)
 		if help_button != null and is_instance_valid(help_button):
@@ -3826,4 +3827,16 @@ func save_now():
 
 func select_map_district(district_id):
 	selected_map_district_id = str(district_id)
+	selected_map_building_data = {}
+	show_page("map")
+
+
+func select_map_building(building_data):
+	selected_map_building_data = building_data.duplicate(true) if building_data is Dictionary else {}
+	selected_map_district_id = str(selected_map_building_data.get("district_id", selected_map_district_id))
+	show_page("map")
+
+
+func clear_selected_map_building():
+	selected_map_building_data = {}
 	show_page("map")
