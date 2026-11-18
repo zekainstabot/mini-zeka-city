@@ -874,9 +874,8 @@ func _toggle_commerce_section(section_id):
 	show_page("commerce")
 
 func _show_message(text):
+	# Toasts are temporary feedback, not permanent city-history events.
 	message_label.text = PersianText.reshaper(text)
-	if game != null and str(text).strip_edges() != "" and game.has_method("add_report_event"):
-		game.add_report_event(str(text))
 
 func _show_welcome_mission_hint():
 	# Show the onboarding hint until the first tutorial mission is completed.
