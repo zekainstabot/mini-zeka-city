@@ -8,6 +8,7 @@ var audio_manager = null
 var last_audio_night_mode = false
 var audio_warning_cooldown = 0.0
 var current_page = "home"
+var report_filter_category = "all"
 var message_label = null
 var content = null
 var header_label = null
@@ -1019,6 +1020,11 @@ func _open_missions_from_welcome():
 	if game_scroll_container != null and is_instance_valid(game_scroll_container):
 		game_scroll_container.scroll_vertical = 0
 
+func set_report_filter(index):
+	var filter_ids = ["all","events","citizens","issues","finance","progress","trade"]
+	if index >= 0 and index < filter_ids.size():
+		report_filter_category = filter_ids[index]
+	show_page("report")
 func show_page(page):
 	var civic_page_locked = page in ["municipality", "private_economy"] and not game.has_municipal_hall()
 	if civic_page_locked:
@@ -1677,12 +1683,31 @@ func show_page(page):
 		"report":
 			_add_label("گزارش وقایع شهر", 22)
 			var events = s.get("report_events", [])
-			_add_label("جدیدترین رویدادها بالا نمایش داده می‌شوند | سقف ذخیره: ۱۰۰ پیام | تعداد فعلی: %d" % events.size(), 15)
-			if events.empty():
-				_add_label("هنوز رویدادی ثبت نشده است.", 18)
+			var filter_box = OptionButton.new()
+			filter_box.rect_min_size = Vector2(0, 52 if get_viewport_rect().size.x < 900 else 44)
+			filter_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			_apply_font(filter_box, 18 if get_viewport_rect().size.x < 900 else 16)
+			var filter_ids = ["all","events","citizens","issues","finance","progress","trade"]
+			var filter_titles = ["همه گزارش‌ها","رویدادهای شهر","شهروندان","مشکلات شهر","بانک و امور مالی","پیشرفت شهر","تجارت و محموله‌ها"]
+			for filter_index in range(filter_ids.size()):
+				filter_box.add_item(PersianText.reshaper(filter_titles[filter_index]))
+			filter_box.select(max(0, filter_ids.find(report_filter_category)))
+			filter_box.connect("item_selected", self, "set_report_filter")
+			content.add_child(filter_box)
+			var visible_count = 0
+			for event in events:
+				var category = str(event.get("category", game.get_report_event_category(event.get("message", ""))))
+				if report_filter_category == "all" or category == report_filter_category:
+					visible_count += 1
+			_add_label("جدیدترین گزارش‌ها بالا | ذخیره حداکثر ۶۰ پیام | نمایش %d از %d" % [visible_count, events.size()], 15)
+			if visible_count == 0:
+				_add_label("برای این دسته هنوز گزارشی ثبت نشده است.", 18)
 			else:
 				for event_index in range(events.size() - 1, -1, -1):
 					var event = events[event_index]
+					var category = str(event.get("category", game.get_report_event_category(event.get("message", ""))))
+					if report_filter_category != "all" and category != report_filter_category:
+						continue
 					var stamp = OS.get_datetime_from_unix_time(int(event.get("timestamp", 0)))
 					var time_text = "%02d/%02d - %02d:%02d" % [int(stamp.get("day", 1)), int(stamp.get("month", 1)), int(stamp.get("hour", 0)), int(stamp.get("minute", 0))]
 					_add_label("[%s] روز %d | %s" % [time_text, int(event.get("day", 1)), str(event.get("message", ""))], 17)
