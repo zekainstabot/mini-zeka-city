@@ -913,12 +913,12 @@ func _apply_safe_area_to_floating_controls():
 		if ranking_button != null and is_instance_valid(ranking_button):
 			ranking_button.custom_minimum_size = icon_size
 			ranking_button.size = icon_size
-			ranking_button.position = Vector2(right_edge - 108.0, inset.y + 84.0)
+			ranking_button.position = Vector2(right_edge - 108.0, inset.y + 96.0)
 			_apply_font(ranking_button, 21)
 		if report_button != null and is_instance_valid(report_button):
 			report_button.custom_minimum_size = icon_size
 			report_button.size = icon_size
-			report_button.position = Vector2(right_edge - 54.0, inset.y + 84.0)
+			report_button.position = Vector2(right_edge - 54.0, inset.y + 96.0)
 			_apply_font(report_button, 27)
 	else:
 		# Keep the same two-row visual rhythm on tablets and desktop-sized windows.
