@@ -418,6 +418,10 @@ func get_city_records():
 	return CityProgressSystem.get_city_records(self)
 
 
+func get_populated_district_count():
+	return CityProgressSystem.get_populated_district_count(self)
+
+
 func get_geographic_rank_for_district_count(district_count):
 	return GameRanking.geographic_rank_for_district_count(district_count)
 
@@ -961,6 +965,8 @@ func _add_money(amount):
 		return 0
 	var accepted = min(value, max(0, get_treasury_capacity() - int(state.money)))
 	state.money = int(state.money) + accepted
+	if accepted > 0:
+		_update_achievements()
 	return accepted
 
 func get_transport_truck_count():
