@@ -141,6 +141,10 @@ func _run_tests():
 	# Search from the scene root so nested page layout wrappers are included.
 	var map_canvas = main.find_child("CityMapCanvas", true, false)
 	assert(map_canvas is PanelContainer, "City map canvas is missing from the active scene")
+	assert(map_canvas.find_child("CityRoadVertical", true, false) is PanelContainer, "Vertical city road is missing")
+	assert(map_canvas.find_child("CityRoadHorizontal", true, false) is PanelContainer, "Horizontal city road is missing")
+	assert(map_canvas.find_child("RoadCrosswalkVertical", true, false) is HBoxContainer, "Vertical road crosswalk is missing")
+	assert(map_canvas.find_child("CityStreetFurniture", true, false) is PanelContainer, "Street furniture and green elements are missing")
 	var map_overview = main.game.get_districts_overview()
 	var map_districts = map_overview.get("districts", [])
 	if not map_districts.is_empty():
