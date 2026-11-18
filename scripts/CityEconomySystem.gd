@@ -360,7 +360,7 @@ static func end_day(engine, is_offline=false, persist=true):
 	else:
 		state["high_satisfaction_day_streak"] = 0
 	engine._update_missions()
-	report.append("خلاصه مالی: درآمد ثبت‌شده %d | حقوق %d | نگهداری %d | اقساط شهرداری %d | اقساط شهروندان %d | وام پرداختی به شهروندان %d | تغییر خالص خزانه %d سکه." % [int(state.last_economy.accepted_income), paid_wages, maintenance_paid, bank_repayment_paid, citizen_loan_repayments, citizen_loan_disbursements, int(state.last_economy.net_cashflow)])
+	report.append("خلاصه مالی: درآمد ثبت‌شده %d | حقوق %d | نگهداری %d | اقساط شهرداری %d | اقساط شهروندان %d | وام پرداختی به شهروندان %d | تغییر خالص خزانه %d سکه." % [int(state.last_economy.accepted_income), paid_wages, maintenance_paid, bank_repayment_paid, int(state.last_economy.get("citizen_loan_repayments", 0)), int(state.last_economy.get("citizen_loan_disbursements", 0)), int(state.last_economy.net_cashflow)])
 	for report_message in report:
 		engine.add_report_event(str(report_message), false)
 	state.last_report = "\n".join(report)
