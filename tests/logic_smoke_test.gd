@@ -640,5 +640,36 @@ func _init():
 	assert(int(no_food_shop_game.state.needs.food) < 60)
 	assert(int(no_food_shop_game.state.resources.food) == 5)
 
+	# A missing intermediate input must stop the next production stage and explain why.
+	var chain_game = EngineScript.new()
+	chain_game.new_game()
+	chain_game.state.level = 4
+	chain_game.state.population = 4
+	chain_game.state.resources.wood = 0
+	chain_game.state.buildings.append({"id":"sawmill","workers":0,"balance":0})
+	chain_game.assign_jobs()
+	var chain_report = chain_game.end_day(false, false)
+	var sawmill_shortage_reported = false
+	for entry in chain_report:
+		if str(entry).find("کارخانه الوارسازی متوقف شد") >= 0 and str(entry).find("چوب کافی نیست") >= 0:
+			sawmill_shortage_reported = true
+	assert(sawmill_shortage_reported)
+	assert(int(chain_game.state.resources.lumber) == 0)
+
+	# Provincial trade stock recovers gradually and never exceeds the province's base supply.
+	var province_game = EngineScript.new()
+	province_game.new_game()
+	var province_base_supply = int(province_game.TRADE_CITIES.mehrabad.supply.wood)
+	province_game.state.city_export_stock.mehrabad.wood = 0
+	province_game.state.trade_demand_remaining.mehrabad.wood = 0
+	province_game._refresh_trade_capacity()
+	var province_restocked = int(province_game.state.city_export_stock.mehrabad.wood)
+	assert(province_restocked > 0)
+	assert(province_restocked <= province_base_supply)
+	assert(int(province_game.state.trade_demand_remaining.mehrabad.wood) == int(province_game.TRADE_CITIES.mehrabad.demand.wood))
+	province_game._refresh_trade_capacity()
+	assert(int(province_game.state.city_export_stock.mehrabad.wood) >= province_restocked)
+	assert(int(province_game.state.city_export_stock.mehrabad.wood) <= province_base_supply)
+
 	print("Mini ZekaCity logic smoke tests passed.")
 	quit()
