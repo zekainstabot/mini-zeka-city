@@ -283,19 +283,20 @@ static func trade_with_city(engine, city_id, resource_id, requested_amount):
 static func _refresh_trade_capacity(engine):
 	var state = engine.state
 	for city_id in engine.TRADE_CITIES.keys():
+		state.trade_remaining[city_id] = int(engine.TRADE_CITIES[city_id].daily_capacity)
+		state.trade_demand_remaining[city_id] = engine.TRADE_CITIES[city_id].demand.duplicate(true)
+
+static func restock_provincial_supply(engine):
+	var state = engine.state
+	for city_id in engine.TRADE_CITIES.keys():
 		var city = engine.TRADE_CITIES[city_id]
-		state.trade_remaining[city_id] = int(city.daily_capacity)
-		state.trade_demand_remaining[city_id] = city.demand.duplicate(true)
-		# Provincial suppliers replenish a portion of their base output every day.
-		# Stock is capped at the province's normal supply, so imports can recover
-		# after heavy orders without creating an unlimited source of resources.
-		var province_stock = state.city_export_stock.get(city_id, city.supply.duplicate(true))
+		var city_stock = state.city_export_stock.get(city_id, city.supply.duplicate(true))
 		for resource_id in engine.RESOURCES.keys():
 			var base_supply = max(0, int(city.supply.get(resource_id, 0)))
-			var current_stock = max(0, int(province_stock.get(resource_id, base_supply)))
+			var current_stock = max(0, int(city_stock.get(resource_id, base_supply)))
 			var daily_output = int(ceil(float(base_supply) * 0.25))
-			province_stock[resource_id] = min(base_supply, current_stock + daily_output)
-		state.city_export_stock[city_id] = province_stock
+			city_stock[resource_id] = min(base_supply, current_stock + daily_output)
+		state.city_export_stock[city_id] = city_stock
 
 static func buy_resource(engine, id, amount, persist=true):
 	var state = engine.state
