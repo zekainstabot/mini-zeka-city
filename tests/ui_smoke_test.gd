@@ -93,6 +93,28 @@ func _run_tests():
 	await process_frame
 	main._apply_responsive_layout()
 	await process_frame
+	# Settings menu must fully cover the city and keep restart confirmation inside the modal.
+	assert(is_equal_approx(main.menu_overlay.color.a, 1.0), "Settings menu backdrop must be opaque")
+	main._toggle_game_menu()
+	assert(main.menu_overlay.visible and main.menu_panel.visible, "Settings menu did not open")
+	var restart_action = main.menu_panel.find_child("MenuAction_confirm_restart_from_menu", true, false)
+	assert(restart_action is Button, "Restart city action is missing")
+	assert(main.menu_panel.get_child(main.restart_confirm_panel.get_index() - 1) == restart_action, "Restart confirmation is not directly below its action")
+	restart_action.emit_signal("pressed")
+	await process_frame
+	assert(main.menu_overlay.visible, "Restart confirmation unexpectedly closed the settings menu")
+	assert(main.restart_confirm_panel.visible, "Restart confirmation did not appear")
+	main._cancel_restart()
+	assert(not main.restart_confirm_panel.visible, "Cancel did not hide restart confirmation")
+	var help_action = main.menu_panel.find_child("MenuAction_open_help", true, false)
+	assert(help_action is Button, "Help action is missing from settings menu")
+	help_action.emit_signal("pressed")
+	await process_frame
+	assert(main.help_overlay.visible, "Help action did not open the help overlay")
+	assert(not main.menu_overlay.visible, "Settings menu remained visible behind help")
+	main._close_help()
+	await process_frame
+	assert(not main.help_overlay.visible, "Closing help did not hide its overlay")
 	assert(main._get_geographic_rank_name(1) == "آبادی کوچک")
 	assert(main._get_geographic_rank_name(3) == "آبادی کوچک")
 	assert(main._get_geographic_rank_name(4) == "آبادی")
