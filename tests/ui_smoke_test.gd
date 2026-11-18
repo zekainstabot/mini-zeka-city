@@ -142,7 +142,9 @@ func _run_tests():
 	var map_canvas = main.find_child("CityMapCanvas", true, false)
 	assert(map_canvas is PanelContainer, "City map canvas is missing from the active scene")
 	assert(map_canvas.find_child("CityRoadVertical", true, false) is PanelContainer, "Vertical city road is missing")
-	assert(map_canvas.find_child("CityRoadHorizontal", true, false) is PanelContainer, "Horizontal city road is missing")
+	if main.game.get_districts_overview().get("districts", []).size() > 2:
+		assert(map_canvas.find_child("CityRoadHorizontal", true, false) is PanelContainer, "Horizontal city road is missing")
+		assert(map_canvas.find_child("RoadCrosswalkHorizontal", true, false) is VBoxContainer, "Horizontal road crosswalk is missing")
 	assert(map_canvas.find_child("RoadCrosswalkVertical", true, false) is HBoxContainer, "Vertical road crosswalk is missing")
 	assert(map_canvas.find_child("CityStreetFurniture", true, false) is PanelContainer, "Street furniture and green elements are missing")
 	var map_overview = main.game.get_districts_overview()
