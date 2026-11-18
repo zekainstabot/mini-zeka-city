@@ -352,6 +352,18 @@ jobs:
           test -s build/android/MiniZekaCity-release.apk
           echo "release_ready=true" >> "$GITHUB_OUTPUT"
 
+      - name: Publish signed APK as GitHub Release
+        if: steps.android_release.outputs.release_ready == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: Mini ZekaCity 1.0.${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          make_latest: true
+          fail_on_unmatched_files: true
+          files: build/android/MiniZekaCity-release.apk
+
       - name: Archive signed Android Release APK
         if: steps.android_release.outputs.release_ready == 'true'
         continue-on-error: true
