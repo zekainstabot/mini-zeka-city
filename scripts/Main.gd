@@ -21,6 +21,7 @@ const StoragePage = preload("res://scripts/StoragePage.gd")
 const RankingPage = preload("res://scripts/RankingPage.gd")
 const ProgressPage = preload("res://scripts/ProgressPage.gd")
 const MissionsPage = preload("res://scripts/MissionsPage.gd")
+const AchievementsPage = preload("res://scripts/AchievementsPage.gd")
 const CityDashboardBuilder = preload("res://scripts/CityDashboardBuilder.gd")
 const OfflineProgressController = preload("res://scripts/OfflineProgressController.gd")
 var game = null
@@ -2841,28 +2842,24 @@ func _open_missions_from_welcome():
 func _add_progress_missions_tabs(active_page):
 	var tabs = HBoxContainer.new()
 	tabs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tabs.add_theme_constant_override("separation", 8)
+	tabs.add_theme_constant_override("separation", 6)
 	content.add_child(tabs)
-	var missions_selected = str(active_page) == "missions"
-	var missions_button = Button.new()
-	missions_button.text = PersianText.reshaper("🎯 مأموریت‌ها")
-	missions_button.custom_minimum_size = Vector2(0, 50 if get_viewport_rect().size.x < 900 else 44)
-	missions_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_font(missions_button, 17)
-	_style_progress_missions_tab(missions_button, missions_selected)
-	missions_button.disabled = missions_selected
-	missions_button.pressed.connect(Callable(self, "show_page").bind("missions"))
-	tabs.add_child(missions_button)
-	var progress_selected = str(active_page) == "progress"
-	var progress_button = Button.new()
-	progress_button.text = PersianText.reshaper("📈 پیشرفت شهر")
-	progress_button.custom_minimum_size = Vector2(0, 50 if get_viewport_rect().size.x < 900 else 44)
-	progress_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_font(progress_button, 17)
-	_style_progress_missions_tab(progress_button, progress_selected)
-	progress_button.disabled = progress_selected
-	progress_button.pressed.connect(Callable(self, "show_page").bind("progress"))
-	tabs.add_child(progress_button)
+	var tab_data = [
+		{"id":"achievements","title":"🏅 دستاوردها"},
+		{"id":"missions","title":"🎯 مأموریت‌ها"},
+		{"id":"progress","title":"📈 پیشرفت شهر"}
+	]
+	for tab in tab_data:
+		var selected = str(active_page) == str(tab.id)
+		var tab_button = Button.new()
+		tab_button.text = PersianText.reshaper(str(tab.title))
+		tab_button.custom_minimum_size = Vector2(0, 48 if get_viewport_rect().size.x < 900 else 44)
+		tab_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_apply_font(tab_button, 15 if get_viewport_rect().size.x < 500 else 16)
+		_style_progress_missions_tab(tab_button, selected)
+		tab_button.disabled = selected
+		tab_button.pressed.connect(Callable(self, "show_page").bind(str(tab.id)))
+		tabs.add_child(tab_button)
 
 func _style_progress_missions_tab(button, selected):
 	var normal_color = Color("#2563eb") if selected else Color("#263445")
@@ -3000,10 +2997,11 @@ func show_page(page):
 
 		"ranking":
 			RankingPage.build(self, s)
+		"achievements":
+			AchievementsPage.build(self, s)
 		"progress":
 			ProgressPage.build(self, s)
 		"missions":
-			_add_button("🏅 پیشرفت و دستاوردهای شهر", self, "show_page", ["progress"])
 			MissionsPage.build(self, s)
 
 		_:
