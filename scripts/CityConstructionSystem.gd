@@ -56,11 +56,8 @@ static func build(engine, id):
 	if not engine.BUILDINGS.has(id):
 		return {"ok":false,"message":"این ساختمان تعریف نشده است."}
 	var active_projects = int(engine.get_active_construction_count())
-	var unemployed_workers = max(0, int(engine.get_unemployed_count()))
-	var available_builder_slots = min(int(engine.MAX_CONCURRENT_CONSTRUCTIONS), unemployed_workers) - active_projects
+	var available_builder_slots = int(engine.MAX_CONCURRENT_CONSTRUCTIONS) - active_projects
 	if available_builder_slots <= 0:
-		if unemployed_workers <= active_projects:
-			return {"ok":false,"message":"کارگر بیکار کافی برای شروع پروژه جدید نداری؛ ابتدا نیروی کار آزاد شهر را افزایش بده یا منتظر تکمیل پروژه فعلی بمان."}
 		return {"ok":false,"message":"ظرفیت ساخت‌وساز تکمیل است؛ حداکثر ۲ پروژه هم‌زمان می‌توانند فعال باشند."}
 	var data = engine.BUILDINGS[id]
 	if int(state.population) < int(data.get("unlock", 0)):
