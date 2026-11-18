@@ -4,6 +4,7 @@ const EngineScript = preload("res://scripts/GameEngine.gd")
 const CitizenSocietyScript = preload("res://scripts/CitizenSociety.gd")
 const PersianTextScript = preload("res://scripts/PersianText.gd")
 const TradeSystemScript = preload("res://scripts/TradeSystem.gd")
+const CityEconomySystemScript = preload("res://scripts/CityEconomySystem.gd")
 
 func _init():
 	var game = EngineScript.new()
@@ -665,6 +666,20 @@ func _init():
 	assert(chain_report.find("کارخانه الوارسازی متوقف شد") >= 0)
 	assert(chain_report.find("چوب کافی نیست") >= 0)
 	assert(int(chain_game.state.resources.lumber) == chain_lumber_before)
+
+	# Daily cashflow includes private taxes and citizen loan flows.
+	var cashflow_state = {"last_economy":{"gross_income":100,"accepted_income":90,"net_cashflow":20}}
+	CityEconomySystemScript._apply_citizen_economy_to_last_report(cashflow_state, {
+		"private_business_tax":15,
+		"citizen_loan_repayments":10,
+		"citizen_loan_disbursements":50
+	})
+	assert(int(cashflow_state.last_economy.gross_income) == 125)
+	assert(int(cashflow_state.last_economy.accepted_income) == 115)
+	assert(int(cashflow_state.last_economy.net_cashflow) == -5)
+	assert(int(cashflow_state.last_economy.private_business_tax) == 15)
+	assert(int(cashflow_state.last_economy.citizen_loan_repayments) == 10)
+	assert(int(cashflow_state.last_economy.citizen_loan_disbursements) == 50)
 
 	# Provincial trade stock recovers gradually and never exceeds the province's base supply.
 	var province_game = EngineScript.new()
