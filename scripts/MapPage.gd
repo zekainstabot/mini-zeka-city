@@ -1,13 +1,14 @@
 extends RefCounted
 
-# Lightweight top-down city map. All visuals use native Godot controls.
+# Lightweight city map: districts remain data-driven, while each building is
+# represented by a tappable, category-coloured point.
 static func build(owner, city_state):
 	var overview = owner.game.get_districts_overview()
 	var districts = overview.get("districts", [])
-	var industrial = overview.get("industrial_buildings", [])
+	var industrial = _collect_industrial_buildings(owner)
 
 	owner._add_label("🗺️ نقشه شهر", 24)
-	owner._add_label("نمای محله‌ها، خیابان‌ها و محدوده صنعتی شهر", 13)
+	owner._add_label("هر نقطه یک ساختمان است؛ برای دیدن جزئیات روی آن بزن.", 13)
 
 	var map_panel = PanelContainer.new()
 	map_panel.name = "CityMapCanvas"
@@ -25,10 +26,10 @@ static func build(owner, city_state):
 	owner.content.add_child(map_panel)
 
 	var map_body = VBoxContainer.new()
-	map_body.add_theme_constant_override("separation", 0)
+	map_body.add_theme_constant_override("separation", 7)
 	map_panel.add_child(map_body)
 
-	_add_map_header(owner, map_body, districts.size(), industrial.size())
+	_add_map_header(owner, map_body, districts.size(), _count_all_buildings(owner))
 	_add_map_compass(owner, map_body)
 
 	if districts.is_empty():
@@ -64,8 +65,11 @@ static func build(owner, city_state):
 				_add_district_details(owner, district)
 				break
 
+	if owner.selected_map_building_data is Dictionary and not owner.selected_map_building_data.is_empty():
+		_add_building_details(owner, owner.selected_map_building_data)
 
-static func _add_map_header(owner, parent, district_count, industrial_count):
+
+static func _add_map_header(owner, parent, district_count, building_count):
 	var header = PanelContainer.new()
 	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var style = StyleBoxFlat.new()
@@ -99,20 +103,20 @@ static func _add_map_header(owner, parent, district_count, industrial_count):
 	owner._apply_font(count, 12)
 	row.add_child(count)
 
-	var factory_count = Label.new()
-	factory_count.text = owner.PersianText.reshaper("🏭 %d صنعتی" % industrial_count)
-	factory_count.add_theme_color_override("font_color", Color("#fcd34d"))
-	owner._apply_font(factory_count, 12)
-	row.add_child(factory_count)
+	var buildings = Label.new()
+	buildings.text = owner.PersianText.reshaper("● %d ساختمان" % building_count)
+	buildings.add_theme_color_override("font_color", Color("#cbd5e1"))
+	owner._apply_font(buildings, 12)
+	row.add_child(buildings)
 
 
 static func _add_map_compass(owner, parent):
 	var row = HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.custom_minimum_size.y = 27
+	row.custom_minimum_size.y = 22
 	parent.add_child(row)
 	var label = Label.new()
-	label.text = owner.PersianText.reshaper("▲ شمال شهر     ·     نمای هوایی")
+	label.text = owner.PersianText.reshaper("▲ شمال شهر     ·     نقشه محله‌ای")
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.add_theme_color_override("font_color", Color("#9fb7bd"))
 	owner._apply_font(label, 10)
@@ -125,7 +129,7 @@ static func _make_district_block(owner, district, index):
 	var panel = PanelContainer.new()
 	panel.name = "DistrictTile_" + district_id
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.custom_minimum_size = Vector2(0, 153)
+	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 
 	var accent = _district_color(index)
 	var style = StyleBoxFlat.new()
@@ -140,7 +144,7 @@ static func _make_district_block(owner, district, index):
 	panel.add_theme_stylebox_override("panel", style)
 
 	var stack = VBoxContainer.new()
-	stack.add_theme_constant_override("separation", 4)
+	stack.add_theme_constant_override("separation", 5)
 	panel.add_child(stack)
 
 	var heading = HBoxContainer.new()
@@ -153,102 +157,287 @@ static func _make_district_block(owner, district, index):
 	pin.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	heading.add_child(pin)
 
-	var title = Label.new()
-	title.text = owner.PersianText.reshaper(str(district.get("name", "محله " + district_id)))
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	title.clip_text = true
-	owner._apply_font(title, 12)
-	title.add_theme_color_override("font_color", Color("#f8fafc"))
-	heading.add_child(title)
+	var title_button = Button.new()
+	title_button.text = owner.PersianText.reshaper(str(district.get("name", "محله " + district_id)))
+	title_button.flat = true
+	title_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_button.alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	title_button.add_theme_color_override("font_color", Color("#f8fafc"))
+	owner._apply_font(title_button, 12)
+	title_button.pressed.connect(Callable(owner, "select_map_district").bind(district_id))
+	heading.add_child(title_button)
 
-	var count = int(district.get("building_count", 0))
-	var houses = int(district.get("house_count", 0))
-	var other = int(district.get("other_count", 0)) + int(district.get("emergency_count", 0))
+	var buildings = _collect_district_buildings(owner, district_id)
 	var stats = Label.new()
-	stats.text = owner.PersianText.reshaper("%d ساختمان  ·  %d خانه" % [count, houses])
+	stats.text = owner.PersianText.reshaper("%d نقطه ساختمانی" % buildings.size())
 	stats.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	owner._apply_font(stats, 10)
 	stats.add_theme_color_override("font_color", Color("#d1fae5"))
 	stack.add_child(stats)
 
-	# Tiny block plan: lawns with simple building footprints, not image assets.
-	var block = PanelContainer.new()
-	block.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	block.custom_minimum_size.y = 63
-	var block_style = StyleBoxFlat.new()
-	block_style.bg_color = Color("#315d4d")
-	block_style.border_color = Color("#416e5d")
-	block_style.set_border_width_all(1)
-	block_style.set_corner_radius_all(5)
-	block.add_theme_stylebox_override("panel", block_style)
-	stack.add_child(block)
+	var point_grid = GridContainer.new()
+	point_grid.name = "BuildingPointGrid_" + district_id
+	point_grid.columns = 5
+	point_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	point_grid.add_theme_constant_override("h_separation", 4)
+	point_grid.add_theme_constant_override("v_separation", 4)
+	stack.add_child(point_grid)
 
-	var grid = GridContainer.new()
-	grid.columns = 3
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 5)
-	grid.add_theme_constant_override("v_separation", 3)
-	block.add_child(grid)
+	if buildings.is_empty():
+		var empty = Label.new()
+		empty.text = owner.PersianText.reshaper("زمین آماده ساخت")
+		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		owner._apply_font(empty, 10)
+		empty.add_theme_color_override("font_color", Color("#a7f3d0"))
+		point_grid.add_child(empty)
+	else:
+		for building in buildings:
+			point_grid.add_child(_make_building_dot(owner, building))
 
-	var footprint_count = mini(count, 6)
-	for n in range(6):
-		if n < footprint_count:
-			grid.add_child(_make_building_footprint(n, accent))
-		else:
-			grid.add_child(_make_green_plot(n))
-
-	var footer = Label.new()
-	footer.text = owner.PersianText.reshaper("🏢 %d خدمات و سایر" % other)
-	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	owner._apply_font(footer, 10)
-	footer.add_theme_color_override("font_color", Color("#cbd5e1"))
-	stack.add_child(footer)
-
-	var tap = Button.new()
-	tap.name = "DistrictSelect_" + district_id
-	tap.flat = true
-	tap.focus_mode = Control.FOCUS_NONE
-	tap.mouse_filter = Control.MOUSE_FILTER_PASS
-	tap.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	tap.modulate = Color(1, 1, 1, 0)
-	tap.pressed.connect(Callable(owner, "select_map_district").bind(district_id))
-	panel.add_child(tap)
 	return panel
 
 
-static func _make_building_footprint(index, accent):
-	var building = Panel.new()
-	building.custom_minimum_size = Vector2(0, 24)
+static func _make_building_dot(owner, building):
+	var dot = Button.new()
+	dot.name = "BuildingDot_" + str(building.get("map_key", "unknown"))
+	dot.text = "●"
+	dot.tooltip_text = str(building.get("name", "ساختمان"))
+	dot.custom_minimum_size = Vector2(30, 30)
+	dot.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	dot.flat = false
+	dot.focus_mode = Control.FOCUS_NONE
+	dot.add_theme_font_size_override("font_size", 21)
+	var tint = _building_color(str(building.get("building_id", "")), str(building.get("category", "")))
+	dot.add_theme_color_override("font_color", tint)
+	dot.add_theme_color_override("font_hover_color", tint.lightened(0.25))
+	dot.add_theme_color_override("font_pressed_color", tint.darkened(0.2))
+	var normal = StyleBoxFlat.new()
+	normal.bg_color = Color("#17372f")
+	normal.border_color = tint.darkened(0.25)
+	normal.set_border_width_all(1)
+	normal.set_corner_radius_all(15)
+	dot.add_theme_stylebox_override("normal", normal)
+	var hover = normal.duplicate()
+	hover.bg_color = Color("#31574b")
+	hover.border_color = tint.lightened(0.2)
+	dot.add_theme_stylebox_override("hover", hover)
+	var pressed = normal.duplicate()
+	pressed.bg_color = Color("#0f2924")
+	dot.add_theme_stylebox_override("pressed", pressed)
+	dot.pressed.connect(Callable(owner, "select_map_building").bind(building))
+	return dot
+
+
+static func _collect_district_buildings(owner, district_id):
+	var result = []
+	var state = owner.game.state
+	var definitions = owner.game.get_building_definitions()
+
+	for i in range(state.get("buildings", []).size()):
+		var building = state.buildings[i]
+		if str(building.get("district_id", "")) != district_id:
+			continue
+		var building_id = str(building.get("id", ""))
+		var definition = definitions.get(building_id, {})
+		result.append(_make_map_record(
+			"building_%d" % i, building_id,
+			str(definition.get("name", "ساختمان")), str(definition.get("category", "")),
+			district_id, "ساخته‌شده", int(building.get("workers", 0)),
+			int(building.get("balance", 0)), building
+		))
+
+	for i in range(state.get("constructions", []).size()):
+		var construction = state.constructions[i]
+		if str(construction.get("district_id", "")) != district_id:
+			continue
+		var building_id = str(construction.get("id", ""))
+		var definition = definitions.get(building_id, {})
+		result.append(_make_map_record(
+			"construction_%d" % i, building_id,
+			str(definition.get("name", "پروژه ساختمانی")), str(definition.get("category", "")),
+			district_id, "در حال ساخت", 0, 0, construction
+		))
+
+	for i in range(state.get("private_businesses", []).size()):
+		var business = state.private_businesses[i]
+		if bool(business.get("rented_municipal", false)) or str(business.get("district_id", "")) != district_id:
+			continue
+		var building_id = str(business.get("building_id", ""))
+		var definition = definitions.get(building_id, {})
+		result.append(_make_map_record(
+			"business_%d" % i, building_id,
+			str(business.get("name", definition.get("name", "کسب‌وکار"))), str(definition.get("category", "کسب‌وکارها")),
+			district_id, "کسب‌وکار خصوصی", int(business.get("workers", 0)),
+			int(business.get("balance", 0)), business
+		))
+	return result
+
+
+static func _collect_industrial_buildings(owner):
+	var result = []
+	var state = owner.game.state
+	var definitions = owner.game.get_building_definitions()
+	for i in range(state.get("buildings", []).size()):
+		var building = state.buildings[i]
+		if str(building.get("zone", "")) != "industrial":
+			continue
+		var building_id = str(building.get("id", ""))
+		var definition = definitions.get(building_id, {})
+		result.append(_make_map_record("industrial_%d" % i, building_id,
+			str(definition.get("name", "ساختمان صنعتی")), str(definition.get("category", "")),
+			"منطقه صنعتی", "ساخته‌شده", int(building.get("workers", 0)),
+			int(building.get("balance", 0)), building))
+	for i in range(state.get("constructions", []).size()):
+		var construction = state.constructions[i]
+		if str(construction.get("zone", "")) != "industrial":
+			continue
+		var building_id = str(construction.get("id", ""))
+		var definition = definitions.get(building_id, {})
+		result.append(_make_map_record("industrial_project_%d" % i, building_id,
+			str(definition.get("name", "پروژه صنعتی")), str(definition.get("category", "")),
+			"منطقه صنعتی", "در حال ساخت", 0, 0, construction))
+	for i in range(state.get("private_businesses", []).size()):
+		var business = state.private_businesses[i]
+		if bool(business.get("rented_municipal", false)) or str(business.get("zone", "")) != "industrial":
+			continue
+		var building_id = str(business.get("building_id", ""))
+		var definition = definitions.get(building_id, {})
+		result.append(_make_map_record("industrial_business_%d" % i, building_id,
+			str(business.get("name", "کسب‌وکار صنعتی")), str(definition.get("category", "")),
+			"منطقه صنعتی", "کسب‌وکار خصوصی", int(business.get("workers", 0)),
+			int(business.get("balance", 0)), business))
+	return result
+
+
+static func _make_map_record(map_key, building_id, building_name, category, district_id, status, workers, balance, source):
+	return {
+		"map_key": map_key,
+		"building_id": building_id,
+		"name": building_name,
+		"category": category,
+		"district_id": district_id,
+		"status": status,
+		"workers": workers,
+		"balance": balance,
+		"jobs": int(source.get("jobs", 0)),
+		"finish_at": int(source.get("finish_at", 0))
+	}
+
+
+static func _count_all_buildings(owner):
+	var state = owner.game.state
+	return state.get("buildings", []).size() + state.get("constructions", []).size() + state.get("private_businesses", []).size()
+
+
+static func _add_map_legend(owner, parent):
+	var legend_panel = PanelContainer.new()
 	var style = StyleBoxFlat.new()
-	var shades = [Color("#d8c9a5"), Color("#b9cbd2"), Color("#d7b58b"), Color("#c3b7d9")]
-	style.bg_color = shades[index % shades.size()]
-	style.border_color = accent.darkened(0.35)
+	style.bg_color = Color("#1c3940")
+	style.set_corner_radius_all(9)
+	style.content_margin_left = 7
+	style.content_margin_right = 7
+	style.content_margin_top = 6
+	style.content_margin_bottom = 6
+	legend_panel.add_theme_stylebox_override("panel", style)
+	parent.add_child(legend_panel)
+	var legend = GridContainer.new()
+	legend.columns = 3
+	legend.add_theme_constant_override("h_separation", 9)
+	legend.add_theme_constant_override("v_separation", 5)
+	legend_panel.add_child(legend)
+	_add_legend_item(owner, legend, "#ef5350", "مسکونی")
+	_add_legend_item(owner, legend, "#f59e0b", "تجاری")
+	_add_legend_item(owner, legend, "#3b82f6", "صنعتی")
+	_add_legend_item(owner, legend, "#22c55e", "خدمات شهری")
+	_add_legend_item(owner, legend, "#a78bfa", "انبار و حمل‌ونقل")
+	_add_legend_item(owner, legend, "#94a3b8", "سایر")
+
+
+static func _add_legend_item(owner, parent, hex_color, label_text):
+	var row = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 3)
+	parent.add_child(row)
+	var dot = Label.new()
+	dot.text = "●"
+	dot.add_theme_color_override("font_color", Color(hex_color))
+	owner._apply_font(dot, 14)
+	row.add_child(dot)
+	var label = Label.new()
+	label.text = owner.PersianText.reshaper(label_text)
+	owner._apply_font(label, 9)
+	label.add_theme_color_override("font_color", Color("#e2e8f0"))
+	row.add_child(label)
+
+
+static func _add_industrial_zone(owner, parent, industrial):
+	var zone = PanelContainer.new()
+	zone.name = "IndustrialMapZone"
+	zone.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color("#303b49")
+	style.border_color = Color("#3b82f6")
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(2)
-	style.content_margin_left = 2
-	style.content_margin_right = 2
-	style.content_margin_top = 2
-	style.content_margin_bottom = 2
-	building.add_theme_stylebox_override("panel", style)
-	return building
+	style.set_corner_radius_all(10)
+	style.content_margin_left = 9
+	style.content_margin_right = 9
+	style.content_margin_top = 8
+	style.content_margin_bottom = 8
+	zone.add_theme_stylebox_override("panel", style)
+	parent.add_child(zone)
+
+	var body = VBoxContainer.new()
+	body.add_theme_constant_override("separation", 5)
+	zone.add_child(body)
+	var heading = Label.new()
+	heading.text = owner.PersianText.reshaper("🏭 منطقه صنعتی")
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	owner._apply_font(heading, 12)
+	heading.add_theme_color_override("font_color", Color("#93c5fd"))
+	body.add_child(heading)
+
+	var sub = Label.new()
+	sub.text = owner.PersianText.reshaper("%d نقطه صنعتی" % industrial.size() if not industrial.is_empty() else "هنوز سازه‌ای در این محدوده ساخته نشده است.")
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	owner._apply_font(sub, 10)
+	sub.add_theme_color_override("font_color", Color("#e2e8f0"))
+	body.add_child(sub)
+
+	if not industrial.is_empty():
+		var points = GridContainer.new()
+		points.name = "IndustrialBuildingPoints"
+		points.columns = 6
+		points.add_theme_constant_override("h_separation", 4)
+		points.add_theme_constant_override("v_separation", 4)
+		body.add_child(points)
+		for building in industrial:
+			points.add_child(_make_building_dot(owner, building))
 
 
-static func _make_green_plot(index):
-	var plot = Panel.new()
-	plot.custom_minimum_size = Vector2(0, 24)
+static func _add_empty_city(owner, parent):
+	var empty = PanelContainer.new()
+	empty.custom_minimum_size.y = 205
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color("#3d755b") if index % 2 == 0 else Color("#477f62")
-	style.set_corner_radius_all(3)
-	plot.add_theme_stylebox_override("panel", style)
-	return plot
+	style.bg_color = Color("#24483f")
+	style.border_color = Color("#527565")
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(10)
+	empty.add_theme_stylebox_override("panel", style)
+	parent.add_child(empty)
+	var label = Label.new()
+	label.text = owner.PersianText.reshaper("🌱\n\nزمین شهر آماده توسعه است\n\nبا ساخت اولین ساختمان، نقطه‌های رنگی روی نقشه ظاهر می‌شوند.")
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	owner._apply_font(label, 13)
+	label.add_theme_color_override("font_color", Color("#d1fae5"))
+	empty.add_child(label)
 
 
 static func _make_vertical_road():
 	var road = ColorRect.new()
 	road.color = Color("#53636a")
-	road.custom_minimum_size = Vector2(17, 153)
+	road.custom_minimum_size = Vector2(13, 90)
 	road.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	return road
 
@@ -256,7 +445,7 @@ static func _make_vertical_road():
 static func _make_horizontal_road():
 	var road = PanelContainer.new()
 	road.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	road.custom_minimum_size.y = 19
+	road.custom_minimum_size.y = 13
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color("#53636a")
 	road.add_theme_stylebox_override("panel", style)
@@ -276,7 +465,7 @@ static func _make_horizontal_road():
 static func _make_expansion_plot(owner):
 	var plot = PanelContainer.new()
 	plot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	plot.custom_minimum_size = Vector2(0, 153)
+	plot.custom_minimum_size = Vector2(0, 90)
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color("#203f38")
 	style.border_color = Color("#416b5b")
@@ -284,101 +473,13 @@ static func _make_expansion_plot(owner):
 	style.set_corner_radius_all(9)
 	plot.add_theme_stylebox_override("panel", style)
 	var label = Label.new()
-	label.text = owner.PersianText.reshaper("🌳\nزمین توسعه\n\nآماده ساخت")
+	label.text = owner.PersianText.reshaper("🌳\nزمین توسعه")
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	owner._apply_font(label, 11)
+	owner._apply_font(label, 10)
 	label.add_theme_color_override("font_color", Color("#a7f3d0"))
 	plot.add_child(label)
 	return plot
-
-
-static func _add_empty_city(owner, parent):
-	var empty = PanelContainer.new()
-	empty.custom_minimum_size.y = 205
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color("#24483f")
-	style.border_color = Color("#527565")
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(10)
-	empty.add_theme_stylebox_override("panel", style)
-	parent.add_child(empty)
-	var label = Label.new()
-	label.text = owner.PersianText.reshaper("🌱\n\nزمین شهر آماده توسعه است\n\nبا ساخت اولین ساختمان، محله‌ها و خیابان‌ها روی نقشه شکل می‌گیرند.")
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	owner._apply_font(label, 13)
-	label.add_theme_color_override("font_color", Color("#d1fae5"))
-	empty.add_child(label)
-
-
-static func _add_industrial_zone(owner, parent, industrial):
-	var zone = PanelContainer.new()
-	zone.name = "IndustrialMapZone"
-	zone.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color("#3b4144")
-	style.border_color = Color("#8b7650")
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(10)
-	style.content_margin_left = 9
-	style.content_margin_right = 9
-	style.content_margin_top = 8
-	style.content_margin_bottom = 8
-	zone.add_theme_stylebox_override("panel", style)
-	parent.add_child(zone)
-
-	var body = VBoxContainer.new()
-	body.add_theme_constant_override("separation", 5)
-	zone.add_child(body)
-
-	var heading = Label.new()
-	heading.text = owner.PersianText.reshaper("🏭 منطقه صنعتی خارج از محدوده مسکونی")
-	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	owner._apply_font(heading, 12)
-	heading.add_theme_color_override("font_color", Color("#fcd34d"))
-	body.add_child(heading)
-
-	var sub = Label.new()
-	sub.text = owner.PersianText.reshaper("%d سازه صنعتی" % industrial.size() if not industrial.is_empty() else "هنوز سازه‌ای در این محدوده ساخته نشده است.")
-	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	owner._apply_font(sub, 10)
-	sub.add_theme_color_override("font_color", Color("#e2e8f0"))
-	body.add_child(sub)
-
-	if not industrial.is_empty():
-		var names = Label.new()
-		names.text = owner.PersianText.reshaper("  •  ".join(industrial))
-		names.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		names.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		owner._apply_font(names, 11)
-		names.add_theme_color_override("font_color", Color("#f1f5f9"))
-		body.add_child(names)
-
-
-static func _add_map_legend(owner, parent):
-	var legend = HBoxContainer.new()
-	legend.alignment = BoxContainer.ALIGNMENT_CENTER
-	legend.add_theme_constant_override("separation", 10)
-	legend.custom_minimum_size.y = 28
-	parent.add_child(legend)
-	var road = Label.new()
-	road.text = owner.PersianText.reshaper("━ خیابان")
-	owner._apply_font(road, 10)
-	road.add_theme_color_override("font_color", Color("#cbd5e1"))
-	legend.add_child(road)
-	var buildings = Label.new()
-	buildings.text = owner.PersianText.reshaper("■ ساختمان")
-	owner._apply_font(buildings, 10)
-	buildings.add_theme_color_override("font_color", Color("#e5d4b5"))
-	legend.add_child(buildings)
-	var green = Label.new()
-	green.text = owner.PersianText.reshaper("■ فضای سبز")
-	owner._apply_font(green, 10)
-	green.add_theme_color_override("font_color", Color("#86efac"))
-	legend.add_child(green)
 
 
 static func _add_district_details(owner, district):
@@ -396,25 +497,21 @@ static func _add_district_details(owner, district):
 	style.content_margin_bottom = 9
 	details.add_theme_stylebox_override("panel", style)
 	owner.content.add_child(details)
-
 	var body = VBoxContainer.new()
 	body.add_theme_constant_override("separation", 5)
 	details.add_child(body)
-
 	var title = Label.new()
 	title.text = owner.PersianText.reshaper("📍 جزئیات %s" % str(district.get("name", "محله")))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	owner._apply_font(title, 16)
 	title.add_theme_color_override("font_color", Color("#f8fafc"))
 	body.add_child(title)
-
 	var counts = Label.new()
 	counts.text = owner.PersianText.reshaper("کل ساختمان‌ها: %d  •  خانه‌ها: %d  •  سایر: %d" % [int(district.get("building_count", 0)), int(district.get("house_count", 0)), int(district.get("other_count", 0)) + int(district.get("emergency_count", 0))])
 	counts.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	counts.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	owner._apply_font(counts, 12)
 	body.add_child(counts)
-
 	var names = district.get("building_names", [])
 	var names_label = Label.new()
 	names_label.text = owner.PersianText.reshaper("ساختمان‌های این محله: " + ("، ".join(names) if not names.is_empty() else "هنوز ساختمانی ثبت نشده است."))
@@ -422,6 +519,67 @@ static func _add_district_details(owner, district):
 	names_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	owner._apply_font(names_label, 12)
 	body.add_child(names_label)
+
+
+static func _add_building_details(owner, building):
+	var details = PanelContainer.new()
+	details.name = "SelectedMapBuildingDetails"
+	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color("#203b50")
+	style.border_color = _building_color(str(building.get("building_id", "")), str(building.get("category", "")))
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(12)
+	style.content_margin_left = 10
+	style.content_margin_right = 10
+	style.content_margin_top = 9
+	style.content_margin_bottom = 9
+	details.add_theme_stylebox_override("panel", style)
+	owner.content.add_child(details)
+	var body = VBoxContainer.new()
+	body.add_theme_constant_override("separation", 4)
+	details.add_child(body)
+	var title = Label.new()
+	title.text = owner.PersianText.reshaper("📍 " + str(building.get("name", "ساختمان")))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	owner._apply_font(title, 16)
+	title.add_theme_color_override("font_color", Color("#f8fafc"))
+	body.add_child(title)
+	_add_detail_line(owner, body, "محله", str(building.get("district_id", "—")))
+	_add_detail_line(owner, body, "وضعیت", str(building.get("status", "—")))
+	if str(building.get("status", "")) != "در حال ساخت":
+		_add_detail_line(owner, body, "کارگر", str(building.get("workers", 0)))
+		_add_detail_line(owner, body, "موجودی حساب", str(building.get("balance", 0)))
+	var close = Button.new()
+	close.text = owner.PersianText.reshaper("بستن جزئیات")
+	close.size_flags_horizontal = Control.SIZE_SHRINK_END
+	close.pressed.connect(Callable(owner, "clear_selected_map_building"))
+	owner._apply_font(close, 11)
+	body.add_child(close)
+
+
+static func _add_detail_line(owner, parent, caption, value):
+	var line = Label.new()
+	line.text = owner.PersianText.reshaper("%s: %s" % [caption, value])
+	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	owner._apply_font(line, 12)
+	line.add_theme_color_override("font_color", Color("#dbeafe"))
+	parent.add_child(line)
+
+
+static func _building_color(building_id, category):
+	if building_id in ["small_house", "normal_house", "low_apartment", "high_apartment", "residential_tower"]:
+		return Color("#ef5350")
+	if category in ["کسب‌وکارها"] or building_id in ["grocery_store", "bakery", "restaurant", "shopping_mall", "fish_market", "mineral_market"]:
+		return Color("#f59e0b")
+	if category in ["کارخانه‌ها", "معادن", "کشاورزی"] or building_id in ["factory", "woodcutter", "sawmill", "carpenter", "stone_mine", "iron_mine", "fish_processing_plant"]:
+		return Color("#3b82f6")
+	if category in ["خدمات شهری", "تفریح و فرهنگ"]:
+		return Color("#22c55e")
+	if category in ["انبارها", "حمل‌ونقل"]:
+		return Color("#a78bfa")
+	return Color("#94a3b8")
 
 
 static func _district_color(index):
