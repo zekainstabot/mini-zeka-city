@@ -62,6 +62,20 @@ static func get_daily_development_support(engine):
 	var treasury_gap = max(0, 3000 - int(state.get("money", 0)))
 	return min(level_support, treasury_gap)
 
+static func _apply_citizen_economy_to_last_report(state, citizen_economy):
+	var private_tax_accepted = int(citizen_economy.get("private_business_tax", 0))
+	var citizen_loan_repayments = int(citizen_economy.get("citizen_loan_repayments", 0))
+	var citizen_loan_disbursements = int(citizen_economy.get("citizen_loan_disbursements", 0))
+	var incoming = private_tax_accepted + citizen_loan_repayments
+	state.last_economy["private_business_tax"] = private_tax_accepted
+	state.last_economy["citizen_loan_repayments"] = citizen_loan_repayments
+	state.last_economy["citizen_loan_disbursements"] = citizen_loan_disbursements
+	state.last_economy["gross_income"] = int(state.last_economy.get("gross_income", 0)) + incoming
+	state.last_economy["accepted_income"] = int(state.last_economy.get("accepted_income", 0)) + incoming
+	# Loan disbursements leave the treasury; repayments and taxes enter it.
+	state.last_economy["net_cashflow"] = int(state.last_economy.get("net_cashflow", 0)) + incoming - citizen_loan_disbursements
+
+
 static func end_day(engine, is_offline=false, persist=true):
 	var state = engine.state
 	var report = []
@@ -276,14 +290,7 @@ static func end_day(engine, is_offline=false, persist=true):
 	engine._refresh_trade_capacity()
 
 	var citizen_economy = engine.CitizenSociety.new().process_day(engine, report)
-	var private_tax_accepted = int(citizen_economy.get("private_business_tax", 0))
-	var citizen_loan_repayments = int(citizen_economy.get("citizen_loan_repayments", 0))
-	var citizen_loan_disbursements = int(citizen_economy.get("citizen_loan_disbursements", 0))
-	state.last_economy["private_business_tax"] = private_tax_accepted
-	state.last_economy["citizen_loan_repayments"] = citizen_loan_repayments
-	state.last_economy["citizen_loan_disbursements"] = citizen_loan_disbursements
-	state.last_economy["gross_income"] = int(state.last_economy.get("gross_income", 0)) + private_tax_accepted + citizen_loan_repayments
-	state.last_economy["accepted_income"] = int(state.last_economy.get("accepted_income", 0)) + private_tax_accepted + citizen_loan_repayments
+	_apply_citizen_economy_to_last_report(state, citizen_economy)
 	if not engine.has_central_bank() and int(state.central_bank_rebuild_days_left) > 0:
 		state.central_bank_rebuild_days_left -= 1
 		if int(state.central_bank_rebuild_days_left) == 0:
