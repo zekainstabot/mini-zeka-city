@@ -879,71 +879,71 @@ func _apply_safe_area_to_floating_controls():
 	var usable_width = viewport_size.x - inset.x - inset.z
 	var right_edge = viewport_size.x - inset.z
 	if narrow:
-		var icon_size = Vector2(46, 46)
+		var icon_size = Vector2(50, 50)
 		# Row one: daily reward, menu and help on the left; day/night HUD on the right.
 		if daily_reward_button != null and is_instance_valid(daily_reward_button):
 			daily_reward_button.custom_minimum_size = icon_size
 			daily_reward_button.size = icon_size
 			daily_reward_button.position = Vector2(inset.x + 12.0, inset.y + 16.0)
-			_apply_font(daily_reward_button, 22)
+			_apply_font(daily_reward_button, 24)
 		if menu_button != null and is_instance_valid(menu_button):
 			menu_button.custom_minimum_size = icon_size
 			menu_button.size = icon_size
-			menu_button.position = Vector2(inset.x + 66.0, inset.y + 16.0)
-			_apply_font(menu_button, 20)
+			menu_button.position = Vector2(inset.x + 70.0, inset.y + 16.0)
+			_apply_font(menu_button, 22)
 		if help_button != null and is_instance_valid(help_button):
 			help_button.custom_minimum_size = icon_size
 			help_button.size = icon_size
-			help_button.position = Vector2(inset.x + 120.0, inset.y + 16.0)
-			_apply_font(help_button, 20)
+			help_button.position = Vector2(inset.x + 128.0, inset.y + 16.0)
+			_apply_font(help_button, 22)
 		# Row two: construction capacity on the left, ranking and reports together on the right.
 		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
-			construction_capacity_button.custom_minimum_size = Vector2(100, 50)
-			construction_capacity_button.size = Vector2(100, 50)
+			construction_capacity_button.custom_minimum_size = Vector2(108, 52)
+			construction_capacity_button.size = Vector2(108, 52)
 			construction_capacity_button.position = Vector2(inset.x + 12.0, inset.y + 82.0)
-			_apply_font(construction_capacity_button, 17)
+			_apply_font(construction_capacity_button, 18)
 		if ranking_button != null and is_instance_valid(ranking_button):
 			ranking_button.custom_minimum_size = icon_size
 			ranking_button.size = icon_size
 			ranking_button.position = Vector2(right_edge - 108.0, inset.y + 84.0)
-			_apply_font(ranking_button, 19)
+			_apply_font(ranking_button, 21)
 		if report_button != null and is_instance_valid(report_button):
 			report_button.custom_minimum_size = icon_size
 			report_button.size = icon_size
 			report_button.position = Vector2(right_edge - 54.0, inset.y + 84.0)
-			_apply_font(report_button, 25)
+			_apply_font(report_button, 27)
 	else:
 		# Keep the same two-row visual rhythm on tablets and desktop-sized windows.
 		if daily_reward_button != null and is_instance_valid(daily_reward_button):
-			daily_reward_button.custom_minimum_size = Vector2(56, 54)
-			daily_reward_button.size = Vector2(56, 54)
+			daily_reward_button.custom_minimum_size = Vector2(60, 58)
+			daily_reward_button.size = Vector2(60, 58)
 			daily_reward_button.position = Vector2(inset.x + 16.0, inset.y + 18.0)
-			_apply_font(daily_reward_button, 25)
+			_apply_font(daily_reward_button, 27)
 		if menu_button != null and is_instance_valid(menu_button):
-			menu_button.custom_minimum_size = Vector2(56, 54)
-			menu_button.size = Vector2(56, 54)
-			menu_button.position = Vector2(inset.x + 82.0, inset.y + 18.0)
-			_apply_font(menu_button, 23)
+			menu_button.custom_minimum_size = Vector2(60, 58)
+			menu_button.size = Vector2(60, 58)
+			menu_button.position = Vector2(inset.x + 86.0, inset.y + 18.0)
+			_apply_font(menu_button, 25)
 		if help_button != null and is_instance_valid(help_button):
-			help_button.custom_minimum_size = Vector2(50, 50)
-			help_button.size = Vector2(50, 50)
-			help_button.position = Vector2(inset.x + 148.0, inset.y + 20.0)
-			_apply_font(help_button, 22)
+			help_button.custom_minimum_size = Vector2(56, 56)
+			help_button.size = Vector2(56, 56)
+			help_button.position = Vector2(inset.x + 156.0, inset.y + 19.0)
+			_apply_font(help_button, 24)
 		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
-			construction_capacity_button.custom_minimum_size = Vector2(100, 50)
-			construction_capacity_button.size = Vector2(100, 50)
+			construction_capacity_button.custom_minimum_size = Vector2(108, 54)
+			construction_capacity_button.size = Vector2(108, 54)
 			construction_capacity_button.position = Vector2(inset.x + 16.0, inset.y + 88.0)
-			_apply_font(construction_capacity_button, 17)
+			_apply_font(construction_capacity_button, 18)
 		if ranking_button != null and is_instance_valid(ranking_button):
-			ranking_button.custom_minimum_size = Vector2(50, 50)
-			ranking_button.size = Vector2(50, 50)
-			ranking_button.position = Vector2(right_edge - 108.0, inset.y + 88.0)
-			_apply_font(ranking_button, 21)
+			ranking_button.custom_minimum_size = Vector2(56, 56)
+			ranking_button.size = Vector2(56, 56)
+			ranking_button.position = Vector2(right_edge - 120.0, inset.y + 88.0)
+			_apply_font(ranking_button, 23)
 		if report_button != null and is_instance_valid(report_button):
-			report_button.custom_minimum_size = Vector2(50, 50)
-			report_button.size = Vector2(50, 50)
-			report_button.position = Vector2(right_edge - 52.0, inset.y + 88.0)
-			_apply_font(report_button, 25)
+			report_button.custom_minimum_size = Vector2(56, 56)
+			report_button.size = Vector2(56, 56)
+			report_button.position = Vector2(right_edge - 58.0, inset.y + 88.0)
+			_apply_font(report_button, 27)
 	if day_night_hud != null and is_instance_valid(day_night_hud):
 		# Anchor the clock to the upper-right; reserve a separate right-side
 		# shortcut rail below it on narrow phones.
