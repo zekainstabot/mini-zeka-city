@@ -1515,17 +1515,9 @@ func _build_ui():
 		_apply_font(section_button, 17 if compact_layout else 16)
 		_style_button(section_button, true)
 		var action_name = str(menu_item.action)
-		section_button.pressed.connect(func():
-			if action_name == "open_help":
-				_close_game_menu()
-				_open_help()
-			elif action_name == "confirm_restart_from_menu":
-				# Keep the menu visible while the restart confirmation is shown.
-				confirm_restart_from_menu()
-			else:
-				_close_game_menu()
-				call(action_name)
-		)
+		# Bind each action as an immutable signal argument; avoid loop-closure
+		# capture issues that can route taps to the wrong menu action.
+		section_button.pressed.connect(_on_settings_menu_action.bind(action_name))
 		menu_panel.add_child(section_button)
 	var menu_divider = HSeparator.new()
 	menu_panel.add_child(menu_divider)
@@ -2368,6 +2360,20 @@ func _update_mission_reward_badge():
 
 	if mission_navigation_button != null and is_instance_valid(mission_navigation_button):
 		mission_navigation_button.text = PersianText.reshaper(mission_navigation_title + (" 🎁" if ready_count > 0 else ""))
+
+func _on_settings_menu_action(action_name: String) -> void:
+	match action_name:
+		"open_help":
+			_close_game_menu()
+			_open_help()
+		"confirm_restart_from_menu":
+			confirm_restart_from_menu()
+		_:
+			_close_game_menu()
+			if has_method(action_name):
+				call(action_name)
+			else:
+				push_warning("Unknown settings menu action: " + action_name)
 
 func _create_menu_action(title, callback):
 	var button = Button.new()
