@@ -141,7 +141,7 @@ func _center_existing_button_texts(node):
 	if node is Button:
 		node.alignment = HORIZONTAL_ALIGNMENT_CENTER
 		node.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		node.text_direction = Control.TEXT_DIRECTION_RTL
+		node.text_direction = Control.TEXT_DIRECTION_RTL if LanguageManager.is_rtl(ui_language) else Control.TEXT_DIRECTION_LTR
 	for child in node.get_children():
 		_center_existing_button_texts(child)
 
@@ -1192,16 +1192,17 @@ func _create_bottom_navigation(parent: VBoxContainer, compact_layout: bool):
 	bottom_navigation_bar.add_child(dock_row)
 	bottom_navigation_buttons.clear()
 	var entries = [
-		{"id":"development","icon":"🏗️","label":"توسعه","page":"development"},
-		{"id":"missions","icon":"🏆","label":"دستاوردها","page":"missions"},
-		{"id":"home","icon":"🏠","label":"شهر من","page":"home"},
-		{"id":"commerce","icon":"🛒","label":"بازار و انبار","page":"commerce"},
-		{"id":"bank","icon":"🏦","label":"بانک","page":"bank"}
+		{"id":"development","icon":"🏗️","label":_tr("توسعه"),"page":"development"},
+		{"id":"missions","icon":"🏆","label":_tr("دستاوردها"),"page":"missions"},
+		{"id":"home","icon":"🏠","label":_tr("شهر من"),"page":"home"},
+		{"id":"commerce","icon":"🛒","label":_tr("بازار و انبار"),"page":"commerce"},
+		{"id":"bank","icon":"🏦","label":_tr("بانک"),"page":"bank"}
 	]
 	for entry in entries:
 		var button = Button.new()
 		button.name = "BottomNav_" + str(entry.id)
 		button.text = str(entry.icon) + "\n" + str(entry.label)
+		button.text_direction = Control.TEXT_DIRECTION_RTL if LanguageManager.is_rtl(ui_language) else Control.TEXT_DIRECTION_LTR
 		button.custom_minimum_size = Vector2(0, 150 if compact_layout else 158)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.size_flags_stretch_ratio = 1.0
@@ -2386,7 +2387,7 @@ func _on_settings_menu_action(action_name: String) -> void:
 
 func _create_menu_action(title, callback):
 	var button = Button.new()
-	button.text = PersianText.reshaper(title)
+	button.text = _display_text(title)
 	var phone_layout = get_viewport_rect().size.x < 900
 	# Keep menu actions compact while never exceeding the actual safe viewport.
 	var safe = _get_safe_area_insets()
@@ -2643,8 +2644,8 @@ func set_language(language):
 		game.state["ui_language"] = ui_language
 		game.save_game()
 	layout_direction = Control.LAYOUT_DIRECTION_RTL if LanguageManager.is_rtl(ui_language) else Control.LAYOUT_DIRECTION_LTR
-	_show_message("زبان به‌روزرسانی شد.")
 	show_page(current_page)
+	_show_message("زبان به‌روزرسانی شد.")
 
 func _add_label(text, size=18):
 	var label = Label.new()
