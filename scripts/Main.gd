@@ -1191,7 +1191,6 @@ func _create_bottom_navigation(parent: VBoxContainer, compact_layout: bool):
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.size_flags_stretch_ratio = 1.0
 		button.alignment = HORIZONTAL_ALIGNMENT_CENTER
-		button.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		button.add_theme_color_override("font_color", Color("#e5edf5"))
 		button.add_theme_color_override("font_hover_color", Color("#ffffff"))
