@@ -24,31 +24,31 @@ static func build(owner, s):
 	for loan_option in [{"amount":1000,"days":7},{"amount":3000,"days":14},{"amount":5000,"days":30}]:
 		var loan_button = owner._add_button("درخواست وام %d سکه‌ای — %d روزه" % [int(loan_option.amount),int(loan_option.days)],owner,"request_bank_loan",[int(loan_option.amount),int(loan_option.days)])
 		loan_button.disabled = not game.has_central_bank() or game.get_bank_loan_limit() < int(loan_option.amount) or player_active_loans >= 2
-		owner._style_button(loan_button, false)
 		if loan_button.disabled:
 			loan_button.text += " 🔒"
+		owner._style_button(loan_button, false)
 	for loan_index in range(s.get("bank_loans",[]).size()):
 		var loan = s.bank_loans[loan_index]
 		owner._add_label("وام #%d | اصل: %d | سود: %d | مانده: %d | وضعیت: %s" % [int(loan.get("id",loan_index+1)),int(loan.get("principal",0)),int(loan.get("interest",0)),int(loan.get("remaining",0)),"فعال" if str(loan.get("status","")) == "active" else "تسویه‌شده"],15)
 		if str(loan.get("status","")) == "active":
 			var manual_button = owner._add_button("پرداخت دستی قسط وام #%d — تا %d سکه" % [int(loan.get("id",loan_index+1)),min(int(loan.get("remaining",0)),int(loan.get("daily_installment",0)))],owner,"repay_bank_loan_manual",[loan_index])
 			manual_button.disabled = int(loan.get("last_manual_payment_day",0)) == int(s.get("day",1)) or game.get_available_money() <= 0
-			owner._style_button(manual_button, false)
 			if manual_button.disabled:
 				manual_button.text += " 🔒"
+			owner._style_button(manual_button, false)
 			var full_button = owner._add_button("تسویه کامل وام #%d — %d سکه" % [int(loan.get("id",loan_index+1)),int(loan.get("remaining",0))],owner,"repay_bank_loan",[loan_index])
 			full_button.disabled = game.get_available_money() < int(loan.get("remaining",0))
-			owner._style_button(full_button, false)
 			if full_button.disabled:
 				full_button.text += " 🔒"
+			owner._style_button(full_button, false)
 	owner._add_label("🏧 سپرده‌گذاری",19)
 	owner._add_label("سود کل سپرده: ۷ روز ۳٪ | ۱۴ روز ۷٪ | ۳۰ روز ۱۵٪؛ برداشت پیش از سررسید بدون سود است.",14)
 	for deposit_option in [{"amount":500,"days":7},{"amount":1000,"days":14},{"amount":2500,"days":30}]:
 		var deposit_button = owner._add_button("سپرده %d سکه‌ای — %d روزه" % [int(deposit_option.amount),int(deposit_option.days)],owner,"open_bank_deposit",[int(deposit_option.amount),int(deposit_option.days)])
 		deposit_button.disabled = game.get_building_count("municipal_bank") <= 0 or game.get_available_money() < int(deposit_option.amount)
-		owner._style_button(deposit_button, false)
 		if deposit_button.disabled:
 			deposit_button.text += " 🔒"
+		owner._style_button(deposit_button, false)
 	for deposit_index in range(s.get("bank_deposits",[]).size()):
 		var deposit = s.bank_deposits[deposit_index]
 		var deposit_status = str(deposit.get("status","active"))
