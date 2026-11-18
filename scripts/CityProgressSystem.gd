@@ -152,6 +152,7 @@ static func _update_city_records(engine):
 static func _update_achievements(engine):
 	var state = engine.state
 	engine._update_city_records()
+	var populated_district_count = get_populated_district_count(engine)
 	var unlocked = state.get("achievements", {})
 	for achievement in engine.ACHIEVEMENT_DEFINITIONS:
 		var id = str(achievement.id)
@@ -181,11 +182,11 @@ static func _update_achievements(engine):
 			"level_20":
 				done = int(state.get("level", 1)) >= 20
 			"treasury_20000":
-				done = int(state.get("money", 0)) >= 20000
+				done = int(state.get("city_records", {}).get("peak_money", state.get("money", 0))) >= 20000
 			"treasury_50000":
-				done = int(state.get("money", 0)) >= 50000
+				done = int(state.get("city_records", {}).get("peak_money", state.get("money", 0))) >= 50000
 			"treasury_100000":
-				done = int(state.get("money", 0)) >= 100000
+				done = int(state.get("city_records", {}).get("peak_money", state.get("money", 0))) >= 100000
 			"happy_city":
 				done = int(state.get("satisfaction", 0)) >= 85
 			"happiness_95":
@@ -201,9 +202,9 @@ static func _update_achievements(engine):
 			"trade_500":
 				done = int(state.get("trade_exported_units_total", 0)) >= 500
 			"two_districts":
-				done = state.get("districts", []).size() >= 2
+				done = populated_district_count >= 2
 			"five_districts":
-				done = state.get("districts", []).size() >= 5
+				done = populated_district_count >= 5
 			"production_chain":
 				done = engine.get_building_count("woodcutter") > 0 and engine.get_building_count("sawmill") > 0 and engine.get_building_count("carpenter") > 0
 		if done:
@@ -240,6 +241,19 @@ static func get_achievements(engine):
 		item["unlocked"] = bool(state.get("achievements", {}).get(str(definition.id), false))
 		result.append(item)
 	return result
+
+static func get_populated_district_count(engine):
+	var state = engine.state
+	var populated = {}
+	for collection_name in ["buildings", "constructions", "private_businesses"]:
+		for item in state.get(collection_name, []):
+			if collection_name == "private_businesses" and bool(item.get("rented_municipal", false)):
+				continue
+			var district_id = str(item.get("district_id", "")).strip_edges()
+			if district_id != "":
+				populated[district_id] = true
+	return populated.size()
+
 
 static func get_city_records(engine):
 	var state = engine.state
