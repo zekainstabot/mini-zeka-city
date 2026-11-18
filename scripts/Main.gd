@@ -898,12 +898,12 @@ func _apply_safe_area_to_floating_controls():
 		# Row one: menu on the far left, calendar beside it; clock on the right.
 		if daily_reward_button != null and is_instance_valid(daily_reward_button):
 			daily_reward_button.custom_minimum_size = icon_size
-			daily_reward_button.position = Vector2(inset.x + 70.0, inset.y + 28.0)
+			daily_reward_button.position = Vector2(inset.x + 70.0, inset.y + 8.0)
 			daily_reward_button.size = icon_size
 			_apply_font(daily_reward_button, 24)
 		if menu_button != null and is_instance_valid(menu_button):
 			menu_button.custom_minimum_size = icon_size
-			menu_button.position = Vector2(inset.x + 12.0, inset.y + 28.0)
+			menu_button.position = Vector2(inset.x + 12.0, inset.y + 8.0)
 			menu_button.size = icon_size
 			_apply_font(menu_button, 22)
 		if help_button != null and is_instance_valid(help_button):
