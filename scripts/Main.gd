@@ -755,7 +755,7 @@ func _open_city_name_setup(first_time = false):
 		brand_style.content_margin_left = 18
 		brand_style.content_margin_right = 18
 		brand_style.content_margin_top = 7
-		brand_style.content_margin_bottom = 7
+		brand_style.content_margin_bottom = 11
 		brand_badge.add_theme_stylebox_override("panel", brand_style)
 		var brand_text = Label.new()
 		brand_text.text = "✦  zekamediafa  ✦"
@@ -1168,7 +1168,7 @@ func _create_bottom_navigation(parent: VBoxContainer, compact_layout: bool):
 	bottom_navigation_bar = PanelContainer.new()
 	bottom_navigation_bar.name = "BottomNavigationBar"
 	bottom_navigation_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bottom_navigation_bar.custom_minimum_size = Vector2(0, 118 if compact_layout else 124)
+	bottom_navigation_bar.custom_minimum_size = Vector2(0, 158 if compact_layout else 166)
 	var dock_style = StyleBoxFlat.new()
 	dock_style.bg_color = Color("#34485b")
 	dock_style.border_color = Color("#8297a8")
@@ -1196,14 +1196,14 @@ func _create_bottom_navigation(parent: VBoxContainer, compact_layout: bool):
 		var button = Button.new()
 		button.name = "BottomNav_" + str(entry.id)
 		button.text = str(entry.icon) + "\n" + str(entry.label)
-		button.custom_minimum_size = Vector2(0, 112 if compact_layout else 118)
+		button.custom_minimum_size = Vector2(0, 150 if compact_layout else 158)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.size_flags_stretch_ratio = 1.0
 		button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		button.add_theme_color_override("font_color", Color("#e5edf5"))
 		button.add_theme_color_override("font_hover_color", Color("#ffffff"))
-		_apply_font(button, 19 if compact_layout else 20)
+		_apply_font(button, 23 if compact_layout else 24)
 		button.flat = true
 		var target_page = str(entry.page)
 		button.pressed.connect(func():
@@ -1233,7 +1233,7 @@ func _update_bottom_navigation():
 		var style = StyleBoxFlat.new()
 		style.bg_color = Color("#17159a") if selected else Color(0, 0, 0, 0)
 		style.set_corner_radius_all(20 if selected else 8)
-		style.content_margin_top = 10 if selected else 7
+		style.content_margin_top = 14 if selected else 11
 		style.content_margin_bottom = 7
 		style.content_margin_left = 2
 		style.content_margin_right = 2
@@ -1246,7 +1246,7 @@ func _update_bottom_navigation():
 		button.add_theme_color_override("font_color", Color("#ffffff") if selected else Color("#e5edf5"))
 		button.scale = Vector2(1.0, 1.0)
 		# Keep every tab equally large; the active tab is highlighted by color only.
-		button.custom_minimum_size.y = 112 if bottom_navigation_bar != null and get_viewport_rect().size.x < 900.0 else 118
+		button.custom_minimum_size.y = 150 if bottom_navigation_bar != null and get_viewport_rect().size.x < 900.0 else 158
 
 
 func _build_ui():
