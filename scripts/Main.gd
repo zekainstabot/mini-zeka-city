@@ -2970,6 +2970,9 @@ func show_page(page):
 	# City overview and citizen management are one combined destination.
 	if page == "citizens":
 		page = "home"
+	# Keep every trading destination inside one unified market screen.
+	if page in ["imports", "market"]:
+		page = "commerce"
 	var civic_page_locked = page in ["municipality", "private_economy"] and not game.has_municipal_hall()
 	if civic_page_locked:
 		page = "home"
@@ -3011,7 +3014,6 @@ func show_page(page):
 			PrivateEconomyPage.build(self, s)
 		"commerce":
 			_add_button("📦 مدیریت انبار و تولید", self, "show_page", ["storage"])
-			_add_button("🚚 واردات و صادرات", self, "show_page", ["imports"])
 			CommercePage.build(self, s)
 		"transport":
 			TransportPage.build(self, s)
@@ -3454,7 +3456,7 @@ func import_from_city(city_id, resource_id, amount):
 
 func make_import_contract(city_id, resource_id, amount, days):
 	var result = game.create_import_contract(city_id, resource_id, amount, days)
-	show_page("imports")
+	show_page("commerce")
 	_show_message(result.message)
 
 func make_import_contract_from_slider(city_id, slider, days):
@@ -3462,7 +3464,7 @@ func make_import_contract_from_slider(city_id, slider, days):
 
 func cancel_import(index):
 	var result = game.cancel_import_contract(index)
-	show_page("imports")
+	show_page("commerce")
 	_show_message(result.message)
 
 func export_to_city(city_id, resource_id, amount):
