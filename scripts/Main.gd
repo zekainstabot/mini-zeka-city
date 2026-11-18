@@ -894,16 +894,16 @@ func _apply_safe_area_to_floating_controls():
 				floating.anchor_top = 0.0
 				floating.anchor_right = 0.0
 				floating.anchor_bottom = 0.0
-		# Row one: daily reward and menu on the left; clock on the right.
+		# Row one: menu on the far left, calendar beside it; clock on the right.
 		if daily_reward_button != null and is_instance_valid(daily_reward_button):
 			daily_reward_button.custom_minimum_size = icon_size
 			daily_reward_button.size = icon_size
-			daily_reward_button.position = Vector2(inset.x + 12.0, inset.y + 16.0)
+			daily_reward_button.position = Vector2(inset.x + 70.0, inset.y + 16.0)
 			_apply_font(daily_reward_button, 24)
 		if menu_button != null and is_instance_valid(menu_button):
 			menu_button.custom_minimum_size = icon_size
 			menu_button.size = icon_size
-			menu_button.position = Vector2(inset.x + 70.0, inset.y + 16.0)
+			menu_button.position = Vector2(inset.x + 12.0, inset.y + 16.0)
 			_apply_font(menu_button, 22)
 		if help_button != null and is_instance_valid(help_button):
 			help_button.custom_minimum_size = icon_size
@@ -931,12 +931,12 @@ func _apply_safe_area_to_floating_controls():
 		if daily_reward_button != null and is_instance_valid(daily_reward_button):
 			daily_reward_button.custom_minimum_size = Vector2(60, 58)
 			daily_reward_button.size = Vector2(60, 58)
-			daily_reward_button.position = Vector2(inset.x + 16.0, inset.y + 18.0)
+			daily_reward_button.position = Vector2(inset.x + 86.0, inset.y + 18.0)
 			_apply_font(daily_reward_button, 27)
 		if menu_button != null and is_instance_valid(menu_button):
 			menu_button.custom_minimum_size = Vector2(60, 58)
 			menu_button.size = Vector2(60, 58)
-			menu_button.position = Vector2(inset.x + 86.0, inset.y + 18.0)
+			menu_button.position = Vector2(inset.x + 16.0, inset.y + 18.0)
 			_apply_font(menu_button, 25)
 		if help_button != null and is_instance_valid(help_button):
 			help_button.custom_minimum_size = Vector2(56, 56)
