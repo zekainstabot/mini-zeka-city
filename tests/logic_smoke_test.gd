@@ -3,6 +3,7 @@ extends SceneTree
 const EngineScript = preload("res://scripts/GameEngine.gd")
 const CitizenSocietyScript = preload("res://scripts/CitizenSociety.gd")
 const PersianTextScript = preload("res://scripts/PersianText.gd")
+const TradeSystemScript = preload("res://scripts/TradeSystem.gd")
 
 func _init():
 	var game = EngineScript.new()
@@ -569,6 +570,41 @@ func _init():
 	assert(int(savings_purchase.food_units) == 3)
 	assert(int(savings_food_game.state.citizens[0].wallet) == 0)
 	assert(int(savings_food_game.state.citizens[0].savings) == 10)
+
+	# Import contracts must roll back a failed settlement without consuming trucks or claiming dispatch.
+	var failed_contract_game = EngineScript.new()
+	failed_contract_game.new_game()
+	failed_contract_game.state.buildings.append({"id":"transport_depot","workers":0,"balance":0})
+	failed_contract_game.assign_jobs()
+	var failed_city_stock_before = int(failed_contract_game.state.city_export_stock.mehrabad.wood)
+	failed_contract_game.state.market_stock.wood = 101
+	failed_contract_game.state.import_contracts = [{"id":1,"city_id":"mehrabad","resource_id":"wood","daily_amount":1,"days_left":3,"active":true}]
+	var failed_contract_report = []
+	TradeSystemScript._dispatch_import_contracts(failed_contract_game, failed_contract_report)
+	assert(failed_contract_game.state.trade_shipments.is_empty())
+	assert(int(failed_contract_game.state.transport_used_today) == 0)
+	assert(int(failed_contract_game.state.city_export_stock.mehrabad.wood) == failed_city_stock_before)
+	assert(int(failed_contract_game.state.import_contracts[0].days_left) == 2)
+	assert(failed_contract_report.size() == 1)
+	assert(str(failed_contract_report[0]).find("اجرا نشد") >= 0)
+
+	# A valid contract dispatches once, charges the treasury and reserves transport capacity.
+	var valid_contract_game = EngineScript.new()
+	valid_contract_game.new_game()
+	valid_contract_game.state.buildings.append({"id":"transport_depot","workers":0,"balance":0})
+	valid_contract_game.assign_jobs()
+	var valid_city_stock_before = int(valid_contract_game.state.city_export_stock.mehrabad.wood)
+	var valid_money_before = int(valid_contract_game.state.money)
+	valid_contract_game.state.import_contracts = [{"id":1,"city_id":"mehrabad","resource_id":"wood","daily_amount":1,"days_left":3,"active":true}]
+	var valid_contract_report = []
+	TradeSystemScript._dispatch_import_contracts(valid_contract_game, valid_contract_report)
+	assert(valid_contract_game.state.trade_shipments.size() == 1)
+	assert(int(valid_contract_game.state.transport_used_today) == 1)
+	assert(int(valid_contract_game.state.city_export_stock.mehrabad.wood) == valid_city_stock_before - 1)
+	assert(int(valid_contract_game.state.money) < valid_money_before)
+	assert(int(valid_contract_game.state.import_contracts[0].days_left) == 2)
+	assert(valid_contract_report.size() == 1)
+	assert(str(valid_contract_report[0]).find("ارسال شد") >= 0)
 
 	print("Mini ZekaCity logic smoke tests passed.")
 	quit()
