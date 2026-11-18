@@ -1515,9 +1515,12 @@ func _build_ui():
 		_apply_font(section_button, 17 if compact_layout else 16)
 		_style_button(section_button, true)
 		var action_name = str(menu_item.action)
-		# Bind each action as an immutable signal argument; avoid loop-closure
-		# capture issues that can route taps to the wrong menu action.
-		section_button.pressed.connect(_on_settings_menu_action.bind(action_name))
+		if action_name == "confirm_restart_from_menu":
+			# Connect restart confirmation directly; it must not close the menu.
+			section_button.pressed.connect(confirm_restart_from_menu)
+		else:
+			# Bind each action as an immutable signal argument.
+			section_button.pressed.connect(_on_settings_menu_action.bind(action_name))
 		menu_panel.add_child(section_button)
 	var menu_divider = HSeparator.new()
 	menu_panel.add_child(menu_divider)
@@ -2529,12 +2532,20 @@ func save_from_menu():
 	if menu_panel != null:
 		menu_overlay.visible = false
 
-func confirm_restart_from_menu():
-	if restart_confirm_panel != null and is_instance_valid(restart_confirm_panel):
-		restart_confirm_panel.visible = true
-		var menu_scroll = menu_panel.get_parent() if menu_panel != null else null
-		if menu_scroll is ScrollContainer:
-			menu_scroll.call_deferred("ensure_control_visible", restart_confirm_panel)
+func confirm_restart_from_menu() -> void:
+	if restart_confirm_panel == null or not is_instance_valid(restart_confirm_panel):
+		push_error("Restart confirmation panel is not initialized")
+		return
+	# Keep every parent visible and reveal the confirmation inside the menu scroll.
+	if menu_overlay != null:
+		menu_overlay.visible = true
+	if menu_panel != null:
+		menu_panel.visible = true
+	restart_confirm_panel.visible = true
+	restart_confirm_panel.queue_sort()
+	var menu_scroll = menu_panel.get_parent() if menu_panel != null else null
+	if menu_scroll is ScrollContainer:
+		menu_scroll.call_deferred("ensure_control_visible", restart_confirm_panel)
 
 func _cancel_restart():
 	if restart_confirm_panel != null:
