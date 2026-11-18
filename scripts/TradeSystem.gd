@@ -169,8 +169,9 @@ static func _dispatch_import_contracts(engine, report):
 				stock[resource_id] = int(stock.get(resource_id,0)) + amount
 				state.city_export_stock[city_id] = stock
 				report.append("قرارداد واردات %s اجرا نشد: %s" % [engine.RESOURCES[resource_id].name, settlement.message])
-			state.transport_used_today = int(state.get("transport_used_today",0)) + amount
-			report.append("قرارداد واردات %s: محموله %d واحدی ارسال شد." % [engine.RESOURCES[resource_id].name,amount])
+			else:
+				state.transport_used_today = int(state.get("transport_used_today",0)) + amount
+				report.append("قرارداد واردات %s: محموله %d واحدی ارسال شد." % [engine.RESOURCES[resource_id].name,amount])
 		contract["days_left"] = int(contract.get("days_left",0)) - 1
 		if int(contract.days_left) <= 0:
 			contract["active"] = false
