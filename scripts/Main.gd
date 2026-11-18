@@ -2,6 +2,7 @@ extends Control
 
 const EngineScript = preload("res://scripts/GameEngine.gd")
 const PersianText = preload("res://scripts/PersianText.gd")
+const LanguageManager = preload("res://scripts/LanguageManager.gd")
 const AudioManagerScript = preload("res://scripts/AudioManager.gd")
 const MainUITheme = preload("res://scripts/MainUITheme.gd")
 const HelpPageBuilder = preload("res://scripts/HelpPageBuilder.gd")
@@ -25,6 +26,7 @@ const AchievementsPage = preload("res://scripts/AchievementsPage.gd")
 const CityDashboardBuilder = preload("res://scripts/CityDashboardBuilder.gd")
 const OfflineProgressController = preload("res://scripts/OfflineProgressController.gd")
 var game = null
+var ui_language = "fa"
 var audio_manager = null
 var last_audio_night_mode = false
 var audio_warning_cooldown = 0.0
@@ -133,7 +135,7 @@ func _on_ui_node_added(node):
 	if node is Button:
 		node.alignment = HORIZONTAL_ALIGNMENT_CENTER
 		node.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		node.text_direction = Control.TEXT_DIRECTION_RTL
+		node.text_direction = Control.TEXT_DIRECTION_RTL if LanguageManager.is_rtl(ui_language) else Control.TEXT_DIRECTION_LTR
 
 func _center_existing_button_texts(node):
 	if node is Button:
@@ -348,7 +350,7 @@ func _ready():
 	# any game page or overlay creates additional buttons.
 	get_tree().node_added.connect(_on_ui_node_added)
 	_center_existing_button_texts(self)
-	layout_direction = Control.LAYOUT_DIRECTION_RTL
+	layout_direction = Control.LAYOUT_DIRECTION_RTL if LanguageManager.is_rtl(ui_language) else Control.LAYOUT_DIRECTION_LTR
 	_load_ui_font()
 	# Open the full-screen loading experience immediately on launch.
 	call_deferred("_start_game_loading")
@@ -376,6 +378,10 @@ func _start_game_loading():
 	_set_startup_progress(34, "آماده‌سازی اطلاعات شهر...")
 
 	var has_existing_save = game.load_game()
+	ui_language = str(game.state.get("ui_language", "fa"))
+	if ui_language not in LanguageManager.LANGUAGES:
+		ui_language = "fa"
+	layout_direction = Control.LAYOUT_DIRECTION_RTL if LanguageManager.is_rtl(ui_language) else Control.LAYOUT_DIRECTION_LTR
 	if not has_existing_save:
 		game.new_game()
 		# First launch starts in portrait. Later launches always use the saved orientation.
@@ -2388,7 +2394,7 @@ func _create_menu_action(title, callback):
 	button.custom_minimum_size = Vector2(max(0.0, action_width), 62 if phone_layout else 54)
 	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	button.text_direction = Control.TEXT_DIRECTION_RTL
+	button.text_direction = Control.TEXT_DIRECTION_RTL if LanguageManager.is_rtl(ui_language) else Control.TEXT_DIRECTION_LTR
 	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_apply_font(button, 19 if phone_layout else 17)
 	_style_button(button, false)
@@ -2621,10 +2627,29 @@ func _clear_content():
 	for child in content.get_children():
 		child.queue_free()
 
+func _tr(text) -> String:
+	return LanguageManager.translate(str(text), ui_language)
+
+func _display_text(text) -> String:
+	var localized = _tr(str(text))
+	return PersianText.reshaper(localized) if LanguageManager.is_rtl(ui_language) else localized
+
+func set_language(language):
+	var selected_language = str(language)
+	if selected_language not in LanguageManager.LANGUAGES:
+		return
+	ui_language = selected_language
+	if game != null:
+		game.state["ui_language"] = ui_language
+		game.save_game()
+	layout_direction = Control.LAYOUT_DIRECTION_RTL if LanguageManager.is_rtl(ui_language) else Control.LAYOUT_DIRECTION_LTR
+	_show_message("زبان به‌روزرسانی شد.")
+	show_page(current_page)
+
 func _add_label(text, size=18):
 	var label = Label.new()
-	label.text = PersianText.reshaper(text)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	label.text = _display_text(text)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT if LanguageManager.is_rtl(ui_language) else HORIZONTAL_ALIGNMENT_LEFT
 	_apply_font(label, size)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -2639,7 +2664,7 @@ func _add_label(text, size=18):
 
 func _add_button(text, button_target, callback, args=[]):
 	var button = Button.new()
-	button.text = PersianText.reshaper(text)
+	button.text = _display_text(text)
 	var viewport_width = get_viewport_rect().size.x
 	var compact = viewport_width < 900.0
 	var base_height = 58.0 if compact else 50.0
@@ -2669,7 +2694,7 @@ func _toggle_commerce_section(section_id):
 	show_page("commerce")
 
 func _show_message(text):
-	message_label.text = PersianText.reshaper(text)
+	message_label.text = _display_text(text)
 	var report_text = str(text).strip_edges()
 	# Keep temporary construction-blocking feedback out of the permanent city report.
 	if report_text in ["برای ساخت این ساختمان جمعیت کافی نیست.", "به ساختمان موردنیاز این مأموریت رفتی."]:
@@ -2997,6 +3022,10 @@ func show_page(page):
 			CityReportPage.build(self, s)
 		"settings":
 			_add_label("⚙️ تنظیمات بازی", 24)
+			_add_label("زبان بازی", 19)
+			_add_button(("فارسی ✓" if ui_language == "fa" else "فارسی"), self, "set_language", ["fa"])
+			_add_button(("انگلیسی ✓" if ui_language == "en" else "انگلیسی"), self, "set_language", ["en"])
+			_add_button(("ترکی ✓" if ui_language == "tr" else "ترکی"), self, "set_language", ["tr"])
 			_add_button("🏙️ تغییر نام شهر", self, "_open_city_name_setup", [false])
 			_add_label("در حالت خودکار، بازی با چرخش گوشی هماهنگ می‌شود؛ حتی وقتی گوشی را ۱۸۰ درجه می‌چرخانی. دو حالت دیگر جهت صفحه را ثابت نگه می‌دارند.", 16)
 			var current_orientation = str(game.state.get("screen_orientation", "landscape"))
