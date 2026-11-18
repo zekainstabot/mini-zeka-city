@@ -902,7 +902,7 @@ func _apply_safe_area_to_floating_controls():
 		if help_button != null and is_instance_valid(help_button):
 			help_button.custom_minimum_size = icon_size
 			help_button.size = icon_size
-			help_button.position = Vector2(right_edge - 162.0, inset.y + 84.0)
+			help_button.position = Vector2(right_edge - 162.0, inset.y + 146.0)
 			_apply_font(help_button, 22)
 		# Row two: construction capacity on the left, ranking and reports together on the right.
 		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
