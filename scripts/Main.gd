@@ -813,9 +813,10 @@ func _style_button(button, navigation=false):
 	var normal_color = Color("#202124") if navigation else Color("#FFFFFF")
 	var hover_color = Color("#34363A") if navigation else Color("#E8EAED")
 	var pressed_color = Color("#111214") if navigation else Color("#DADCE0")
-	var border_normal = Color("#050505") if navigation else Color("#73777D")
-	var border_hover = Color("#000000") if navigation else Color("#4B5057")
-	var border_pressed = Color("#000000") if navigation else Color("#30343A")
+	# Visible outlines keep adjacent navigation buttons visually separated.
+	var border_normal = Color("#64748B") if navigation else Color("#73777D")
+	var border_hover = Color("#94A3B8") if navigation else Color("#4B5057")
+	var border_pressed = Color("#CBD5E1") if navigation else Color("#30343A")
 	var text_color = Color("#FFFFFF") if navigation else Color("#111111")
 	button.add_stylebox_override("normal", _button_style(normal_color, border_normal))
 	button.add_stylebox_override("hover", _button_style(hover_color, border_hover))
