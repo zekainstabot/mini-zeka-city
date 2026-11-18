@@ -2636,35 +2636,87 @@ func _show_welcome_mission_hint():
 	for mission in game.get_missions():
 		if str(mission.get("id", "")) == "buy_land_tutorial" and bool(mission.get("completed", false)):
 			return
+
+	var compact = get_viewport_rect().size.x < 900.0
 	var panel = PanelContainer.new()
-	var panel_style = StyleBoxFlat.new()
-	panel_style.bg_color = Color("#26384d")
-	panel_style.border_color = Color("#60a5fa")
-	panel_style.set_border_width_all(2)
-	panel_style.set_corner_radius_all(10)
-	panel_style.content_margin_left = 12
-	panel_style.content_margin_right = 12
-	panel_style.content_margin_top = 10
-	panel_style.content_margin_bottom = 10
-	panel.add_theme_stylebox_override("panel", panel_style)
+	panel.name = "WelcomeMissionHint"
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var panel_style = StyleBoxFlat.new()
+	panel_style.bg_color = Color("#1e344b")
+	panel_style.border_color = Color("#60a5fa")
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(14)
+	panel_style.content_margin_left = 14 if compact else 18
+	panel_style.content_margin_right = 14 if compact else 18
+	panel_style.content_margin_top = 12
+	panel_style.content_margin_bottom = 12
+	panel.add_theme_stylebox_override("panel", panel_style)
 	content.add_child(panel)
+
 	var layout = VBoxContainer.new()
-	layout.add_theme_constant_override("separation", 8)
+	layout.add_theme_constant_override("separation", 9)
 	panel.add_child(layout)
+
+	var heading_row = HBoxContainer.new()
+	heading_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	heading_row.add_theme_constant_override("separation", 8)
+	layout.add_child(heading_row)
+
+	var welcome_icon = Label.new()
+	welcome_icon.text = "👋"
+	_apply_font(welcome_icon, 23 if compact else 21)
+	welcome_icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	heading_row.add_child(welcome_icon)
+
+	var heading = Label.new()
+	heading_row.add_child(heading)
+	heading_row.move_child(heading, 0)
+	heading_row.add_child(welcome_icon)
+	heading_row.remove_child(welcome_icon)
+	heading_row.add_child(welcome_icon)
+	heading_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	heading_row.add_theme_constant_override("separation", 8)
+	heading_row.get_child(0).queue_free()
+	var heading_label = Label.new()
+	heading_label.text = PersianText.reshaper("شروع ماجراجویی در شهر")
+	heading_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	heading_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_apply_font(heading_label, 19 if compact else 18)
+	heading_label.add_theme_color_override("font_color", Color("#bfdbfe"))
+	heading_row.add_child(heading_label)
+
+	var welcome_text = "به شهر خودت خوش اومدی! برای شروع، مأموریت‌ها رو ببین و اولین زمینت رو بخر."
 	var welcome = Label.new()
-	welcome.text = PersianText.reshaper("به شهر خودت خوش اومدی! برای شروع، به مأموریت‌ها برو.")
+	welcome.text = PersianText.reshaper(welcome_text)
 	welcome.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	welcome.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	welcome.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	welcome.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_font(welcome, 18 if get_viewport_rect().size.x < 900 else 17)
-	welcome.add_theme_color_override("font_color", Color("#ffffff"))
-	layout.add_child(welcome)
+	welcome.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	var text_length = welcome_text.length()
+	var welcome_font_size = 18 if text_length < 90 else (16 if text_length < 180 else 14)
+	_apply_font(welcome, welcome_font_size if compact else welcome_font_size - 1)
+	welcome.add_theme_color_override("font_color", Color("#f1f5f9"))
+
+	# The text takes only the space it needs. It becomes internally scrollable
+	# only when its wrapped height exceeds this limit; the rest of the page stays still.
+	var text_scroll = ScrollContainer.new()
+	text_scroll.name = "WelcomeTextScroll"
+	text_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	text_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	text_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text_scroll.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	text_scroll.custom_minimum_size = Vector2(0, 0)
+	text_scroll.custom_maximum_size = Vector2(0, 116 if compact else 132)
+	text_scroll.clip_contents = true
+	text_scroll.add_child(welcome)
+	layout.add_child(text_scroll)
+
 	var go_button = Button.new()
 	go_button.text = PersianText.reshaper("رفتن به مأموریت‌ها  ←")
-	go_button.custom_minimum_size = Vector2(0, 54 if get_viewport_rect().size.x < 900 else 46)
+	go_button.custom_minimum_size = Vector2(0, 50 if compact else 46)
 	go_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_font(go_button, 19 if get_viewport_rect().size.x < 900 else 17)
+	_apply_font(go_button, 18 if compact else 17)
 	_style_button(go_button, false)
 	go_button.connect("pressed", Callable(self, "_open_missions_from_welcome"))
 	layout.add_child(go_button)
