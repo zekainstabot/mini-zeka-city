@@ -908,10 +908,10 @@ func _apply_safe_area_to_floating_controls():
 			report_button.position = Vector2(right_edge - 58.0, inset.y + 166.0)
 			_apply_font(report_button, 25)
 		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
-			construction_capacity_button.custom_minimum_size = Vector2(144, 68)
-			construction_capacity_button.size = Vector2(144, 68)
+			construction_capacity_button.custom_minimum_size = Vector2(100, 50)
+			construction_capacity_button.size = Vector2(100, 50)
 			construction_capacity_button.position = Vector2(inset.x + 12.0, inset.y + 148.0)
-			_apply_font(construction_capacity_button, 12)
+			_apply_font(construction_capacity_button, 17)
 	else:
 		if daily_reward_button != null and is_instance_valid(daily_reward_button):
 			daily_reward_button.custom_minimum_size = Vector2(56, 54)
@@ -939,10 +939,10 @@ func _apply_safe_area_to_floating_controls():
 			report_button.position = Vector2(right_edge - 50.0, inset.y + 138.0)
 			_apply_font(report_button, 25)
 		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
-			construction_capacity_button.custom_minimum_size = Vector2(158, 70)
-			construction_capacity_button.size = Vector2(158, 70)
+			construction_capacity_button.custom_minimum_size = Vector2(100, 50)
+			construction_capacity_button.size = Vector2(100, 50)
 			construction_capacity_button.position = Vector2(inset.x + 16.0, inset.y + 96.0)
-			_apply_font(construction_capacity_button, 15)
+			_apply_font(construction_capacity_button, 17)
 	if day_night_hud != null and is_instance_valid(day_night_hud):
 		# Anchor the clock to the upper-right; reserve a separate right-side
 		# shortcut rail below it on narrow phones.
@@ -1827,7 +1827,7 @@ func _build_construction_capacity_button():
 	construction_capacity_button = Button.new()
 	construction_capacity_button.name = "ConstructionCapacityButton"
 	construction_capacity_button.text = "👷  2/2"
-	construction_capacity_button.custom_minimum_size = Vector2(104, 52)
+	construction_capacity_button.custom_minimum_size = Vector2(100, 50)
 	construction_capacity_button.anchor_left = 0.0
 	construction_capacity_button.anchor_top = 0.0
 	construction_capacity_button.anchor_right = 0.0
@@ -1838,7 +1838,7 @@ func _build_construction_capacity_button():
 	construction_capacity_button.autowrap_mode = TextServer.AUTOWRAP_OFF
 	construction_capacity_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	construction_capacity_button.tooltip_text = "مشاهده پروژه‌های در حال ساخت و پیشنهاد ساخت"
-	_apply_font(construction_capacity_button, 15)
+	_apply_font(construction_capacity_button, 17)
 	_style_button(construction_capacity_button, false)
 	construction_capacity_button.pressed.connect(_open_construction_details)
 	add_child(construction_capacity_button)
@@ -2019,7 +2019,7 @@ func _get_construction_recommendation():
 		{"need":"education", "building_id":"school", "reason":"آموزش شهروندان ضعیف است؛ ساخت مدرسه را پیشنهاد می‌کنم."},
 		{"need":"safety", "building_id":"police_station", "reason":"امنیت شهر پایین است؛ ساخت کلانتری می‌تواند کمک کند."},
 		{"need":"leisure", "building_id":"small_park", "reason":"تفریح شهروندان کم است؛ یک پارک کوچک بساز."},
-		{"need":"sanitation", "buildinging_id":"waste_facility", "reason":"بهداشت محیط شهر نیاز به تقویت دارد؛ مرکز مدیریت پسماند بساز."}
+		{"need":"sanitation", "building_id":"waste_facility", "reason":"بهداشت محیط شهر نیاز به تقویت دارد؛ مرکز مدیریت پسماند بساز."}
 	]
 	var selected = {}
 	var lowest_value = 101
@@ -2030,7 +2030,7 @@ func _get_construction_recommendation():
 			selected = candidate
 	if selected.is_empty() or lowest_value >= 75:
 		selected = {"building_id":"small_park", "reason":"وضعیت خدمات شهر متعادل است؛ برای افزایش رضایت شهروندان، پارک کوچک گزینه خوبی برای پروژه بعدی است."}
-	var building_id = str(selected.get("building_id", selected.get("buildinging_id", "")))
+	var building_id = str(selected.get("building_id", ""))
 	var definition = game.get_building_definitions().get(building_id, {})
 	if definition.is_empty():
 		return {}
