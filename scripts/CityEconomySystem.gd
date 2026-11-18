@@ -396,27 +396,34 @@ static func _process_citizen_purchases(engine, report):
 		var weight = int(max(1, int(data.get("service_capacity", 1)) * workers / required))
 		shops.append({"index":i,"weight":weight})
 		total_weight += weight
-	if shops.is_empty() or total_weight <= 0:
-		return {"spending":0,"tax":0,"buyers":0,"business_revenue":0,"food_units":0}
+
 	var spending = 0
 	var sales_tax = 0
 	var buyers = 0
 	var business_revenue_total = 0
 	var food_units = 0
 	var food_need = int(state.get("needs", {}).get("food", 60))
-	var food_stock = int(state.resources.get("food",0))
+	var food_stock = max(0, int(state.resources.get("food",0)))
 	var citizen_count = state.citizens.size()
-	var rotation_count = int(max(1, citizen_count))
+	var rotation_count = max(1, citizen_count)
 	var start_index = int(state.day) % rotation_count
+	var unmet_food_units = 0
+	var requested_food_units = 0
+
 	for step in range(citizen_count):
 		var citizen_index = int((start_index + step) % rotation_count)
 		var citizen = state.citizens[citizen_index]
+		var demand_units = 1 + int(floor(float(100 - food_need) / 50.0))
+		requested_food_units += demand_units
+		if shops.is_empty() or total_weight <= 0:
+			unmet_food_units += demand_units
+			continue
 		var wallet = max(0, int(citizen.get("wallet", 0)))
 		var savings = max(0, int(citizen.get("savings", 0)))
-		var demand_units = 1 + int(floor(float(100 - food_need) / 50.0))
 		var affordable_units = int(floor(float(wallet + savings) / 10.0))
 		var purchase_units = min(min(demand_units, affordable_units), food_stock)
 		if purchase_units <= 0:
+			unmet_food_units += demand_units
 			continue
 		var purchase = purchase_units * 10
 		food_stock -= purchase_units
@@ -440,12 +447,23 @@ static func _process_citizen_purchases(engine, report):
 		business_revenue_total += business_revenue
 		food_units += purchase_units
 		buyers += 1
+		unmet_food_units += max(0, demand_units - purchase_units)
+
 	state.resources.food = food_stock
+	var shortage_ratio = float(unmet_food_units) / float(max(1, requested_food_units))
+	if requested_food_units > 0 and shortage_ratio > 0.0:
+		var food_penalty = max(1, int(ceil(shortage_ratio * 6.0)))
+		state.needs.food = int(clamp(food_need - food_penalty, 0, 100))
+		var satisfaction_penalty = max(1, int(ceil(shortage_ratio * 2.0)))
+		state.satisfaction = int(clamp(int(state.get("satisfaction", 50)) - satisfaction_penalty, 0, 100))
+		report.append("کمبود خوراک: %d از %d واحد تقاضای روزانه تأمین نشد؛ رضایت و شاخص خوراک کاهش یافت." % [unmet_food_units, requested_food_units])
+	elif requested_food_units > 0 and food_units >= requested_food_units:
+		state.needs.food = int(clamp(food_need + 1, 0, 100))
 	if buyers > 0:
 		report.append("شهروندان %d خرید خوراک انجام دادند؛ %d واحد غذا مصرف شد و %d سکه گردش مالی ایجاد کرد." % [buyers,food_units,spending])
-	elif food_stock <= 0:
-		report.append("ذخیره غذا تمام شده است؛ شهروندان از فروشگاه‌ها خریدی انجام ندادند.")
-	return {"spending":spending,"tax":sales_tax,"buyers":buyers,"business_revenue":business_revenue_total,"food_units":food_units}
+	elif food_stock <= 0 or shops.is_empty():
+		report.append("ذخیره غذا یا دسترسی به فروشگاه کافی نیست؛ شهروندان خرید خوراکی انجام ندادند.")
+	return {"spending":spending,"tax":sales_tax,"buyers":buyers,"business_revenue":business_revenue_total,"food_units":food_units,"food_demand":requested_food_units,"food_shortage":unmet_food_units}
 
 static func collect_business_profit(engine, building_index):
 	var state = engine.state
