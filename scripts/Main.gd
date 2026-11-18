@@ -1469,50 +1469,34 @@ func _build_ui():
 	menu_panel.add_theme_constant_override("separation", 12)
 	menu_scroll.add_child(menu_panel)
 	var navigation_heading = Label.new()
-	navigation_heading.text = PersianText.reshaper("همه بخش‌های بازی")
+	navigation_heading.text = PersianText.reshaper("تنظیمات و ابزارهای بازی")
 	navigation_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_apply_font(navigation_heading, 17 if compact_layout else 16)
+	_apply_font(navigation_heading, 18 if compact_layout else 17)
 	navigation_heading.add_theme_color_override("font_color", Color("#7dd3fc"))
 	menu_panel.add_child(navigation_heading)
-	var menu_groups = [
-		{"title":"🏙️ شهر من","items":[{"t":"🏠 نمای کلی شهر و شهروندان","p":"home"},{"t":"🏛 شهرداری و خدمات شهری","p":"municipality"},{"t":"🏢 اقتصاد خصوصی و کسب‌وکارها","p":"private_economy"},{"t":"📋 گزارش‌ها و مشکلات شهر","p":"report"}]},
-		{"title":"🏗️ توسعه","items":[{"t":"🏗 ساختمان‌ها و ساخت‌وساز","p":"buildings"},{"t":"📈 توسعه شهر و حمل‌ونقل","p":"transport"}]},
-		{"title":"🏆 دستاوردها","items":[{"t":"🎯 مأموریت‌ها و اهداف روزانه","p":"missions"},{"t":"🏅 پیشرفت و دستاوردها","p":"progress"}]},
-		{"title":"🛒 بازار و انبار","items":[{"t":"🛍 خرید و فروش منابع","p":"commerce"},{"t":"📦 مدیریت انبار و تولید","p":"storage"},{"t":"🚚 واردات و صادرات","p":"imports"}]},
-		{"title":"🏦 امور اقتصادی","items":[{"t":"🏦 بانک","p":"bank"}]},
-		{"title":"⚙️ تنظیمات","items":[{"t":"🔊 صدا و موسیقی","action":"open_audio_settings"},{"t":"🎮 تنظیمات بازی","action":"open_game_settings"},{"t":"💾 ذخیره بازی","action":"save_from_menu"},{"t":"🔄 شروع دوباره شهر","action":"confirm_restart_from_menu"},{"t":"❔ راهنمای بازی","action":"open_help"}]}
+	var settings_items = [
+		{"t":"🔊 صدا و موسیقی","action":"open_audio_settings"},
+		{"t":"🎮 تنظیمات بازی","action":"open_game_settings"},
+		{"t":"💾 ذخیره شهر","action":"save_from_menu"},
+		{"t":"❔ راهنمای بازی","action":"open_help"},
+		{"t":"🔄 شروع دوباره شهر","action":"confirm_restart_from_menu"}
 	]
-	for group in menu_groups:
-		var group_heading = Label.new()
-		group_heading.text = PersianText.reshaper(str(group.title))
-		group_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		group_heading.custom_minimum_size = Vector2(0, 32)
-		_apply_font(group_heading, 16 if compact_layout else 15)
-		group_heading.add_theme_color_override("font_color", Color("#7dd3fc"))
-		menu_panel.add_child(group_heading)
-		for menu_item in group.items:
-			var section_button = Button.new()
-			section_button.text = PersianText.reshaper(str(menu_item.t))
-			section_button.custom_minimum_size = Vector2(0, 48 if compact_layout else 44)
-			section_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			_apply_font(section_button, 16 if compact_layout else 15)
-			_style_button(section_button, true)
-			if menu_item.has("action"):
-				var action_name = str(menu_item.action)
-				section_button.pressed.connect(func():
-					_close_game_menu()
-					if action_name == "open_help":
-						_open_help()
-					else:
-						call(action_name)
-				)
+	for menu_item in settings_items:
+		var section_button = Button.new()
+		section_button.text = PersianText.reshaper(str(menu_item.t))
+		section_button.custom_minimum_size = Vector2(0, 52 if compact_layout else 48)
+		section_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_apply_font(section_button, 17 if compact_layout else 16)
+		_style_button(section_button, true)
+		var action_name = str(menu_item.action)
+		section_button.pressed.connect(func():
+			_close_game_menu()
+			if action_name == "open_help":
+				_open_help()
 			else:
-				var target_page = str(menu_item.p)
-				section_button.pressed.connect(func():
-					_close_game_menu()
-					show_page(target_page)
-				)
-			menu_panel.add_child(section_button)
+				call(action_name)
+		)
+		menu_panel.add_child(section_button)
 	var menu_divider = HSeparator.new()
 	menu_panel.add_child(menu_divider)
 	menu_pause_button = _create_menu_action("⏸ توقف بازی", "toggle_pause")
@@ -2890,6 +2874,10 @@ func show_page(page):
 			_add_button("🏗️ ساختمان‌ها و ساخت‌وساز", self, "show_page", ["buildings"])
 			_add_button("🛣️ توسعه شهر و حمل‌ونقل", self, "show_page", ["transport"])
 		"home":
+			_add_label("دسترسی‌های مدیریت شهر", 18)
+			_add_button("🏛️ شهرداری و خدمات شهری", self, "show_page", ["municipality"])
+			_add_button("🏢 اقتصاد خصوصی و کسب‌وکارها", self, "show_page", ["private_economy"])
+			_add_button("📋 گزارش‌ها و مشکلات شهر", self, "show_page", ["report"])
 			HomePage.build(self, s)
 		"map":
 			MapPage.build(self, s)
@@ -2905,6 +2893,7 @@ func show_page(page):
 			PrivateEconomyPage.build(self, s)
 		"commerce":
 			_add_button("📦 مدیریت انبار و تولید", self, "show_page", ["storage"])
+			_add_button("🚚 واردات و صادرات", self, "show_page", ["imports"])
 			CommercePage.build(self, s)
 		"transport":
 			TransportPage.build(self, s)
@@ -2971,6 +2960,7 @@ func show_page(page):
 		"progress":
 			ProgressPage.build(self, s)
 		"missions":
+			_add_button("🏅 پیشرفت و دستاوردهای شهر", self, "show_page", ["progress"])
 			MissionsPage.build(self, s)
 
 		_:
