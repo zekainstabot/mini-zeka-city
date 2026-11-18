@@ -648,12 +648,9 @@ func _init():
 	chain_game.state.resources.wood = 0
 	chain_game.state.buildings.append({"id":"sawmill","workers":0,"balance":0})
 	chain_game.assign_jobs()
-	var chain_report = chain_game.end_day(false, false)
-	var sawmill_shortage_reported = false
-	for entry in chain_report:
-		if str(entry).find("کارخانه الوارسازی متوقف شد") >= 0 and str(entry).find("چوب کافی نیست") >= 0:
-			sawmill_shortage_reported = true
-	assert(sawmill_shortage_reported)
+	var chain_report = str(chain_game.end_day(false, false))
+	assert(chain_report.find("کارخانه الوارسازی متوقف شد") >= 0)
+	assert(chain_report.find("چوب کافی نیست") >= 0)
 	assert(int(chain_game.state.resources.lumber) == 0)
 
 	# Provincial trade stock recovers gradually and never exceeds the province's base supply.
