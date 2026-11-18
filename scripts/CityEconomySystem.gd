@@ -166,7 +166,9 @@ static func end_day(engine, is_offline=false, persist=true):
 		if input != "" and required_workers > 0:
 			scaled_input_amount = max(1, int(ceil(float(scaled_input_amount) * float(workers) / float(required_workers))))
 		if input != "":
-			if int(state.resources.get(input, 0)) < scaled_input_amount:
+			var available_input = int(state.resources.get(input, 0))
+			if available_input < scaled_input_amount:
+				report.append("%s متوقف شد؛ %s کافی نیست (نیاز: %d، موجودی: %d)." % [str(data.get("name", building.id)), str(engine.RESOURCES.get(input, {}).get("name", input)), scaled_input_amount, available_input])
 				continue
 		if engine.get_free_storage() < amount:
 			continue
