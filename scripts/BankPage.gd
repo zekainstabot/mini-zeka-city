@@ -6,7 +6,7 @@ static func build(owner, s):
 	owner._add_label("🏦 بانک و امور مالی شهر",22)
 	owner._add_label("بانک مرکزی: %s | بانک شهری: %d" % ["فعال" if game.has_central_bank() else "ساخته نشده",game.get_building_count("municipal_bank")],17)
 	owner._add_label("وام فقط با بانک مرکزی و سپرده‌گذاری با بانک شهری فعال می‌شود.",15)
-	owner._add_label("موجودی خزانه: %d سکه | ظرفیت آزاد: %d سکه" % [int(s.money),game.get_available_money()],16)
+	owner._add_label("موجودی خزانه: %d سکه" % int(s.money),16)
 	owner._add_label("حداکثر وام قابل دریافت: %d سکه" % game.get_bank_loan_limit(),16)
 	var player_active_loans = 0
 	for player_loan in s.get("bank_loans", []):
