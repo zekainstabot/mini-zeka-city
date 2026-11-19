@@ -29,10 +29,8 @@ static func build(owner, s):
 	owner._add_label("درآمد روزانه شهرداری: %d سکه" % municipal_daily_total, 18)
 	owner._add_label("اعتبار شهر: %d  |  رضایت: %d/۱۰۰" % [s.reputation,int(s.get("satisfaction",50))], 18)
 
+	# Section details are rendered below the overview action cards.
 	owner._add_home_services_panel(s)
-
-	var buildings_toggle = owner._add_button(("▼ " if owner.home_buildings_expanded else "▶ ") + "ساختمان‌های ساخته‌شده", owner, "toggle_home_buildings")
-	owner._style_button(buildings_toggle, false)
 	if owner.home_buildings_expanded:
 		var home_categories = ["خانه‌ها","کشاورزی","معادن","کارخانه‌ها","کسب‌وکارها","خدمات شهری","تفریح و فرهنگ","انبارها"]
 		var any_home_building = false
@@ -52,8 +50,6 @@ static func build(owner, s):
 		if not any_home_building:
 			owner._add_label("هنوز ساختمانی در شهر ساخته نشده است.", 16)
 
-	var demolish_toggle = owner._add_button(("▼ " if owner.demolish_panel_expanded else "▶ ") + "مدیریت تخریب ساختمان‌ها", owner, "toggle_demolish_panel")
-	owner._style_button(demolish_toggle, false)
 	if owner.demolish_panel_expanded:
 		owner._add_label("ساختمان موردنظر را انتخاب کن:", 16)
 		for home_id in game.get_building_definitions().keys():
@@ -94,8 +90,6 @@ static func build(owner, s):
 		else:
 			owner._add_label("برای تخریب، ابتدا یک ساختمان را انتخاب کن.", 15)
 
-	var economy_toggle = owner._add_button(("▼ " if owner.home_economy_expanded else "▶ ") + "منابع و گزارش مالی", owner, "toggle_home_economy")
-	owner._style_button(economy_toggle, false)
 	if owner.home_economy_expanded:
 		owner._add_label("منابع: " + owner._resource_summary(), 16)
 		owner._add_label("ذخیره غذای شهر: %d واحد" % int(s.resources.get("food",0)), 16)
@@ -149,6 +143,10 @@ static func _add_city_overview_panel(owner, city_state):
 	_add_overview_action(owner, grid, "📋 گزارش‌ها و مشکلات شهر", "مشاهده گزارش‌ها و رسیدگی به مشکلات", "report", Color("#93c5fd"))
 	_add_overview_action(owner, grid, "🏛️ شهرداری و خدمات شهری", "مدیریت خدمات و امور شهرداری", "municipality", Color("#fcd34d"))
 	_add_overview_action(owner, grid, "🏢 اقتصاد خصوصی", "کسب‌وکارها و مشارکت شهروندان", "private_economy", Color("#86efac"))
+	_add_overview_action(owner, grid, "🏙️ خدمات شهری", "وضعیت خدمات و زیرساخت‌های شهر", "toggle_home_city_details", Color("#fcd34d"))
+	_add_overview_action(owner, grid, "🏗️ ساختمان‌های ساخته‌شده", "فهرست ساختمان‌های فعال شهر", "toggle_home_buildings", Color("#a5b4fc"))
+	_add_overview_action(owner, grid, "🧱 مدیریت تخریب ساختمان‌ها", "انتخاب و تخریب ساختمان‌های شهر", "toggle_demolish_panel", Color("#fca5a5"))
+	_add_overview_action(owner, grid, "📊 منابع و گزارش مالی", "منابع، ذخایر و تراز مالی شهر", "toggle_home_economy", Color("#86efac"))
 
 static func _add_overview_action(owner, parent, title_text, description_text, target_page, accent_color):
 	var button = Button.new()
