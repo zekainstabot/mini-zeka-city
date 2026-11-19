@@ -62,30 +62,6 @@ static func build(owner, s):
 				if int(mine.get("remaining",0)) <= 0:
 					owner._add_button("شارژ معدن آهن — ۱۰۰۰ سکه", owner, "refill_mine", [mine_index])
 			owner._add_label("%s — %s" % [game.get_resource_definitions()[str(mine.get("resource","stone"))].name,mine_status])
-	# Show projects immediately after construction starts. Active projects live
-	# in state.constructions until completion, not in state.buildings.
-	var active_projects = game.get_construction_status()
-	if not active_projects.is_empty():
-		owner._add_label("🏗️ پروژه‌های در حال ساخت", 18)
-		var projects_by_district = {}
-		for project in active_projects:
-			var project_district = str(project.get("district_name", "منطقه صنعتی خارج شهر"))
-			if not projects_by_district.has(project_district):
-				projects_by_district[project_district] = []
-			projects_by_district[project_district].append(project)
-		for project_district in projects_by_district.keys():
-			owner._add_label(project_district, 15)
-			for project in projects_by_district[project_district]:
-				var remaining_seconds = int(project.get("remaining", 0))
-				var remaining_minutes = int(ceil(float(remaining_seconds) / 60.0))
-				var project_name = str(project.get("name", "ساختمان"))
-				var progress_text = "کمتر از یک دقیقه" if remaining_seconds > 0 and remaining_minutes <= 1 else "%d دقیقه" % remaining_minutes
-				owner._add_label("🚧 %s — زمان باقی‌مانده: %s" % [project_name, progress_text], 15)
-				var speedup_cost = max(1, int(ceil(float(remaining_seconds) / 300.0)))
-				var speedup_button = owner._add_button("تکمیل فوری — %d ZC" % speedup_cost, owner, "speed_up_construction", [int(project.get("construction_index", -1))])
-				speedup_button.icon = load("res://assets/zeka-coin.svg")
-				speedup_button.icon_max_width = 26
-				owner._style_button(speedup_button, false)
 	owner._add_label("ساختمان‌ها:", 18)
 	var district_ids = []
 	var district_names = {}
