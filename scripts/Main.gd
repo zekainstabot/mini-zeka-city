@@ -976,17 +976,12 @@ func _apply_safe_area_to_floating_controls():
 		if day_night_timer_label != null and is_instance_valid(day_night_timer_label):
 			_apply_font(day_night_timer_label, 12 if narrow else 14)
 
-	# Anchor the worker shortcut below the clock's actual laid-out bottom edge.
-	# This avoids relying on a guessed HUD height across phone sizes and safe areas.
+	# Keep the worker shortcut close to the clock instead of pushing it below
+	# the full currency header; the right-side column is reserved for this control.
 	if worker_button_valid:
 		var worker_row_y = row_y
 		if day_night_hud != null and is_instance_valid(day_night_hud):
-			worker_row_y = maxf(worker_row_y, day_night_hud.get_global_rect().end.y + 24.0)
-		# The currency cards are part of the main header and can extend below
-		# the clock on compact phones. Keep the worker pill beneath the entire
-		# currency row so it never covers the city-money balance.
-		if currency_hud != null and is_instance_valid(currency_hud):
-			worker_row_y = maxf(worker_row_y, currency_hud.get_global_rect().end.y + 32.0)
+			worker_row_y = maxf(worker_row_y, day_night_hud.get_global_rect().end.y + 10.0)
 		construction_capacity_button.position = Vector2(worker_x, worker_row_y)
 		_apply_font(construction_capacity_button, 22 if narrow else 24)
 
