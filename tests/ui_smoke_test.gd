@@ -79,6 +79,7 @@ func _run_tests():
 	main._cancel_exit_game()
 	main.device_back_press_count = 0
 	main.last_device_back_ticks = 0
+	main.show_page("home")
 	var home_report_action = main.content.find_child("HomeAction_report", true, false)
 	var home_municipality_action = main.content.find_child("HomeAction_municipality", true, false)
 	var home_private_economy_action = main.content.find_child("HomeAction_private_economy", true, false)
