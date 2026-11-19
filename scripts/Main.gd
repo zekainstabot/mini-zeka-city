@@ -2940,7 +2940,8 @@ func show_page(page):
 			_add_label("دسترسی‌های مدیریت شهر", 18)
 			_add_button("🏛️ شهرداری و خدمات شهری", self, "show_page", ["municipality"])
 			_add_button("🏢 اقتصاد خصوصی و کسب‌وکارها", self, "show_page", ["private_economy"])
-			_add_button("📋 گزارش‌ها و مشکلات شهر", self, "show_page", ["report"])
+			var home_reports_button = _add_button("📋 گزارش‌ها و مشکلات شهر", self, "show_page", ["report"])
+			home_reports_button.name = "HomeReportsButton"
 			HomePage.build(self, s)
 		"map":
 			MapPage.build(self, s)
