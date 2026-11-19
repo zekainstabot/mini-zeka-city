@@ -71,15 +71,22 @@ func _run_tests():
 	main.device_back_window_start_ticks = Time.get_ticks_msec()
 	main.device_back_press_count = 0
 	main._handle_device_back()
-	assert(main.current_page == "home", "One device Back press must return to the previous page")
-	main._cancel_exit_game()
-	main.last_device_back_ticks = Time.get_ticks_msec() - 500
-	main._handle_device_back()
-	assert(main.exit_overlay.visible, "Two quick Back presses must show the exit option")
-	main._cancel_exit_game()
+	assert(main.current_page == "map" and not main.exit_overlay.visible, "Back on a subpage must not also open the exit menu")
+	for back_index in range(4):
+		main.last_device_back_ticks = Time.get_ticks_msec() - 300
+		main._handle_device_back()
+	assert(main.current_page == "home" and not main.exit_overlay.visible, "Five consecutive Back presses on a subpage must return to My City only")
+	main.show_page("map")
 	main.device_back_press_count = 0
+	main.device_back_window_start_ticks = Time.get_ticks_msec()
 	main.last_device_back_ticks = 0
+	main._handle_device_back()
+	main._cancel_exit_game()
 	main.show_page("home")
+	main.last_device_back_ticks = 0
+	main._handle_device_back()
+	assert(main.exit_overlay.visible, "Back on My City must open the exit menu immediately")
+	main._cancel_exit_game()
 	var home_report_action = main.content.find_child("HomeAction_report", true, false)
 	var home_municipality_action = main.content.find_child("HomeAction_municipality", true, false)
 	var home_private_economy_action = main.content.find_child("HomeAction_private_economy", true, false)
