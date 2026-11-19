@@ -915,7 +915,7 @@ func _apply_safe_area_to_floating_controls():
 		# Ranking takes the upper position; worker shortcut moves below it.
 		if ranking_button != null and is_instance_valid(ranking_button):
 			ranking_button.custom_minimum_size = icon_size
-			ranking_button.position = Vector2(right_edge - 108.0, inset.y + 16.0)
+			ranking_button.position = Vector2(inset.x + 12.0, inset.y + 82.0)
 			ranking_button.size = icon_size
 			_apply_font(ranking_button, 21)
 		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
@@ -947,7 +947,7 @@ func _apply_safe_area_to_floating_controls():
 			_apply_font(help_button, 24)
 		if ranking_button != null and is_instance_valid(ranking_button):
 			ranking_button.custom_minimum_size = Vector2(56, 56)
-			ranking_button.position = Vector2(right_edge - 120.0, inset.y + 18.0)
+			ranking_button.position = Vector2(inset.x + 12.0, inset.y + 82.0)
 			ranking_button.size = Vector2(56, 56)
 			_apply_font(ranking_button, 23)
 		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
@@ -969,10 +969,8 @@ func _apply_safe_area_to_floating_controls():
 		day_night_hud.anchor_right = 0.0
 		day_night_hud.anchor_top = 0.0
 		day_night_hud.anchor_bottom = 0.0
-		if ultra_narrow:
-			day_night_hud.position = Vector2(inset.x + 12.0, inset.y + 82.0)
-		else:
-			day_night_hud.position = Vector2(inset.x + 12.0, inset.y + 82.0)
+		# The day HUD takes the former ranking position on the upper-right.
+		day_night_hud.position = Vector2(right_edge - hud_width - 12.0, inset.y + 16.0)
 		day_night_hud.custom_minimum_size = Vector2(hud_width, 52.0 if narrow else 56.0)
 		day_night_hud.size = Vector2(hud_width, 52.0 if narrow else 56.0)
 		if day_night_icon_label != null and is_instance_valid(day_night_icon_label):
