@@ -532,20 +532,22 @@ func record_active_play_seconds(seconds):
 
 func get_report_event_category(message):
 	var text = str(message).strip_edges()
-	if text.is_empty():
+	if text.is_empty() or text.begins_with("خلاصه مالی:") or text.begins_with("امتیاز تجربه امروز:"):
 		return ""
-	if text.find("🎲 رویداد شهر") >= 0 or text.find("🏙️ خبر رقبا") >= 0 or text.find("🔎 کشف راز") >= 0 or text.find("⚖️ تصمیم مهم") >= 0 or text.find("رویداد این هفته") >= 0:
+	# Keep only meaningful city events, citizen requests, financial problems,
+	# progress milestones, trade updates, and resource/service issues.
+	if text.find("🎲 رویداد شهر") >= 0 or text.find("🏙️ خبر رقبا") >= 0 or text.find("🔎 کشف راز مخفی") >= 0 or text.find("⚖️ تصمیم مهم شهر") >= 0:
 		return "events"
-	if text.find("شهروند شماره") >= 0 or text.find("شهروندان") >= 0 or text.find("درخواست شهروند") >= 0:
+	if text.find("درخواست شهروندان") >= 0 or text.find("ساختمان درخواستی شهروندان") >= 0 or text.find("درخواست تازه شهروندان") >= 0 or text.find("درخواست جذب شهروند") >= 0 or text.find("شهروند جدید به‌صورت خودکار") >= 0 or text.find("شهروند شماره") >= 0:
 		return "citizens"
-	if text.find("کسری") >= 0 or text.find("کمبود") >= 0 or text.find("متوقف") >= 0 or text.find("تمام شده") >= 0 or text.find("کافی نیست") >= 0 or text.find("گزارش داده‌اند") >= 0:
-		return "issues"
-	if text.find("وام") >= 0 or text.find("قسط") >= 0 or text.find("سپرده") >= 0 or text.find("خزانه") >= 0 or text.find("مالیات") >= 0 or text.find("حقوق") >= 0 or text.find("درآمد امروز") >= 0:
+	if text.find("کسری حقوق") >= 0 or text.find("کامل پرداخت نشد") >= 0 or text.find("ظرفیت خزانه پر است") >= 0 or text.find("درآمد امروز دریافت نشد") >= 0 or text.find("مهلت بازسازی بانک مرکزی") >= 0 or text.find("وام شماره") >= 0 or text.find("قسط وام پرداخت نشد") >= 0 or text.find("سپرده شماره") >= 0:
 		return "finance"
-	if text.find("محموله") >= 0 or text.find("قرارداد واردات") >= 0 or text.find("صادرات") >= 0 or text.find("واردات") >= 0 or text.find("تجارت") >= 0:
-		return "trade"
-	if text.find("تبریک") >= 0 or text.find("ساختمان‌های تازه") >= 0 or text.find("ارتقا یافت") >= 0 or text.find("دستاورد") >= 0 or text.find("مأموریت") >= 0:
+	if text.find("تبریک!") >= 0 or text.find("ساختمان‌های تازه در دسترس") >= 0:
 		return "progress"
+	if text.find("محموله") >= 0 or text.find("قرارداد واردات") >= 0:
+		return "trade"
+	if text.find("استخراج معدن موقتاً متوقف") >= 0 or text.find("ذخیره معدن آهن تمام") >= 0 or text.find("ذخیره غذا تمام شده") >= 0 or text.find("چوب‌بری متوقف شد") >= 0 or text.find("گزارش داده‌اند") >= 0:
+		return "issues"
 	return ""
 
 func add_report_event(message, persist=true, metadata={}):
