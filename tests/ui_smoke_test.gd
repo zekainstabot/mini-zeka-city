@@ -175,6 +175,7 @@ func _run_tests():
 	assert(main.content.find_child("HomeConstructionPanel", true, false) == null, "Active construction panel must be removed from My City")
 	main.show_page("buildings")
 	assert(main.content.find_child("HomeConstructionPanel", true, false) == null, "Active construction panel must not appear on the buildings page")
+	assert(main.content.find_child("BuildingOption_small_house", true, false) is Button, "Building option must remain visible while the same building is under construction")
 	main._open_construction_details()
 	assert(main.construction_details_layer.find_child("ConstructionProject_0", true, false) is PanelContainer, "Worker shortcut must list active construction projects")
 	assert(main.construction_details_layer.find_child("ConstructionSpeedUpButton_0", true, false) is Button, "Worker shortcut must offer Zeka Coin instant completion")
