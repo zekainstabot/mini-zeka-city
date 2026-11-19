@@ -3242,6 +3242,9 @@ func build_building(id):
 	var data = game.get_building_definitions().get(str(id), {})
 	if data.is_empty():
 		return
+	if str(id) in ["fish_market", "fish_processing_plant"] and game.get_building_count("fishing_dock") <= 0:
+		_show_message("برای استفاده از این بخش، اول باید اسکله صیادی بسازی.")
+		return
 	var is_first_building_started = game.state.get("buildings", []).size() <= 1 and game.state.get("constructions", []).is_empty()
 	var required_level = int(data.get("level_unlock", 1))
 	var required_population = int(data.get("unlock", 0))
