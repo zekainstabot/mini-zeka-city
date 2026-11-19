@@ -106,6 +106,10 @@ var exit_overlay = null
 var last_layout_viewport_size = Vector2.ZERO
 var safe_area_insets = Vector4.ZERO
 var last_device_back_ticks = 0
+var device_back_window_start_ticks = 0
+var device_back_press_count = 0
+var page_navigation_history = []
+var suppress_page_history = false
 var help_overlay = null
 var help_body = null
 var daily_reward_layer = null
@@ -2409,25 +2413,43 @@ func _close_game_menu():
 		restart_confirm_panel.visible = false
 
 func _handle_device_back():
-	# Android can deliver both KEY_BACK and NOTIFICATION_WM_GO_BACK_REQUEST
-	# for one physical press. Debounce them so one press performs one action.
+	# Android may report one physical press through both KEY_BACK and the
+	# window notification. Ignore only duplicate events, not quick user presses.
 	var now_ticks = Time.get_ticks_msec()
-	if now_ticks - last_device_back_ticks < 350:
+	if last_device_back_ticks > 0 and now_ticks - last_device_back_ticks < 220:
 		return
+	var previous_press_ticks = last_device_back_ticks
 	last_device_back_ticks = now_ticks
+	if now_ticks - device_back_window_start_ticks > 5000:
+		device_back_window_start_ticks = now_ticks
+		device_back_press_count = 0
+	device_back_press_count += 1
+	var rapid_double_press = previous_press_ticks > 0 and now_ticks - previous_press_ticks <= 1200
+	var show_exit_option = rapid_double_press or device_back_press_count >= 5
+
 	if exit_overlay != null and is_instance_valid(exit_overlay) and exit_overlay.visible:
 		exit_overlay.visible = false
 		return
 	if help_overlay != null and is_instance_valid(help_overlay) and help_overlay.visible:
 		_close_help()
-		return
-	if restart_confirm_panel != null and is_instance_valid(restart_confirm_panel) and restart_confirm_panel.visible:
+	elif restart_confirm_panel != null and is_instance_valid(restart_confirm_panel) and restart_confirm_panel.visible:
 		restart_confirm_panel.visible = false
-		return
-	if menu_overlay != null and is_instance_valid(menu_overlay) and menu_overlay.visible:
+	elif menu_overlay != null and is_instance_valid(menu_overlay) and menu_overlay.visible:
 		_close_game_menu()
-		return
-	_show_exit_confirmation()
+	elif not page_navigation_history.is_empty():
+		var previous_page = str(page_navigation_history.pop_back())
+		suppress_page_history = true
+		show_page(previous_page)
+		suppress_page_history = false
+	elif not show_exit_option:
+		_show_message("برای نمایش گزینه خروج، دوبار سریع دکمه بازگشت را بزن.")
+	if show_exit_option:
+		_show_exit_confirmation()
+
+func _show_page_without_history(page):
+	suppress_page_history = true
+	show_page(page)
+	suppress_page_history = false
 
 func _build_exit_confirmation(parent_layer):
 	exit_overlay = ColorRect.new()
@@ -2965,6 +2987,10 @@ func show_page(page):
 	var civic_page_locked = page in ["municipality", "private_economy"] and not game.has_municipal_hall()
 	if civic_page_locked:
 		page = "home"
+	if not suppress_page_history and current_page != page:
+		page_navigation_history.append(current_page)
+		if page_navigation_history.size() > 30:
+			page_navigation_history.pop_front()
 	current_page = page
 	# Never let labels/buttons from a previous collapsible section attach to an old page.
 	active_section_container = null
