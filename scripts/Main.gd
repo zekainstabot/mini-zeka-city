@@ -1431,11 +1431,18 @@ func _build_ui():
 	menu_card_style.shadow_size = 18
 	menu_card.add_theme_stylebox_override("panel", menu_card_style)
 	menu_center.add_child(menu_card)
+	# PanelContainer must own one vertical content root; header and scroll live inside it.
+	var menu_content = VBoxContainer.new()
+	menu_content.name = "MenuContent"
+	menu_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	menu_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	menu_content.add_theme_constant_override("separation", 12)
+	menu_card.add_child(menu_content)
 	var menu_header = HBoxContainer.new()
 	menu_header.name = "MenuHeader"
 	menu_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	menu_header.add_theme_constant_override("separation", 8)
-	menu_card.add_child(menu_header)
+	menu_content.add_child(menu_header)
 	var menu_heading = Label.new()
 	menu_heading.text = PersianText.reshaper("منوی بازی")
 	menu_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -1471,7 +1478,7 @@ func _build_ui():
 	menu_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	menu_scroll.custom_minimum_size = Vector2(0, min(560.0, max(220.0, get_viewport_rect().size.y - 150.0)))
 	menu_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	menu_card.add_child(menu_scroll)
+	menu_content.add_child(menu_scroll)
 	menu_panel = VBoxContainer.new()
 	menu_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	menu_panel.add_theme_constant_override("separation", 12)
