@@ -271,7 +271,10 @@ static func build(owner, s):
 		var go_button = Button.new()
 		go_button.text = owner.PersianText.reshaper("رفتن به بخش مربوط  ←")
 		go_button.custom_minimum_size = Vector2(0, 50 if owner.get_viewport_rect().size.x < 900 else 44)
-		go_button.size_flags_horizontal = Control.SIZE_SHRINK_END
+		# Fill the card width so Persian text never collapses into a vertical stack.
+		go_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		go_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		go_button.autowrap_mode = TextServer.AUTOWRAP_OFF
 		owner._apply_font(go_button, 17 if owner.get_viewport_rect().size.x < 900 else 16)
 		go_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 		go_button.text_direction = Control.TEXT_DIRECTION_RTL
