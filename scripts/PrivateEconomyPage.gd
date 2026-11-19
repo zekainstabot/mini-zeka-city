@@ -9,6 +9,15 @@ static func build(owner, s):
 	owner._add_label("کسب‌وکار خصوصی: %d | فروش روزانه: %d سکه" % [int(private_economy_data.get("business_count",0)),int(private_economy_data.get("daily_revenue",0))], 18)
 	owner._add_label("سرمایه در گردش: %d | مالیات امروز: %d سکه | نرخ مالیات: %d٪" % [int(private_economy_data.get("private_balance",0)),int(private_economy_data.get("daily_tax",0)),int(private_economy_data.get("tax_rate",8))], 16)
 	owner._add_label("زمین خصوصی آزاد: %d قطعه | قیمت هر قطعه: %d | هزینه مجوز: %d" % [int(private_economy_data.get("private_land_available",0)),int(private_economy_data.get("private_land_price",0)),int(private_economy_data.get("permit_fee",0))], 15)
+	var request_mode = str(private_economy_data.get("request_mode", "auto"))
+	var is_auto_mode = request_mode == "auto"
+	var next_mode = "manual" if is_auto_mode else "auto"
+	var mode_button = owner._add_button("رسیدگی خودکار" if is_auto_mode else "رسیدگی دستی", owner, "set_private_request_mode", [next_mode])
+	mode_button.custom_minimum_size = Vector2(190, 44)
+	mode_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	owner._apply_font(mode_button, 16)
+	owner._style_button(mode_button, true)
+	owner._add_label("در حالت خودکار، شهرداری با بررسی توان مالی، شرایط متقاضی و نیاز شهر تصمیم می‌گیرد؛ در حالت دستی تصمیم با شماست.", 14)
 	owner._add_label("درخواست‌های منتظر تصمیم شهرداری: %d" % int(private_economy_data.get("request_count",0)), 18)
 	for request in private_economy_data.get("requests", []):
 		var request_type = str(request.get("type",""))
@@ -24,6 +33,9 @@ static func build(owner, s):
 			owner._add_label("اجاره روزانه: %d | مبلغ ۷ روز: %d" % [int(request.get("daily_rent",0)),int(request.get("amount",0))], 15)
 		elif request_type == "public_project":
 			owner._add_label("هزینه پروژه با سرمایه کسب‌وکار: %d" % int(request.get("amount",0)), 15)
+		if is_auto_mode:
+			owner._add_label("در انتظار بررسی خودکار شهرداری هوشمند", 14)
+			continue
 		var request_row = HBoxContainer.new()
 		request_row.add_theme_constant_override("separation", 8)
 		owner.content.add_child(request_row)
