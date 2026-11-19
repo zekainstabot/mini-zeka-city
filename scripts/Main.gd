@@ -2036,8 +2036,8 @@ func _complete_construction_from_worker_popup(construction_index):
 	if bool(result.get("ok", false)):
 		if audio_manager != null:
 			audio_manager.play_sfx("construction")
-			_update_construction_capacity_button()
-			_open_construction_details()
+		_update_construction_capacity_button()
+		_open_construction_details()
 	_show_message(str(result.get("message", "")))
 
 
