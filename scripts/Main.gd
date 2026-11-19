@@ -1677,7 +1677,6 @@ func _build_ui():
 	message_label.add_theme_color_override("font_color", Color("#ffffff"))
 	message_label.modulate = Color("#ffffff")
 	root.add_child(message_label)
-	_build_daily_reward_calendar_button()
 	_build_ranking_button()
 	_build_day_night_hud()
 	_build_construction_capacity_button()
@@ -1698,29 +1697,6 @@ func _build_ranking_button():
 	_style_button(ranking_button, true)
 	ranking_button.pressed.connect(func(): show_page("ranking"))
 	add_child(ranking_button)
-
-func _build_daily_reward_calendar_button():
-	daily_reward_button = Button.new()
-	daily_reward_button.name = "DailyRewardCalendarButton"
-	daily_reward_button.text = "📅"
-	daily_reward_button.tooltip_text = "تقویم جایزه‌های ورود"
-	daily_reward_button.custom_minimum_size = Vector2(66, 62)
-	# Keep the calendar near the upper-left, slightly inset and visually light.
-	daily_reward_button.layout_direction = Control.LAYOUT_DIRECTION_LTR
-	daily_reward_button.anchor_left = 0.0
-	daily_reward_button.anchor_top = 0.0
-	daily_reward_button.anchor_right = 0.0
-	daily_reward_button.anchor_bottom = 0.0
-	daily_reward_button.position = Vector2(30, 48)
-	daily_reward_button.z_index = 15
-	_apply_font(daily_reward_button, 30)
-	_style_button(daily_reward_button, false)
-	var transparent_calendar_style = StyleBoxEmpty.new()
-	for style_name in ["normal", "hover", "pressed", "disabled", "focus"]:
-		daily_reward_button.add_theme_stylebox_override(style_name, transparent_calendar_style)
-	daily_reward_button.pressed.connect(_open_daily_reward_calendar)
-	add_child(daily_reward_button)
-
 
 func _build_day_night_hud():
 	day_night_hud = PanelContainer.new()
