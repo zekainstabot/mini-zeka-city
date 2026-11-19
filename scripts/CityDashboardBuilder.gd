@@ -221,8 +221,6 @@ static func _sort_building_ids_by_unlock_priority(owner, a, b):
 	return str(first.get("name", a)) < str(second.get("name", b))
 
 static func _add_building_category_items(owner, category):
-	if category == "ماهیگیری":
-		owner._add_label("پهنه‌های آبی به‌صورت طبیعی در شهر وجود دارند؛ برای آغاز صید، اسکله صیادی بساز.", 15)
 	var visible_buildings = 0
 	var definitions = owner.game.get_building_definitions()
 	var building_ids = []
