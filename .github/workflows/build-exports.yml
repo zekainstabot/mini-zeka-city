@@ -66,9 +66,10 @@ jobs:
 
       - name: Configure Android release signing
         env:
-          ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
-          ANDROID_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEYSTORE_PASSWORD }}
-          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          # Support both the original signing-secret names and the newer release-prefixed names.
+          ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 || secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEYSTORE_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS || secrets.ANDROID_KEY_ALIAS }}
         run: |
           set -euo pipefail
           test -n "$ANDROID_RELEASE_KEYSTORE_BASE64" || { echo "Missing GitHub secret: ANDROID_RELEASE_KEYSTORE_BASE64"; exit 1; }
