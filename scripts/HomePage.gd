@@ -146,6 +146,37 @@ static func _add_city_overview_panel(owner, city_state):
 	_add_overview_metric(owner, grid, "👥 جمعیت", "%d نفر" % int(city_state.get("population", 0)), Color("#bfdbfe"))
 	_add_overview_metric(owner, grid, "🧑‍🏭 نیروی کار", "%d شاغل  •  %d بیکار" % [employed, unemployed], Color("#a7f3d0"))
 	_add_overview_metric(owner, grid, "😊 رضایت شهروندان", "%d از ۱۰۰" % satisfaction, Color("#c4b5fd"))
+	_add_overview_action(owner, grid, "📋 گزارش‌ها و مشکلات شهر", "مشاهده گزارش‌ها و رسیدگی به مشکلات", "report", Color("#93c5fd"))
+	_add_overview_action(owner, grid, "🏛️ شهرداری و خدمات شهری", "مدیریت خدمات و امور شهرداری", "municipality", Color("#fcd34d"))
+	_add_overview_action(owner, grid, "🏢 اقتصاد خصوصی", "کسب‌وکارها و مشارکت شهروندان", "private_economy", Color("#86efac"))
+
+static func _add_overview_action(owner, parent, title_text, description_text, target_page, accent_color):
+	var button = Button.new()
+	button.name = "HomeAction_" + str(target_page)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.custom_minimum_size = Vector2(0, 82)
+	button.text = owner.PersianText.reshaper(str(title_text) + "\n" + str(description_text))
+	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	owner._apply_font(button, 14)
+	owner._style_button(button, false)
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color("#223b53")
+	style.border_color = Color("#3b526a")
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(10)
+	style.content_margin_left = 7
+	style.content_margin_right = 7
+	style.content_margin_top = 7
+	style.content_margin_bottom = 7
+	for style_name in ["normal", "hover", "pressed", "focus", "disabled"]:
+		button.add_theme_stylebox_override(style_name, style)
+	button.add_theme_color_override("font_color", Color("#f8fafc"))
+	button.add_theme_color_override("font_hover_color", accent_color)
+	button.add_theme_color_override("font_pressed_color", accent_color)
+	button.pressed.connect(Callable(owner, "show_page").bind(str(target_page)))
+	parent.add_child(button)
+	return button
 
 static func _add_overview_metric(owner, parent, caption, value, value_color):
 	var card = PanelContainer.new()
