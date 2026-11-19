@@ -917,7 +917,14 @@ func _apply_safe_area_to_floating_controls():
 	for candidate in [ranking_button, construction_capacity_button, report_button, help_button]:
 		if candidate != null and is_instance_valid(candidate):
 			shortcuts.append(candidate)
-	var usable_span = maxf(0.0, usable_width - button_size.x)
+	# Keep the entire second shortcut row to the left of the clock HUD.
+	# Spreading shortcuts across the full viewport placed the construction
+	# button underneath the clock on portrait phones.
+	var shortcut_area_right = right_edge
+	if day_night_hud != null and is_instance_valid(day_night_hud):
+		shortcut_area_right = minf(shortcut_area_right, day_night_hud.position.x - gap)
+	var shortcut_area_width = maxf(button_size.x, shortcut_area_right - inset.x)
+	var usable_span = maxf(0.0, shortcut_area_width - button_size.x)
 	var last_shortcut_index = maxi(1, shortcuts.size() - 1)
 	for i in range(shortcuts.size()):
 		var shortcut = shortcuts[i]
