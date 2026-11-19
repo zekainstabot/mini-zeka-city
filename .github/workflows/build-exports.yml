@@ -42,6 +42,30 @@ jobs:
           unzip -q /tmp/templates.tpz -d /tmp/godot-templates
           cp -a /tmp/godot-templates/templates/. "$HOME/.local/share/godot/templates/3.6.3.stable/"
 
+      - name: Install Android SDK and Java for Godot export
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android platform and build tools
+        run: |
+          sdkmanager "platform-tools" "platforms;android-31" "build-tools;34.0.0"
+          mkdir -p "$HOME/.config/godot"
+          cat > "$HOME/.config/godot/editor_settings-3.tres" <<EOF
+          [gd_resource type="EditorSettings" format=2]
+
+          [resource]
+          export/android/android_sdk_path = "/usr/local/lib/android/sdk"
+          export/android/debug_keystore = "$HOME/.android/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          EOF
+
+      - name: Import project resources before Android export
+        timeout-minutes: 5
+        run: |
+          set -o pipefail
+          timeout --signal=TERM --kill-after=15s 4m xvfb-run -a /tmp/godot/Godot_v3.6.3-stable_x11.64 --audio-driver Dummy --editor --import --path . --quit --verbose 2>&1 | tee /tmp/godot-import.log
+          if grep -E "SCRIPT ERROR|Parse Error|ERROR:" /tmp/godot-import.log; then exit 1; fi
+
       - name: Run game logic smoke tests
         timeout-minutes: 1
         run: |
@@ -100,7 +124,7 @@ jobs:
           set -o pipefail
           mkdir -p build/android
           echo "Starting Godot Android Release export..."
-          timeout --signal=TERM --kill-after=30s 9m xvfb-run -a /tmp/godot/Godot_v3.6.3-stable_x11.64 --verbose --path . --export-release "Android" build/android/MiniZekaCity-Release.apk 2>&1 | tee /tmp/godot-android-export.log
+          timeout --signal=TERM --kill-after=30s 9m xvfb-run -a /tmp/godot/Godot_v3.6.3-stable_x11.64 --no-window --audio-driver Dummy --verbose --path . --export-release "Android" build/android/MiniZekaCity-Release.apk 2>&1 | tee /tmp/godot-android-export.log
           test -s build/android/MiniZekaCity-Release.apk
           echo "Release APK export completed."
 
