@@ -920,10 +920,10 @@ func _apply_safe_area_to_floating_controls():
 		menu_button.position = Vector2(left_x, top_y)
 		_apply_font(menu_button, 22 if narrow else 25)
 	if ranking_button != null and is_instance_valid(ranking_button):
-		ranking_button.position = Vector2(left_x, top_y + button_size.y + gap)
+		ranking_button.position = Vector2(left_x, top_y + button_size.y + gap + 8.0)
 		_apply_font(ranking_button, 27 if narrow else 31)
 	if daily_reward_button != null and is_instance_valid(daily_reward_button):
-		daily_reward_button.position = Vector2(left_x + ranking_button_size.x + gap, top_y + button_size.y + gap)
+		daily_reward_button.position = Vector2(left_x + ranking_button_size.x + gap, top_y + button_size.y + gap + 8.0)
 		_apply_font(daily_reward_button, 23 if narrow else 27)
 
 	# Second row: keep the worker/construction button at the far right,
