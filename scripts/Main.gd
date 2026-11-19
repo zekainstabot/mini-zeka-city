@@ -907,7 +907,7 @@ func _apply_safe_area_to_floating_controls():
 		var target_size = button_size
 		if floating == construction_capacity_button:
 			target_size = worker_button_size
-		elif floating == ranking_button:
+		elif floating == ranking_button or floating == daily_reward_button:
 			target_size = ranking_button_size
 		floating.custom_minimum_size = target_size
 		floating.size = target_size
@@ -927,7 +927,7 @@ func _apply_safe_area_to_floating_controls():
 		_apply_font(ranking_button, 27 if narrow else 31)
 	if daily_reward_button != null and is_instance_valid(daily_reward_button):
 		daily_reward_button.position = Vector2(left_x + ranking_button_size.x + gap, shortcut_row_y)
-		_apply_font(daily_reward_button, 23 if narrow else 27)
+		_apply_font(daily_reward_button, 27 if narrow else 31)
 
 	# Second row: keep the worker/construction button at the far right,
 	# below the clock HUD, and distribute the remaining shortcuts to its left.
