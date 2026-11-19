@@ -894,7 +894,7 @@ func _apply_safe_area_to_floating_controls():
 	var button_size = Vector2(50, 50) if narrow else Vector2(56, 56)
 	# The worker control includes a count ("۲/۲"), so it needs a horizontal
 	# pill shape instead of the square footprint used by icon-only shortcuts.
-	var worker_button_size = Vector2(94, 50) if narrow else Vector2(104, 56)
+	var worker_button_size = Vector2(82, 44) if narrow else Vector2(92, 48)
 	var ranking_button_size = Vector2(60, 56) if narrow else Vector2(66, 60)
 	var gap = 8.0
 	# Keep the second row safely below the tallest first-row control.
@@ -977,14 +977,14 @@ func _apply_safe_area_to_floating_controls():
 	if worker_button_valid:
 		var worker_row_y = row_y
 		if day_night_hud != null and is_instance_valid(day_night_hud):
-			worker_row_y = maxf(worker_row_y, day_night_hud.get_global_rect().end.y + 16.0)
+			worker_row_y = maxf(worker_row_y, day_night_hud.get_global_rect().end.y + 24.0)
 		# The currency cards are part of the main header and can extend below
 		# the clock on compact phones. Keep the worker pill beneath the entire
 		# currency row so it never covers the city-money balance.
 		if currency_hud != null and is_instance_valid(currency_hud):
-			worker_row_y = maxf(worker_row_y, currency_hud.get_global_rect().end.y + 12.0)
+			worker_row_y = maxf(worker_row_y, currency_hud.get_global_rect().end.y + 32.0)
 		construction_capacity_button.position = Vector2(worker_x, worker_row_y)
-		_apply_font(construction_capacity_button, 25 if narrow else 28)
+		_apply_font(construction_capacity_button, 22 if narrow else 24)
 
 	if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
 		_update_construction_capacity_button()
@@ -1013,6 +1013,9 @@ func _apply_responsive_layout():
 	main_layout.offset_top = safe_area_insets.y + top_margin
 	main_layout.offset_bottom = -(safe_area_insets.w + bottom_margin)
 	_apply_safe_area_to_floating_controls()
+	# Recalculate once container layout has settled so the worker pill uses the
+	# final currency HUD bounds on compact Android screens.
+	call_deferred("_apply_safe_area_to_floating_controls")
 	main_layout.add_theme_constant_override("separation", 8 if viewport_size.y < 500.0 else (12 if compact else 12))
 	if main_navigation_grid != null and is_instance_valid(main_navigation_grid):
 		main_navigation_grid.visible = false
