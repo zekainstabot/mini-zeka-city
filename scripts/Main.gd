@@ -888,6 +888,9 @@ func _apply_safe_area_to_floating_controls():
 	var usable_width = maxf(0.0, viewport_size.x - inset.x - inset.z)
 	var right_edge = viewport_size.x - inset.z
 	var button_size = Vector2(50, 50) if narrow else Vector2(56, 56)
+	# The worker control includes a count ("۲/۲"), so it needs a horizontal
+	# pill shape instead of the square footprint used by icon-only shortcuts.
+	var worker_button_size = Vector2(94, 50) if narrow else Vector2(104, 56)
 	var gap = 8.0
 	# Keep the second row safely below the tallest first-row control.
 	var row_y = inset.y + 16.0 + button_size.y + gap + 12.0
@@ -900,8 +903,9 @@ func _apply_safe_area_to_floating_controls():
 		floating.anchor_top = 0.0
 		floating.anchor_right = 0.0
 		floating.anchor_bottom = 0.0
-		floating.custom_minimum_size = button_size
-		floating.size = button_size
+		var target_size = worker_button_size if floating == construction_capacity_button else button_size
+		floating.custom_minimum_size = target_size
+		floating.size = target_size
 
 	# First row: menu and daily calendar on the left; day/night status stays right.
 	if menu_button != null and is_instance_valid(menu_button):
@@ -918,7 +922,7 @@ func _apply_safe_area_to_floating_controls():
 		if candidate != null and is_instance_valid(candidate):
 			shortcuts.append(candidate)
 	var worker_button_valid = construction_capacity_button != null and is_instance_valid(construction_capacity_button)
-	var worker_x = right_edge - button_size.x - 12.0
+	var worker_x = right_edge - worker_button_size.x - 12.0
 	var shortcut_area_right = worker_x - gap if worker_button_valid else right_edge
 	var shortcut_area_width = maxf(0.0, shortcut_area_right - inset.x)
 	var usable_span = maxf(0.0, shortcut_area_width - button_size.x)
