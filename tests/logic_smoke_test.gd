@@ -15,6 +15,15 @@ func _init():
 	assert(PersianTextScript.reshaper("بازی Godot").find("Godot") >= 0)
 	assert(PersianTextScript.reshaper("دانلود YouTube").find("YouTube") >= 0)
 
+	# Report classification keeps actionable events and drops the repetitive daily summary.
+	assert(game.get_report_event_category("ظرفیت خزانه پر است") == "finance")
+	assert(game.get_report_event_category("محموله شماره ۲ به شهر رسید") == "trade")
+	assert(game.get_report_event_category("تبریک! شهر ۱ سطح ارتقا یافت") == "progress")
+	assert(game.get_report_event_category("شهروند شماره ۴: هنوز شغلی پیدا نکرده‌ام") == "citizens")
+	assert(game.get_report_event_category("🎲 رویداد شهر: جشن محلی") == "events")
+	assert(game.get_report_event_category("ذخیره غذا تمام شده") == "issues")
+	assert(game.get_report_event_category("خلاصه مالی: درآمد ثبت‌شده ۱۰۰ سکه") == "")
+
 	# A partial daily loan installment must reduce principal without consuming a full repayment day.
 	var partial_loan_game = EngineScript.new()
 	partial_loan_game.new_game()
