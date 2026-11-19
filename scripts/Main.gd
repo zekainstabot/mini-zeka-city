@@ -2910,7 +2910,7 @@ func _close_help():
 		if main_layout != null and is_instance_valid(main_layout):
 			main_layout.add_child(game_scroll_container)
 			main_layout.move_child(game_scroll_container, clamp(help_scroll_original_index, 0, main_layout.get_child_count() - 1))
-	show_page(help_previous_page)
+	_show_page_without_history(help_previous_page)
 
 func _open_help_target(target_page):
 	_close_help()
