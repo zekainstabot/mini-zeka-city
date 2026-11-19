@@ -1234,6 +1234,10 @@ func claim_mission(mission_index):
 func get_civic_overview():
 	return CitizenSociety.new().get_overview(self)
 
+func set_private_request_mode(mode):
+	return CitizenSociety.new().set_private_request_mode(self, mode)
+
+
 func resolve_civic_request(request_id, approved):
 	return CitizenSociety.new().resolve_request(self, int(request_id), bool(approved))
 
