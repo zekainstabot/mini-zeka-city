@@ -15,7 +15,7 @@ const CityEconomySystem = preload("res://scripts/CityEconomySystem.gd")
 const CityProgressSystem = preload("res://scripts/CityProgressSystem.gd")
 
 const SAVE_PATH = "user://mini_zeka_city_save.json"
-const MAX_REPORT_EVENTS = 120
+const MAX_REPORT_EVENTS = 60
 const STORAGE_RESERVE = 50
 const MAX_CONCURRENT_CONSTRUCTIONS = 2
 const DISTRICT_HOUSE_LIMIT = 20
@@ -687,6 +687,27 @@ func save_game():
 func _normalize_state():
 	if typeof(state.get("report_events", null)) != TYPE_ARRAY:
 		state["report_events"] = []
+	else:
+		# Clean legacy saves as well as new events so routine status/toast messages
+		# do not keep filling the city report history.
+		var meaningful_events = []
+		for report_event in state.report_events:
+			if typeof(report_event) != TYPE_DICTIONARY:
+				continue
+			var category = str(report_event.get("category", ""))
+			if category.is_empty():
+				if int(report_event.get("citizen_id", 0)) > 0:
+					category = "citizens"
+				elif not str(report_event.get("district_id", "")).is_empty():
+					category = "issues"
+				else:
+					category = get_report_event_category(report_event.get("message", ""))
+			if category.is_empty():
+				continue
+			var clean_event = report_event.duplicate(true)
+			clean_event["category"] = category
+			meaningful_events.append(clean_event)
+		state["report_events"] = meaningful_events
 	while state.report_events.size() > MAX_REPORT_EVENTS:
 		state.report_events.pop_front()
 	var next_report_id = max(1, int(state.get("next_report_event_id", 1)))
