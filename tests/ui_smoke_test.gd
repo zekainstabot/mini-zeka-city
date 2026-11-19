@@ -50,12 +50,10 @@ func _run_tests():
 	main._apply_responsive_layout()
 	await process_frame
 	assert(navigation_grid.columns == 2, "Narrow portrait navigation must stay in two columns")
-	assert(not main.daily_reward_button.get_global_rect().intersects(main.day_night_hud.get_global_rect()), "Calendar overlaps the clock on a narrow phone")
 	assert(not main.menu_button.get_global_rect().intersects(main.day_night_hud.get_global_rect()), "Menu overlaps the clock on a narrow phone")
 	assert(main.help_button == null, "Help shortcut must be available only from the settings menu")
-	assert(not main.daily_reward_button.get_global_rect().intersects(main.menu_button.get_global_rect()), "Calendar overlaps the menu shortcut")
 	assert(main.report_button == null, "Duplicate top report shortcut must be removed")
-	var top_shortcuts = [main.daily_reward_button, main.menu_button, main.ranking_button]
+	var top_shortcuts = [main.menu_button, main.ranking_button]
 	for i in range(top_shortcuts.size()):
 		for j in range(i + 1, top_shortcuts.size()):
 			assert(not top_shortcuts[i].get_global_rect().intersects(top_shortcuts[j].get_global_rect()), "Top shortcuts overlap on a narrow phone")
@@ -70,6 +68,11 @@ func _run_tests():
 		if home_child is Button and str(home_child.text).find("گزارش‌ها") >= 0:
 			home_has_report_action = true
 	assert(home_has_report_action, "Reports action must remain available from My City")
+	var home_has_calendar_action = false
+	for home_child in main.content.get_children():
+		if home_child is Button and str(home_child.text).find("تقویم جایزه‌های ورود") >= 0:
+			home_has_calendar_action = true
+	assert(home_has_calendar_action, "Daily reward calendar must appear below the worker summary on My City")
 	assert(navigation_grid.get_combined_minimum_size().x <= main_layout.size.x + 1.0, "Narrow navigation exceeds the safe content width")
 	for nav_button in main.navigation_buttons:
 		assert(nav_button.alignment == HORIZONTAL_ALIGNMENT_CENTER, "Navigation button text is not centered")
@@ -111,7 +114,6 @@ func _run_tests():
 	assert(main.restart_confirm_panel.visible, "Restart confirmation did not appear")
 	main._cancel_restart()
 	assert(not main.restart_confirm_panel.visible, "Cancel did not hide restart confirmation")
-	var report_filter = main.menu_panel.find_child("MenuAction_open_help", true, false)
 	var help_action = main.menu_panel.find_child("MenuAction_open_help", true, false)
 	assert(help_action is Button, "Help action is missing from settings menu")
 	help_action.emit_signal("pressed")
