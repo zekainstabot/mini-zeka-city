@@ -4,6 +4,14 @@ extends RefCounted
 
 static func _add_home_services_panel(owner, city_state):
 	var compact = owner.get_viewport_rect().size.x < 900
+	var total_coverage = 0
+	var service_count = owner.game.SERVICE_GROUPS.size()
+	for service_id in owner.game.SERVICE_GROUPS.keys():
+		total_coverage += int(city_state.get("services", {}).get(service_id, 0))
+	var average_coverage = int(round(float(total_coverage) / float(max(1, service_count))))
+	if not owner.home_city_details_expanded:
+		return
+
 	var panel = PanelContainer.new()
 	var panel_style = StyleBoxFlat.new()
 	panel_style.bg_color = Color("#172235")
@@ -19,14 +27,6 @@ static func _add_home_services_panel(owner, city_state):
 	var body = VBoxContainer.new()
 	body.add_theme_constant_override("separation", 9)
 	panel.add_child(body)
-
-	var total_coverage = 0
-	var service_count = owner.game.SERVICE_GROUPS.size()
-	for service_id in owner.game.SERVICE_GROUPS.keys():
-		total_coverage += int(city_state.get("services", {}).get(service_id, 0))
-	var average_coverage = int(round(float(total_coverage) / float(max(1, service_count))))
-	if not owner.home_city_details_expanded:
-		return
 	var section_heading = Label.new()
 	section_heading.text = owner.PersianText.reshaper("🏙️ خدمات شهری  |  میانگین پوشش: %d%%" % average_coverage)
 	section_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
