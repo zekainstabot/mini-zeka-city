@@ -65,6 +65,20 @@ func _run_tests():
 	main.ranking_button.emit_signal("pressed")
 	assert(main.current_page == "ranking", "Top ranking shortcut does not open rankings")
 	main.show_page("home")
+	main.show_page("map")
+	assert(main.current_page == "map" and main.page_navigation_history.back() == "home", "Page navigation must remember the previous page")
+	main.last_device_back_ticks = 0
+	main.device_back_window_start_ticks = Time.get_ticks_msec()
+	main.device_back_press_count = 0
+	main._handle_device_back()
+	assert(main.current_page == "home", "One device Back press must return to the previous page")
+	main._cancel_exit_game()
+	main.last_device_back_ticks = Time.get_ticks_msec() - 500
+	main._handle_device_back()
+	assert(main.exit_overlay.visible, "Two quick Back presses must show the exit option")
+	main._cancel_exit_game()
+	main.device_back_press_count = 0
+	main.last_device_back_ticks = 0
 	var home_report_action = main.content.find_child("HomeAction_report", true, false)
 	var home_municipality_action = main.content.find_child("HomeAction_municipality", true, false)
 	var home_private_economy_action = main.content.find_child("HomeAction_private_economy", true, false)
