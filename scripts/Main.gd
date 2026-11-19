@@ -911,19 +911,19 @@ func _apply_safe_area_to_floating_controls():
 		daily_reward_button.position = Vector2(inset.x + 12.0 + button_size.x + gap, inset.y + 16.0)
 		_apply_font(daily_reward_button, 23 if narrow else 27)
 
-	# Second row: distribute only the shortcuts that actually exist.
-	# Removed shortcuts must not leave empty columns or distort the layout.
+	# Second row: keep the worker/construction button at the far right,
+	# below the clock HUD, and distribute the remaining shortcuts to its left.
 	var shortcuts = []
-	for candidate in [ranking_button, construction_capacity_button, report_button, help_button]:
+	for candidate in [ranking_button, report_button, help_button]:
 		if candidate != null and is_instance_valid(candidate):
 			shortcuts.append(candidate)
-	# Keep the entire second shortcut row to the left of the clock HUD.
-	# Spreading shortcuts across the full viewport placed the construction
-	# button underneath the clock on portrait phones.
-	var shortcut_area_right = right_edge
-	if day_night_hud != null and is_instance_valid(day_night_hud):
-		shortcut_area_right = minf(shortcut_area_right, day_night_hud.position.x - gap)
-	var shortcut_area_width = maxf(button_size.x, shortcut_area_right - inset.x)
+	var worker_button_valid = construction_capacity_button != null and is_instance_valid(construction_capacity_button)
+	var worker_x = right_edge - button_size.x - 12.0
+	if worker_button_valid:
+		construction_capacity_button.position = Vector2(worker_x, row_y)
+		_apply_font(construction_capacity_button, 25 if narrow else 28)
+	var shortcut_area_right = worker_x - gap if worker_button_valid else right_edge
+	var shortcut_area_width = maxf(0.0, shortcut_area_right - inset.x)
 	var usable_span = maxf(0.0, shortcut_area_width - button_size.x)
 	var last_shortcut_index = maxi(1, shortcuts.size() - 1)
 	for i in range(shortcuts.size()):
@@ -932,8 +932,6 @@ func _apply_safe_area_to_floating_controls():
 		shortcut.position = Vector2(x, row_y)
 		if shortcut == ranking_button:
 			_apply_font(shortcut, 21 if narrow else 23)
-		elif shortcut == construction_capacity_button:
-			_apply_font(shortcut, 25 if narrow else 28)
 		elif shortcut == report_button:
 			_apply_font(shortcut, 25 if narrow else 27)
 		else:
