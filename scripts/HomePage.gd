@@ -145,7 +145,6 @@ static func _add_city_overview_panel(owner, city_state):
 	var satisfaction = int(city_state.get("satisfaction", 50))
 	_add_overview_metric(owner, grid, "👥 جمعیت", "%d نفر" % int(city_state.get("population", 0)), Color("#bfdbfe"))
 	_add_overview_metric(owner, grid, "🧑‍🏭 نیروی کار", "%d شاغل  •  %d بیکار" % [employed, unemployed], Color("#a7f3d0"))
-	_add_overview_metric(owner, grid, "🏅 سطح و اعتبار", "سطح %d  •  اعتبار %d" % [int(city_state.get("level", 1)), int(city_state.get("reputation", 0))], Color("#fde68a"))
 	_add_overview_metric(owner, grid, "😊 رضایت شهروندان", "%d از ۱۰۰" % satisfaction, Color("#c4b5fd"))
 
 static func _add_overview_metric(owner, parent, caption, value, value_color):
