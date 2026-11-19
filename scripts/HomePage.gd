@@ -6,7 +6,6 @@ static func build(owner, s):
 	owner._add_label("وضعیت کلی شهر", 22)
 	owner._show_welcome_mission_hint()
 	_add_city_overview_panel(owner, s)
-	_add_active_construction_panel(owner)
 	var weekly_city_event = game.get_weekly_city_event()
 	owner._add_label("🌟 رویداد این هفته: %s" % str(weekly_city_event.get("title","")),17)
 	owner._add_label("%s | اثر: %s" % [str(weekly_city_event.get("description","")),str(weekly_city_event.get("effect",""))],14)
@@ -182,52 +181,3 @@ static func _add_overview_metric(owner, parent, caption, value, value_color):
 	owner._apply_font(amount, 15)
 	amount.add_theme_color_override("font_color", value_color)
 	stack.add_child(amount)
-
-static func _add_active_construction_panel(owner):
-	var projects = owner.game.get_construction_status()
-	if projects.is_empty():
-		return
-	var panel = PanelContainer.new()
-	panel.name = "HomeConstructionPanel"
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color("#302b20")
-	style.border_color = Color("#a16207")
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(12)
-	style.content_margin_left = 10
-	style.content_margin_right = 10
-	style.content_margin_top = 9
-	style.content_margin_bottom = 9
-	panel.add_theme_stylebox_override("panel", style)
-	owner.content.add_child(panel)
-	var body = VBoxContainer.new()
-	body.add_theme_constant_override("separation", 7)
-	panel.add_child(body)
-	var heading = Label.new()
-	heading.text = owner.PersianText.reshaper("🏗️ پروژه‌های در حال ساخت  •  %d از ۲" % projects.size())
-	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	owner._apply_font(heading, 18)
-	heading.add_theme_color_override("font_color", Color("#fde68a"))
-	body.add_child(heading)
-	for project in projects:
-		var remaining = max(0, int(project.get("remaining", 0)))
-		var time_text = "%02d:%02d" % [int(remaining / 60), remaining % 60]
-		var detail = Label.new()
-		detail.text = owner.PersianText.reshaper("🔨 %s\n📍 %s  •  زمان باقی‌مانده: %s" % [str(project.get("name", "ساختمان")), str(project.get("district_name", "منطقه شهر")), time_text])
-		detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		owner._apply_font(detail, 15)
-		detail.add_theme_color_override("font_color", Color("#f8fafc"))
-		body.add_child(detail)
-	var manage = Button.new()
-	manage.text = owner.PersianText.reshaper("مدیریت پروژه‌های ساخت‌وساز")
-	manage.custom_minimum_size = Vector2(0, 52)
-	manage.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	manage.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	manage.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	owner._apply_font(manage, 16)
-	owner._style_button(manage, false)
-	manage.pressed.connect(Callable(owner, "show_page").bind("buildings"))
-	body.add_child(manage)
-
