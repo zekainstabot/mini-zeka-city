@@ -1801,8 +1801,9 @@ func _update_construction_capacity_button():
 	if construction_capacity_button == null or not is_instance_valid(construction_capacity_button) or game == null:
 		return
 	var available = _get_available_construction_workers()
-	# Keep the shortcut minimal: only the construction icon and free slots.
-	construction_capacity_button.text = "👷"
+	var available_text = str(available).replace("0", "۰").replace("1", "۱").replace("2", "۲")
+	# Show the free construction-worker count beside the worker icon.
+	construction_capacity_button.text = "👷 %s/۲" % available_text
 	construction_capacity_button.tooltip_text = "کارگر آزاد ساخت: %d از ۲؛ مشاهده پروژه‌ها و پیشنهاد ساخت" % available
 
 
