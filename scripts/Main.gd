@@ -31,6 +31,7 @@ var audio_manager = null
 var last_audio_night_mode = false
 var audio_warning_cooldown = 0.0
 var current_page = "home"
+var report_filter_category = "all"
 var selected_map_district_id = ""
 var selected_map_building_data = {}
 var message_label = null
@@ -1316,41 +1317,8 @@ func _build_ui():
 	_style_button(menu_button, true)
 	menu_row.add_child(menu_button)
 
-	help_button = Button.new()
-	help_button.text = PersianText.reshaper("؟")
-	help_button.tooltip_text = "راهنمای کامل بازی"
-	help_button.custom_minimum_size = Vector2(58 if compact_layout else 50, 58 if compact_layout else 46)
-	help_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	_apply_font(help_button, 29 if compact_layout else 25)
-	var help_normal = StyleBoxFlat.new()
-	help_normal.bg_color = Color("#0f766e")
-	help_normal.border_color = Color("#99f6e4")
-	help_normal.set_border_width_all(2)
-	help_normal.set_corner_radius_all(24)
-	var help_hover = StyleBoxFlat.new()
-	help_hover.bg_color = Color("#115e59")
-	help_hover.border_color = Color("#ccfbf1")
-	help_hover.set_border_width_all(2)
-	help_hover.set_corner_radius_all(24)
-	var help_pressed = StyleBoxFlat.new()
-	help_pressed.bg_color = Color("#134e4a")
-	help_pressed.border_color = Color("#5eead4")
-	help_pressed.set_border_width_all(2)
-	help_pressed.set_corner_radius_all(24)
-	help_button.add_theme_stylebox_override("normal", help_normal)
-	help_button.add_theme_stylebox_override("hover", help_hover)
-	help_button.add_theme_stylebox_override("focus", help_hover)
-	help_button.add_theme_stylebox_override("pressed", help_pressed)
-	help_button.add_theme_color_override("font_color", Color("#ffffff"))
-	help_button.add_theme_color_override("font_color_hover", Color("#ffffff"))
-	help_button.add_theme_color_override("font_color_pressed", Color("#ffffff"))
-	help_button.connect("pressed", Callable(self, "_open_help"))
-	menu_row.add_child(help_button)
-
-	# Move the existing controls beside the daily calendar without changing
-	# their callbacks or modal behavior. Keep them as floating top-level controls.
+	# The guide is available from the settings menu; keep the header uncluttered.
 	menu_row.remove_child(menu_button)
-	menu_row.remove_child(help_button)
 	menu_row.visible = false
 	menu_button.anchor_left = 0.0
 	menu_button.anchor_top = 0.0
@@ -1359,13 +1327,6 @@ func _build_ui():
 	menu_button.position = Vector2(105, 48)
 	menu_button.z_index = 15
 	add_child(menu_button)
-	help_button.anchor_left = 0.0
-	help_button.anchor_top = 0.0
-	help_button.anchor_right = 0.0
-	help_button.anchor_bottom = 0.0
-	help_button.position = Vector2(181, 50)
-	help_button.z_index = 15
-	add_child(help_button)
 	# Full-screen modal menu dims the city and separates menu actions
 	# from the navigation and city controls behind it.
 	var menu_layer = CanvasLayer.new()
@@ -1718,7 +1679,6 @@ func _build_ui():
 	root.add_child(message_label)
 	_build_daily_reward_calendar_button()
 	_build_ranking_button()
-	_build_report_button()
 	_build_day_night_hud()
 	_build_construction_capacity_button()
 
@@ -1738,23 +1698,6 @@ func _build_ranking_button():
 	_style_button(ranking_button, true)
 	ranking_button.pressed.connect(func(): show_page("ranking"))
 	add_child(ranking_button)
-
-func _build_report_button():
-	report_button = Button.new()
-	report_button.name = "TopReportButton"
-	report_button.text = "!"
-	report_button.tooltip_text = "گزارش‌ها و مشکلات شهر"
-	report_button.custom_minimum_size = Vector2(50, 50)
-	report_button.anchor_left = 0.0
-	report_button.anchor_top = 0.0
-	report_button.anchor_right = 0.0
-	report_button.anchor_bottom = 0.0
-	report_button.position = Vector2(264, 20)
-	report_button.z_index = 15
-	_apply_font(report_button, 25)
-	_style_button(report_button, true)
-	report_button.pressed.connect(func(): show_page("report"))
-	add_child(report_button)
 
 func _build_daily_reward_calendar_button():
 	daily_reward_button = Button.new()
@@ -2984,6 +2927,10 @@ func _on_navigation_pressed(page, button, title):
 		_show_message("برای باز شدن این بخش، ابتدا ساختمان شهرداری را بساز و ساخت آن را کامل کن.")
 		return
 	show_page(page)
+
+func _set_report_filter(category):
+	report_filter_category = str(category)
+	show_page("report")
 
 func show_page(page):
 	# City overview and citizen management are one combined destination.
