@@ -162,6 +162,10 @@ func _input(event):
 			meaningful_input = true
 		if meaningful_input:
 			last_activity_ticks = Time.get_ticks_msec()
+			# Any ordinary touch/click/key breaks a consecutive Back sequence.
+			if not (event is InputEventKey and event.keycode in [KEY_ESCAPE, KEY_BACK]):
+				device_back_press_count = 0
+				device_back_window_start_ticks = Time.get_ticks_msec()
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_ESCAPE, KEY_BACK]:
 		_handle_device_back()
 		get_viewport().set_input_as_handled()
@@ -2417,37 +2421,49 @@ func _close_game_menu():
 
 func _handle_device_back():
 	# Android may report one physical press through both KEY_BACK and the
-	# window notification. Ignore only duplicate events, not quick user presses.
+	# window notification. Ignore only duplicate events.
 	var now_ticks = Time.get_ticks_msec()
 	if last_device_back_ticks > 0 and now_ticks - last_device_back_ticks < 220:
 		return
-	var previous_press_ticks = last_device_back_ticks
 	last_device_back_ticks = now_ticks
-	if now_ticks - device_back_window_start_ticks > 5000:
-		device_back_window_start_ticks = now_ticks
-		device_back_press_count = 0
-	device_back_press_count += 1
-	var rapid_double_press = previous_press_ticks > 0 and now_ticks - previous_press_ticks <= 1200
-	var show_exit_option = rapid_double_press or device_back_press_count >= 5
 
+	# On the My City home screen, Back always opens the exit confirmation.
+	if current_page == "home":
+		device_back_press_count = 0
+		device_back_window_start_ticks = now_ticks
+		if exit_overlay != null and is_instance_valid(exit_overlay) and exit_overlay.visible:
+			exit_overlay.visible = false
+		else:
+			_show_exit_confirmation()
+		return
+
+	# Existing modal/overlay navigation takes priority over page navigation.
 	if exit_overlay != null and is_instance_valid(exit_overlay) and exit_overlay.visible:
 		exit_overlay.visible = false
 		return
 	if help_overlay != null and is_instance_valid(help_overlay) and help_overlay.visible:
 		_close_help()
-	elif restart_confirm_panel != null and is_instance_valid(restart_confirm_panel) and restart_confirm_panel.visible:
+		return
+	if restart_confirm_panel != null and is_instance_valid(restart_confirm_panel) and restart_confirm_panel.visible:
 		restart_confirm_panel.visible = false
-	elif menu_overlay != null and is_instance_valid(menu_overlay) and menu_overlay.visible:
+		return
+	if menu_overlay != null and is_instance_valid(menu_overlay) and menu_overlay.visible:
 		_close_game_menu()
-	elif not page_navigation_history.is_empty():
-		var previous_page = str(page_navigation_history.pop_back())
-		suppress_page_history = true
-		show_page(previous_page)
-		suppress_page_history = false
-	elif not show_exit_option:
-		_show_message("برای نمایش گزینه خروج، دوبار سریع دکمه بازگشت را بزن.")
-	if show_exit_option:
-		_show_exit_confirmation()
+		return
+
+	# On every other page, five consecutive Back presses return to My City.
+	# A normal touch/click resets this count in _input().
+	if now_ticks - device_back_window_start_ticks > 5000:
+		device_back_window_start_ticks = now_ticks
+		device_back_press_count = 0
+	device_back_press_count += 1
+	if device_back_press_count >= 5:
+		device_back_press_count = 0
+		device_back_window_start_ticks = now_ticks
+		page_navigation_history.clear()
+		_show_page_without_history("home")
+	else:
+		_show_message("برای بازگشت به شهر من، ۵ بار پشت سر هم دکمه بازگشت گوشی را بزن.")
 
 func _show_page_without_history(page):
 	suppress_page_history = true
