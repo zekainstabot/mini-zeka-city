@@ -1933,7 +1933,6 @@ func _open_construction_details():
 			speedup_button.custom_minimum_size = Vector2(0, 48)
 			speedup_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			speedup_button.icon = load("res://assets/zeka-coin.svg")
-			speedup_button.icon_max_width = 24
 			_apply_font(speedup_button, 15)
 			_style_button(speedup_button, false)
 			speedup_button.pressed.connect(_complete_construction_from_worker_popup.bind(int(project.get("construction_index", index))))
