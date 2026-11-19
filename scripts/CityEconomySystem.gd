@@ -362,7 +362,9 @@ static func end_day(engine, is_offline=false, persist=true):
 	engine._update_missions()
 	report.append("خلاصه مالی: درآمد ثبت‌شده %d | حقوق %d | نگهداری %d | اقساط شهرداری %d | اقساط شهروندان %d | وام پرداختی به شهروندان %d | تغییر خالص خزانه %d سکه." % [int(state.last_economy.accepted_income), paid_wages, maintenance_paid, bank_repayment_paid, int(state.last_economy.get("citizen_loan_repayments", 0)), int(state.last_economy.get("citizen_loan_disbursements", 0)), int(state.last_economy.net_cashflow)])
 	for report_message in report:
-		engine.add_report_event(str(report_message), false)
+		var category = engine.get_report_event_category(report_message)
+		if not category.is_empty():
+			engine.add_report_event(str(report_message), false, {"category":category})
 	state.last_report = "\n".join(report)
 	if bool(persist):
 		engine.save_game()
