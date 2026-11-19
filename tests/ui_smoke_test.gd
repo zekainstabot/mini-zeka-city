@@ -60,6 +60,7 @@ func _run_tests():
 			assert(not top_shortcuts[i].get_global_rect().intersects(top_shortcuts[j].get_global_rect()), "Top shortcuts overlap on a narrow phone")
 		assert(not top_shortcuts[i].get_global_rect().intersects(main.day_night_hud.get_global_rect()), "A top shortcut overlaps the clock on a narrow phone")
 	assert(not main.construction_capacity_button.get_global_rect().intersects(main.day_night_hud.get_global_rect()), "Construction shortcut overlaps the clock")
+	assert(not main.construction_capacity_button.get_global_rect().intersects(main.currency_hud.get_global_rect()), "Construction shortcut overlaps the currency HUD")
 	assert(main.report_button == null, "Report shortcut should not be displayed above the game")
 	main.ranking_button.emit_signal("pressed")
 	assert(main.current_page == "ranking", "Top ranking shortcut does not open rankings")
