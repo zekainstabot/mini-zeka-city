@@ -63,7 +63,15 @@ func _run_tests():
 	main.ranking_button.emit_signal("pressed")
 	assert(main.current_page == "ranking", "Top ranking shortcut does not open rankings")
 	main.show_page("home")
-	assert(main.content.find_child("HomeReportsButton", true, false) is Button, "Reports action must remain available from My City")
+	var home_report_action = main.content.find_child("HomeAction_report", true, false)
+	var home_municipality_action = main.content.find_child("HomeAction_municipality", true, false)
+	var home_private_economy_action = main.content.find_child("HomeAction_private_economy", true, false)
+	assert(home_report_action is Button, "Reports and problems action must be available from My City")
+	assert(home_municipality_action is Button, "Municipality and city services action must be available from My City")
+	assert(home_private_economy_action is Button, "Private economy action must be available from My City")
+	home_report_action.emit_signal("pressed")
+	assert(main.current_page == "report", "My City reports action must open the report page")
+	main.show_page("home")
 	assert(navigation_grid.get_combined_minimum_size().x <= main_layout.size.x + 1.0, "Narrow navigation exceeds the safe content width")
 	for nav_button in main.navigation_buttons:
 		assert(nav_button.alignment == HORIZONTAL_ALIGNMENT_CENTER, "Navigation button text is not centered")
@@ -169,7 +177,7 @@ func _run_tests():
 	var overview_panel = main.content.find_child("HomeOverviewPanel", true, false)
 	assert(overview_panel is PanelContainer, "Home page city overview panel is missing")
 	var overview_grid = overview_panel.find_child("CityOverviewGrid", true, false)
-	assert(overview_grid is GridContainer and overview_grid.get_child_count() == 6, "Home overview must show all six city metrics")
+	assert(overview_grid is GridContainer and overview_grid.get_child_count() == 6, "Home overview must show three city metrics and three action cards")
 	main.game.state["constructions"] = [{"id":"small_house","finish_at":int(Time.get_unix_time_from_system()) + 125,"district_name":"محله آزمایشی"}]
 	# Keep the regression assertion focused on the normal building option, not the tutorial-highlighted rename.
 	main.mission_target_building_id = ""
