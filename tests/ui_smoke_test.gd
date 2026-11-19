@@ -56,6 +56,7 @@ func _run_tests():
 	var top_shortcuts = [main.menu_button, main.ranking_button]
 	for i in range(top_shortcuts.size()):
 		for j in range(i + 1, top_shortcuts.size()):
+			print("UI TEST: shortcut %s rect=%s; %s rect=%s" % [top_shortcuts[i].name, str(top_shortcuts[i].get_global_rect()), top_shortcuts[j].name, str(top_shortcuts[j].get_global_rect())])
 			assert(not top_shortcuts[i].get_global_rect().intersects(top_shortcuts[j].get_global_rect()), "Top shortcuts overlap on a narrow phone")
 		assert(not top_shortcuts[i].get_global_rect().intersects(main.day_night_hud.get_global_rect()), "A top shortcut overlaps the clock on a narrow phone")
 	assert(not main.construction_capacity_button.get_global_rect().intersects(main.day_night_hud.get_global_rect()), "Construction shortcut overlaps the clock")
