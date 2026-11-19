@@ -1311,6 +1311,11 @@ func _build_ui():
 	brand_label.add_theme_constant_override("shadow_offset_y", 1)
 	_apply_font(brand_label, 12 if compact_layout else 14)
 	root.add_child(brand_label)
+	# Add a little breathing room above the currency cards.
+	var currency_top_spacing = Control.new()
+	currency_top_spacing.name = "CurrencyTopSpacing"
+	currency_top_spacing.custom_minimum_size.y = 12.0 if compact_layout else 14.0
+	root.add_child(currency_top_spacing)
 	_create_currency_hud(root, compact_layout)
 	var menu_row = HBoxContainer.new()
 	menu_row.alignment = BoxContainer.ALIGNMENT_CENTER
