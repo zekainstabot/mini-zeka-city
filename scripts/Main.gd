@@ -919,9 +919,6 @@ func _apply_safe_area_to_floating_controls():
 			shortcuts.append(candidate)
 	var worker_button_valid = construction_capacity_button != null and is_instance_valid(construction_capacity_button)
 	var worker_x = right_edge - button_size.x - 12.0
-	if worker_button_valid:
-		construction_capacity_button.position = Vector2(worker_x, row_y)
-		_apply_font(construction_capacity_button, 25 if narrow else 28)
 	var shortcut_area_right = worker_x - gap if worker_button_valid else right_edge
 	var shortcut_area_width = maxf(0.0, shortcut_area_right - inset.x)
 	var usable_span = maxf(0.0, shortcut_area_width - button_size.x)
@@ -954,6 +951,15 @@ func _apply_safe_area_to_floating_controls():
 			_apply_font(day_night_day_label, 12 if narrow else 14)
 		if day_night_timer_label != null and is_instance_valid(day_night_timer_label):
 			_apply_font(day_night_timer_label, 12 if narrow else 14)
+
+	# Anchor the worker shortcut below the clock's actual laid-out bottom edge.
+	# This avoids relying on a guessed HUD height across phone sizes and safe areas.
+	if worker_button_valid:
+		var worker_row_y = row_y
+		if day_night_hud != null and is_instance_valid(day_night_hud):
+			worker_row_y = maxf(worker_row_y, day_night_hud.position.y + day_night_hud.size.y + 16.0)
+		construction_capacity_button.position = Vector2(worker_x, worker_row_y)
+		_apply_font(construction_capacity_button, 25 if narrow else 28)
 
 	if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
 		_update_construction_capacity_button()
