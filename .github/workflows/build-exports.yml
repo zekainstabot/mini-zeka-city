@@ -23,6 +23,9 @@ permissions:
 jobs:
   android:
     runs-on: ubuntu-22.04
+    env:
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+      ANDROID_HOME: /usr/local/lib/android/sdk
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -48,18 +51,24 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Install Android SDK and Java for Godot export
-        uses: android-actions/setup-android@v3
-
+      # Avoid android-actions/setup-android here: its default "tools" package is
+      # obsolete and causes sdkmanager to fail on current Android repositories.
       - name: Install Android platform and build tools
         run: |
-          sdkmanager "platform-tools" "platforms;android-31" "build-tools;34.0.0"
+          set -euo pipefail
+          SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER="$(find "$ANDROID_SDK_ROOT/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)"
+          fi
+          test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --sdk_root="$ANDROID_SDK_ROOT" --licenses
+          "$SDKMANAGER" --sdk_root="$ANDROID_SDK_ROOT" --install "platform-tools" "platforms;android-31" "build-tools;34.0.0"
           mkdir -p "$HOME/.config/godot"
           cat > "$HOME/.config/godot/editor_settings-3.tres" <<EOF
           [gd_resource type="EditorSettings" format=2]
 
           [resource]
-          export/android/android_sdk_path = "/usr/local/lib/android/sdk"
+          export/android/android_sdk_path = "$ANDROID_SDK_ROOT"
           export/android/debug_keystore = "$HOME/.android/debug.keystore"
           export/android/debug_keystore_user = "androiddebugkey"
           export/android/debug_keystore_pass = "android"
