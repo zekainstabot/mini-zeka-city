@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+<defs>
+  <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff2a8"/><stop offset=".34" stop-color="#f7c94b"/><stop offset=".72" stop-color="#c98519"/><stop offset="1" stop-color="#8e4d0c"/></linearGradient>
+  <linearGradient id="face" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#ffe98a"/><stop offset="1" stop-color="#e5a92e"/></linearGradient>
+  <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>
+<ellipse cx="64" cy="112" rx="39" ry="8" fill="#000" opacity=".24" filter="url(#shadow)"/>
+<circle cx="64" cy="61" r="55" fill="#75420f"/>
+<circle cx="64" cy="58" r="54" fill="url(#gold)" stroke="#fff0a6" stroke-width="3"/>
+<circle cx="64" cy="58" r="45" fill="url(#face)" stroke="#a96512" stroke-width="3"/>
+<circle cx="64" cy="58" r="39" fill="none" stroke="#fff0a6" stroke-width="1.5" stroke-dasharray="2.5 4"/>
+<path d="M31 76V62l10-7 10 7v14M51 76V49l12-9 12 9v27M75 76V59l11-8 11 8v17" fill="#8a5417" stroke="#9a6018" stroke-width="2" stroke-linejoin="round"/>
+<path d="M37 76V65h8v11M58 76V53h10v23M81 76V62h9v14" fill="#f8d66b"/>
+<path d="M48 31h32l-21 19h21v8H48l21-19H48z" fill="#fff8d6" stroke="#9a5c12" stroke-width="2" stroke-linejoin="round"/>
+<path d="M19 58a45 45 0 0 1 8-25M101 83a45 45 0 0 1-8 9" fill="none" stroke="#fff6c4" stroke-width="3" stroke-linecap="round" opacity=".8"/>
+<circle cx="64" cy="58" r="54" fill="none" stroke="#fff8c8" stroke-width="1.5" opacity=".75"/>
+</svg>

@@ -1,22 +1,29 @@
+; Project was converted by built-in tool to Godot 4
 ; Engine configuration file.
-; Mini ZekaCity - Godot 3.6
+; Mini ZekaCity - Godot 4.4.1
 
-config_version=4
+config_version=5
 
 [application]
 config/name="Mini ZekaCity"
+config/quit_on_go_back=false
 run/main_scene="res://Main.tscn"
-config/icon=""
+config/icon="res://assets/minizekacity-icon.svg"
 boot_splash/show_image=false
 boot_splash/bg_color=Color(0.062745, 0.094118, 0.152941, 1)
 
 [display]
-window/size/width=720
-window/size/height=1280
+window/handheld/orientation=6
+window/size/viewport_width=720
+window/size/viewport_height=1280
 window/size/resizable=true
 window/stretch/mode="2d"
 window/stretch/aspect="expand"
 
+[internationalization]
+rendering/text_driver="ICU / HarfBuzz / Graphite"
+
 [rendering]
-quality/driver/driver_name="GLES2"
-vram_compression/import_etc=true
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true

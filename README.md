@@ -1,11 +1,11 @@
 # Mini ZekaCity
 
-A text-first city management game built with Godot 3.6.
+A text-first city management game built with Godot 4.4.1.
 
 Mini ZekaCity is a separate project from the original ZekaCity. It brings the original game's city-management systems into a menu-driven interface: buildings, residents, employment, production chains, resources, storage, market, treasury, services, missions, and saving.
 
 ## Run
-Open `project.godot` in Godot 3.6.x and run the project.
+Open `project.godot` in Godot 4.4.1 and run the project.
 
 ## Current milestone
 - Text/menu-based city dashboard
@@ -97,11 +97,44 @@ Open `project.godot` in Godot 3.6.x and run the project.
 - مزرعه با ۴ کارمند فعال روزانه ۸ واحد غذا تولید می‌کند؛ بخشی از ذخیره غذا برای مصرف شهر حفظ می‌شود و فروش خودکار آن را خالی نمی‌کند.
 - داده‌های ذخیره قدیمی به نسخه ۸ مهاجرت می‌کنند و منبع جدید غذا با مقدار صفر مقداردهی می‌شود.
 
-## خروجی اندروید
-- فایل export_presets.cfg فقط خروجی Android APK دارد.
-- GitHub Actions بازی را با Godot 3.6.3 تست می‌کند و فایل APK آزمایشی را به‌صورت Artifact منتشر می‌کند.
-- خروجی APK نسخه Debug برای نصب و آزمایش روی گوشی است؛ برای انتشار عمومی در فروشگاه، کلید امضای اختصاصی لازم است.
-- برای دریافت فایل، آخرین اجرای موفق GitHub Actions را باز کن و از بخش Artifacts فایل MiniZekaCity-Android-APK را دریافت کن؛ فایل تا ۱۴ روز نگهداری می‌شود.
+## به‌روزرسانی اندروید بدون حذف بازی
+
+- شناسه بسته اندروید باید در تمام نسخه‌ها دقیقاً `com.zekainstabot.minizekacity` باقی بماند؛ آن را تغییر نده.
+- ذخیره شهر در `user://mini_zeka_city_save.json` نگهداری می‌شود؛ نصب نسخه جدید با همان شناسه و همان کلید امضا، اطلاعات برنامه را حفظ می‌کند.
+- گردش کار GitHub Actions در هر اجرا `version/code` را به‌صورت افزایشی و `version/name` را به شکل `1.0.RUN_NUMBER` تنظیم می‌کند.
+- برای ساخت نسخه انتشار، یک کلید امضای دائمی بساز و سه GitHub Actions Secret زیر را در Settings → Secrets and variables → Actions مخفیانه ثبت کن:
+  - `ANDROID_KEYSTORE_BASE64`: محتوای فایل keystore با کدگذاری Base64
+  - `ANDROID_KEYSTORE_PASSWORD`: رمز keystore
+  - `ANDROID_KEY_ALIAS`: نام alias کلید
+- فایل keystore و رمز آن را هرگز در GitHub، کد پروژه یا پیام عمومی قرار نده؛ چند نسخه پشتیبان امن و آفلاین از فایل keystore نگه دار. گم‌شدن کلید، انتشار آپدیت سازگار را غیرممکن می‌کند.
+- پس از ثبت Secrets، اجرای بعدی Actions علاوه بر APK آزمایشی، آرتیفکت `mini-zeka-city-android-release-apk` را نیز می‌سازد. تا قبل از ثبت Secrets، فقط APK آزمایشی Debug ساخته می‌شود.
+
+### ساخت کلید امضای دائمی در ویندوز
+
+در ترمینال ویندوز که Java نصب است اجرا کن؛ رمز را خودت انتخاب کن و آن را در جای امن نگه دار:
+
+```powershell
+keytool -genkeypair -v -keystore minizekacity-release.keystore -alias minizekacity -keyalg RSA -keysize 2048 -validity 10000
+```
+
+برای ساخت مقدار Base64 و کپی آن در کلیپ‌بورد:
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes(".\minizekacity-release.keystore")) | Set-Clipboard
+```
+
+سپس سه Secret بالا را در تنظیمات مخزن GitHub ثبت کن. مقدار alias در این نمونه `minizekacity` است. هنگام ساخت کلید، رمز کلید و رمز keystore را یکسان انتخاب کن.
+
+**نکته انتشار اول:** APKهای Debug فعلی با کلید Debug امضا شده‌اند و با Release امضای متفاوتی دارند؛ بنابراین برای جایگزینی نصب آزمایشی فعلی با نسخه Release ممکن است یک بار حذف و نصب لازم شود. پس از نصب اولین Release، تمام آپدیت‌های بعدی با همان keystore بدون حذف بازی نصب می‌شوند.
+## خروجی اندروید (Godot 4.4.1)
+
+- پروژه روی Godot 4.4.1 اجرا و تست می‌شود؛ خروجی رسمی فقط APK اندروید است و خروجی وب/HTML5 در این نسخه وجود ندارد.
+- GitHub Actions پس از تست منطق بازی، تمام صفحه‌های منو و اجرای صحنه اصلی، APK انتشار اندروید را می‌سازد.
+- در صورت وجود سه Secret امضای اندروید، APK امضاشده در GitHub Releases منتشر می‌شود: `ANDROID_KEYSTORE_BASE64`، `ANDROID_KEYSTORE_PASSWORD` و `ANDROID_KEY_ALIAS`.
+- شناسه بسته اندروید باید دقیقاً `com.zekainstabot.minizekacity` باقی بماند؛ تغییر آن باعث می‌شود نسخه جدید به‌عنوان برنامه‌ای جدا نصب شود.
+- ذخیره شهر در `user://mini_zeka_city_save.json` نگهداری می‌شود؛ برای نصب به‌روزرسانی بدون حذف بازی، نسخه‌ها باید با همان کلید امضا شوند.
+- شماره نسخه اندروید در هر اجرای موفق به‌صورت افزایشی تنظیم می‌شود.
+- آخرین APK از [صفحه انتشارها](https://github.com/zekainstabot/mini-zeka-city/releases) قابل دریافت است؛ فایل Artifact اجرای Actions نیز برای مدت محدود نگهداری می‌شود.
 
 ## جاده‌ها، ناوگان و لجستیک زمینی
 - پایانه حمل‌ونقل با هزینه ۱٬۸۰۰ سکه، جمعیت ۱۵ نفر و سطح شهر ۲ قابل ساخت است؛ هر پایانه با هر ۲ کارمند فعال، یک کامیون و حداکثر ۲ کامیون پشتیبانی می‌کند.

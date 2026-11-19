@@ -1,4 +1,4 @@
-extends Reference
+extends RefCounted
 
 # Independent citizen economy and municipal request system.
 # Private businesses use their own cash balances and never merge with the player's treasury.
@@ -56,6 +56,8 @@ func ensure_state(engine):
 			citizen["private_land"] = max(0, int(citizen.get("private_land", 0)))
 			citizen["private_business_id"] = int(citizen.get("private_business_id", 0))
 			citizen["private_job_id"] = int(citizen.get("private_job_id", 0))
+		citizen["savings"] = int(clamp(int(citizen.get("savings", 0)), 0, 10000))
+		citizen["last_savings_deposit"] = max(0, int(citizen.get("last_savings_deposit", 0)))
 		if not citizen.has("entrepreneurship"):
 			citizen["entrepreneurship"] = 35 + int((profile_id * 17) % 66)
 		if not citizen.has("risk_tolerance"):
@@ -105,7 +107,7 @@ func _find_rentable_building(engine):
 		var building = state.buildings[i]
 		var data = engine.get_building_definitions().get(str(building.get("id", "")), {})
 		var category = str(data.get("category", ""))
-		if data.empty() or int(data.get("jobs", 0)) <= 0:
+		if data.is_empty() or int(data.get("jobs", 0)) <= 0:
 			continue
 		if category != "کسب‌وکارها" and category != "کارخانه‌ها":
 			continue
@@ -131,7 +133,7 @@ func _expire_rentals(engine, report):
 		for request_index in range(state.business_requests.size() - 1, -1, -1):
 			var pending_request = state.business_requests[request_index]
 			if int(pending_request.get("citizen_id", 0)) == owner_id:
-				state.business_requests.remove(request_index)
+				state.business_requests.remove_at(request_index)
 		for citizen_index in range(state.citizens.size()):
 			var citizen = state.citizens[citizen_index]
 			if int(citizen.get("private_job_id", 0)) == business_id:
@@ -145,7 +147,7 @@ func _expire_rentals(engine, report):
 		if building_index >= 0 and building_index < state.buildings.size():
 			state.buildings[building_index]["rented_to"] = 0
 			state.buildings[building_index]["rent_until_day"] = 0
-		state.private_businesses.remove(business_index)
+		state.private_businesses.remove_at(business_index)
 		report.append("قرارداد اجاره ملک شهرداری پایان یافت؛ ملک برای درخواست‌های جدید آزاد شد.")
 
 func _choose_business(engine, citizen):
@@ -304,7 +306,7 @@ func _choose_public_project(engine):
 			continue
 		var building_id = str(candidate.id)
 		var data = engine.get_building_definitions().get(building_id, {})
-		if data.empty():
+		if data.is_empty():
 			continue
 		if int(state.population) < int(data.get("unlock", 0)) or int(state.level) < int(data.get("level_unlock", 1)):
 			continue
@@ -321,7 +323,7 @@ func _choose_public_project(engine):
 
 func _queue_public_project_requests(engine):
 	var state = engine.state
-	if not state.civic_projects.empty():
+	if not state.civic_projects.is_empty():
 		return
 	# Residents can initiate a public project even when no private company exists.
 	var candidates = []
@@ -346,7 +348,7 @@ func _queue_public_project_requests(engine):
 			continue
 		candidates.append({"citizen":citizen,"building_id":building_id,"cost":cost,"contribution":contribution,"score":civic_score})
 	if candidates.size() > 0:
-		candidates.sort_custom(self, "_sort_civic_candidates")
+		candidates.sort_custom(Callable(self, "_sort_civic_candidates"))
 		var selected = candidates[0]
 		var citizen = selected.citizen
 		var building_id = str(selected.building_id)
@@ -397,13 +399,41 @@ func _queue_public_project_requests(engine):
 func _sort_civic_candidates(a, b):
 	return int(a.get("score",0)) > int(b.get("score",0))
 
+func _get_business_market_multiplier(state, business):
+	var building_id = str(business.get("building_id", ""))
+	var market_group = "other"
+	if building_id in ["grocery_store", "bakery", "restaurant"]:
+		market_group = "food"
+	elif building_id in ["woodcutter", "sawmill", "carpenter", "factory"]:
+		market_group = "industry"
+	elif building_id in ["office", "shopping_mall"]:
+		market_group = "services"
+	var competitors = 0
+	for other in state.get("private_businesses", []):
+		if int(other.get("id", 0)) == int(business.get("id", 0)):
+			continue
+		var other_id = str(other.get("building_id", ""))
+		var other_group = "other"
+		if other_id in ["grocery_store", "bakery", "restaurant"]:
+			other_group = "food"
+		elif other_id in ["woodcutter", "sawmill", "carpenter", "factory"]:
+			other_group = "industry"
+		elif other_id in ["office", "shopping_mall"]:
+			other_group = "services"
+		if market_group != "other" and other_group == market_group:
+			competitors += 1
+	var population_factor = clamp(0.7 + float(state.get("population", 0)) / 20.0, 0.8, 1.5)
+	var satisfaction_factor = clamp(0.75 + float(state.get("satisfaction", 50)) / 200.0, 0.85, 1.2)
+	var competition_factor = max(0.55, 1.0 - float(competitors) * 0.12)
+	return float(clamp(population_factor * satisfaction_factor * competition_factor, 0.55, 1.65))
+
 func _process_private_businesses(engine, report):
 	var state = engine.state
 	var tax_total = 0
 	for business_index in range(state.private_businesses.size()):
 		var business = state.private_businesses[business_index]
 		var data = engine.get_building_definitions().get(str(business.get("building_id", "")), {})
-		if data.empty():
+		if data.is_empty():
 			continue
 		var employee_ids = []
 		for citizen_index in range(state.citizens.size()):
@@ -424,7 +454,10 @@ func _process_private_businesses(engine, report):
 			employee_ids.append(int(citizen.get("id", 0)))
 		var workers = employee_ids.size()
 		var revenue_per_worker = int(business.get("revenue_per_worker", 50))
-		var revenue = revenue_per_worker * workers
+		var market_multiplier = _get_business_market_multiplier(state, business)
+		var revenue = int(round(float(revenue_per_worker * workers) * market_multiplier))
+		business["market_multiplier"] = market_multiplier
+		business["market_competition"] = market_multiplier
 		var cash = int(business.get("balance", 0))
 		var wage_budget = min(int(business.get("wage", 15)) * workers, cash + revenue)
 		var wage_paid = 0
@@ -459,7 +492,8 @@ func _process_private_businesses(engine, report):
 			state.citizens[owner_index] = owner
 		state.private_businesses[business_index] = business
 		if workers > 0:
-			report.append("%s خصوصی: فروش %d، حقوق %d، مالیات %d سکه؛ %d کارمند." % [str(data.name), revenue, wage_paid, tax_paid, workers])
+			var market_percent = int(round(market_multiplier * 100.0))
+			report.append("%s خصوصی: فروش %d، حقوق %d، مالیات %d سکه؛ %d کارمند؛ وضعیت بازار %d%%." % [str(data.name), revenue, wage_paid, tax_paid, workers, market_percent])
 	var accepted_tax = 0
 	if tax_total > 0:
 		accepted_tax = engine._add_money(tax_total)
@@ -555,7 +589,7 @@ func process_day(engine, report):
 		summary["private_business_tax"] = _process_private_businesses(engine, report)
 		_queue_land_or_permit_requests(engine)
 		_queue_public_project_requests(engine)
-		if not state.business_requests.empty():
+		if not state.business_requests.is_empty():
 			report.append("%d درخواست شهروندان برای زمین، مجوز یا پروژه عمرانی در شهرداری منتظر بررسی است." % state.business_requests.size())
 	engine.state = state
 	return summary
@@ -575,11 +609,11 @@ func resolve_request(engine, request_id, approved):
 	var request = state.business_requests[request_index]
 	var citizen_index = _find_citizen_index(state, int(request.get("citizen_id", 0)))
 	if citizen_index < 0:
-		state.business_requests.remove(request_index)
+		state.business_requests.remove_at(request_index)
 		return {"ok":false,"message":"شهروند متقاضی دیگر در شهر حضور ندارد."}
 	var citizen = state.citizens[citizen_index]
 	if not approved:
-		state.business_requests.remove(request_index)
+		state.business_requests.remove_at(request_index)
 		citizen["civic_request_pending"] = false
 		citizen["next_civic_request_day"] = int(state.day) + 3
 		state.citizens[citizen_index] = citizen
@@ -600,7 +634,7 @@ func resolve_request(engine, request_id, approved):
 		citizen["civic_request_pending"] = false
 		citizen["next_civic_request_day"] = int(state.day) + 1
 		state.citizens[citizen_index] = citizen
-		state.business_requests.remove(request_index)
+		state.business_requests.remove_at(request_index)
 		engine.state = state
 		engine.save_game()
 		return {"ok":true,"message":"فروش %d قطعه زمین به شهروند شماره %d تأیید شد؛ درآمد فروش زمین جدا از مالیات ثبت شد." % [plots, int(citizen.id)]}
@@ -651,7 +685,7 @@ func resolve_request(engine, request_id, approved):
 		})
 		state["municipal_rent_income_total"] = int(state.get("municipal_rent_income_total", 0)) + lease_cost
 		engine._add_money(lease_cost)
-		state.business_requests.remove(request_index)
+		state.business_requests.remove_at(request_index)
 		engine.state = state
 		engine.assign_jobs()
 		engine.save_game()
@@ -663,7 +697,7 @@ func resolve_request(engine, request_id, approved):
 		var footprint = int(request.get("footprint", 1))
 		var permit_fee = int(state.get("business_permit_fee", 50))
 		var permit_treasury_room = max(0, engine.get_treasury_capacity() - int(state.money))
-		if data.empty() or int(citizen.get("private_land", 0)) < footprint or int(citizen.get("wallet", 0)) < cost or permit_treasury_room < permit_fee:
+		if data.is_empty() or int(citizen.get("private_land", 0)) < footprint or int(citizen.get("wallet", 0)) < cost or permit_treasury_room < permit_fee:
 			return {"ok":false,"message":"شرایط زمین یا سرمایه برای صدور مجوز دیگر برقرار نیست."}
 		var business_id = int(state.get("next_private_business_id", 1))
 		state["next_private_business_id"] = business_id + 1
@@ -694,7 +728,7 @@ func resolve_request(engine, request_id, approved):
 			"created_day":int(state.day)
 		})
 		engine._add_money(int(state.get("business_permit_fee", 50)))
-		state.business_requests.remove(request_index)
+		state.business_requests.remove_at(request_index)
 		engine.state = state
 		engine.save_game()
 		return {"ok":true,"message":"مجوز %s صادر شد؛ کسب‌وکار خصوصی شهروند شماره %d در %s آغاز به کار کرد." % [str(data.name), int(citizen.id), str(business_location.district_name)]}
@@ -703,7 +737,7 @@ func resolve_request(engine, request_id, approved):
 		var data = engine.get_building_definitions().get(building_id, {})
 		var contribution = int(request.get("contribution", 0))
 		var municipal_amount = int(request.get("municipal_amount", 0))
-		if data.empty() or int(citizen.get("wallet", 0)) < contribution or engine.get_available_money() < municipal_amount:
+		if data.is_empty() or int(citizen.get("wallet", 0)) < contribution or engine.get_available_money() < municipal_amount:
 			return {"ok":false,"message":"سرمایه شهروند یا بودجه شهرداری برای مشارکت در این پروژه کافی نیست."}
 		if engine.get_land_free() < int(engine.get_land_size(building_id)):
 			return {"ok":false,"message":"زمین آزاد برای اجرای این پروژه عمومی کافی نیست."}
@@ -721,7 +755,7 @@ func resolve_request(engine, request_id, approved):
 			"municipal_contribution":municipal_amount,
 			"tax_credit":0
 		})
-		state.business_requests.remove(request_index)
+		state.business_requests.remove_at(request_index)
 		engine.state = state
 		engine.save_game()
 		return {"ok":true,"message":"مشارکت شهروند شماره %d تأیید شد؛ %d سکه مردم و %d سکه شهرداری برای ساخت %s اختصاص یافت. تحویل ۲ روز دیگر." % [int(citizen.id),contribution,municipal_amount,str(data.name)]}
@@ -745,7 +779,7 @@ func resolve_request(engine, request_id, approved):
 		})
 		citizen["civic_request_pending"] = false
 		state.citizens[citizen_index] = citizen
-		state.business_requests.remove(request_index)
+		state.business_requests.remove_at(request_index)
 		engine.state = state
 		engine.save_game()
 		return {"ok":true,"message":"پروژه %s تأیید شد؛ پس از تحویل، %d سکه اعتبار مالیاتی به کسب‌وکار تعلق می‌گیرد." % [str(engine.get_building_definitions()[building_id].name), cost]}

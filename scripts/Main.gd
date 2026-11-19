@@ -2,16 +2,47 @@ extends Control
 
 const EngineScript = preload("res://scripts/GameEngine.gd")
 const PersianText = preload("res://scripts/PersianText.gd")
+const LanguageManager = preload("res://scripts/LanguageManager.gd")
 const AudioManagerScript = preload("res://scripts/AudioManager.gd")
+const MainUITheme = preload("res://scripts/MainUITheme.gd")
+const HelpPageBuilder = preload("res://scripts/HelpPageBuilder.gd")
+const AudioSettingsPage = preload("res://scripts/AudioSettingsPage.gd")
+const CitizensPage = preload("res://scripts/CitizensPage.gd")
+const CityReportPage = preload("res://scripts/CityReportPage.gd")
+const BankPage = preload("res://scripts/BankPage.gd")
+const MunicipalityPage = preload("res://scripts/MunicipalityPage.gd")
+const PrivateEconomyPage = preload("res://scripts/PrivateEconomyPage.gd")
+const CommercePage = preload("res://scripts/CommercePage.gd")
+const TransportPage = preload("res://scripts/TransportPage.gd")
+const ImportsPage = preload("res://scripts/ImportsPage.gd")
+const HomePage = preload("res://scripts/HomePage.gd")
+const MapPage = preload("res://scripts/MapPage.gd")
+const BuildingsPage = preload("res://scripts/BuildingsPage.gd")
+const StoragePage = preload("res://scripts/StoragePage.gd")
+const RankingPage = preload("res://scripts/RankingPage.gd")
+const ProgressPage = preload("res://scripts/ProgressPage.gd")
+const MissionsPage = preload("res://scripts/MissionsPage.gd")
+const AchievementsPage = preload("res://scripts/AchievementsPage.gd")
+const CityDashboardBuilder = preload("res://scripts/CityDashboardBuilder.gd")
+const OfflineProgressController = preload("res://scripts/OfflineProgressController.gd")
 var game = null
+var ui_language = "fa"
 var audio_manager = null
 var last_audio_night_mode = false
 var audio_warning_cooldown = 0.0
 var current_page = "home"
 var report_filter_category = "all"
+var selected_map_district_id = ""
+var selected_map_building_data = {}
 var message_label = null
 var content = null
 var header_label = null
+var brand_label = null
+var city_name_overlay = null
+var city_name_input = null
+var city_name_center_container = null
+var city_name_keyboard_height = -1
+var city_name_setup_first_time = false
 var ui_font = null
 var level_status_bar = null
 var xp_progress_bar = null
@@ -19,18 +50,30 @@ var level_status_label = null
 var xp_progress_label = null
 var selected_home_building_id = ""
 var selected_building_category = ""
+var selected_building_group = ""
 var selected_demolish_quantity = 1
 var demolish_panel_expanded = false
 var home_buildings_expanded = false
 var home_city_details_expanded = false
 var home_economy_expanded = false
 var clock_cycle_seconds = 0.0
-var clock_label = null
+var ambient_background = null
+var ambient_background_color = Color("#172536")
+var day_night_hud = null
+var day_night_icon_label = null
+var day_night_timer_label = null
+var day_night_day_label = null
 var clock_save_accumulator = 0.0
+var clock_displayed_second = -1
 var construction_check_accumulator = 0.0
+var construction_hud_refresh_accumulator = 0.0
+var construction_capacity_button = null
+var construction_details_layer = null
+var storage_automation_accumulator = 0.0
 var construction_time_labels = []
 var game_paused = false
 var menu_panel = null
+var menu_overlay = null
 var menu_pause_button = null
 var game_scroll_container = null
 var touch_scroll_active = false
@@ -45,14 +88,64 @@ var municipality_section_expanded = {"land":false,"tax":false,"requests":false,"
 var citizen_status_expanded = {}
 var commerce_section_expanded = {"domestic":false,"export":false,"import":false,"shipments":false,"contracts":false}
 var storage_section_expanded = {}
+var storage_production_expanded = false
 var current_district_expanded = {}
 var active_section_container = null
-var mission_reward_badge = null
+var mission_navigation_button = null
+var mission_navigation_title = ""
 var mission_badge_refresh_timer = 0.0
 var mission_target_building_id = ""
 var mission_target_building_button = null
 var last_activity_ticks = 0
 var offline_summary_popup = null
+var main_layout = null
+var main_navigation_grid = null
+var navigation_buttons = []
+var menu_card = null
+var exit_overlay = null
+var last_layout_viewport_size = Vector2.ZERO
+var safe_area_insets = Vector4.ZERO
+var last_device_back_ticks = 0
+var help_overlay = null
+var help_body = null
+var daily_reward_layer = null
+var daily_reward_button = null
+var menu_button = null
+var help_button = null
+var ranking_button: Button = null
+var report_button: Button = null
+var help_previous_page = "home"
+var help_scroll_original_index = 5
+var startup_loading_layer = null
+var startup_entry_layer = null
+var startup_loading_bar = null
+var startup_loading_label = null
+var startup_loading_percent = null
+var startup_tip_label = null
+var startup_tip_timer = null
+var startup_tip_index = -1
+var startup_progress_tween: Tween = null
+var currency_hud = null
+var money_balance_label = null
+var zeka_coin_balance_label = null
+var currency_refresh_accumulator = 0.0
+var bottom_navigation_bar = null
+var bottom_navigation_buttons = {}
+
+func _on_ui_node_added(node):
+	# Enforce consistent, readable text layout for every dynamically-created button.
+	if node is Button:
+		node.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		node.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		node.text_direction = Control.TEXT_DIRECTION_RTL if LanguageManager.is_rtl(ui_language) else Control.TEXT_DIRECTION_LTR
+
+func _center_existing_button_texts(node):
+	if node is Button:
+		node.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		node.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		node.text_direction = Control.TEXT_DIRECTION_RTL if LanguageManager.is_rtl(ui_language) else Control.TEXT_DIRECTION_LTR
+	for child in node.get_children():
+		_center_existing_button_texts(child)
 
 func _input(event):
 	if game != null:
@@ -64,7 +157,11 @@ func _input(event):
 		elif event is InputEventKey and event.pressed and not event.echo:
 			meaningful_input = true
 		if meaningful_input:
-			last_activity_ticks = OS.get_ticks_msec()
+			last_activity_ticks = Time.get_ticks_msec()
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_ESCAPE, KEY_BACK]:
+		_handle_device_back()
+		get_viewport().set_input_as_handled()
+		return
 	if game_scroll_container == null or not is_instance_valid(game_scroll_container):
 		return
 	if event is InputEventScreenTouch:
@@ -76,6 +173,12 @@ func _input(event):
 			touch_scroll_axis = ""
 			touch_scroll_dragging = false
 		else:
+			if touch_scroll_active and touch_scroll_dragging and touch_scroll_axis == "horizontal":
+				var swipe_delta = event.position.x - touch_scroll_start.x
+				if swipe_delta < -90.0 and current_page != "map":
+					show_page("map")
+				elif swipe_delta > 90.0 and current_page == "map":
+					show_page("home")
 			touch_scroll_active = false
 			touch_scroll_dragging = false
 			touch_scroll_axis = ""
@@ -90,30 +193,38 @@ func _input(event):
 		if touch_scroll_dragging:
 			var delta_position = event.position - touch_scroll_last_position
 			if touch_scroll_axis == "horizontal":
-				var horizontal_bar = game_scroll_container.get_h_scrollbar()
-				var max_horizontal = max(0.0, horizontal_bar.max_value - horizontal_bar.page)
-				game_scroll_container.scroll_horizontal = int(clamp(float(game_scroll_container.scroll_horizontal) - delta_position.x * 1.25, 0.0, max_horizontal))
-				horizontal_scroll_velocity = -delta_position.x * 13.0
+				# Horizontal swipes navigate to/from the city map; do not scroll the page sideways.
+				horizontal_scroll_velocity = 0.0
 			elif touch_scroll_axis == "vertical":
 				var delta_y = event.position.y - touch_scroll_last_y
-				var bar = game_scroll_container.get_v_scrollbar()
+				var bar = game_scroll_container.get_v_scroll_bar()
 				var max_scroll = max(0.0, bar.max_value - bar.page)
 				game_scroll_container.scroll_vertical = int(clamp(float(game_scroll_container.scroll_vertical) - delta_y * 1.35, 0.0, max_scroll))
 		touch_scroll_last_y = event.position.y
 		touch_scroll_last_position = event.position
 
 func _process(delta):
+	_update_ambient_background(delta)
+	_update_city_name_keyboard_position()
 	if not touch_scroll_dragging and abs(horizontal_scroll_velocity) > 8.0 and game_scroll_container != null and is_instance_valid(game_scroll_container):
-		var horizontal_bar = game_scroll_container.get_h_scrollbar()
+		var horizontal_bar = game_scroll_container.get_h_scroll_bar()
 		var max_horizontal = max(0.0, horizontal_bar.max_value - horizontal_bar.page)
 		game_scroll_container.scroll_horizontal = int(clamp(float(game_scroll_container.scroll_horizontal) + horizontal_scroll_velocity * delta, 0.0, max_horizontal))
 		horizontal_scroll_velocity = lerp(horizontal_scroll_velocity, 0.0, min(1.0, delta * 7.5))
 	else:
 		horizontal_scroll_velocity = 0.0
+	if game != null:
+		currency_refresh_accumulator += delta
+		if currency_refresh_accumulator >= 0.5:
+			currency_refresh_accumulator = 0.0
+			_refresh_currency_hud()
 	if game == null or game_paused:
 		return
-	if last_activity_ticks > 0 and OS.get_ticks_msec() - last_activity_ticks <= 90000:
+	if last_activity_ticks > 0 and Time.get_ticks_msec() - last_activity_ticks <= 90000:
 		game.record_active_play_seconds(delta)
+	var new_recruitment_count = game.process_citizen_recruitment_interval(delta)
+	if new_recruitment_count > 0 and current_page == "home":
+		show_page("home")
 	clock_cycle_seconds += delta
 	var audio_night_mode = clock_cycle_seconds >= 420.0
 	if audio_manager != null and audio_night_mode != last_audio_night_mode:
@@ -127,6 +238,24 @@ func _process(delta):
 		_update_mission_reward_badge()
 	clock_save_accumulator += delta
 	construction_check_accumulator += delta
+	storage_automation_accumulator += delta
+	if storage_automation_accumulator >= 60.0:
+		storage_automation_accumulator = fmod(storage_automation_accumulator, 60.0)
+		var storage_changed = false
+		for resource_id in game.get_resource_definitions().keys():
+			var storage_result = game.apply_storage_rule(str(resource_id), false)
+			if bool(storage_result.get("ok", false)) and (str(storage_result.get("message","")).begins_with("خرید انجام شد:") or str(storage_result.get("message","")).begins_with("فروش ")):
+				storage_changed = true
+		if storage_changed:
+			# Auto-trading may adjust several resources in one pass; persist once
+			# after the batch instead of serializing the whole city per resource.
+			game.save_game()
+			if current_page == "storage":
+				show_page("storage")
+	construction_hud_refresh_accumulator += delta
+	if construction_hud_refresh_accumulator >= 1.0:
+		construction_hud_refresh_accumulator = 0.0
+		_update_construction_capacity_button()
 	if construction_check_accumulator >= 1.0:
 		construction_check_accumulator = 0.0
 		_update_construction_time_labels()
@@ -139,20 +268,23 @@ func _process(delta):
 		var daily_audio_report = str(game.end_day())
 		if daily_audio_report.find("رویداد") >= 0 or daily_audio_report.find("تصمیم") >= 0:
 			audio_manager.play_sfx("event")
-		game.state["clock_last_unix"] = OS.get_unix_time()
+		game.state["clock_last_unix"] = Time.get_unix_time_from_system()
 		game.state["clock_cycle_seconds"] = int(clock_cycle_seconds)
 		game.save_game()
 		if current_page == "home":
 			show_page("home")
 			_show_message("یک روز جدید در شهر آغاز شد.")
-	if clock_label != null and is_instance_valid(clock_label):
-		var remaining = max(0, int(600.0 - clock_cycle_seconds))
-		var phase = "روز" if clock_cycle_seconds < 420.0 else "شب"
-		var phase_remaining = int(420.0 - clock_cycle_seconds) if phase == "روز" else int(600.0 - clock_cycle_seconds)
-		clock_label.text = PersianText.reshaper("%s | زمان باقی‌مانده: " % phase) + _format_time_display(int(phase_remaining / 60), phase_remaining % 60)
+	# Refresh the independent day/night HUD once per in-game second.
+	var displayed_second = int(floor(clock_cycle_seconds))
+	if displayed_second != clock_displayed_second:
+		clock_displayed_second = displayed_second
+		_update_day_night_hud()
 	if clock_save_accumulator >= 15.0:
 		clock_save_accumulator = 0.0
-		game.state["clock_last_unix"] = OS.get_unix_time()
+		var citizen_reports_changed = game.check_citizen_reports(false)
+		if citizen_reports_changed and current_page == "report":
+			show_page("report")
+		game.state["clock_last_unix"] = Time.get_unix_time_from_system()
 		game.state["clock_cycle_seconds"] = int(clock_cycle_seconds)
 		game.save_game()
 
@@ -191,418 +323,1322 @@ func _update_construction_time_labels():
 			label.text = PersianText.reshaper("%s | زمان باقی‌مانده: " % str(project.name)) + _format_time_display(int(seconds_left / 60), seconds_left % 60)
 
 func _apply_offline_progress():
-	# Keep offline digest keys initialized even when no full offline day elapsed.
-	game.state["pending_offline_digest"] = game.state.get("pending_offline_digest", [])
-	var now = OS.get_unix_time()
-	var last = int(game.state.get("clock_last_unix", now))
-	var elapsed = max(0, now - last)
-	var offline_days = min(10, int(floor(float(elapsed) / 3600.0)))
-	var money_before = int(game.state.get("money", 0))
-	if offline_days > 0:
-		game.state["pending_offline_digest"] = []
-	for day_index in range(offline_days):
-		var offline_report = game.end_day(true)
-		var digest = str(offline_report).split("\n")
-		for digest_line in digest:
-			var clean_line = str(digest_line).strip_edges()
-			if clean_line != "" and (clean_line.find("رویداد") >= 0 or clean_line.find("تصمیم") >= 0 or clean_line.find("رقبا") >= 0 or clean_line.find("درخواست") >= 0 or clean_line.find("تبریک") >= 0 or clean_line.find("تولید") >= 0):
-				game.state["pending_offline_digest"].append(clean_line)
-	while game.state["pending_offline_digest"].size() > 8:
-		game.state["pending_offline_digest"].pop_front()
-	var offline_net = int(game.state.get("money", money_before)) - money_before
-	# Positive net earnings are held separately until the player explicitly collects them.
-	if offline_net > 0:
-		game.state["money"] = money_before
-		game.state["pending_offline_income"] = int(game.state.get("pending_offline_income", 0)) + offline_net
-	if offline_days > 0:
-		game.state["pending_offline_days"] = int(game.state.get("pending_offline_days", 0)) + offline_days
-	game.state["clock_last_unix"] = now
-	game.state["clock_cycle_seconds"] = int(game.state.get("clock_cycle_seconds", 0))
-	game.save_game()
+	return await OfflineProgressController._apply_offline_progress(self)
+
 
 func _show_offline_summary():
-	var days = int(game.state.get("pending_offline_days", 0))
-	if days <= 0:
-		return
-	var income = int(game.state.get("pending_offline_income", 0))
-	var viewport_size = get_viewport_rect().size
-	var compact = viewport_size.x < 700
-	var popup_width = max(280.0, min(viewport_size.x - 28.0, 540.0))
-	var popup_height = max(360.0, min(viewport_size.y - 28.0, 650.0))
-	var popup = PopupPanel.new()
-	offline_summary_popup = popup
-	popup.name = "OfflineIncomePopup"
+	return OfflineProgressController._show_offline_summary(self)
 
-	var card = PanelContainer.new()
-	card.rect_min_size = Vector2(popup_width, popup_height)
-	var card_style = StyleBoxFlat.new()
-	card_style.bg_color = Color("#111c2e")
-	card_style.border_color = Color("#475569")
-	card_style.set_border_width_all(1)
-	card_style.set_corner_radius_all(16)
-	card_style.content_margin_left = 14 if compact else 20
-	card_style.content_margin_right = 14 if compact else 20
-	card_style.content_margin_top = 12 if compact else 18
-	card_style.content_margin_bottom = 12 if compact else 18
-	card.add_stylebox_override("panel", card_style)
-	popup.add_child(card)
 
-	var layout = VBoxContainer.new()
-	layout.name = "OfflineSummaryLayout"
-	layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	layout.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	layout.add_constant_override("separation", 7 if compact else 10)
-	card.add_child(layout)
+func _close_offline_summary():
+	return OfflineProgressController._close_offline_summary(self)
 
-	var welcome = Label.new()
-	welcome.text = PersianText.reshaper("خوش برگشتی! 👋")
-	welcome.align = Label.ALIGN_CENTER
-	welcome.autowrap = true
-	_apply_font(welcome, 20 if compact else 22)
-	welcome.add_color_override("font_color", Color("#ffffff"))
-	layout.add_child(welcome)
-
-	var subtitle = Label.new()
-	subtitle.text = PersianText.reshaper("در مدتی که نبودی، شهر به فعالیتش ادامه داد.")
-	subtitle.align = Label.ALIGN_CENTER
-	subtitle.autowrap = true
-	_apply_font(subtitle, 13 if compact else 15)
-	subtitle.add_color_override("font_color", Color("#cbd5e1"))
-	layout.add_child(subtitle)
-
-	var stats = VBoxContainer.new() if compact else HBoxContainer.new()
-	stats.add_constant_override("separation", 6 if compact else 8)
-	layout.add_child(stats)
-
-	var days_panel = PanelContainer.new()
-	days_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var days_style = StyleBoxFlat.new()
-	days_style.bg_color = Color("#1e3a5f")
-	days_style.set_corner_radius_all(10)
-	days_style.content_margin_left = 8
-	days_style.content_margin_right = 8
-	days_style.content_margin_top = 6 if compact else 9
-	days_style.content_margin_bottom = 6 if compact else 9
-	days_panel.add_stylebox_override("panel", days_style)
-	stats.add_child(days_panel)
-	var days_box = VBoxContainer.new()
-	days_box.add_constant_override("separation", 2)
-	days_panel.add_child(days_box)
-	var days_value = Label.new()
-	days_value.text = PersianText.reshaper("%d روز" % days)
-	days_value.align = Label.ALIGN_CENTER
-	_apply_font(days_value, 17 if compact else 20)
-	days_value.add_color_override("font_color", Color("#ffffff"))
-	days_box.add_child(days_value)
-	var days_caption = Label.new()
-	days_caption.text = PersianText.reshaper("مدت غیبت")
-	days_caption.align = Label.ALIGN_CENTER
-	_apply_font(days_caption, 11 if compact else 13)
-	days_caption.add_color_override("font_color", Color("#bfdbfe"))
-	days_box.add_child(days_caption)
-
-	var money_panel = PanelContainer.new()
-	money_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var money_style = StyleBoxFlat.new()
-	money_style.bg_color = Color("#174334") if income > 0 else Color("#334155")
-	money_style.set_corner_radius_all(10)
-	money_style.content_margin_left = 8
-	money_style.content_margin_right = 8
-	money_style.content_margin_top = 6 if compact else 9
-	money_style.content_margin_bottom = 6 if compact else 9
-	money_panel.add_stylebox_override("panel", money_style)
-	stats.add_child(money_panel)
-	var money_box = VBoxContainer.new()
-	money_box.add_constant_override("separation", 2)
-	money_panel.add_child(money_box)
-	var money_value = Label.new()
-	money_value.text = PersianText.reshaper("%s سکه" % str(income))
-	money_value.align = Label.ALIGN_CENTER
-	money_value.autowrap = true
-	_apply_font(money_value, 16 if compact else 19)
-	money_value.add_color_override("font_color", Color("#86efac") if income > 0 else Color("#e2e8f0"))
-	money_box.add_child(money_value)
-	var money_caption = Label.new()
-	money_caption.text = PersianText.reshaper("درآمد آماده دریافت" if income > 0 else "مانده درآمد")
-	money_caption.align = Label.ALIGN_CENTER
-	money_caption.autowrap = true
-	_apply_font(money_caption, 10 if compact else 12)
-	money_caption.add_color_override("font_color", Color("#bbf7d0") if income > 0 else Color("#cbd5e1"))
-	money_box.add_child(money_caption)
-
-	var news_title = Label.new()
-	news_title.text = PersianText.reshaper("گزارش اتفاقات شهر")
-	news_title.align = Label.ALIGN_RIGHT
-	_apply_font(news_title, 15 if compact else 17)
-	news_title.add_color_override("font_color", Color("#fbbf24"))
-	layout.add_child(news_title)
-
-	var news_scroll = ScrollContainer.new()
-	news_scroll.name = "OfflineNewsScroll"
-	news_scroll.rect_min_size = Vector2(0, 70 if compact else 110)
-	news_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	news_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	layout.add_child(news_scroll)
-	var news_list = VBoxContainer.new()
-	news_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	news_list.add_constant_override("separation", 5)
-	news_scroll.add_child(news_list)
-
-	var digest_items = game.state.get("pending_offline_digest", [])
-	if digest_items.empty():
-		var empty_news = Label.new()
-		empty_news.text = PersianText.reshaper("اتفاق مهمی ثبت نشده؛ شهر آرام بوده است.")
-		empty_news.align = Label.ALIGN_CENTER
-		empty_news.autowrap = true
-		_apply_font(empty_news, 12 if compact else 14)
-		empty_news.add_color_override("font_color", Color("#cbd5e1"))
-		news_list.add_child(empty_news)
-	else:
-		var shown_news = 0
-		for news_item in digest_items:
-			if shown_news >= 8:
-				break
-			var news_row = PanelContainer.new()
-			news_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			var row_style = StyleBoxFlat.new()
-			row_style.bg_color = Color("#1e293b")
-			row_style.set_corner_radius_all(7)
-			row_style.content_margin_left = 8
-			row_style.content_margin_right = 8
-			row_style.content_margin_top = 5
-			row_style.content_margin_bottom = 5
-			news_row.add_stylebox_override("panel", row_style)
-			news_list.add_child(news_row)
-			var news_label = Label.new()
-			news_label.text = PersianText.reshaper("• " + str(news_item))
-			news_label.align = Label.ALIGN_RIGHT
-			news_label.autowrap = true
-			news_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			_apply_font(news_label, 11 if compact else 13)
-			news_label.add_color_override("font_color", Color("#e2e8f0"))
-			news_row.add_child(news_label)
-			shown_news += 1
-
-	var note = Label.new()
-	note.text = PersianText.reshaper("درآمد تا زمان دریافت، جدا از خزانه نگه داشته می‌شود." if income > 0 else "درآمد و هزینه‌های این مدت محاسبه شده‌اند؛ مازاد درآمدی وجود ندارد.")
-	note.align = Label.ALIGN_CENTER
-	note.autowrap = true
-	_apply_font(note, 11 if compact else 13)
-	note.add_color_override("font_color", Color("#94a3b8"))
-	layout.add_child(note)
-
-	if income > 0:
-		var claim_button = Button.new()
-		claim_button.text = PersianText.reshaper("واریز درآمد به خزانه")
-		claim_button.rect_min_size = Vector2(0, 44 if compact else 50)
-		claim_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_apply_font(claim_button, 14 if compact else 17)
-		_style_button(claim_button, false)
-		claim_button.connect("pressed", self, "_claim_offline_income")
-		layout.add_child(claim_button)
-
-	var later_button = Button.new()
-	later_button.text = PersianText.reshaper("فعلاً نه، بعداً بررسی می‌کنم")
-	later_button.rect_min_size = Vector2(0, 40 if compact else 44)
-	later_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_font(later_button, 12 if compact else 14)
-	_style_button(later_button, true)
-	later_button.connect("pressed", popup, "hide")
-	layout.add_child(later_button)
-
-	add_child(popup)
-	popup.popup_centered(Vector2(popup_width, popup_height))
 
 func _claim_offline_income():
-	if offline_summary_popup != null and is_instance_valid(offline_summary_popup):
-		offline_summary_popup.queue_free()
-	offline_summary_popup = null
-	var pending = int(game.state.get("pending_offline_income", 0))
-	var message = "گزارش آفلاین بسته شد."
-	if pending > 0:
-		var result = game.collect_offline_income()
-		message = str(result.message)
-	if int(game.state.get("pending_offline_income", 0)) <= 0:
-		game.state["pending_offline_days"] = 0
-		game.save_game()
-	show_page("home")
-	_show_message(message)
+	return OfflineProgressController._claim_offline_income(self)
+
 
 func _notification(what):
-	if what == MainLoop.NOTIFICATION_WM_QUIT_REQUEST and game != null:
-		game.state["clock_last_unix"] = OS.get_unix_time()
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST and game != null:
+		_handle_device_back()
+		return
+	if what == NOTIFICATION_WM_CLOSE_REQUEST and game != null:
+		game.state["clock_last_unix"] = Time.get_unix_time_from_system()
 		game.state["clock_cycle_seconds"] = int(clock_cycle_seconds)
 		game.save_game()
 
 func _ready():
+	# Apply centered text to every Button in the scene tree, now and whenever
+	# any game page or overlay creates additional buttons.
+	get_tree().node_added.connect(_on_ui_node_added)
+	_center_existing_button_texts(self)
+	layout_direction = Control.LAYOUT_DIRECTION_RTL if LanguageManager.is_rtl(ui_language) else Control.LAYOUT_DIRECTION_LTR
 	_load_ui_font()
+	# Open the full-screen loading experience immediately on launch.
+	call_deferred("_start_game_loading")
+
+
+func _start_game_loading():
+	if game != null:
+		return
+	if startup_entry_layer != null and is_instance_valid(startup_entry_layer):
+		startup_entry_layer.queue_free()
+	startup_entry_layer = null
+	_create_startup_loading_screen()
+	# The deferred call already starts after the scene enters the tree;
+	# avoid suspending startup on an extra frame before initialization.
+	_set_startup_progress(3, "آماده‌سازی محیط بازی...")
+
+	_load_ui_font()
+	_set_startup_progress(12, "بارگذاری فونت و رابط فارسی...")
+
 	audio_manager = AudioManagerScript.new()
 	add_child(audio_manager)
+	_set_startup_progress(20, "آماده‌سازی صداها...")
+
 	game = EngineScript.new()
-	if not game.load_game():
+	_set_startup_progress(34, "آماده‌سازی اطلاعات شهر...")
+
+	var has_existing_save = game.load_game()
+	ui_language = str(game.state.get("ui_language", "fa"))
+	if ui_language not in LanguageManager.LANGUAGES:
+		ui_language = "fa"
+	layout_direction = Control.LAYOUT_DIRECTION_RTL if LanguageManager.is_rtl(ui_language) else Control.LAYOUT_DIRECTION_LTR
+	if not has_existing_save:
 		game.new_game()
+		# First launch starts in portrait. Later launches always use the saved orientation.
+		game.state["screen_orientation"] = "portrait"
 		game.save_game()
+	_set_startup_progress(52, "بارگذاری اطلاعات و ذخیره شهر...")
+
+	var saved_orientation = str(game.state.get("screen_orientation", "portrait"))
+	if saved_orientation not in ["auto", "portrait", "landscape"]:
+		saved_orientation = "portrait"
+		game.state["screen_orientation"] = saved_orientation
+		game.save_game()
+	_apply_screen_orientation(saved_orientation)
 	game.register_login_today()
+	_set_startup_progress(63, "به‌روزرسانی وضعیت روزانه...")
+
 	game.get_daily_missions()
 	game.get_weekly_challenge()
-	last_activity_ticks = OS.get_ticks_msec()
-	_apply_offline_progress()
+	last_activity_ticks = Time.get_ticks_msec()
+	await _apply_offline_progress()
 	clock_cycle_seconds = float(game.state.get("clock_cycle_seconds", 0))
 	last_audio_night_mode = clock_cycle_seconds >= 420.0
-	audio_manager.set_night_mode(last_audio_night_mode)
+	# Configure audio without generating long PCM streams during the loading screen.
+	audio_manager.configure_startup_night_mode(last_audio_night_mode)
 	set_process(true)
+	_set_startup_progress(76, "ساخت صفحه‌های بازی...")
+
 	_build_ui()
+	last_layout_viewport_size = Vector2.ZERO
+	_apply_responsive_layout()
+	get_viewport().size_changed.connect(_on_viewport_size_changed)
+	_set_startup_progress(90, "آماده‌سازی شهر و منوها...")
+
 	show_page("home")
-	_show_offline_summary()
+	if str(game.state.get("city_name", "")).strip_edges() == "":
+		_open_city_name_setup(true)
+	else:
+		_show_offline_summary()
+	_set_startup_progress(100, "آماده‌ای! خوش اومدی به مینی زکا سیتی")
+	await _wait_for_startup_progress()
+	_finish_startup_loading()
+	# Start ambient audio only after the first playable frame; avoid generating it twice.
+	audio_manager.call_deferred("start_ambience")
+
+
+func _create_startup_loading_screen():
+	var layer = CanvasLayer.new()
+	layer.name = "StartupLoadingLayer"
+	layer.layer = 200
+	add_child(layer)
+	startup_loading_layer = layer
+
+	# A true edge-to-edge loading page: no popup, card, or in-game menu.
+	var background = ColorRect.new()
+	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background.color = Color("#071522")
+	background.mouse_filter = Control.MOUSE_FILTER_STOP
+	layer.add_child(background)
+
+	# Subtle upper and lower atmosphere bands.
+	var upper_glow = ColorRect.new()
+	upper_glow.anchor_left = 0.0
+	upper_glow.anchor_right = 1.0
+	upper_glow.anchor_top = 0.0
+	upper_glow.anchor_bottom = 0.46
+	upper_glow.offset_bottom = 0.0
+	upper_glow.color = Color(0.08, 0.25, 0.34, 0.30)
+	upper_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(upper_glow)
+
+	var lower_glow = ColorRect.new()
+	lower_glow.anchor_left = 0.0
+	lower_glow.anchor_right = 1.0
+	lower_glow.anchor_top = 0.72
+	lower_glow.anchor_bottom = 1.0
+	lower_glow.color = Color(0.03, 0.20, 0.19, 0.22)
+	lower_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(lower_glow)
+
+	# A quiet skyline gives the loading page a city-building identity.
+	var skyline = Control.new()
+	skyline.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	skyline.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(skyline)
+	var viewport_size = get_viewport_rect().size
+	var skyline_base = viewport_size.y * 0.91
+	var building_specs = [
+		[0.00, 0.15, 0.10], [0.09, 0.22, 0.08], [0.17, 0.12, 0.12],
+		[0.29, 0.19, 0.09], [0.39, 0.27, 0.10], [0.50, 0.16, 0.11],
+		[0.61, 0.23, 0.09], [0.70, 0.14, 0.12], [0.82, 0.21, 0.09],
+		[0.91, 0.17, 0.11]
+	]
+	for spec in building_specs:
+		var building = ColorRect.new()
+		building.position = Vector2(viewport_size.x * float(spec[0]), skyline_base - viewport_size.y * float(spec[1]))
+		building.size = Vector2(viewport_size.x * float(spec[2]), viewport_size.y * float(spec[1]))
+		building.color = Color("#102b3a")
+		building.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		skyline.add_child(building)
+		for row in range(3):
+			for column in range(2):
+				var window_light = ColorRect.new()
+				window_light.position = Vector2(7.0 + column * max(13.0, building.size.x * 0.38), 12.0 + row * 23.0)
+				window_light.size = Vector2(5, 8)
+				window_light.color = Color(0.95, 0.73, 0.39, 0.55 if (row + column) % 2 == 0 else 0.22)
+				window_light.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				building.add_child(window_light)
+
+	var safe = _get_safe_area_insets()
+	var page = VBoxContainer.new()
+	page.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	page.offset_left = safe.x + 28.0
+	page.offset_right = -(safe.z + 28.0)
+	page.offset_top = safe.y + 30.0
+	page.offset_bottom = -(safe.w + 28.0)
+	page.add_theme_constant_override("separation", 10)
+	page.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(page)
+
+	var brand = Label.new()
+	brand.text = "ZEKAMEDIAFA  •  PRESENTS"
+	brand.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	brand.add_theme_font_size_override("font_size", 12)
+	brand.add_theme_color_override("font_color", Color("#75cdbd"))
+	page.add_child(brand)
+
+	var top_space = Control.new()
+	top_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	top_space.custom_minimum_size.y = 12
+	page.add_child(top_space)
+
+	var emblem_wrap = CenterContainer.new()
+	emblem_wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	page.add_child(emblem_wrap)
+	var emblem = TextureRect.new()
+	emblem.custom_minimum_size = Vector2(184, 184)
+	emblem.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	emblem.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	emblem.texture = load("res://assets/minizekacity-icon.svg")
+	emblem_wrap.add_child(emblem)
+
+	var title = Label.new()
+	title.text = "مینی زکا سیتی"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_font(title, 31)
+	title.add_theme_color_override("font_color", Color("#f7f4e9"))
+	page.add_child(title)
+
+	var subtitle = Label.new()
+	subtitle.text = "شهر خودت را بساز؛ آینده را مدیریت کن"
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_font(subtitle, 15)
+	subtitle.add_theme_color_override("font_color", Color("#9cc9c8"))
+	page.add_child(subtitle)
+
+	var divider = ColorRect.new()
+	divider.custom_minimum_size = Vector2(72, 3)
+	divider.color = Color("#e8bd70")
+	divider.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	page.add_child(divider)
+
+	var progress_space = Control.new()
+	progress_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	progress_space.custom_minimum_size.y = 12
+	page.add_child(progress_space)
+
+	startup_loading_label = Label.new()
+	startup_loading_label.text = "در حال آماده‌سازی شهر..."
+	startup_loading_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_font(startup_loading_label, 15)
+	startup_loading_label.add_theme_color_override("font_color", Color("#d8e6e7"))
+	page.add_child(startup_loading_label)
+
+	startup_loading_bar = ProgressBar.new()
+	startup_loading_bar.min_value = 0
+	startup_loading_bar.max_value = 100
+	startup_loading_bar.value = 0
+	startup_loading_bar.show_percentage = false
+	startup_loading_bar.custom_minimum_size = Vector2(0, 13)
+	var track = StyleBoxFlat.new()
+	track.bg_color = Color("#203746")
+	track.set_corner_radius_all(7)
+	var fill = StyleBoxFlat.new()
+	fill.bg_color = Color("#55d6b3")
+	fill.set_corner_radius_all(7)
+	startup_loading_bar.add_theme_stylebox_override("background", track)
+	startup_loading_bar.add_theme_stylebox_override("fill", fill)
+	page.add_child(startup_loading_bar)
+
+	startup_loading_percent = Label.new()
+	startup_loading_percent.text = "۰٪"
+	startup_loading_percent.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_font(startup_loading_percent, 17)
+	startup_loading_percent.add_theme_color_override("font_color", Color("#f0c878"))
+	page.add_child(startup_loading_percent)
+
+	var tip_heading = Label.new()
+	tip_heading.text = "✦  نکته‌ای برای شهرت"
+	tip_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_font(tip_heading, 14)
+	tip_heading.add_theme_color_override("font_color", Color("#f0c878"))
+	page.add_child(tip_heading)
+
+	startup_tip_label = Label.new()
+	startup_tip_label.text = ""
+	startup_tip_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	startup_tip_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	startup_tip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	startup_tip_label.custom_minimum_size = Vector2(0, 54)
+	_apply_font(startup_tip_label, 14)
+	startup_tip_label.add_theme_color_override("font_color", Color("#c4d9df"))
+	page.add_child(startup_tip_label)
+	_show_next_startup_tip()
+
+	var footer = Label.new()
+	footer.text = "BUILD YOUR CITY  •  SHAPE YOUR FUTURE"
+	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	footer.add_theme_font_size_override("font_size", 10)
+	footer.add_theme_color_override("font_color", Color("#62828d"))
+	page.add_child(footer)
+
+	var bottom_space = Control.new()
+	bottom_space.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	bottom_space.custom_minimum_size.y = 8
+	page.add_child(bottom_space)
+
+	startup_tip_timer = Timer.new()
+	startup_tip_timer.wait_time = 4.0
+	startup_tip_timer.one_shot = false
+	startup_tip_timer.timeout.connect(_show_next_startup_tip)
+	layer.add_child(startup_tip_timer)
+	startup_tip_timer.start()
+
+
+func _show_next_startup_tip():
+	if startup_tip_label == null or not is_instance_valid(startup_tip_label):
+		return
+	var tips = [
+		"با اسلایدر بازار، مقدار خرید و فروش هر کالا رو دقیق انتخاب کن.",
+		"برای انبار، موجودی هدف تعیین کن تا مازاد فروخته و کمبود جبران بشه.",
+		"مدیریت پول شهر مهمه؛ قبل از خرید، موجودی خزانه رو بررسی کن.",
+		"برای توسعه محله‌های بعدی، سطح جاده موردنیاز رو ارتقا بده.",
+		"از بخش خدمات شهری، وضعیت پوشش خدمات و زیرساخت‌ها رو بررسی کن.",
+		"تولید داخلی می‌تونه نیاز شهر رو تأمین کنه؛ ظرفیت انبار رو هم در نظر بگیر.",
+		"با تکمیل مأموریت‌ها و چالش‌ها، پاداش‌های شهر رو دریافت کن.",
+		"در بازار، صادرات راهی برای فروش کالاهای مازاد شهره."
+	]
+	if tips.size() <= 1:
+		startup_tip_index = 0
+	else:
+		var next_index = randi_range(0, tips.size() - 1)
+		while next_index == startup_tip_index:
+			next_index = randi_range(0, tips.size() - 1)
+		startup_tip_index = next_index
+	startup_tip_label.text = PersianText.reshaper(tips[startup_tip_index])
+
+
+func _update_startup_progress_visual(value: float):
+	if startup_loading_bar != null and is_instance_valid(startup_loading_bar):
+		startup_loading_bar.value = value
+	if startup_loading_percent != null and is_instance_valid(startup_loading_percent):
+		startup_loading_percent.text = "%d٪" % int(round(value))
+
+
+func _set_startup_progress(value: int, message: String):
+	var safe_value = clampi(value, 0, 100)
+	if startup_loading_label != null and is_instance_valid(startup_loading_label):
+		startup_loading_label.text = PersianText.reshaper(message)
+	var current_value = 0.0
+	if startup_loading_bar != null and is_instance_valid(startup_loading_bar):
+		current_value = startup_loading_bar.value
+	# Checkpoints reflect completed work. Keep the animation running in the
+	# background instead of blocking initialization on every tween.
+	if startup_progress_tween != null and startup_progress_tween.is_running():
+		startup_progress_tween.kill()
+	var distance = absf(float(safe_value) - current_value)
+	var duration = clampf(distance * 0.035, 0.16, 0.72)
+	startup_progress_tween = create_tween()
+	startup_progress_tween.set_trans(Tween.TRANS_CUBIC)
+	startup_progress_tween.set_ease(Tween.EASE_OUT)
+	startup_progress_tween.tween_method(_update_startup_progress_visual, current_value, float(safe_value), duration)
+
+func _wait_for_startup_progress():
+	if startup_progress_tween != null and startup_progress_tween.is_running():
+		await startup_progress_tween.finished
+
+
+func _finish_startup_loading():
+	if startup_loading_layer != null and is_instance_valid(startup_loading_layer):
+		startup_loading_layer.queue_free()
+	startup_loading_layer = null
+	startup_loading_bar = null
+	startup_loading_label = null
+	startup_loading_percent = null
+	startup_tip_label = null
+	startup_tip_timer = null
+
+
+
+func _update_city_name_keyboard_position():
+	if city_name_center_container == null or not is_instance_valid(city_name_center_container):
+		return
+	# Headless/desktop display servers do not expose a virtual keyboard. Avoid
+	# polling the unsupported API every frame; on Android this feature is present.
+	if not DisplayServer.has_feature(DisplayServer.FEATURE_VIRTUAL_KEYBOARD):
+		return
+	var keyboard_height = DisplayServer.virtual_keyboard_get_height()
+	if keyboard_height == city_name_keyboard_height:
+		return
+	city_name_keyboard_height = keyboard_height
+	# Move the complete name-entry card upward while the Android keyboard is open.
+	# The capped offset keeps the title and action buttons visible on short screens.
+	var upward_shift = minf(float(keyboard_height) * 0.35, 140.0) if keyboard_height > 0 else 0.0
+	# Keep the city-name card slightly lower to clear the phone camera/notch area.
+	var modal_safe = _get_safe_area_insets()
+	city_name_center_container.offset_left = modal_safe.x + 16.0
+	city_name_center_container.offset_right = -(modal_safe.z + 16.0)
+	city_name_center_container.offset_top = modal_safe.y + 16.0 - upward_shift
+	city_name_center_container.offset_bottom = -(modal_safe.w + 16.0) - upward_shift
+
+
+func _open_city_name_setup(first_time = false):
+	city_name_setup_first_time = bool(first_time)
+	if city_name_overlay != null and is_instance_valid(city_name_overlay):
+		var old_layer = city_name_overlay.get_parent()
+		if old_layer != null:
+			old_layer.queue_free()
+	var layer = CanvasLayer.new()
+	layer.name = "CityNameSetupLayer"
+	layer.layer = 120
+	add_child(layer)
+	city_name_overlay = Control.new()
+	city_name_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	city_name_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	layer.add_child(city_name_overlay)
+	var shade = ColorRect.new()
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shade.color = Color(0.015, 0.035, 0.065, 0.96)
+	shade.mouse_filter = Control.MOUSE_FILTER_STOP
+	city_name_overlay.add_child(shade)
+	var center = CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var modal_safe = _get_safe_area_insets()
+	center.offset_left = modal_safe.x + 16.0
+	center.offset_right = -(modal_safe.z + 16.0)
+	center.offset_top = modal_safe.y + 16.0
+	center.offset_bottom = -(modal_safe.w + 16.0)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	city_name_center_container = center
+	city_name_keyboard_height = -1
+	city_name_overlay.add_child(center)
+	var card = PanelContainer.new()
+	var city_modal_width = get_viewport_rect().size.x - modal_safe.x - modal_safe.z - 32.0
+	card.custom_minimum_size = Vector2(max(0.0, min(520.0, city_modal_width)), 0)
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color("#14243a")
+	style.border_color = Color("#38bdf8")
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(22)
+	style.content_margin_left = 22
+	style.content_margin_right = 22
+	style.content_margin_top = 26
+	style.content_margin_bottom = 24
+	card.add_theme_stylebox_override("panel", style)
+	center.add_child(card)
+	var layout = VBoxContainer.new()
+	layout.add_theme_constant_override("separation", 14)
+	card.add_child(layout)
+	if city_name_setup_first_time:
+		var brand_badge = PanelContainer.new()
+		brand_badge.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		var brand_style = StyleBoxFlat.new()
+		brand_style.bg_color = Color("#102f46")
+		brand_style.border_color = Color("#38bdf8")
+		brand_style.set_border_width_all(1)
+		brand_style.set_corner_radius_all(18)
+		brand_style.content_margin_left = 18
+		brand_style.content_margin_right = 18
+		brand_style.content_margin_top = 7
+		brand_style.content_margin_bottom = 11
+		brand_badge.add_theme_stylebox_override("panel", brand_style)
+		var brand_text = Label.new()
+		brand_text.text = "✦  zekamediafa  ✦"
+		brand_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_apply_font(brand_text, 14)
+		brand_text.add_theme_color_override("font_color", Color("#7dd3fc"))
+		brand_badge.add_child(brand_text)
+		layout.add_child(brand_badge)
+	var title = Label.new()
+	title.text = PersianText.reshaper("به شهر خودت خوش اومدی! 🏙️" if city_name_setup_first_time else "نام شهر رو تغییر بده")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_apply_font(title, 23)
+	title.add_theme_color_override("font_color", Color("#ffffff"))
+	layout.add_child(title)
+	var subtitle = Label.new()
+	subtitle.text = PersianText.reshaper("برای شهرت یه اسم انتخاب کن؛ این اسم بالای شهر نمایش داده می‌شه." if city_name_setup_first_time else "اسم جدید شهر رو وارد کن.")
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_apply_font(subtitle, 15)
+	subtitle.add_theme_color_override("font_color", Color("#cbd5e1"))
+	layout.add_child(subtitle)
+	city_name_input = LineEdit.new()
+	city_name_input.text = str(game.state.get("city_name", ""))
+	city_name_input.placeholder_text = "مثلاً: زکا‌آباد"
+	city_name_input.max_length = 24
+	city_name_input.custom_minimum_size = Vector2(0, 54)
+	city_name_input.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	city_name_input.clear_button_enabled = true
+	_apply_font(city_name_input, 19)
+	layout.add_child(city_name_input)
+	if city_name_setup_first_time:
+		var random_name_button = Button.new()
+		random_name_button.text = PersianText.reshaper("🎲 انتخاب اسم تصادفی")
+		random_name_button.custom_minimum_size = Vector2(0, 46)
+		_apply_font(random_name_button, 16)
+		_style_button(random_name_button, false)
+		random_name_button.pressed.connect(_choose_random_city_name)
+		layout.add_child(random_name_button)
+	var save_button = Button.new()
+	save_button.text = PersianText.reshaper("ساخت شهر من 🚀" if city_name_setup_first_time else "ذخیره نام جدید")
+	save_button.custom_minimum_size = Vector2(0, 54)
+	_apply_font(save_button, 18)
+	_style_button(save_button, true)
+	save_button.pressed.connect(_save_city_name)
+	layout.add_child(save_button)
+	if not city_name_setup_first_time:
+		var cancel_button = Button.new()
+		cancel_button.text = PersianText.reshaper("انصراف")
+		cancel_button.custom_minimum_size = Vector2(0, 46)
+		_apply_font(cancel_button, 16)
+		_style_button(cancel_button, false)
+		cancel_button.pressed.connect(_close_city_name_setup)
+		layout.add_child(cancel_button)
+	city_name_input.grab_focus()
+
+
+func _choose_random_city_name():
+	if game == null or city_name_input == null or not is_instance_valid(city_name_input):
+		return
+	# Selecting a suggested name must not save it immediately; let the player
+	# review or edit it before confirming with the primary save button.
+	city_name_input.text = game.get_random_city_name()
+
+
+func _save_city_name():
+	if city_name_input == null or not is_instance_valid(city_name_input):
+		return
+	var chosen_name = city_name_input.text.strip_edges()
+	if chosen_name.is_empty():
+		city_name_input.placeholder_text = "اول یه اسم برای شهرت بنویس"
+		return
+	chosen_name = chosen_name.substr(0, 24)
+	game.state["city_name"] = chosen_name
+	game.save_game()
+	var was_first_time = city_name_setup_first_time
+	_close_city_name_setup()
+	show_page("home")
+	if was_first_time:
+		_show_message("شهر «%s» ساخته شد؛ خوش اومدی!" % chosen_name)
+		_show_offline_summary()
+	else:
+		_show_message("نام شهر به «%s» تغییر کرد." % chosen_name)
+
+
+func _close_city_name_setup():
+	if city_name_overlay != null and is_instance_valid(city_name_overlay):
+		var layer = city_name_overlay.get_parent()
+		if layer != null:
+			layer.queue_free()
+	city_name_overlay = null
+	city_name_input = null
+	city_name_center_container = null
+	city_name_keyboard_height = -1
+
+
+func _on_viewport_size_changed():
+	call_deferred("_apply_responsive_layout")
+
+func _get_safe_area_insets():
+	# Convert Android's physical safe-area rectangle into the current game viewport.
+	var viewport_size = get_viewport_rect().size
+	var screen_size = DisplayServer.screen_get_size()
+	if screen_size.x <= 0 or screen_size.y <= 0:
+		return Vector4.ZERO
+	var safe_rect = DisplayServer.get_display_safe_area()
+	if safe_rect.size.x <= 0 or safe_rect.size.y <= 0:
+		return Vector4.ZERO
+	var scale_x = viewport_size.x / float(screen_size.x)
+	var scale_y = viewport_size.y / float(screen_size.y)
+	return Vector4(
+		maxf(0.0, float(safe_rect.position.x) * scale_x),
+		maxf(0.0, float(safe_rect.position.y) * scale_y),
+		maxf(0.0, float(screen_size.x - safe_rect.position.x - safe_rect.size.x) * scale_x),
+		maxf(0.0, float(screen_size.y - safe_rect.position.y - safe_rect.size.y) * scale_y)
+	)
+
+func _apply_safe_area_to_floating_controls():
+	var inset = safe_area_insets
+	var viewport_size = get_viewport_rect().size
+	var narrow = viewport_size.x < 500.0
+	var usable_width = viewport_size.x - inset.x - inset.z
+	var right_edge = viewport_size.x - inset.z
+	if narrow:
+		var icon_size = Vector2(50, 50)
+		# These controls use viewport coordinates; clear inherited anchors before positioning.
+		for floating in [daily_reward_button, menu_button, help_button, construction_capacity_button, ranking_button, report_button, day_night_hud]:
+			if floating != null and is_instance_valid(floating):
+				floating.anchor_left = 0.0
+				floating.anchor_top = 0.0
+				floating.anchor_right = 0.0
+				floating.anchor_bottom = 0.0
+		# Row one: menu on the far left, calendar beside it; clock on the right.
+		if daily_reward_button != null and is_instance_valid(daily_reward_button):
+			daily_reward_button.custom_minimum_size = icon_size
+			daily_reward_button.position = Vector2(inset.x + 70.0, inset.y + 8.0)
+			daily_reward_button.size = icon_size
+			_apply_font(daily_reward_button, 24)
+		if menu_button != null and is_instance_valid(menu_button):
+			menu_button.custom_minimum_size = icon_size
+			menu_button.position = Vector2(inset.x + 12.0, inset.y + 8.0)
+			menu_button.size = icon_size
+			_apply_font(menu_button, 22)
+		if help_button != null and is_instance_valid(help_button):
+			help_button.custom_minimum_size = icon_size
+			help_button.position = Vector2(right_edge - 162.0, inset.y + 146.0)
+			help_button.size = icon_size
+			_apply_font(help_button, 22)
+		# Swap the day HUD and worker shortcut: workers move to the upper-right; day moves to the left.
+		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
+			construction_capacity_button.custom_minimum_size = Vector2(108, 52)
+			construction_capacity_button.position = Vector2(right_edge - 136.0 - 12.0, inset.y + 16.0)
+			construction_capacity_button.size = Vector2(108, 52)
+			_apply_font(construction_capacity_button, 18)
+		if ranking_button != null and is_instance_valid(ranking_button):
+			ranking_button.custom_minimum_size = icon_size
+			ranking_button.position = Vector2(right_edge - 108.0, inset.y + 96.0)
+			ranking_button.size = icon_size
+			_apply_font(ranking_button, 21)
+		if report_button != null and is_instance_valid(report_button):
+			report_button.custom_minimum_size = icon_size
+			report_button.position = Vector2(right_edge - 54.0, inset.y + 96.0)
+			report_button.size = icon_size
+			_apply_font(report_button, 27)
+	else:
+		# Keep the same two-row visual rhythm on tablets and desktop-sized windows.
+		if daily_reward_button != null and is_instance_valid(daily_reward_button):
+			daily_reward_button.custom_minimum_size = Vector2(60, 58)
+			daily_reward_button.position = Vector2(inset.x + 86.0, inset.y + 18.0)
+			daily_reward_button.size = Vector2(60, 58)
+			_apply_font(daily_reward_button, 27)
+		if menu_button != null and is_instance_valid(menu_button):
+			menu_button.custom_minimum_size = Vector2(60, 58)
+			menu_button.position = Vector2(inset.x + 16.0, inset.y + 18.0)
+			menu_button.size = Vector2(60, 58)
+			_apply_font(menu_button, 25)
+		if help_button != null and is_instance_valid(help_button):
+			help_button.custom_minimum_size = Vector2(56, 56)
+			help_button.position = Vector2(right_edge - 180.0, inset.y + 88.0)
+			help_button.size = Vector2(56, 56)
+			_apply_font(help_button, 24)
+		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
+			construction_capacity_button.custom_minimum_size = Vector2(108, 54)
+			construction_capacity_button.position = Vector2(right_edge - 152.0 - 12.0, inset.y + 18.0)
+			construction_capacity_button.size = Vector2(108, 54)
+			_apply_font(construction_capacity_button, 18)
+		if ranking_button != null and is_instance_valid(ranking_button):
+			ranking_button.custom_minimum_size = Vector2(56, 56)
+			ranking_button.position = Vector2(right_edge - 120.0, inset.y + 88.0)
+			ranking_button.size = Vector2(56, 56)
+			_apply_font(ranking_button, 23)
+		if report_button != null and is_instance_valid(report_button):
+			report_button.custom_minimum_size = Vector2(56, 56)
+			report_button.position = Vector2(right_edge - 58.0, inset.y + 88.0)
+			report_button.size = Vector2(56, 56)
+			_apply_font(report_button, 27)
+	if day_night_hud != null and is_instance_valid(day_night_hud):
+		# Anchor the clock to the upper-right; reserve a separate right-side
+		# shortcut rail below it on narrow phones.
+		var ultra_narrow = usable_width < 310.0
+		var hud_width = maxf(100.0, usable_width - 24.0) if ultra_narrow else (136.0 if narrow else 152.0)
+		day_night_hud.anchor_left = 0.0
+		day_night_hud.anchor_right = 0.0
+		day_night_hud.anchor_top = 0.0
+		day_night_hud.anchor_bottom = 0.0
+		if ultra_narrow:
+			day_night_hud.position = Vector2(inset.x + 12.0, inset.y + 82.0)
+		else:
+			day_night_hud.position = Vector2(inset.x + 12.0, inset.y + 82.0)
+		day_night_hud.custom_minimum_size = Vector2(hud_width, 52.0 if narrow else 56.0)
+		day_night_hud.size = Vector2(hud_width, 52.0 if narrow else 56.0)
+		if day_night_icon_label != null and is_instance_valid(day_night_icon_label):
+			day_night_icon_label.custom_minimum_size = Vector2(32, 36) if narrow else Vector2(42, 42)
+			_apply_font(day_night_icon_label, 22 if narrow else 29)
+		if day_night_day_label != null and is_instance_valid(day_night_day_label):
+			_apply_font(day_night_day_label, 12 if narrow else 14)
+		if day_night_timer_label != null and is_instance_valid(day_night_timer_label):
+			_apply_font(day_night_timer_label, 12 if narrow else 14)
+	if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
+		_update_construction_capacity_button()
+
+func _apply_responsive_layout():
+	if main_layout == null or not is_instance_valid(main_layout):
+		return
+	var viewport_size = get_viewport_rect().size
+	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
+		return
+	if viewport_size.is_equal_approx(last_layout_viewport_size):
+		return
+	var previous_scroll = 0
+	if game_scroll_container != null and is_instance_valid(game_scroll_container):
+		previous_scroll = game_scroll_container.scroll_vertical
+	last_layout_viewport_size = viewport_size
+	var compact = viewport_size.x < 900.0
+	var narrow = viewport_size.x < 380.0
+	var short_screen = viewport_size.y < 500.0
+	var horizontal_margin = 12.0 if narrow else 22.0
+	var top_margin = 24.0 if not short_screen else 18.0
+	var bottom_margin = 24.0 if not short_screen else 18.0
+	safe_area_insets = _get_safe_area_insets()
+	main_layout.offset_left = safe_area_insets.x + horizontal_margin
+	main_layout.offset_right = -(safe_area_insets.z + horizontal_margin)
+	main_layout.offset_top = safe_area_insets.y + top_margin
+	main_layout.offset_bottom = -(safe_area_insets.w + bottom_margin)
+	_apply_safe_area_to_floating_controls()
+	main_layout.add_theme_constant_override("separation", 8 if viewport_size.y < 500.0 else (12 if compact else 12))
+	if main_navigation_grid != null and is_instance_valid(main_navigation_grid):
+		main_navigation_grid.visible = false
+	# The five-item dock is the primary navigation on every screen size.
+	if bottom_navigation_bar != null and is_instance_valid(bottom_navigation_bar):
+		# Give the five primary touch targets more height on phones.
+		bottom_navigation_bar.custom_minimum_size.y = 178 if compact else 186
+	if main_navigation_grid != null and is_instance_valid(main_navigation_grid):
+		# Keep three columns on wider landscape phones so navigation does not
+		# consume most of the short screen; use two on portrait phones.
+		main_navigation_grid.columns = 3 if viewport_size.x >= 650.0 and viewport_size.x > viewport_size.y else 2
+	for button in navigation_buttons:
+		if button == null or not is_instance_valid(button):
+			continue
+		button.custom_minimum_size = Vector2(0, 52 if viewport_size.y < 500.0 else 58)
+		_apply_font(button, 14 if narrow else (16 if compact else 18))
+		button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var available_modal_width = maxf(0.0, viewport_size.x - safe_area_insets.x - safe_area_insets.z - 32.0)
+	if menu_card != null and is_instance_valid(menu_card):
+		menu_card.custom_minimum_size = Vector2(min(440.0, available_modal_width), 0)
+		var menu_scroll = menu_card.find_child("PhoneMenuScroll", true, false)
+		if menu_scroll is ScrollContainer:
+			menu_scroll.custom_minimum_size.y = maxf(80.0, minf(560.0, viewport_size.y - safe_area_insets.y - safe_area_insets.w - 190.0))
+	if menu_overlay != null and is_instance_valid(menu_overlay):
+		var menu_center = menu_overlay.find_child("MenuSafeCenter", true, false)
+		if menu_center is Control:
+			menu_center.offset_left = safe_area_insets.x + 16.0
+			menu_center.offset_right = -(safe_area_insets.z + 16.0)
+			menu_center.offset_top = safe_area_insets.y + 16.0
+			menu_center.offset_bottom = -(safe_area_insets.w + 16.0)
+	if city_name_center_container != null and is_instance_valid(city_name_center_container):
+		city_name_keyboard_height = -1
+		_update_city_name_keyboard_position()
+	if help_overlay != null and is_instance_valid(help_overlay):
+		var help_center = help_overlay.find_child("HelpSafeCenter", true, false)
+		if help_center is Control:
+			help_center.offset_left = safe_area_insets.x + 16.0
+			help_center.offset_right = -(safe_area_insets.z + 16.0)
+			help_center.offset_top = safe_area_insets.y + 16.0
+			help_center.offset_bottom = -(safe_area_insets.w + 16.0)
+		var help_card = help_overlay.find_child("HelpModalCard", true, false)
+		if help_card is Control:
+			help_card.custom_minimum_size = Vector2(minf(560.0, available_modal_width), minf(760.0, maxf(0.0, viewport_size.y - safe_area_insets.y - safe_area_insets.w - 32.0)))
+	if header_label != null and is_instance_valid(header_label):
+		_apply_font(header_label, 22 if compact else 26)
+	if game != null and content != null and is_instance_valid(content):
+		show_page(current_page)
+		if game_scroll_container != null and is_instance_valid(game_scroll_container):
+			game_scroll_container.scroll_vertical = previous_scroll
+
+func _get_ambient_background_target():
+	# Muted colors keep the time-of-day atmosphere gentle and readable.
+	var day_color = Color("#24394b")
+	var dusk_color = Color("#3a3540")
+	var night_color = Color("#151f31")
+	var t = float(clock_cycle_seconds)
+	if t < 30.0:
+		return night_color.lerp(day_color, smoothstep(0.0, 30.0, t))
+	if t < 360.0:
+		return day_color
+	if t < 420.0:
+		return day_color.lerp(dusk_color, smoothstep(360.0, 420.0, t))
+	if t < 570.0:
+		return night_color
+	return night_color.lerp(day_color, smoothstep(570.0, 600.0, t))
+
+func _update_ambient_background(delta, immediate=false):
+	if ambient_background == null or not is_instance_valid(ambient_background):
+		return
+	var target = _get_ambient_background_target()
+	if immediate:
+		ambient_background_color = target
+	else:
+		# Slow interpolation avoids abrupt flashes and distracting changes.
+		ambient_background_color = ambient_background_color.lerp(target, clamp(float(delta) * 0.045, 0.0, 1.0))
+	ambient_background.color = ambient_background_color
+
+
+func _create_currency_hud(parent: VBoxContainer, compact_layout: bool):
+	currency_hud = HBoxContainer.new()
+	currency_hud.name = "CurrencyHud"
+	currency_hud.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	currency_hud.add_theme_constant_override("separation", 10 if compact_layout else 14)
+	parent.add_child(currency_hud)
+
+	var money_card = _create_currency_card("💰", "پول شهر", compact_layout)
+	money_balance_label = money_card.get_node("Content/Details/Amount")
+	currency_hud.add_child(money_card)
+
+	var coin_card = _create_currency_card("🪙", "Zeka Coin", compact_layout)
+	zeka_coin_balance_label = coin_card.get_node("Content/Details/Amount")
+	currency_hud.add_child(coin_card)
+	_refresh_currency_hud()
+
+
+func _create_currency_card(icon_text: String, title_text: String, compact_layout: bool) -> PanelContainer:
+	var card = PanelContainer.new()
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.custom_minimum_size = Vector2(0, 66 if compact_layout else 72)
+	var panel_style = StyleBoxFlat.new()
+	panel_style.bg_color = Color("#526f89")
+	panel_style.border_color = Color("#d8e8f2")
+	panel_style.set_border_width_all(2)
+	panel_style.set_corner_radius_all(30)
+	panel_style.content_margin_left = 9
+	panel_style.content_margin_right = 10
+	panel_style.content_margin_top = 5
+	panel_style.content_margin_bottom = 5
+	card.add_theme_stylebox_override("panel", panel_style)
+
+	var content_row = HBoxContainer.new()
+	content_row.name = "Content"
+	content_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	content_row.add_theme_constant_override("separation", 7)
+	card.add_child(content_row)
+
+	var icon = Label.new()
+	icon.text = icon_text
+	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	icon.custom_minimum_size = Vector2(38 if compact_layout else 44, 42)
+	_apply_font(icon, 29 if compact_layout else 33)
+	content_row.add_child(icon)
+
+	var details = VBoxContainer.new()
+	details.name = "Details"
+	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	details.alignment = BoxContainer.ALIGNMENT_CENTER
+	details.add_theme_constant_override("separation", 0)
+	content_row.add_child(details)
+
+	var title = Label.new()
+	title.text = title_text
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_color_override("font_color", Color("#e3edf5"))
+	_apply_font(title, 11 if compact_layout else 12)
+	details.add_child(title)
+
+	var amount = Label.new()
+	amount.name = "Amount"
+	amount.text = "0"
+	amount.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	amount.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	amount.add_theme_color_override("font_color", Color("#ffffff"))
+	amount.add_theme_color_override("font_shadow_color", Color("#20394f"))
+	amount.add_theme_constant_override("shadow_offset_y", 1)
+	amount.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	amount.clip_text = true
+	_apply_font(amount, 21 if compact_layout else 24)
+	details.add_child(amount)
+	return card
+
+
+func _refresh_currency_hud():
+	if game == null:
+		return
+	if money_balance_label != null and is_instance_valid(money_balance_label):
+		money_balance_label.text = PersianText.reshaper(str(int(game.state.get("money", 0))))
+	if zeka_coin_balance_label != null and is_instance_valid(zeka_coin_balance_label):
+		zeka_coin_balance_label.text = PersianText.reshaper(str(game.get_zeka_coins()))
+
+
+func _create_bottom_navigation(parent: VBoxContainer, compact_layout: bool):
+	bottom_navigation_bar = PanelContainer.new()
+	bottom_navigation_bar.name = "BottomNavigationBar"
+	bottom_navigation_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bottom_navigation_bar.custom_minimum_size = Vector2(0, 178 if compact_layout else 186)
+	var dock_style = StyleBoxFlat.new()
+	dock_style.bg_color = Color("#34485b")
+	dock_style.border_color = Color("#8297a8")
+	dock_style.border_width_top = 1
+	dock_style.content_margin_left = 4
+	dock_style.content_margin_right = 4
+	dock_style.content_margin_top = 9
+	dock_style.content_margin_bottom = 8
+	bottom_navigation_bar.add_theme_stylebox_override("panel", dock_style)
+	parent.add_child(bottom_navigation_bar)
+
+	var dock_row = HBoxContainer.new()
+	dock_row.add_theme_constant_override("separation", 3)
+	dock_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	bottom_navigation_bar.add_child(dock_row)
+	bottom_navigation_buttons.clear()
+	var entries = [
+		{"id":"development","icon":"🏗️","label":_tr("توسعه"),"page":"development"},
+		{"id":"missions","icon":"🏆","label":_tr("دستاوردها"),"page":"missions"},
+		{"id":"home","icon":"🏠","label":_tr("شهر من"),"page":"home"},
+		{"id":"commerce","icon":"🛒","label":_tr("بازار و انبار"),"page":"commerce"},
+		{"id":"bank","icon":"🏦","label":_tr("بانک"),"page":"bank"}
+	]
+	for entry in entries:
+		var button = Button.new()
+		button.name = "BottomNav_" + str(entry.id)
+		button.text = str(entry.icon) + "\n" + str(entry.label)
+		button.text_direction = Control.TEXT_DIRECTION_RTL if LanguageManager.is_rtl(ui_language) else Control.TEXT_DIRECTION_LTR
+		button.custom_minimum_size = Vector2(0, 168 if compact_layout else 176)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.size_flags_stretch_ratio = 1.0
+		button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		button.add_theme_color_override("font_color", Color("#e5edf5"))
+		button.add_theme_color_override("font_hover_color", Color("#ffffff"))
+		_apply_font(button, 25 if compact_layout else 27)
+		button.flat = true
+		var target_page = str(entry.page)
+		button.pressed.connect(func():
+			show_page(target_page)
+		)
+		dock_row.add_child(button)
+		bottom_navigation_buttons[str(entry.id)] = button
+	_update_bottom_navigation()
+
+
+func _update_bottom_navigation():
+	if bottom_navigation_buttons.is_empty():
+		return
+	var active_id = ""
+	match current_page:
+		"home": active_id = "home"
+		"development", "buildings", "transport": active_id = "development"
+		"storage", "commerce", "imports": active_id = "commerce"
+		"missions", "progress": active_id = "missions"
+		"commerce": active_id = "commerce"
+		"bank": active_id = "bank"
+	for id in bottom_navigation_buttons.keys():
+		var button = bottom_navigation_buttons[id]
+		if button == null or not is_instance_valid(button):
+			continue
+		var selected = str(id) == active_id
+		var style = StyleBoxFlat.new()
+		style.bg_color = Color("#17159a") if selected else Color(0, 0, 0, 0)
+		style.set_corner_radius_all(20 if selected else 8)
+		style.content_margin_top = 16 if selected else 13
+		style.content_margin_bottom = 7
+		style.content_margin_left = 2
+		style.content_margin_right = 2
+		button.add_theme_stylebox_override("normal", style)
+		var hover = style.duplicate()
+		if not selected:
+			hover.bg_color = Color("#405a70")
+		button.add_theme_stylebox_override("hover", hover)
+		button.add_theme_stylebox_override("pressed", hover)
+		button.add_theme_color_override("font_color", Color("#ffffff") if selected else Color("#e5edf5"))
+		button.scale = Vector2(1.0, 1.0)
+		# Keep every tab equally large; the active tab is highlighted by color only.
+		button.custom_minimum_size.y = 168 if bottom_navigation_bar != null and get_viewport_rect().size.x < 900.0 else 176
+
 
 func _build_ui():
-	var background = ColorRect.new()
-	background.color = Color("#101827")
-	background.anchor_right = 1
-	background.anchor_bottom = 1
-	add_child(background)
+	ambient_background = ColorRect.new()
+	ambient_background.name = "SoftDayNightBackground"
+	ambient_background.color = Color("#172536")
+	ambient_background.anchor_right = 1
+	ambient_background.anchor_bottom = 1
+	ambient_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ambient_background.z_index = -100
+	add_child(ambient_background)
+	_update_ambient_background(0.0, true)
 	var root = VBoxContainer.new()
+	main_layout = root
+	root.name = "MainLayout"
 	root.anchor_right = 1
 	root.anchor_bottom = 1
-	var screen_width = get_viewport_rect().size.x
-	var compact_layout = screen_width < 900
-	root.margin_left = 28 if compact_layout else 24
-	root.margin_top = 16 if compact_layout else 22
-	root.margin_right = -32 if compact_layout else -24
-	root.margin_bottom = -16 if compact_layout else -22
-	root.add_constant_override("separation", 16 if compact_layout else 12)
+	var initial_viewport_size = get_viewport_rect().size
+	var compact_layout = initial_viewport_size.x < 900.0
+	var narrow_layout = initial_viewport_size.x < 380.0
+	var short_screen = initial_viewport_size.y < 500.0
+	var horizontal_margin = 18.0 if narrow_layout else (22.0 if compact_layout else 28.0)
+	var top_margin = 18.0 if short_screen else (40.0 if compact_layout else 36.0)
+	var bottom_margin = 18.0 if short_screen else (28.0 if compact_layout else 26.0)
+	root.offset_left = horizontal_margin
+	root.offset_top = top_margin
+	root.offset_right = -horizontal_margin
+	root.offset_bottom = -bottom_margin
+	root.add_theme_constant_override("separation", 16 if compact_layout else 12)
 	add_child(root)
 	header_label = Label.new()
-	header_label.text = PersianText.reshaper("مینی زکا سیتی")
-	header_label.align = Label.ALIGN_CENTER
+	header_label.text = PersianText.reshaper(str(game.state.get("city_name", "شهر من")))
+	header_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	header_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	header_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_font(header_label, 28 if compact_layout else 26)
-	header_label.add_color_override("font_color", Color("#ffffff"))
+	header_label.add_theme_color_override("font_color", Color("#ffffff"))
 	root.add_child(header_label)
+	brand_label = Label.new()
+	brand_label.text = "✦  MINI ZEKA CITY  ✦"
+	brand_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	brand_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	brand_label.add_theme_color_override("font_color", Color("#7dd3fc"))
+	brand_label.add_theme_color_override("font_shadow_color", Color("#0c4a6e"))
+	brand_label.add_theme_constant_override("shadow_offset_x", 1)
+	brand_label.add_theme_constant_override("shadow_offset_y", 1)
+	_apply_font(brand_label, 12 if compact_layout else 14)
+	root.add_child(brand_label)
+	_create_currency_hud(root, compact_layout)
 	var menu_row = HBoxContainer.new()
-	menu_row.alignment = BoxContainer.ALIGN_CENTER
+	menu_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	root.add_child(menu_row)
-	var menu_button = Button.new()
-	menu_button.text = PersianText.reshaper("☰ منو")
-	menu_button.rect_min_size = Vector2(180, 54 if compact_layout else 46)
-	_apply_font(menu_button, 20 if compact_layout else 18)
+	menu_button = Button.new()
+	menu_button.text = "☰"
+	menu_button.tooltip_text = "باز کردن منوی بازی"
+	menu_button.custom_minimum_size = Vector2(68 if compact_layout else 60, 62 if compact_layout else 52)
+	menu_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_apply_font(menu_button, 29 if compact_layout else 25)
 	_style_button(menu_button, true)
 	menu_row.add_child(menu_button)
 
+	# The guide is available from the settings menu; keep the header uncluttered.
+	menu_row.remove_child(menu_button)
+	menu_row.visible = false
+	menu_button.anchor_left = 0.0
+	menu_button.anchor_top = 0.0
+	menu_button.anchor_right = 0.0
+	menu_button.anchor_bottom = 0.0
+	menu_button.position = Vector2(105, 48)
+	menu_button.z_index = 15
+	add_child(menu_button)
+	# Full-screen modal menu dims the city and separates menu actions
+	# from the navigation and city controls behind it.
+	var menu_layer = CanvasLayer.new()
+	menu_layer.layer = 50
+	add_child(menu_layer)
+	menu_overlay = ColorRect.new()
+	menu_overlay.name = "GameMenuBackdrop"
+	# A dim translucent backdrop gives the menu a frosted-glass feel.
+	menu_overlay.color = Color(0.025, 0.055, 0.09, 0.72)
+	menu_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	menu_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	menu_overlay.visible = false
+	menu_layer.add_child(menu_overlay)
+	# Help uses its own modal surface so the city navigation is fully covered.
+	help_overlay = ColorRect.new()
+	help_overlay.name = "GameHelpBackdrop"
+	help_overlay.color = Color("#0b1727")
+	help_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	help_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	help_overlay.visible = false
+	menu_layer.add_child(help_overlay)
+	var help_center = CenterContainer.new()
+	help_center.name = "HelpSafeCenter"
+	help_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var help_safe = _get_safe_area_insets()
+	help_center.offset_left = help_safe.x + 16.0
+	help_center.offset_right = -(help_safe.z + 16.0)
+	help_center.offset_top = help_safe.y + 16.0
+	help_center.offset_bottom = -(help_safe.w + 16.0)
+	help_overlay.add_child(help_center)
+	var help_card = PanelContainer.new()
+	help_card.name = "HelpModalCard"
+	var initial_safe = _get_safe_area_insets()
+	help_card.custom_minimum_size = Vector2(min(560.0, initial_viewport_size.x - initial_safe.x - initial_safe.z - 32.0), min(760.0, initial_viewport_size.y - initial_safe.y - initial_safe.w - 32.0))
+	help_card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var help_card_style = StyleBoxFlat.new()
+	help_card_style.bg_color = Color("#101f32")
+	help_card_style.border_color = Color("#38bdf8")
+	help_card_style.set_border_width_all(2)
+	help_card_style.set_corner_radius_all(20)
+	help_card_style.content_margin_left = 14
+	help_card_style.content_margin_right = 14
+	help_card_style.content_margin_top = 12
+	help_card_style.content_margin_bottom = 12
+	help_card.add_theme_stylebox_override("panel", help_card_style)
+	help_center.add_child(help_card)
+	var help_layout = VBoxContainer.new()
+	help_layout.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	help_layout.add_theme_constant_override("separation", 10)
+	help_card.add_child(help_layout)
+	var help_header = HBoxContainer.new()
+	help_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	help_layout.add_child(help_header)
+	var help_heading = Label.new()
+	help_heading.text = PersianText.reshaper("راهنمای بازی")
+	help_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	help_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_font(help_heading, 22 if compact_layout else 20)
+	help_heading.add_theme_color_override("font_color", Color("#f8fafc"))
+	help_header.add_child(help_heading)
+	var help_spacer = Control.new()
+	help_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	help_header.add_child(help_spacer)
+	var help_close_button = Button.new()
+	help_close_button.text = "✕"
+	help_close_button.tooltip_text = "بستن راهنما"
+	help_close_button.custom_minimum_size = Vector2(48, 46)
+	_apply_font(help_close_button, 24)
+	_style_button(help_close_button, false)
+	help_close_button.connect("pressed", Callable(self, "_close_help"))
+	help_header.add_child(help_close_button)
+	help_body = VBoxContainer.new()
+	help_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	help_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	help_body.add_theme_constant_override("separation", 10)
+	help_layout.add_child(help_body)
+	var menu_center = CenterContainer.new()
+	menu_center.name = "MenuSafeCenter"
+	menu_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var menu_safe = _get_safe_area_insets()
+	menu_center.offset_left = menu_safe.x + 16.0
+	menu_center.offset_right = -(menu_safe.z + 16.0)
+	menu_center.offset_top = menu_safe.y + 16.0
+	menu_center.offset_bottom = -(menu_safe.w + 16.0)
+	menu_overlay.add_child(menu_center)
+	menu_card = PanelContainer.new()
+	var menu_initial_safe = _get_safe_area_insets()
+	menu_card.custom_minimum_size = Vector2(min(440.0, initial_viewport_size.x - menu_initial_safe.x - menu_initial_safe.z - 32.0), 0)
+	menu_card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var menu_card_style = StyleBoxFlat.new()
+	# Frosted-glass style: translucent deep-blue surface, soft edge, and restrained highlight.
+	menu_card_style.bg_color = Color(0.055, 0.12, 0.19, 0.84)
+	menu_card_style.border_color = Color(0.45, 0.78, 0.91, 0.42)
+	menu_card_style.set_border_width_all(1)
+	menu_card_style.set_corner_radius_all(20)
+	menu_card_style.content_margin_left = 18
+	menu_card_style.content_margin_right = 18
+	menu_card_style.content_margin_top = 18
+	menu_card_style.content_margin_bottom = 18
+	menu_card_style.shadow_color = Color(0, 0, 0, 0.55)
+	menu_card_style.shadow_size = 18
+	menu_card.add_theme_stylebox_override("panel", menu_card_style)
+	menu_center.add_child(menu_card)
+	var menu_header = HBoxContainer.new()
+	menu_header.name = "MenuHeader"
+	menu_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	menu_header.add_theme_constant_override("separation", 8)
+	menu_card.add_child(menu_header)
+	var menu_heading = Label.new()
+	menu_heading.text = PersianText.reshaper("منوی بازی")
+	menu_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	menu_heading.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	menu_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_font(menu_heading, 23 if compact_layout else 21)
+	menu_heading.add_theme_color_override("font_color", Color("#f8fafc"))
+	menu_header.add_child(menu_heading)
+	var menu_close_button = Button.new()
+	menu_close_button.name = "MenuCloseButton"
+	menu_close_button.text = "✕"
+	menu_close_button.tooltip_text = "بستن منو"
+	menu_close_button.custom_minimum_size = Vector2(52, 50)
+	menu_close_button.size_flags_horizontal = Control.SIZE_SHRINK_END
+	menu_close_button.focus_mode = Control.FOCUS_NONE
+	_apply_font(menu_close_button, 27)
+	var menu_close_style = StyleBoxFlat.new()
+	menu_close_style.bg_color = Color(0.72, 0.20, 0.22, 0.82)
+	menu_close_style.border_color = Color(1.0, 0.68, 0.66, 0.72)
+	menu_close_style.set_border_width_all(1)
+	menu_close_style.set_corner_radius_all(16)
+	menu_close_button.add_theme_stylebox_override("normal", menu_close_style)
+	var menu_close_hover = menu_close_style.duplicate()
+	menu_close_hover.bg_color = Color(0.88, 0.25, 0.27, 0.96)
+	menu_close_button.add_theme_stylebox_override("hover", menu_close_hover)
+	menu_close_button.add_theme_color_override("font_color", Color("#ffffff"))
+	menu_close_button.add_theme_color_override("font_hover_color", Color("#ffffff"))
+	menu_close_button.pressed.connect(_close_game_menu)
+	menu_header.add_child(menu_close_button)
+	var menu_scroll = ScrollContainer.new()
+	menu_scroll.name = "PhoneMenuScroll"
+	menu_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	menu_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	menu_scroll.custom_minimum_size = Vector2(0, min(560.0, max(220.0, get_viewport_rect().size.y - 150.0)))
+	menu_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	menu_card.add_child(menu_scroll)
 	menu_panel = VBoxContainer.new()
-	menu_panel.visible = false
 	menu_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	menu_panel.add_constant_override("separation", 7)
-	root.add_child(menu_panel)
+	menu_panel.add_theme_constant_override("separation", 12)
+	menu_scroll.add_child(menu_panel)
+	var navigation_heading = Label.new()
+	navigation_heading.text = PersianText.reshaper("تنظیمات و ابزارهای بازی")
+	navigation_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_font(navigation_heading, 18 if compact_layout else 17)
+	navigation_heading.add_theme_color_override("font_color", Color("#7dd3fc"))
+	menu_panel.add_child(navigation_heading)
+	var settings_items = [
+		{"t":"🔊 صدا و موسیقی","action":"open_audio_settings"},
+		{"t":"🎮 تنظیمات بازی","action":"open_game_settings"},
+		{"t":"💾 ذخیره شهر","action":"save_from_menu"},
+		{"t":"❔ راهنمای بازی","action":"open_help"},
+		{"t":"🔄 شروع دوباره شهر","action":"confirm_restart_from_menu"}
+	]
+	for menu_item in settings_items:
+		var section_button = Button.new()
+		section_button.name = "MenuAction_" + str(menu_item.action)
+		section_button.text = PersianText.reshaper(str(menu_item.t))
+		section_button.custom_minimum_size = Vector2(0, 52 if compact_layout else 48)
+		section_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_apply_font(section_button, 17 if compact_layout else 16)
+		_style_button(section_button, true)
+		var action_name = str(menu_item.action)
+		if action_name == "confirm_restart_from_menu":
+			# Connect restart confirmation directly; it must not close the menu.
+			section_button.pressed.connect(confirm_restart_from_menu)
+		else:
+			# Bind each action as an immutable signal argument.
+			section_button.pressed.connect(_on_settings_menu_action.bind(action_name))
+		menu_panel.add_child(section_button)
+	# Replace the default bright separator with a subtle glass-like accent line.
+	var menu_divider = ColorRect.new()
+	menu_divider.name = "MenuSoftDivider"
+	menu_divider.custom_minimum_size = Vector2(0, 1)
+	menu_divider.color = Color(0.55, 0.78, 0.91, 0.22)
+	menu_divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	menu_panel.add_child(menu_divider)
 	menu_pause_button = _create_menu_action("⏸ توقف بازی", "toggle_pause")
-	_create_menu_action("🔊 صدا و موسیقی", "open_audio_settings")
-	_create_menu_action("❔ راهنمای بازی", "_open_help")
-	_create_menu_action("💾 ذخیره بازی", "save_from_menu")
-	_create_menu_action("🔄 شروع دوباره شهر", "confirm_restart_from_menu")
-	_create_menu_action("🏙️ بازگشت به شهر من", "return_home_from_menu")
-	menu_button.connect("pressed", self, "_toggle_game_menu")
+	# The menu is closed from the X button in the card header.
+	menu_button.connect("pressed", Callable(self, "_toggle_game_menu"))
 	restart_confirm_panel = VBoxContainer.new()
 	restart_confirm_panel.visible = false
-	restart_confirm_panel.add_constant_override("separation", 8)
+	restart_confirm_panel.add_theme_constant_override("separation", 8)
 	menu_panel.add_child(restart_confirm_panel)
+	# Place the confirmation directly below the restart action, not after the menu footer.
+	menu_panel.move_child(restart_confirm_panel, 6)
 	var restart_confirm_text = Label.new()
 	restart_confirm_text.text = PersianText.reshaper("⚠️ شروع دوباره شهر؟\nتمام پیشرفت فعلی این شهر پاک می‌شود و یک شهر تازه ساخته خواهد شد.")
-	restart_confirm_text.align = Label.ALIGN_CENTER
-	restart_confirm_text.autowrap = true
+	restart_confirm_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	restart_confirm_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	restart_confirm_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	restart_confirm_text.rect_min_size = Vector2(0, 100 if compact_layout else 76)
+	restart_confirm_text.custom_minimum_size = Vector2(0, 100 if compact_layout else 76)
 	_apply_font(restart_confirm_text, 19 if compact_layout else 17)
-	restart_confirm_text.add_color_override("font_color", Color("#fde68a"))
+	restart_confirm_text.add_theme_color_override("font_color", Color("#fde68a"))
 	restart_confirm_panel.add_child(restart_confirm_text)
 	var restart_yes_button = Button.new()
 	restart_yes_button.text = PersianText.reshaper("بله، شروع دوباره")
-	restart_yes_button.rect_min_size = Vector2(0, 54 if compact_layout else 46)
+	restart_yes_button.custom_minimum_size = Vector2(0, 54 if compact_layout else 46)
 	restart_yes_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_font(restart_yes_button, 19 if compact_layout else 17)
 	_style_button(restart_yes_button, false)
-	restart_yes_button.connect("pressed", self, "_restart_city")
+	restart_yes_button.connect("pressed", Callable(self, "_restart_city"))
 	restart_confirm_panel.add_child(restart_yes_button)
 	var restart_no_button = Button.new()
 	restart_no_button.text = PersianText.reshaper("انصراف")
-	restart_no_button.rect_min_size = Vector2(0, 54 if compact_layout else 46)
+	restart_no_button.custom_minimum_size = Vector2(0, 54 if compact_layout else 46)
 	restart_no_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_font(restart_no_button, 19 if compact_layout else 17)
 	_style_button(restart_no_button, false)
-	restart_no_button.connect("pressed", self, "_cancel_restart")
+	restart_no_button.connect("pressed", Callable(self, "_cancel_restart"))
 	restart_confirm_panel.add_child(restart_no_button)
+	_build_exit_confirmation(menu_layer)
 	# Persistent city progression panel: stays visible above navigation on every page.
 	var progress_panel = VBoxContainer.new()
-	progress_panel.add_constant_override("separation", 3)
+	progress_panel.add_theme_constant_override("separation", 3)
 	root.add_child(progress_panel)
 	level_status_label = Label.new()
-	level_status_label.align = Label.ALIGN_CENTER
-	level_status_label.add_color_override("font_color", Color("#fbbf24"))
+	level_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	level_status_label.add_theme_color_override("font_color", Color("#fbbf24"))
 	_apply_font(level_status_label, 17 if compact_layout else 15)
 	progress_panel.add_child(level_status_label)
 	level_status_bar = ProgressBar.new()
 	level_status_bar.min_value = 0
 	level_status_bar.max_value = 100
 	level_status_bar.value = 100
-	level_status_bar.percent_visible = false
-	level_status_bar.rect_min_size = Vector2(0, 10 if compact_layout else 8)
+	level_status_bar.show_percentage = false
+	level_status_bar.custom_minimum_size = Vector2(0, 10 if compact_layout else 8)
 	var level_fill = StyleBoxFlat.new()
 	level_fill.bg_color = Color("#d97706")
 	level_fill.set_corner_radius_all(5)
-	level_status_bar.add_stylebox_override("fg", level_fill)
+	level_status_bar.add_theme_stylebox_override("fg", level_fill)
 	var level_bg = StyleBoxFlat.new()
 	level_bg.bg_color = Color("#334155")
 	level_bg.set_corner_radius_all(5)
-	level_status_bar.add_stylebox_override("bg", level_bg)
+	level_status_bar.add_theme_stylebox_override("bg", level_bg)
 	progress_panel.add_child(level_status_bar)
 	xp_progress_label = Label.new()
-	xp_progress_label.align = Label.ALIGN_CENTER
-	xp_progress_label.add_color_override("font_color", Color("#a5f3fc"))
+	xp_progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	xp_progress_label.add_theme_color_override("font_color", Color("#a5f3fc"))
 	_apply_font(xp_progress_label, 15 if compact_layout else 13)
 	progress_panel.add_child(xp_progress_label)
 	xp_progress_bar = ProgressBar.new()
 	xp_progress_bar.min_value = 0
 	xp_progress_bar.max_value = 100
-	xp_progress_bar.percent_visible = false
-	xp_progress_bar.rect_min_size = Vector2(0, 12 if compact_layout else 10)
+	xp_progress_bar.show_percentage = false
+	xp_progress_bar.custom_minimum_size = Vector2(0, 12 if compact_layout else 10)
 	var xp_fill = StyleBoxFlat.new()
 	xp_fill.bg_color = Color("#06b6d4")
 	xp_fill.set_corner_radius_all(5)
-	xp_progress_bar.add_stylebox_override("fg", xp_fill)
+	xp_progress_bar.add_theme_stylebox_override("fg", xp_fill)
 	var xp_bg = StyleBoxFlat.new()
 	xp_bg.bg_color = Color("#334155")
 	xp_bg.set_corner_radius_all(5)
-	xp_progress_bar.add_stylebox_override("bg", xp_bg)
+	xp_progress_bar.add_theme_stylebox_override("bg", xp_bg)
 	progress_panel.add_child(xp_progress_bar)
 	_update_progress_hud()
 	var nav = GridContainer.new()
+	main_navigation_grid = nav
+	nav.name = "MainNavigationGrid"
+	nav.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	nav.columns = 2 if compact_layout else 3
-	nav.add_constant_override("hseparation", 8)
-	nav.add_constant_override("vseparation", 8)
+	nav.add_theme_constant_override("h_separation", 8)
+	nav.add_theme_constant_override("v_separation", 8)
 	root.add_child(nav)
-	for item in [{"t":"شهر من","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"شهروندان","p":"citizens"},{"t":"بانک و امور مالی","p":"bank"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار و تجارت","p":"commerce"},{"t":"جاده و ناوگان","p":"transport"},{"t":"انبار","p":"storage"},{"t":"ماموریت‌ها","p":"missions"},{"t":"پیشرفت شهر","p":"progress"}]:
+	navigation_buttons.clear()
+	for item in [{"t":"شهر من و شهروندان","p":"home"},{"t":"ساختمان‌ها","p":"buildings"},{"t":"بانک و امور مالی","p":"bank"},{"t":"شهرداری","p":"municipality"},{"t":"اقتصاد خصوصی","p":"private_economy"},{"t":"بازار و تجارت","p":"commerce"},{"t":"توسعه شهر","p":"transport"},{"t":"انبار","p":"storage"},{"t":"گزارش","p":"report"},{"t":"پیشرفت و مأموریت‌ها","p":"missions"}]:
 		var nav_item = VBoxContainer.new()
 		nav_item.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		nav_item.add_constant_override("separation", 2)
-		if item.p == "missions":
-			mission_reward_badge = Label.new()
-			mission_reward_badge.text = ""
-			mission_reward_badge.align = Label.ALIGN_CENTER
-			mission_reward_badge.valign = Label.VALIGN_CENTER
-			mission_reward_badge.rect_min_size = Vector2(0, 30)
-			mission_reward_badge.add_color_override("font_color", Color("#facc15"))
-			mission_reward_badge.add_color_override("font_color_shadow", Color("#111827"))
-			mission_reward_badge.modulate = Color("#ffffff")
-			_apply_font(mission_reward_badge, 17)
-			nav_item.add_child(mission_reward_badge)
+		nav_item.add_theme_constant_override("separation", 2)
+		var nav_title = str(item.t)
+		if compact_layout:
+			match str(item.p):
+				"home": nav_title = "شهر من"
+				"buildings": nav_title = "ساختمان"
+				"bank": nav_title = "بانک"
+				"private_economy": nav_title = "اقتصاد"
+				"commerce": nav_title = "بازار"
+				"transport": nav_title = "توسعه شهر"
+				"missions": nav_title = "پیشرفت"
+				"progress": nav_title = "پیشرفت"
 		var b = Button.new()
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		b.text_direction = Control.TEXT_DIRECTION_RTL
 		var civic_page_locked = item.p in ["municipality", "private_economy"] and not game.has_municipal_hall()
-		b.text = PersianText.reshaper(item.t + (" 🔒" if civic_page_locked else "") + "  ")
-		b.disabled = civic_page_locked
-		b.rect_min_size = Vector2(0, 64 if compact_layout else 58)
+		b.text = PersianText.reshaper(nav_title + (" 🔒" if civic_page_locked else ""))
+		# Keep locked entries tappable so the player can learn how to unlock them.
+		b.disabled = false
+		b.custom_minimum_size = Vector2(0, 64 if compact_layout else 58)
 		b.flat = false
-		_apply_font(b, 21 if compact_layout else 18)
+		_apply_font(b, 17 if compact_layout else 18)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_style_button(b, true)
-		b.connect("pressed", self, "show_page", [item.p])
+		if str(item.p) == "ranking":
+			# Keep ranking visually consistent with the other navigation buttons.
+			b.text = PersianText.reshaper("رتبه‌بندی شهرها")
+			b.alignment = HORIZONTAL_ALIGNMENT_CENTER
+			b.text_direction = Control.TEXT_DIRECTION_RTL
+		if str(item.p) == "missions":
+			b.alignment = HORIZONTAL_ALIGNMENT_CENTER
+			b.text_direction = Control.TEXT_DIRECTION_RTL
+			mission_navigation_button = b
+			mission_navigation_title = nav_title
+		navigation_buttons.append(b)
+		b.connect("pressed", Callable(self, "_on_navigation_pressed").bind(item.p, b, nav_title))
 		nav_item.add_child(b)
 		nav.add_child(nav_item)
 	var line = HSeparator.new()
@@ -611,67 +1647,820 @@ func _build_ui():
 	game_scroll_container = scroll
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.rect_clip_content = true
+	scroll.clip_contents = true
 	root.add_child(scroll)
 	# Hide both scrollbars completely; scrolling remains available by touch/drag.
-	var horizontal_bar = scroll.get_h_scrollbar()
-	var vertical_bar = scroll.get_v_scrollbar()
+	var horizontal_bar = scroll.get_h_scroll_bar()
+	var vertical_bar = scroll.get_v_scroll_bar()
 	horizontal_bar.visible = false
 	vertical_bar.visible = false
 	horizontal_bar.modulate = Color(1, 1, 1, 0)
 	vertical_bar.modulate = Color(1, 1, 1, 0)
-	horizontal_bar.rect_min_size = Vector2(0, 0)
-	vertical_bar.rect_min_size = Vector2(0, 0)
+	_create_bottom_navigation(root, compact_layout)
+	horizontal_bar.custom_minimum_size = Vector2(0, 0)
+	vertical_bar.custom_minimum_size = Vector2(0, 0)
 	content = VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.rect_min_size = Vector2(0, 0)
-	content.add_constant_override("separation", 16 if compact_layout else 10)
+	content.custom_minimum_size = Vector2(0, 0)
+	content.add_theme_constant_override("separation", 16 if compact_layout else 10)
 	scroll.add_child(content)
 	message_label = Label.new()
-	message_label.align = Label.ALIGN_CENTER
-	message_label.valign = Label.VALIGN_CENTER
-	message_label.autowrap = true
+	message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	message_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	message_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	message_label.rect_min_size = Vector2(0, 76 if compact_layout else 58)
+	message_label.custom_minimum_size = Vector2(0, 76 if compact_layout else 58)
 	var message_font = _apply_font(message_label, 27 if compact_layout else 23)
 	if message_font != null:
-		message_font.outline_size = 1
-		message_font.outline_color = Color("#101827")
-	message_label.add_color_override("font_color", Color("#ffffff"))
+		message_label.add_theme_constant_override("outline_size", 1)
+		message_label.add_theme_color_override("font_outline_color", Color("#101827"))
+	message_label.add_theme_color_override("font_color", Color("#ffffff"))
 	message_label.modulate = Color("#ffffff")
 	root.add_child(message_label)
+	_build_ranking_button()
+	_build_day_night_hud()
+	_build_construction_capacity_button()
+
+func _build_ranking_button():
+	ranking_button = Button.new()
+	ranking_button.name = "TopRankingButton"
+	ranking_button.text = "🏆"
+	ranking_button.tooltip_text = "رتبه‌بندی شهرها"
+	ranking_button.custom_minimum_size = Vector2(50, 50)
+	ranking_button.anchor_left = 0.0
+	ranking_button.anchor_top = 0.0
+	ranking_button.anchor_right = 0.0
+	ranking_button.anchor_bottom = 0.0
+	ranking_button.position = Vector2(206, 20)
+	ranking_button.z_index = 15
+	_apply_font(ranking_button, 21)
+	_style_button(ranking_button, true)
+	ranking_button.pressed.connect(func(): show_page("ranking"))
+	add_child(ranking_button)
+
+func _build_day_night_hud():
+	day_night_hud = PanelContainer.new()
+	day_night_hud.name = "DayNightHud"
+	day_night_hud.anchor_left = 1.0
+	day_night_hud.anchor_right = 1.0
+	day_night_hud.anchor_top = 0.0
+	day_night_hud.anchor_bottom = 0.0
+	day_night_hud.offset_left = -166.0
+	day_night_hud.offset_right = -14.0
+	# The clock belongs in the upper-right corner; all floating action buttons stay on the left.
+	day_night_hud.offset_top = 18.0
+	day_night_hud.offset_bottom = 74.0
+	day_night_hud.custom_minimum_size = Vector2(152, 56)
+	day_night_hud.z_index = 15
+	day_night_hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var hud_style = StyleBoxFlat.new()
+	hud_style.bg_color = Color("#172b3e")
+	hud_style.border_color = Color("#52718b")
+	hud_style.set_border_width_all(1)
+	hud_style.set_corner_radius_all(15)
+	hud_style.content_margin_left = 9
+	hud_style.content_margin_right = 9
+	hud_style.content_margin_top = 5
+	hud_style.content_margin_bottom = 5
+	day_night_hud.add_theme_stylebox_override("panel", hud_style)
+	add_child(day_night_hud)
+
+	var row = HBoxContainer.new()
+	row.layout_direction = Control.LAYOUT_DIRECTION_LTR
+	row.add_theme_constant_override("separation", 8)
+	day_night_hud.add_child(row)
+
+	day_night_icon_label = Label.new()
+	day_night_icon_label.text = "☀️"
+	day_night_icon_label.custom_minimum_size = Vector2(42, 42)
+	day_night_icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	day_night_icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_apply_font(day_night_icon_label, 29)
+	row.add_child(day_night_icon_label)
+
+	var details = VBoxContainer.new()
+	details.alignment = BoxContainer.ALIGNMENT_CENTER
+	details.add_theme_constant_override("separation", 1)
+	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(details)
+
+	day_night_day_label = Label.new()
+	day_night_day_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	day_night_day_label.add_theme_color_override("font_color", Color("#f8fafc"))
+	_apply_font(day_night_day_label, 14)
+	details.add_child(day_night_day_label)
+
+	day_night_timer_label = Label.new()
+	day_night_timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	day_night_timer_label.add_theme_color_override("font_color", Color("#cbd5e1"))
+	_apply_font(day_night_timer_label, 14)
+	details.add_child(day_night_timer_label)
+
+	_update_day_night_hud()
+
+
+func _update_day_night_hud():
+	if day_night_hud == null or not is_instance_valid(day_night_hud) or game == null:
+		return
+	var is_daytime = clock_cycle_seconds < 420.0
+	var phase_remaining = max(0, int((420.0 if is_daytime else 600.0) - clock_cycle_seconds))
+	if day_night_icon_label != null and is_instance_valid(day_night_icon_label):
+		day_night_icon_label.text = "☀️" if is_daytime else "🌙"
+	if day_night_day_label != null and is_instance_valid(day_night_day_label):
+		day_night_day_label.text = PersianText.reshaper("روز %d" % int(game.state.get("day", 1)))
+	if day_night_timer_label != null and is_instance_valid(day_night_timer_label):
+		day_night_timer_label.text = _format_time_display(int(phase_remaining / 60), phase_remaining % 60)
+
+
+func _get_available_construction_workers():
+	if game == null:
+		return 0
+	# The 2/2 indicator represents free construction crews, not unemployed citizens.
+	var active_projects = int(game.get_active_construction_count())
+	return clampi(int(game.MAX_CONCURRENT_CONSTRUCTIONS) - active_projects, 0, int(game.MAX_CONCURRENT_CONSTRUCTIONS))
+
+
+func _build_construction_capacity_button():
+	construction_capacity_button = Button.new()
+	construction_capacity_button.name = "ConstructionCapacityButton"
+	construction_capacity_button.text = "👷  2/2"
+	construction_capacity_button.custom_minimum_size = Vector2(100, 50)
+	construction_capacity_button.anchor_left = 0.0
+	construction_capacity_button.anchor_top = 0.0
+	construction_capacity_button.anchor_right = 0.0
+	construction_capacity_button.anchor_bottom = 0.0
+	construction_capacity_button.position = Vector2(22, 116)
+	construction_capacity_button.z_index = 15
+	construction_capacity_button.layout_direction = Control.LAYOUT_DIRECTION_LTR
+	construction_capacity_button.autowrap_mode = TextServer.AUTOWRAP_OFF
+	construction_capacity_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	construction_capacity_button.tooltip_text = "مشاهده پروژه‌های در حال ساخت و پیشنهاد ساخت"
+	_apply_font(construction_capacity_button, 17)
+	_style_button(construction_capacity_button, false)
+	construction_capacity_button.pressed.connect(_open_construction_details)
+	add_child(construction_capacity_button)
+	_update_construction_capacity_button()
+
+
+func _update_construction_capacity_button():
+	if construction_capacity_button == null or not is_instance_valid(construction_capacity_button) or game == null:
+		return
+	var available = _get_available_construction_workers()
+	# Keep the shortcut minimal: only the construction icon and free slots.
+	construction_capacity_button.text = "👷  %d/2" % available
+	construction_capacity_button.tooltip_text = "مشاهده پروژه‌های در حال ساخت و پیشنهاد ساخت"
+
+
+func _open_construction_details():
+	if construction_details_layer != null and is_instance_valid(construction_details_layer):
+		construction_details_layer.queue_free()
+	construction_details_layer = CanvasLayer.new()
+	construction_details_layer.name = "ConstructionDetailsLayer"
+	construction_details_layer.layer = 81
+	add_child(construction_details_layer)
+	var backdrop = ColorRect.new()
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.color = Color(0.015, 0.035, 0.065, 0.88)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
+	construction_details_layer.add_child(backdrop)
+	var center = CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var construction_safe = _get_safe_area_insets()
+	center.offset_left = construction_safe.x + 14.0
+	center.offset_right = -(construction_safe.z + 14.0)
+	center.offset_top = construction_safe.y + 18.0
+	center.offset_bottom = -(construction_safe.w + 18.0)
+	backdrop.add_child(center)
+	var card = PanelContainer.new()
+	var construction_viewport = get_viewport_rect().size
+	card.custom_minimum_size = Vector2(min(520.0, construction_viewport.x - construction_safe.x - construction_safe.z - 28.0), 0)
+	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var card_style = StyleBoxFlat.new()
+	card_style.bg_color = Color("#14243a")
+	card_style.border_color = Color("#f59e0b")
+	card_style.set_border_width_all(2)
+	card_style.set_corner_radius_all(20)
+	card_style.content_margin_left = 16
+	card_style.content_margin_right = 16
+	card_style.content_margin_top = 16
+	card_style.content_margin_bottom = 16
+	card.add_theme_stylebox_override("panel", card_style)
+	center.add_child(card)
+	var layout = VBoxContainer.new()
+	layout.add_theme_constant_override("separation", 10)
+	card.add_child(layout)
+	var header = HBoxContainer.new()
+	layout.add_child(header)
+	var title = Label.new()
+	title.text = PersianText.reshaper("👷 مدیریت ساخت‌وساز")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_font(title, 21)
+	title.add_theme_color_override("font_color", Color("#fde68a"))
+	header.add_child(title)
+	var close_button = Button.new()
+	close_button.text = "✕"
+	close_button.custom_minimum_size = Vector2(42, 40)
+	_apply_font(close_button, 21)
+	_style_button(close_button, false)
+	close_button.pressed.connect(_close_construction_details)
+	header.add_child(close_button)
+	var available = _get_available_construction_workers()
+	var summary = Label.new()
+	summary.text = PersianText.reshaper("ظرفیت آزاد ساخت‌وساز برای پروژه جدید: %d از ۲" % available)
+	summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_font(summary, 17)
+	summary.add_theme_color_override("font_color", Color("#a7f3d0") if available > 0 else Color("#fca5a5"))
+	layout.add_child(summary)
+	var projects = game.get_construction_status()
+	if projects.is_empty():
+		var empty_label = Label.new()
+		empty_label.text = PersianText.reshaper("در حال حاضر هیچ پروژه‌ای در دست ساخت نیست.")
+		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		empty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_apply_font(empty_label, 16)
+		layout.add_child(empty_label)
+	else:
+		for index in range(projects.size()):
+			var project = projects[index]
+			var project_panel = PanelContainer.new()
+			var project_style = StyleBoxFlat.new()
+			project_style.bg_color = Color("#1e344b")
+			project_style.border_color = Color("#64748b")
+			project_style.set_border_width_all(1)
+			project_style.set_corner_radius_all(12)
+			project_style.content_margin_left = 12
+			project_style.content_margin_right = 12
+			project_style.content_margin_top = 10
+			project_style.content_margin_bottom = 10
+			project_panel.add_theme_stylebox_override("panel", project_style)
+			layout.add_child(project_panel)
+			var project_info = VBoxContainer.new()
+			project_info.add_theme_constant_override("separation", 5)
+			project_panel.add_child(project_info)
+			var project_name = Label.new()
+			project_name.text = PersianText.reshaper("پروژه %d: %s" % [index + 1, str(project.get("name", "ساختمان"))])
+			project_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			_apply_font(project_name, 18)
+			project_name.add_theme_color_override("font_color", Color("#f8fafc"))
+			project_info.add_child(project_name)
+			var location_label = Label.new()
+			location_label.text = PersianText.reshaper("محل ساخت: %s" % str(project.get("district_name", "منطقه صنعتی خارج شهر")))
+			location_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			_apply_font(location_label, 15)
+			location_label.add_theme_color_override("font_color", Color("#cbd5e1"))
+			project_info.add_child(location_label)
+			var remaining = int(project.get("remaining", 0))
+			var time_label = Label.new()
+			time_label.text = PersianText.reshaper("زمان باقی‌مانده: ") + _format_time_display(int(remaining / 60), remaining % 60)
+			time_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			_apply_font(time_label, 16)
+			time_label.add_theme_color_override("font_color", Color("#fde68a"))
+			project_info.add_child(time_label)
+			var cost_label = Label.new()
+			cost_label.text = PersianText.reshaper("هزینه پرداخت‌شده: %s سکه" % str(int(project.get("cost", 0))))
+			cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			_apply_font(cost_label, 14)
+			cost_label.add_theme_color_override("font_color", Color("#cbd5e1"))
+			project_info.add_child(cost_label)
+
+	# Offer a practical next-build suggestion based on the city's weakest service.
+	var recommendation = _get_construction_recommendation()
+	if not recommendation.is_empty():
+		var recommendation_panel = PanelContainer.new()
+		var recommendation_style = StyleBoxFlat.new()
+		recommendation_style.bg_color = Color("#203b43")
+		recommendation_style.border_color = Color("#34d399")
+		recommendation_style.set_border_width_all(1)
+		recommendation_style.set_corner_radius_all(12)
+		recommendation_style.content_margin_left = 12
+		recommendation_style.content_margin_right = 12
+		recommendation_style.content_margin_top = 10
+		recommendation_style.content_margin_bottom = 10
+		recommendation_panel.add_theme_stylebox_override("panel", recommendation_style)
+		layout.add_child(recommendation_panel)
+		var recommendation_content = VBoxContainer.new()
+		recommendation_content.add_theme_constant_override("separation", 6)
+		recommendation_panel.add_child(recommendation_content)
+		var recommendation_title = Label.new()
+		recommendation_title.text = PersianText.reshaper("💡 پیشنهاد برای ساخت بعدی")
+		recommendation_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		_apply_font(recommendation_title, 17)
+		recommendation_title.add_theme_color_override("font_color", Color("#6ee7b7"))
+		recommendation_content.add_child(recommendation_title)
+		var recommendation_reason = Label.new()
+		recommendation_reason.text = PersianText.reshaper(str(recommendation.get("reason", "")))
+		recommendation_reason.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		recommendation_reason.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_apply_font(recommendation_reason, 15)
+		recommendation_reason.add_theme_color_override("font_color", Color("#e2e8f0"))
+		recommendation_content.add_child(recommendation_reason)
+		var recommendation_button = Button.new()
+		recommendation_button.text = PersianText.reshaper("مشاهده ساختمان پیشنهادی: %s" % str(recommendation.get("name", "ساختمان")))
+		recommendation_button.custom_minimum_size = Vector2(0, 46)
+		_apply_font(recommendation_button, 15)
+		_style_button(recommendation_button, false)
+		recommendation_button.pressed.connect(_open_recommended_construction.bind(str(recommendation.get("building_id", ""))))
+		recommendation_content.add_child(recommendation_button)
+
+
+func _get_construction_recommendation():
+	if game == null:
+		return {}
+	var needs = game.state.get("needs", {})
+	var candidates = [
+		{"need":"food", "building_id":"grocery_store", "reason":"نیاز غذایی شهروندان پایین است؛ فروشگاه مواد غذایی می‌تواند کمک کند."},
+		{"need":"water", "building_id":"water_tower", "reason":"تأمین آب شهر ضعیف است؛ ساخت برج آب را در اولویت بگذار."},
+		{"need":"power", "building_id":"power_station", "reason":"وضعیت برق شهر نیاز به تقویت دارد؛ نیروگاه جدید بساز."},
+		{"need":"health", "building_id":"clinic", "reason":"سلامت شهروندان نیاز به توجه دارد؛ یک درمانگاه بساز."},
+		{"need":"education", "building_id":"school", "reason":"آموزش شهروندان ضعیف است؛ ساخت مدرسه را پیشنهاد می‌کنم."},
+		{"need":"safety", "building_id":"police_station", "reason":"امنیت شهر پایین است؛ ساخت کلانتری می‌تواند کمک کند."},
+		{"need":"leisure", "building_id":"small_park", "reason":"تفریح شهروندان کم است؛ یک پارک کوچک بساز."},
+		{"need":"sanitation", "building_id":"waste_facility", "reason":"بهداشت محیط شهر نیاز به تقویت دارد؛ مرکز مدیریت پسماند بساز."}
+	]
+	var selected = {}
+	var lowest_value = 101
+	for candidate in candidates:
+		var need_value = int(needs.get(str(candidate.get("need", "")), 100))
+		if need_value < lowest_value:
+			lowest_value = need_value
+			selected = candidate
+	if selected.is_empty() or lowest_value >= 75:
+		selected = {"building_id":"small_park", "reason":"وضعیت خدمات شهر متعادل است؛ برای افزایش رضایت شهروندان، پارک کوچک گزینه خوبی برای پروژه بعدی است."}
+	var building_id = str(selected.get("building_id", ""))
+	var definition = game.get_building_definitions().get(building_id, {})
+	if definition.is_empty():
+		return {}
+	return {"building_id":building_id, "name":str(definition.get("name", "ساختمان")), "reason":str(selected.get("reason", ""))}
+
+
+func _open_recommended_construction(building_id):
+	var definition = game.get_building_definitions().get(str(building_id), {})
+	if definition.is_empty():
+		_show_message("ساختمان پیشنهادی پیدا نشد.")
+		return
+	_close_construction_details()
+	mission_target_building_id = str(building_id)
+	selected_building_category = str(definition.get("category", ""))
+	if selected_building_category == "خانه‌ها":
+		selected_building_group = "مسکونی"
+	elif selected_building_category == "انبارها":
+		selected_building_group = "انبارها"
+	elif selected_building_category in ["کشاورزی", "ماهیگیری", "معادن", "کارخانه‌ها", "کسب‌وکارها"]:
+		selected_building_group = "اقتصادی"
+	else:
+		selected_building_group = "عمومی"
+	show_page("buildings")
+	_show_message("ساختمان پیشنهادی را برای بررسی باز کردم.")
+
+
+func _close_construction_details():
+	if construction_details_layer != null and is_instance_valid(construction_details_layer):
+		construction_details_layer.queue_free()
+	construction_details_layer = null
+
+
+func _open_daily_reward_calendar():
+	if daily_reward_layer != null and is_instance_valid(daily_reward_layer):
+		daily_reward_layer.queue_free()
+	daily_reward_layer = CanvasLayer.new()
+	daily_reward_layer.name = "DailyRewardCalendarLayer"
+	daily_reward_layer.layer = 80
+	add_child(daily_reward_layer)
+
+	var backdrop = ColorRect.new()
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.color = Color(0.025, 0.055, 0.085, 0.84)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
+	daily_reward_layer.add_child(backdrop)
+
+	var center = CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var reward_safe = _get_safe_area_insets()
+	center.offset_left = reward_safe.x + 14.0
+	center.offset_right = -(reward_safe.z + 14.0)
+	center.offset_top = reward_safe.y + 14.0
+	center.offset_bottom = -(reward_safe.w + 14.0)
+	backdrop.add_child(center)
+
+	var card = PanelContainer.new()
+	var reward_viewport = get_viewport_rect().size
+	card.custom_minimum_size = Vector2(min(520.0, reward_viewport.x - reward_safe.x - reward_safe.z - 28.0), 0)
+	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var card_style = StyleBoxFlat.new()
+	card_style.bg_color = Color("#f8fafc")
+	card_style.border_color = Color("#55c9a7")
+	card_style.set_border_width_all(2)
+	card_style.set_corner_radius_all(26)
+	card_style.content_margin_left = 14
+	card_style.content_margin_right = 14
+	card_style.content_margin_top = 13
+	card_style.content_margin_bottom = 14
+	card.add_theme_stylebox_override("panel", card_style)
+	center.add_child(card)
+
+	var layout = VBoxContainer.new()
+	var compact_reward_layout = reward_viewport.y < 560.0
+	layout.add_theme_constant_override("separation", 5 if compact_reward_layout else 9)
+	card.add_child(layout)
+
+	var header = HBoxContainer.new()
+	header.alignment = BoxContainer.ALIGNMENT_CENTER
+	layout.add_child(header)
+	var close_button = Button.new()
+	close_button.text = "✕"
+	close_button.custom_minimum_size = Vector2(38, 38)
+	_apply_font(close_button, 19)
+	close_button.add_theme_color_override("font_color", Color("#64748b"))
+	var close_style = StyleBoxFlat.new()
+	close_style.bg_color = Color("#e8eef5")
+	close_style.set_corner_radius_all(19)
+	for style_name in ["normal", "hover", "pressed"]:
+		close_button.add_theme_stylebox_override(style_name, close_style)
+	close_button.pressed.connect(_close_daily_reward_calendar)
+	header.add_child(close_button)
+
+	var gift_icon = Label.new()
+	gift_icon.text = "🎁"
+	gift_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_font(gift_icon, 28 if compact_reward_layout else 38)
+	gift_icon.add_theme_color_override("font_color", Color("#0f766e"))
+	layout.add_child(gift_icon)
+
+	var title = Label.new()
+	title.text = PersianText.reshaper("هدیه روزانه")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_font(title, 20 if compact_reward_layout else 24)
+	title.add_theme_color_override("font_color", Color("#172b3e"))
+	layout.add_child(title)
+
+	var status = game.get_login_reward_status()
+	var intro = Label.new()
+	intro.text = PersianText.reshaper("هر روز وارد شو و جایزه‌ات رو بگیر!")
+	intro.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_apply_font(intro, 12 if compact_reward_layout else 14)
+	intro.add_theme_color_override("font_color", Color("#64748b"))
+	layout.add_child(intro)
+
+	var scroll = ScrollContainer.new()
+	var reward_available_height = reward_viewport.y - reward_safe.y - reward_safe.w
+	scroll.custom_minimum_size = Vector2(0, maxf(60.0, minf(330.0, reward_available_height - (340.0 if compact_reward_layout else 390.0))))
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	layout.add_child(scroll)
+
+	var days_grid = GridContainer.new()
+	days_grid.columns = 2 if reward_viewport.x - reward_safe.x - reward_safe.z < 560.0 else 4
+	days_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	days_grid.add_theme_constant_override("h_separation", 7)
+	days_grid.add_theme_constant_override("v_separation", 7)
+	scroll.add_child(days_grid)
+
+	var rewards = game.get_login_reward_calendar()
+	var next_day = int(status.next_day)
+	var streak = int(status.streak)
+	for reward_data in rewards:
+		var day = int(reward_data.day)
+		var claimed = (day == 7) if streak == 7 and next_day == 1 else (day <= streak)
+		var is_next = day == next_day
+		var available_now = is_next and bool(status.can_claim)
+		var tile = PanelContainer.new()
+		tile.custom_minimum_size = Vector2(0, 116 if days_grid.columns == 2 else 108)
+		tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var tile_style = StyleBoxFlat.new()
+		tile_style.bg_color = Color("#e4f7ef") if claimed else (Color("#fff4d6") if available_now else Color("#edf2f8"))
+		tile_style.border_color = Color("#20a879") if claimed else (Color("#e8ae38") if available_now or day == 7 else Color("#d5dee8"))
+		tile_style.set_border_width_all(2 if available_now or day == 7 else 1)
+		tile_style.set_corner_radius_all(13)
+		tile_style.content_margin_left = 3
+		tile_style.content_margin_right = 3
+		tile_style.content_margin_top = 5
+		tile_style.content_margin_bottom = 5
+		tile.add_theme_stylebox_override("panel", tile_style)
+		days_grid.add_child(tile)
+
+		var tile_layout = VBoxContainer.new()
+		tile_layout.alignment = BoxContainer.ALIGNMENT_CENTER
+		tile_layout.add_theme_constant_override("separation", 2)
+		tile.add_child(tile_layout)
+
+		var day_caption = Label.new()
+		day_caption.text = PersianText.reshaper("روز %d%s" % [day, " ⭐" if day == 7 else ""])
+		day_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_apply_font(day_caption, 12)
+		day_caption.add_theme_color_override("font_color", Color("#475569"))
+		tile_layout.add_child(day_caption)
+
+		var coin_icon = Label.new()
+		coin_icon.text = "🪙"
+		coin_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_apply_font(coin_icon, 20)
+		tile_layout.add_child(coin_icon)
+
+		var prize_label = Label.new()
+		prize_label.text = PersianText.reshaper("%s سکه" % str(int(reward_data.coins)))
+		prize_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		prize_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_apply_font(prize_label, 13)
+		prize_label.add_theme_color_override("font_color", Color("#172b3e"))
+		tile_layout.add_child(prize_label)
+
+		var xp_label = Label.new()
+		xp_label.text = PersianText.reshaper("+%d XP" % int(reward_data.xp))
+		xp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_apply_font(xp_label, 10)
+		xp_label.add_theme_color_override("font_color", Color("#64748b"))
+		tile_layout.add_child(xp_label)
+
+		var state_label = Label.new()
+		if claimed:
+			state_label.text = "✓ دریافت شد"
+		elif available_now:
+			state_label.text = "🎁 آماده"
+		elif is_next:
+			var remain = int(status.seconds_remaining)
+			state_label.text = "%02d:%02d" % [int(remain / 3600), int((remain % 3600) / 60)]
+		else:
+			state_label.text = "🔒"
+		state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_apply_font(state_label, 10)
+		state_label.add_theme_color_override("font_color", Color("#16845f") if claimed else Color("#8a641d") if available_now else Color("#94a3b8"))
+		tile_layout.add_child(state_label)
+
+	var footer = Label.new()
+	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	footer.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_apply_font(footer, 13)
+	footer.add_theme_color_override("font_color", Color("#0f766e"))
+	if bool(status.can_claim):
+		footer.text = PersianText.reshaper("جایزه روز %d منتظرته!" % next_day)
+	else:
+		var remain_seconds = int(status.seconds_remaining)
+		footer.text = PersianText.reshaper("تا جایزه بعدی: %d ساعت و %d دقیقه" % [int(remain_seconds / 3600), int((remain_seconds % 3600) / 60)])
+	layout.add_child(footer)
+
+	var claim_button = Button.new()
+	claim_button.text = PersianText.reshaper("🎁  دریافت جایزه روز %d" % next_day if bool(status.can_claim) else "⏳  منتظر جایزه بعدی")
+	claim_button.custom_minimum_size = Vector2(0, 48 if compact_reward_layout else 54)
+	_apply_font(claim_button, 16 if compact_reward_layout else 18)
+	var claim_style = StyleBoxFlat.new()
+	claim_style.bg_color = Color("#20b66f")
+	claim_style.border_color = Color("#138653")
+	claim_style.set_border_width_all(1)
+	claim_style.set_corner_radius_all(27)
+	claim_style.content_margin_left = 12
+	claim_style.content_margin_right = 12
+	for style_name in ["normal", "hover", "pressed", "disabled"]:
+		claim_button.add_theme_stylebox_override(style_name, claim_style)
+	claim_button.add_theme_color_override("font_color", Color("#ffffff"))
+	claim_button.add_theme_color_override("font_disabled_color", Color("#e2e8f0"))
+	claim_button.disabled = not bool(status.can_claim)
+	claim_button.pressed.connect(claim_login_reward)
+	layout.add_child(claim_button)
+
+	var hint = Label.new()
+	hint.text = PersianText.reshaper("با از دست دادن مهلت ۲۴ ساعته، زنجیره از روز اول شروع می‌شود.")
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_apply_font(hint, 9 if compact_reward_layout else 10)
+	hint.add_theme_color_override("font_color", Color("#94a3b8"))
+	layout.add_child(hint)
+
+func _close_daily_reward_calendar():
+	if daily_reward_layer != null and is_instance_valid(daily_reward_layer):
+		daily_reward_layer.queue_free()
+	daily_reward_layer = null
+
+func toggle_storage_production():
+	storage_production_expanded = not storage_production_expanded
+	show_page("storage")
+
+func _get_daily_production_totals():
+	var totals = {}
+	var definitions = game.get_building_definitions()
+	var resources = game.get_resource_definitions()
+	var available_inputs = game.state.get("resources", {}).duplicate(true)
+	for building_index in range(game.state.get("buildings", []).size()):
+		var building = game.state.buildings[building_index]
+		if int(building.get("rented_to", 0)) > 0:
+			continue
+		var building_id = str(building.get("id", ""))
+		var data = definitions.get(building_id, {})
+		var output_id = str(data.get("output", ""))
+		if output_id.is_empty() or not resources.has(output_id):
+			continue
+		var workers = int(game._workers_for_building(building_index))
+		var required_workers = int(data.get("jobs", 0))
+		if workers <= 0:
+			continue
+		var amount = int(data.get("amount", 0))
+		if required_workers > 0:
+			amount = max(1, int(floor(float(amount) * float(workers) / float(required_workers))))
+		var input_id = str(data.get("input", ""))
+		var input_amount = int(data.get("input_amount", 0))
+		if not input_id.is_empty():
+			if required_workers > 0:
+				input_amount = max(1, int(ceil(float(input_amount) * float(workers) / float(required_workers))))
+			if int(available_inputs.get(input_id, 0)) < input_amount:
+				continue
+			available_inputs[input_id] = int(available_inputs.get(input_id, 0)) - input_amount
+		if building_id == "woodcutter":
+			amount = min(amount, int(game.state.get("forest_trees", 0)))
+		if amount <= 0:
+			continue
+		totals[output_id] = int(totals.get(output_id, 0)) + amount
+		available_inputs[output_id] = int(available_inputs.get(output_id, 0)) + amount
+	return totals
 
 func _update_mission_reward_badge():
-	if mission_reward_badge == null or not is_instance_valid(mission_reward_badge) or game == null:
+	if game == null:
 		return
 	var ready_count = 0
-	for mission in game.get_missions():
-		if bool(mission.get("completed", false)) and not bool(mission.get("claimed", false)) and bool(mission.get("unlocked", false)):
-			ready_count += 1
+
+	# Count only the first unclaimed daily mission, matching the mission page.
 	for daily_mission in game.get_daily_missions():
-		if int(daily_mission.get("progress", 0)) >= int(daily_mission.get("goal", 1)) and not bool(daily_mission.get("claimed", false)):
+		if bool(daily_mission.get("claimed", false)):
+			continue
+		if int(daily_mission.get("progress", 0)) >= int(daily_mission.get("goal", 1)):
 			ready_count += 1
-	mission_reward_badge.text = PersianText.reshaper("🎁 %d جایزه آماده" % ready_count if ready_count > 0 else "")
-	mission_reward_badge.visible = ready_count > 0
+		break
+
+	# Count every completed, unclaimed mission that is currently eligible for a reward.
+	# Side missions are independent, so several of them can be claimable at once.
+	for mission in game.get_missions():
+		var definition = {}
+		for item in game.MISSION_DEFINITIONS:
+			if str(item.id) == str(mission.get("id", "")):
+				definition = item
+				break
+		if definition.is_empty():
+			continue
+		var is_legacy = bool(definition.get("legacy", false))
+		var is_claimed = bool(mission.get("claimed", false))
+		var is_unlocked = bool(mission.get("unlocked", false))
+		var is_completed = bool(mission.get("completed", false))
+		if is_claimed or not is_completed:
+			continue
+		if not is_legacy and not is_unlocked:
+			continue
+		ready_count += 1
+
+	if mission_navigation_button != null and is_instance_valid(mission_navigation_button):
+		mission_navigation_button.text = PersianText.reshaper(mission_navigation_title + (" 🎁" if ready_count > 0 else ""))
+
+func _on_settings_menu_action(action_name: String) -> void:
+	match action_name:
+		"open_help":
+			_close_game_menu()
+			_open_help()
+		"confirm_restart_from_menu":
+			confirm_restart_from_menu()
+		_:
+			_close_game_menu()
+			if has_method(action_name):
+				call(action_name)
+			else:
+				push_warning("Unknown settings menu action: " + action_name)
 
 func _create_menu_action(title, callback):
 	var button = Button.new()
-	button.text = PersianText.reshaper(title)
-	button.rect_min_size = Vector2(0, 52 if get_viewport_rect().size.x < 900 else 44)
-	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_font(button, 18 if get_viewport_rect().size.x < 900 else 16)
+	button.text = _display_text(title)
+	var phone_layout = get_viewport_rect().size.x < 900
+	# Keep menu actions compact while never exceeding the actual safe viewport.
+	var safe = _get_safe_area_insets()
+	var action_width = min(320.0 if phone_layout else 360.0, get_viewport_rect().size.x - safe.x - safe.z - (72.0 if phone_layout else 96.0))
+	button.custom_minimum_size = Vector2(max(0.0, action_width), 62 if phone_layout else 54)
+	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.text_direction = Control.TEXT_DIRECTION_RTL if LanguageManager.is_rtl(ui_language) else Control.TEXT_DIRECTION_LTR
+	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_apply_font(button, 19 if phone_layout else 17)
 	_style_button(button, false)
-	button.connect("pressed", self, callback)
+	button.connect("pressed", Callable(self, callback))
 	if audio_manager != null:
-		button.connect("pressed", audio_manager, "play_sfx", ["click"])
+		button.connect("pressed", Callable(audio_manager, "play_sfx").bind("click"))
 	menu_panel.add_child(button)
 	return button
 
 func _toggle_game_menu():
-	if menu_panel == null:
+	if menu_panel == null or menu_overlay == null or not is_instance_valid(menu_overlay):
 		return
-	menu_panel.visible = not menu_panel.visible
+	if exit_overlay != null and is_instance_valid(exit_overlay):
+		exit_overlay.visible = false
+	var should_open = not menu_overlay.visible
+	menu_overlay.visible = should_open
+	# Settings pages hide the menu contents while leaving the menu overlay closed.
+	# Restore the contents whenever the player opens the menu again.
+	menu_panel.visible = should_open
 	_update_menu_pause_button()
+
+func _close_game_menu():
+	if menu_overlay != null and is_instance_valid(menu_overlay):
+		menu_overlay.visible = false
+	if restart_confirm_panel != null and is_instance_valid(restart_confirm_panel):
+		restart_confirm_panel.visible = false
+
+func _handle_device_back():
+	# Android can deliver both KEY_BACK and NOTIFICATION_WM_GO_BACK_REQUEST
+	# for one physical press. Debounce them so one press performs one action.
+	var now_ticks = Time.get_ticks_msec()
+	if now_ticks - last_device_back_ticks < 350:
+		return
+	last_device_back_ticks = now_ticks
+	if exit_overlay != null and is_instance_valid(exit_overlay) and exit_overlay.visible:
+		exit_overlay.visible = false
+		return
+	if help_overlay != null and is_instance_valid(help_overlay) and help_overlay.visible:
+		_close_help()
+		return
+	if restart_confirm_panel != null and is_instance_valid(restart_confirm_panel) and restart_confirm_panel.visible:
+		restart_confirm_panel.visible = false
+		return
+	if menu_overlay != null and is_instance_valid(menu_overlay) and menu_overlay.visible:
+		_close_game_menu()
+		return
+	_show_exit_confirmation()
+
+func _build_exit_confirmation(parent_layer):
+	exit_overlay = ColorRect.new()
+	exit_overlay.name = "ExitGameConfirmation"
+	exit_overlay.color = Color(0.015, 0.035, 0.065, 0.86)
+	exit_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	exit_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	exit_overlay.visible = false
+	exit_overlay.z_index = 20
+	parent_layer.add_child(exit_overlay)
+	var center = CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var exit_safe = _get_safe_area_insets()
+	center.offset_left = exit_safe.x + 16.0
+	center.offset_right = -(exit_safe.z + 16.0)
+	center.offset_top = exit_safe.y + 16.0
+	center.offset_bottom = -(exit_safe.w + 16.0)
+	exit_overlay.add_child(center)
+	var card = PanelContainer.new()
+	var exit_viewport = get_viewport_rect().size
+	card.custom_minimum_size = Vector2(min(420.0, exit_viewport.x - exit_safe.x - exit_safe.z - 32.0), 0)
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color("#14243a")
+	style.border_color = Color("#f59e0b")
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(22)
+	style.content_margin_left = 20
+	style.content_margin_right = 20
+	style.content_margin_top = 22
+	style.content_margin_bottom = 22
+	card.add_theme_stylebox_override("panel", style)
+	center.add_child(card)
+	var layout = VBoxContainer.new()
+	layout.add_theme_constant_override("separation", 14)
+	card.add_child(layout)
+	var title = Label.new()
+	title.text = PersianText.reshaper("خروج از بازی؟")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_font(title, 23)
+	title.add_theme_color_override("font_color", Color("#f8fafc"))
+	layout.add_child(title)
+	var description = Label.new()
+	description.text = PersianText.reshaper("می‌خواهی از مینی زکا سیتی خارج شوی؟ پیشرفتت ذخیره می‌شود.")
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_font(description, 16)
+	description.add_theme_color_override("font_color", Color("#cbd5e1"))
+	layout.add_child(description)
+	var continue_button = Button.new()
+	continue_button.text = PersianText.reshaper("ادامه بازی")
+	continue_button.custom_minimum_size = Vector2(0, 60)
+	continue_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_font(continue_button, 19)
+	_style_button(continue_button, true)
+	continue_button.pressed.connect(_cancel_exit_game)
+	layout.add_child(continue_button)
+	var exit_button = Button.new()
+	exit_button.text = PersianText.reshaper("خروج از بازی")
+	exit_button.custom_minimum_size = Vector2(0, 60)
+	exit_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_font(exit_button, 19)
+	_style_button(exit_button, false)
+	exit_button.pressed.connect(_confirm_exit_game)
+	layout.add_child(exit_button)
+
+func _show_exit_confirmation():
+	if exit_overlay != null and is_instance_valid(exit_overlay):
+		exit_overlay.visible = true
+
+func _cancel_exit_game():
+	if exit_overlay != null and is_instance_valid(exit_overlay):
+		exit_overlay.visible = false
+
+func _confirm_exit_game():
+	if game != null:
+		game.state["clock_last_unix"] = Time.get_unix_time_from_system()
+		game.state["clock_cycle_seconds"] = int(clock_cycle_seconds)
+		game.save_game()
+	get_tree().quit()
 
 func _update_menu_pause_button():
 	if menu_pause_button != null:
@@ -686,11 +2475,22 @@ func save_from_menu():
 	var saved = game.save_game()
 	_show_message("شهر ذخیره شد." if saved else "ذخیره‌سازی ناموفق بود.")
 	if menu_panel != null:
-		menu_panel.visible = false
+		menu_overlay.visible = false
 
-func confirm_restart_from_menu():
-	if restart_confirm_panel != null:
-		restart_confirm_panel.visible = true
+func confirm_restart_from_menu() -> void:
+	if restart_confirm_panel == null or not is_instance_valid(restart_confirm_panel):
+		push_error("Restart confirmation panel is not initialized")
+		return
+	# Keep every parent visible and reveal the confirmation inside the menu scroll.
+	if menu_overlay != null:
+		menu_overlay.visible = true
+	if menu_panel != null:
+		menu_panel.visible = true
+	restart_confirm_panel.visible = true
+	restart_confirm_panel.queue_sort()
+	var menu_scroll = menu_panel.get_parent() if menu_panel != null else null
+	if menu_scroll is ScrollContainer:
+		menu_scroll.call_deferred("ensure_control_visible", restart_confirm_panel)
 
 func _cancel_restart():
 	if restart_confirm_panel != null:
@@ -704,22 +2504,21 @@ func return_home_from_menu():
 	show_page("home")
 
 func _restart_city():
-	if restart_confirm_panel != null:
-		restart_confirm_panel.visible = false
-	if menu_panel != null:
-		menu_panel.visible = false
+	# Reset the game exactly like a first launch: create a blank city state,
+	# persist it so an interrupted setup is shown again on the next launch,
+	# then require the player to choose a name before entering the city.
+	_close_game_menu()
 	game_paused = false
 	clock_cycle_seconds = 0.0
 	clock_save_accumulator = 0.0
 	construction_check_accumulator = 0.0
 	game.new_game()
-	game.state["clock_last_unix"] = OS.get_unix_time()
+	game.state["clock_last_unix"] = Time.get_unix_time_from_system()
 	game.state["clock_cycle_seconds"] = 0
 	game.save_game()
 	selected_home_building_id = ""
 	selected_demolish_quantity = 1
-	show_page("home")
-	_show_message("شهر جدید با موفقیت آغاز شد.")
+	_open_city_name_setup(true)
 
 func _update_progress_hud():
 	if game == null or level_status_label == null or xp_progress_bar == null:
@@ -737,117 +2536,66 @@ func _update_progress_hud():
 	level_status_bar.value = 100
 
 func _get_geographic_rank_name(district_count):
-	# Every three built districts advance the city's geographic rank.
-	# A new city starts at the first rank even before its first district is registered.
-	var ranks = [
-		"آبادی کوچک", "آبادی", "آبادی بزرگ",
-		"روستای کوچک", "روستا", "روستای بزرگ",
-		"ده کوچک", "ده", "ده بزرگ",
-		"دهستان کوچک", "دهستان", "دهستان بزرگ",
-		"بخش کوچک", "بخش", "بخش بزرگ",
-		"شهر کوچک", "شهر", "شهر بزرگ",
-		"شهرستان کوچک", "شهرستان", "شهرستان بزرگ",
-		"استان کوچک", "استان", "استان بزرگ",
-		"ایالت کوچک", "ایالت", "ایالت بزرگ",
-		"کشور کوچک", "کشور", "کشور بزرگ",
-		"قاره کوچک", "قاره", "قاره بزرگ",
-		"سیاره کوچک", "سیاره", "سیاره بزرگ",
-		"منظومه کوچک", "منظومه", "منظومه بزرگ",
-		"سامانه ستاره‌ای کوچک", "سامانه ستاره‌ای", "سامانه ستاره‌ای بزرگ",
-		"کهکشان کوچک", "کهکشان", "کهکشان بزرگ",
-		"گروه کهکشانی کوچک", "گروه کهکشانی", "گروه کهکشانی بزرگ",
-		"خوشه کهکشانی کوچک", "خوشه کهکشانی", "خوشه کهکشانی بزرگ",
-		"ابرخوشه کهکشانی کوچک", "ابرخوشه کهکشانی", "ابرخوشه کهکشانی بزرگ",
-		"شبکه کیهانی کوچک", "شبکه کیهانی", "شبکه کیهانی بزرگ",
-		"جهان قابل مشاهده کوچک", "جهان قابل مشاهده", "جهان قابل مشاهده بزرگ",
-		"جهان کوچک", "جهان", "جهان بزرگ"
-	]
-	var safe_count = max(1, int(district_count))
-	var rank_index = int(floor(float(safe_count - 1) / 3.0))
-	return str(ranks[min(rank_index, ranks.size() - 1)])
+	if game != null:
+		return str(game.get_geographic_rank_for_district_count(district_count).get("name", "آبادی کوچک"))
+	return "آبادی کوچک"
 
 func _load_ui_font():
-	var font_data = DynamicFontData.new()
-	font_data.font_path = "res://assets/fonts/Vazirmatn.ttf"
-	font_data.antialiased = true
-	font_data.hinting = DynamicFontData.HINTING_NORMAL
-	# Re-rasterize glyphs at 2x resolution instead of stretching a low-resolution
-	# glyph texture when the game is displayed on mobile or in the HTML5 canvas.
-	font_data.override_oversampling = 2.0
-	ui_font = DynamicFont.new()
-	ui_font.font_data = font_data
-	ui_font.size = 20
-	ui_font.use_filter = false
-	ui_font.use_mipmaps = true
+	# Godot 4 uses FontFile itself as the font resource; the old DynamicFont
+	# wrapper and its font_path/font_data/size properties no longer exist.
+	ui_font = load("res://assets/fonts/Vazirmatn.ttf") as Font
+	if ui_font == null:
+		push_error("Could not load Vazirmatn font from res://assets/fonts/Vazirmatn.ttf")
 
 func _apply_font(control, size=18):
 	if ui_font == null:
-		return
-	var font = DynamicFont.new()
-	font.font_data = ui_font.font_data
-	font.use_filter = false
-	font.use_mipmaps = true
-	# Keep the existing readable mobile sizing, but avoid the extra outline
-	# that made small Persian letter details look heavy.
-	font.size = int(size) + (5 if get_viewport_rect().size.x < 900 else 4)
-	font.outline_size = 0
-	control.add_font_override("font", font)
-	return font
+		return null
+	control.add_theme_font_override("font", ui_font)
+	control.add_theme_font_size_override("font_size", int(size) + (5 if get_viewport_rect().size.x < 900 else 4))
+	control.add_theme_constant_override("outline_size", 0)
+	return ui_font
 
 func _button_style(bg_color, border_color):
-	var style = StyleBoxFlat.new()
-	style.bg_color = bg_color
-	style.border_color = border_color
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(9)
-	style.content_margin_left = 12
-	style.content_margin_right = 12
-	style.content_margin_top = 8
-	style.content_margin_bottom = 8
-	return style
+	return MainUITheme.button_style(bg_color, border_color)
 
 func _style_button(button, navigation=false):
-	button.flat = false
-	# Main buttons: near-black with white text.
-	# Inner buttons: clean white with near-black text.
-	var normal_color = Color("#202124") if navigation else Color("#FFFFFF")
-	var hover_color = Color("#34363A") if navigation else Color("#E8EAED")
-	var pressed_color = Color("#111214") if navigation else Color("#DADCE0")
-	# Visible outlines keep adjacent navigation buttons visually separated.
-	var border_normal = Color("#64748B") if navigation else Color("#73777D")
-	var border_hover = Color("#94A3B8") if navigation else Color("#4B5057")
-	var border_pressed = Color("#CBD5E1") if navigation else Color("#30343A")
-	var text_color = Color("#FFFFFF") if navigation else Color("#111111")
-	button.add_stylebox_override("normal", _button_style(normal_color, border_normal))
-	button.add_stylebox_override("hover", _button_style(hover_color, border_hover))
-	button.add_stylebox_override("focus", _button_style(hover_color, border_hover))
-	button.add_stylebox_override("pressed", _button_style(pressed_color, border_pressed))
-	button.add_stylebox_override("disabled", _button_style(Color("#D1D5DB"), Color("#6B7280")))
-	button.add_color_override("font_color", text_color)
-	button.add_color_override("font_color_focus", text_color)
-	button.add_color_override("font_color_hover", text_color)
-	button.add_color_override("font_color_pressed", text_color)
-	button.add_color_override("font_color_disabled", Color("#4B5563"))
-	var button_font = button.get_font("font")
-	if button_font is DynamicFont:
-		button_font.outline_size = 1
-		button_font.outline_color = Color("#FFFFFF") if not navigation else Color("#111827")
+	MainUITheme.style_button(button, navigation)
 
 func _clear_content():
 	construction_time_labels.clear()
 	for child in content.get_children():
 		child.queue_free()
 
+func _tr(text) -> String:
+	return LanguageManager.translate(str(text), ui_language)
+
+func _display_text(text) -> String:
+	var localized = _tr(str(text))
+	return PersianText.reshaper(localized) if LanguageManager.is_rtl(ui_language) else localized
+
+func set_language(language):
+	var selected_language = str(language)
+	if selected_language not in LanguageManager.LANGUAGES:
+		return
+	ui_language = selected_language
+	if game != null:
+		game.state["ui_language"] = ui_language
+		game.save_game()
+	layout_direction = Control.LAYOUT_DIRECTION_RTL if LanguageManager.is_rtl(ui_language) else Control.LAYOUT_DIRECTION_LTR
+	show_page(current_page)
+	_show_message("زبان به‌روزرسانی شد.")
+
 func _add_label(text, size=18):
 	var label = Label.new()
-	label.text = PersianText.reshaper(text)
-	label.align = Label.ALIGN_RIGHT
+	label.text = _display_text(text)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT if LanguageManager.is_rtl(ui_language) else HORIZONTAL_ALIGNMENT_LEFT
 	_apply_font(label, size)
-	label.autowrap = true
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.rect_min_size = Vector2(0, 44 if get_viewport_rect().size.x < 900 else 34)
-	label.add_color_override("font_color", Color("#f8fafc"))
-	label.add_color_override("font_color_shadow", Color("#0b1220"))
+	# Let wrapped Persian text determine its own height instead of clipping to a fixed row.
+	label.custom_minimum_size = Vector2.ZERO
+	label.add_theme_color_override("font_color", Color("#f8fafc"))
+	label.add_theme_color_override("font_color_shadow", Color("#0b1220"))
 	label.modulate = Color("#ffffff")
 	var target = active_section_container if active_section_container != null else content
 	target.add_child(label)
@@ -855,14 +2603,23 @@ func _add_label(text, size=18):
 
 func _add_button(text, button_target, callback, args=[]):
 	var button = Button.new()
-	button.text = PersianText.reshaper(text + "  ")
-	button.rect_min_size = Vector2(0, 58 if get_viewport_rect().size.x < 900 else 50)
-	_apply_font(button, 19 if get_viewport_rect().size.x < 900 else 17)
+	button.text = _display_text(text)
+	var viewport_width = get_viewport_rect().size.x
+	var compact = viewport_width < 900.0
+	var base_height = 58.0 if compact else 50.0
+	var estimated_line_width = maxf(140.0, viewport_width - (52.0 if compact else 80.0))
+	var characters_per_line = maxf(18.0, estimated_line_width / (13.0 if compact else 11.0))
+	var estimated_lines = maxi(1, int(ceil(float(str(text).length()) / characters_per_line)))
+	button.custom_minimum_size = Vector2(0, maxf(base_height, float(estimated_lines * 30 + 20)))
+	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.text_direction = Control.TEXT_DIRECTION_RTL
+	_apply_font(button, 19 if compact else 17)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_button(button, false)
 	if audio_manager != null and button_target != audio_manager:
-		button.connect("pressed", audio_manager, "play_sfx", ["click"])
-	button.connect("pressed", button_target, callback, args)
+		button.connect("pressed", Callable(audio_manager, "play_sfx").bind("click"))
+	button.connect("pressed", Callable(button_target, callback).bindv(args))
 	var parent = active_section_container if active_section_container != null else content
 	parent.add_child(button)
 	return button
@@ -876,52 +2633,139 @@ func _toggle_commerce_section(section_id):
 	show_page("commerce")
 
 func _show_message(text):
-	# Toasts are temporary feedback, not permanent city-history events.
-	message_label.text = PersianText.reshaper(text)
+	message_label.text = _display_text(text)
+	var report_text = str(text).strip_edges()
+	# Keep temporary construction-blocking feedback out of the permanent city report.
+	if report_text in ["برای ساخت این ساختمان جمعیت کافی نیست.", "به ساختمان موردنیاز این مأموریت رفتی."]:
+		return
+	if game != null and report_text != "" and game.has_method("add_report_event"):
+		game.add_report_event(report_text, false)
+
+func review_report_event(event_id):
+	if game.review_report_event(event_id):
+		show_page("report")
+	else:
+		_show_message("این گزارش قبلاً بررسی شده یا وجود ندارد.")
 
 func _show_welcome_mission_hint():
 	# Show the onboarding hint until the first tutorial mission is completed.
 	for mission in game.get_missions():
 		if str(mission.get("id", "")) == "buy_land_tutorial" and bool(mission.get("completed", false)):
 			return
+
+	var compact = get_viewport_rect().size.x < 900.0
 	var panel = PanelContainer.new()
-	var panel_style = StyleBoxFlat.new()
-	panel_style.bg_color = Color("#26384d")
-	panel_style.border_color = Color("#60a5fa")
-	panel_style.set_border_width_all(2)
-	panel_style.set_corner_radius_all(10)
-	panel_style.content_margin_left = 12
-	panel_style.content_margin_right = 12
-	panel_style.content_margin_top = 10
-	panel_style.content_margin_bottom = 10
-	panel.add_stylebox_override("panel", panel_style)
+	panel.name = "WelcomeMissionHint"
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var panel_style = StyleBoxFlat.new()
+	panel_style.bg_color = Color("#1e344b")
+	panel_style.border_color = Color("#60a5fa")
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(14)
+	panel_style.content_margin_left = 14 if compact else 18
+	panel_style.content_margin_right = 14 if compact else 18
+	panel_style.content_margin_top = 12
+	panel_style.content_margin_bottom = 12
+	panel.add_theme_stylebox_override("panel", panel_style)
 	content.add_child(panel)
+
 	var layout = VBoxContainer.new()
-	layout.add_constant_override("separation", 8)
+	layout.add_theme_constant_override("separation", 9)
 	panel.add_child(layout)
+
+	var heading_row = HBoxContainer.new()
+	heading_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	heading_row.add_theme_constant_override("separation", 8)
+	layout.add_child(heading_row)
+
+	var welcome_icon = Label.new()
+	welcome_icon.text = "👋"
+	_apply_font(welcome_icon, 23 if compact else 21)
+	welcome_icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	heading_row.add_child(welcome_icon)
+
+	var heading_label = Label.new()
+	heading_label.text = PersianText.reshaper("شروع ماجراجویی در شهر")
+	heading_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	heading_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_apply_font(heading_label, 19 if compact else 18)
+	heading_label.add_theme_color_override("font_color", Color("#bfdbfe"))
+	heading_row.add_child(heading_label)
+
+	var welcome_text = "به شهر خودت خوش اومدی! برای شروع، مأموریت‌ها رو ببین و اولین زمینت رو بخر."
 	var welcome = Label.new()
-	welcome.text = PersianText.reshaper("به شهر خودت خوش اومدی! برای شروع، به مأموریت‌ها برو.")
-	welcome.align = Label.ALIGN_CENTER
-	welcome.autowrap = true
+	welcome.text = PersianText.reshaper(welcome_text)
+	welcome.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	welcome.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	welcome.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	welcome.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_font(welcome, 18 if get_viewport_rect().size.x < 900 else 17)
-	welcome.add_color_override("font_color", Color("#ffffff"))
-	layout.add_child(welcome)
+	welcome.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	var text_length = welcome_text.length()
+	var welcome_font_size = 18 if text_length < 90 else (16 if text_length < 180 else 14)
+	_apply_font(welcome, welcome_font_size if compact else welcome_font_size - 1)
+	welcome.add_theme_color_override("font_color", Color("#f1f5f9"))
+
+	# The text takes only the space it needs. It becomes internally scrollable
+	# only when its wrapped height exceeds this limit; the rest of the page stays still.
+	var text_scroll = ScrollContainer.new()
+	text_scroll.name = "WelcomeTextScroll"
+	text_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	text_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	text_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text_scroll.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	# ScrollContainer has no custom_maximum_size property in Godot 4.
+	# Keep a bounded viewport; long text scrolls inside it instead of stretching the card.
+	text_scroll.custom_minimum_size = Vector2(0, 116 if compact else 132)
+	text_scroll.clip_contents = true
+	text_scroll.add_child(welcome)
+	layout.add_child(text_scroll)
+
 	var go_button = Button.new()
 	go_button.text = PersianText.reshaper("رفتن به مأموریت‌ها  ←")
-	go_button.rect_min_size = Vector2(0, 54 if get_viewport_rect().size.x < 900 else 46)
+	go_button.custom_minimum_size = Vector2(0, 50 if compact else 46)
 	go_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_font(go_button, 19 if get_viewport_rect().size.x < 900 else 17)
+	_apply_font(go_button, 18 if compact else 17)
 	_style_button(go_button, false)
-	go_button.connect("pressed", self, "_open_missions_from_welcome")
+	go_button.connect("pressed", Callable(self, "_open_missions_from_welcome"))
 	layout.add_child(go_button)
 
 
 func open_audio_settings():
+	# Close the full-screen modal backdrop as well as its card.
+	if menu_overlay != null:
+		menu_overlay.visible = false
 	if menu_panel != null:
 		menu_panel.visible = false
 	show_page("audio")
+
+func open_game_settings():
+	# The backdrop is a full-screen input blocker; hiding only menu_panel
+	# leaves it covering the settings page and makes the page seem not to open.
+	if menu_overlay != null:
+		menu_overlay.visible = false
+	if menu_panel != null:
+		menu_panel.visible = false
+	show_page("settings")
+
+func _apply_screen_orientation(mode):
+	if OS.get_name() not in ["Android", "iOS"]:
+		return
+	match str(mode):
+		"auto":
+			DisplayServer.screen_set_orientation(DisplayServer.SCREEN_SENSOR)
+		"portrait":
+			DisplayServer.screen_set_orientation(DisplayServer.SCREEN_PORTRAIT)
+		_:
+			DisplayServer.screen_set_orientation(DisplayServer.SCREEN_LANDSCAPE)
+
+func set_screen_orientation(mode):
+	var selected_mode = str(mode)
+	if selected_mode not in ["auto", "portrait", "landscape"]:
+		selected_mode = "auto"
+	game.state["screen_orientation"] = selected_mode
+	game.save_game()
+	_apply_screen_orientation(selected_mode)
+	show_page("settings")
 
 func toggle_music_enabled():
 	audio_manager.set_music_enabled(not audio_manager.is_music_enabled())
@@ -947,17 +2791,17 @@ func _add_audio_slider(kind):
 	slider.min_value = 0.0
 	slider.max_value = 1.0
 	slider.step = 0.05
-	slider.rect_min_size = Vector2(0, 42)
+	slider.custom_minimum_size = Vector2(0, 42)
 	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if kind == "music":
 		slider.value = audio_manager.get_music_volume()
-		slider.connect("value_changed", self, "_on_music_volume_changed")
+		slider.connect("value_changed", Callable(self, "_on_music_volume_changed"))
 	elif kind == "environment":
 		slider.value = audio_manager.get_environment_volume()
-		slider.connect("value_changed", self, "_on_environment_volume_changed")
+		slider.connect("value_changed", Callable(self, "_on_environment_volume_changed"))
 	else:
 		slider.value = audio_manager.get_effects_volume()
-		slider.connect("value_changed", self, "_on_effects_volume_changed")
+		slider.connect("value_changed", Callable(self, "_on_effects_volume_changed"))
 	content.add_child(slider)
 
 func _on_music_volume_changed(value):
@@ -970,63 +2814,107 @@ func _on_environment_volume_changed(value):
 	audio_manager.set_environment_volume(value)
 
 func _open_help():
+	if help_overlay == null or not is_instance_valid(help_overlay) or game_scroll_container == null or not is_instance_valid(game_scroll_container):
+		return
+	help_previous_page = current_page if current_page != "help" else "home"
+	var old_parent = game_scroll_container.get_parent()
+	if old_parent != null:
+		help_scroll_original_index = old_parent.get_children().find(game_scroll_container)
+		old_parent.remove_child(game_scroll_container)
+	if game_scroll_container.get_parent() == null:
+		help_body.add_child(game_scroll_container)
+	game_scroll_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	menu_overlay.visible = false
+	menu_panel.visible = false
+	help_overlay.visible = true
 	show_page("help")
 	if game_scroll_container != null and is_instance_valid(game_scroll_container):
 		game_scroll_container.scroll_vertical = 0
 
+func _close_help():
+	if help_overlay != null and is_instance_valid(help_overlay):
+		help_overlay.visible = false
+	if game_scroll_container != null and is_instance_valid(game_scroll_container):
+		var old_parent = game_scroll_container.get_parent()
+		if old_parent != null:
+			old_parent.remove_child(game_scroll_container)
+		if main_layout != null and is_instance_valid(main_layout):
+			main_layout.add_child(game_scroll_container)
+			main_layout.move_child(game_scroll_container, clamp(help_scroll_original_index, 0, main_layout.get_child_count() - 1))
+	show_page(help_previous_page)
+
+func _open_help_target(target_page):
+	_close_help()
+	show_page(str(target_page))
+
 func _add_help_section(title, description, target_page=""):
-	var panel = PanelContainer.new()
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var panel_style = StyleBoxFlat.new()
-	panel_style.bg_color = Color("#1e293b")
-	panel_style.border_color = Color("#475569")
-	panel_style.set_border_width_all(1)
-	panel_style.set_corner_radius_all(10)
-	panel_style.content_margin_left = 12
-	panel_style.content_margin_right = 12
-	panel_style.content_margin_top = 10
-	panel_style.content_margin_bottom = 10
-	panel.add_stylebox_override("panel", panel_style)
-	content.add_child(panel)
-	var body = VBoxContainer.new()
-	body.add_constant_override("separation", 5)
-	panel.add_child(body)
-	var heading = Label.new()
-	heading.text = PersianText.reshaper(title)
-	heading.align = Label.ALIGN_RIGHT
-	heading.autowrap = true
-	_apply_font(heading, 18 if get_viewport_rect().size.x < 900 else 17)
-	heading.add_color_override("font_color", Color("#fbbf24"))
-	body.add_child(heading)
-	var details = Label.new()
-	details.text = PersianText.reshaper(description)
-	details.align = Label.ALIGN_RIGHT
-	details.autowrap = true
-	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_apply_font(details, 16 if get_viewport_rect().size.x < 900 else 15)
-	details.add_color_override("font_color", Color("#e2e8f0"))
-	body.add_child(details)
-	if str(target_page) != "":
-		var jump = Button.new()
-		jump.text = PersianText.reshaper("رفتن به بخش مربوط  ←")
-		jump.rect_min_size = Vector2(0, 48 if get_viewport_rect().size.x < 900 else 42)
-		jump.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_apply_font(jump, 16 if get_viewport_rect().size.x < 900 else 15)
-		_style_button(jump, false)
-		jump.connect("pressed", self, "show_page", [str(target_page)])
-		body.add_child(jump)
+	HelpPageBuilder.add_section(self, title, description, target_page)
 
 func _open_missions_from_welcome():
 	show_page("missions")
 	if game_scroll_container != null and is_instance_valid(game_scroll_container):
 		game_scroll_container.scroll_vertical = 0
 
-func set_report_filter(index):
-	var filter_ids = ["all","events","citizens","issues","finance","progress","trade"]
-	if index >= 0 and index < filter_ids.size():
-		report_filter_category = filter_ids[index]
+func _add_progress_missions_tabs(active_page):
+	var tabs = HBoxContainer.new()
+	tabs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tabs.add_theme_constant_override("separation", 6)
+	content.add_child(tabs)
+	var tab_data = [
+		{"id":"achievements","title":"🏅 دستاوردها"},
+		{"id":"missions","title":"🎯 مأموریت‌ها"},
+		{"id":"progress","title":"📈 پیشرفت شهر"}
+	]
+	for tab in tab_data:
+		var selected = str(active_page) == str(tab.id)
+		var tab_button = Button.new()
+		tab_button.text = PersianText.reshaper(str(tab.title))
+		tab_button.custom_minimum_size = Vector2(0, 48 if get_viewport_rect().size.x < 900 else 44)
+		tab_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_apply_font(tab_button, 15 if get_viewport_rect().size.x < 500 else 16)
+		_style_progress_missions_tab(tab_button, selected)
+		tab_button.disabled = selected
+		tab_button.pressed.connect(Callable(self, "show_page").bind(str(tab.id)))
+		tabs.add_child(tab_button)
+
+func _style_progress_missions_tab(button, selected):
+	var normal_color = Color("#2563eb") if selected else Color("#263445")
+	var hover_color = Color("#1d4ed8") if selected else Color("#34465c")
+	var pressed_color = Color("#1e40af") if selected else Color("#1e293b")
+	var border_color = Color("#93c5fd") if selected else Color("#526579")
+	var normal_style = MainUITheme.button_style(normal_color, border_color)
+	var hover_style = MainUITheme.button_style(hover_color, border_color)
+	var pressed_style = MainUITheme.button_style(pressed_color, border_color)
+	button.flat = false
+	button.focus_mode = Control.FOCUS_NONE
+	button.action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
+	button.add_theme_stylebox_override("normal", normal_style)
+	button.add_theme_stylebox_override("hover", hover_style)
+	button.add_theme_stylebox_override("focus", hover_style)
+	button.add_theme_stylebox_override("pressed", pressed_style)
+	button.add_theme_stylebox_override("disabled", normal_style)
+	for color_name in ["font_color", "font_color_hover", "font_color_focus", "font_color_pressed", "font_color_disabled"]:
+		button.add_theme_color_override(color_name, Color("#ffffff"))
+
+func _on_navigation_pressed(page, button, title):
+	var civic_page_locked = page in ["municipality", "private_economy"] and not game.has_municipal_hall()
+	button.text = PersianText.reshaper(str(title) + (" 🔒" if civic_page_locked else ""))
+	if civic_page_locked:
+		_show_message("برای باز شدن این بخش، ابتدا ساختمان شهرداری را بساز و ساخت آن را کامل کن.")
+		return
+	show_page(page)
+
+func _set_report_filter(category):
+	report_filter_category = str(category)
 	show_page("report")
+
 func show_page(page):
+	# City overview and citizen management are one combined destination.
+	if page == "citizens":
+		page = "home"
+	# Keep every trading destination inside one unified market screen.
+	if page in ["imports", "market"]:
+		page = "commerce"
 	var civic_page_locked = page in ["municipality", "private_economy"] and not game.has_municipal_hall()
 	if civic_page_locked:
 		page = "home"
@@ -1040,709 +2928,58 @@ func show_page(page):
 	var s = game.state
 	_update_progress_hud()
 	_update_mission_reward_badge()
-	if page == "home" or page == "buildings":
-		var active_constructions = game.get_construction_status()
-		_add_label("ظرفیت ساخت‌وساز: %d از %d پروژه فعال" % [game.get_active_construction_count(), game.MAX_CONCURRENT_CONSTRUCTIONS], 17)
-		if active_constructions.size() > 0:
-			_add_label("🏗️ پروژه‌های در حال ساخت", 19)
-			for project in active_constructions:
-				var seconds_left = int(project.remaining)
-				var time_label = _add_label("%s | زمان باقی‌مانده: %02d:%02d" % [str(project.name), int(seconds_left / 60), seconds_left % 60], 16)
-				construction_time_labels.append({"label":time_label,"name":str(project.name)})
+	_refresh_currency_hud()
+	_update_bottom_navigation()
 	match page:
+		"development":
+			_add_label("🏗️ توسعه شهر", 25)
+			_add_label("تمام ابزارهای ساخت، گسترش و مدیریت زیرساخت‌های شهر در این بخش قرار دارند.", 16)
+			_add_button("🏗️ ساختمان‌ها و ساخت‌وساز", self, "show_page", ["buildings"])
+			_add_button("🛣️ توسعه شهر و حمل‌ونقل", self, "show_page", ["transport"])
 		"home":
-			_add_label("وضعیت کلی شهر", 22)
-			_show_welcome_mission_hint()
-			_add_label("روز %d  |  سطح شهر %d" % [s.day,s.level], 19)
-			var weekly_city_event = game.get_weekly_city_event()
-			_add_label("🌟 رویداد این هفته: %s" % str(weekly_city_event.get("title","")),17)
-			_add_label("%s | اثر: %s" % [str(weekly_city_event.get("description","")),str(weekly_city_event.get("effect",""))],14)
-
-			var pending_decision = game.get_pending_city_decision()
-			if not pending_decision.empty():
-				_add_label("⚖️ تصمیم مهم شهروندان",20)
-				_add_label(str(pending_decision.get("title","تصمیم شهر")),18)
-				_add_label(str(pending_decision.get("description","")),15)
-				for decision_option in pending_decision.get("options", []):
-					_add_button(str(decision_option.get("label","انتخاب")),self,"resolve_city_decision",[str(decision_option.get("id",""))])
-			var rival_standings = game.get_rival_standings()
-			var my_rank = 0
-			for rival_row in rival_standings:
-				if bool(rival_row.get("is_player",false)):
-					my_rank = int(rival_row.get("rank",0))
-			_add_label("🏁 جایگاه فعلی شهر در رقابت: رتبه %d از %d" % [my_rank,rival_standings.size()],16)
-			var recent_city_events = s.get("city_event_history",[])
-			if not recent_city_events.empty():
-				var recent_event = recent_city_events[recent_city_events.size()-1]
-				_add_label("🎲 آخرین اتفاق شهر | روز %d: %s" % [int(recent_event.get("day",s.day)),str(recent_event.get("title","رویداد"))],16)
-			clock_label = _add_label("روز | زمان باقی‌مانده: 00:07", 18)
-			_add_label("خزانه: %d / %d سکه  |  پول قفل‌شده: %d" % [s.money,game.get_treasury_capacity(),game.get_locked_money()], 20)
-			_add_label("جمعیت: %d نفر  |  شاغل: %d  |  بیکار: %d" % [s.population,game.get_employed_count(),game.get_unemployed_count()], 19)
-			var login_reward_status = game.get_login_reward_status()
-			_add_label("🎁 زنجیره ورود: %d روز | هدیه امروز: %d سکه" % [int(login_reward_status.streak),int(login_reward_status.reward)],16)
-			var login_reward_button = _add_button("🎁 دریافت هدیه ورود روزانه",self,"claim_login_reward")
-			login_reward_button.disabled = bool(login_reward_status.claimed) or not bool(login_reward_status.logged_in)
-			var municipal_economy = s.get("last_economy", {})
-			var municipal_daily_income = int(municipal_economy.get("tax_income",0)) + int(municipal_economy.get("consumer_tax_income",0)) + int(municipal_economy.get("station_income",0)) + int(municipal_economy.get("road_income",0))
-			var municipal_daily_total = int(municipal_economy.get("accepted_income",0))
-			_add_label("درآمد روزانه شهرداری: %d سکه" % municipal_daily_total, 18)
-			_add_label("اعتبار شهر: %d  |  رضایت: %d/۱۰۰" % [s.reputation,int(s.get("satisfaction",50))], 18)
-
-			_add_home_services_panel(s)
-
-			var buildings_toggle = _add_button(("▼ " if home_buildings_expanded else "▶ ") + "ساختمان‌های ساخته‌شده", self, "toggle_home_buildings")
-			_style_button(buildings_toggle, false)
-			if home_buildings_expanded:
-				var home_categories = ["خانه‌ها","کشاورزی","معادن","کارخانه‌ها","کسب‌وکارها","خدمات شهری","تفریح و فرهنگ","انبارها"]
-				var any_home_building = false
-				for home_category in home_categories:
-					var category_rows = []
-					for home_id in game.get_building_definitions().keys():
-						var home_data = game.get_building_definitions()[home_id]
-						if str(home_data.get("category","")) == home_category:
-							var home_count = game.get_building_count(home_id)
-							if home_count > 0:
-								category_rows.append({"id":home_id,"name":str(home_data.name),"count":home_count})
-					if not category_rows.empty():
-						any_home_building = true
-						_add_label("【"+home_category+"】", 17)
-						for home_row in category_rows:
-							_add_label("%s  |  تعداد: %d" % [home_row.name,home_row.count], 16)
-				if not any_home_building:
-					_add_label("هنوز ساختمانی در شهر ساخته نشده است.", 16)
-
-			var demolish_toggle = _add_button(("▼ " if demolish_panel_expanded else "▶ ") + "مدیریت تخریب ساختمان‌ها", self, "toggle_demolish_panel")
-			_style_button(demolish_toggle, false)
-			if demolish_panel_expanded:
-				_add_label("ساختمان موردنظر را انتخاب کن:", 16)
-				for home_id in game.get_building_definitions().keys():
-					var home_count = game.get_building_count(home_id)
-					if home_count <= 0:
-						continue
-					var home_data = game.get_building_definitions()[home_id]
-					var home_button = _add_button("%s  |  تعداد: %d" % [str(home_data.name),home_count], self, "select_home_building", [home_id])
-					_style_button(home_button, false)
-					if selected_home_building_id == str(home_id):
-						home_button.add_color_override("font_color", Color("#fde68a"))
-				if selected_home_building_id != "" and game.get_building_count(selected_home_building_id) > 0:
-					var selected_definition = game.get_building_definitions()[selected_home_building_id]
-					var selected_count = game.get_building_count(selected_home_building_id)
-					_add_label("انتخاب‌شده: %s  |  موجود: %d" % [selected_definition.name,selected_count], 17)
-					_add_label("تعداد برای تخریب: %d" % selected_demolish_quantity, 16)
-					var quantity_row = HBoxContainer.new()
-					quantity_row.add_constant_override("separation", 8)
-					content.add_child(quantity_row)
-					var less_button = Button.new()
-					less_button.text = "−"
-					less_button.rect_min_size = Vector2(70,58)
-					_apply_font(less_button,24)
-					_style_button(less_button,false)
-					less_button.connect("pressed",self,"adjust_demolish_quantity",[-1])
-					quantity_row.add_child(less_button)
-					var more_button = Button.new()
-					more_button.text = "+"
-					more_button.rect_min_size = Vector2(70,58)
-					_apply_font(more_button,24)
-					_style_button(more_button,false)
-					more_button.connect("pressed",self,"adjust_demolish_quantity",[1])
-					quantity_row.add_child(more_button)
-					var demolish_button = _add_button("تخریب %d عدد از %s" % [selected_demolish_quantity,selected_definition.name],self,"demolish_selected_buildings")
-					_style_button(demolish_button, false)
-					if selected_home_building_id == "small_house" and selected_count <= 1:
-						demolish_button.disabled = true
-				else:
-					_add_label("برای تخریب، ابتدا یک ساختمان را انتخاب کن.", 15)
-
-			var economy_toggle = _add_button(("▼ " if home_economy_expanded else "▶ ") + "منابع و گزارش مالی", self, "toggle_home_economy")
-			_style_button(economy_toggle, false)
-			if home_economy_expanded:
-				_add_label("منابع: " + _resource_summary(), 16)
-				_add_label("ذخیره غذای شهر: %d واحد" % int(s.resources.get("food",0)), 16)
-				var home_economy = s.get("last_economy", {})
-				_add_label("آخرین تراز روزانه: %d سکه" % int(home_economy.get("net_cashflow",0)), 17)
-				_add_label("درآمد ایستگاه‌ها و پایانه‌ها: %d سکه" % int(home_economy.get("station_income",0)), 16)
-				_add_label("عوارض جاده‌ای: %d سکه" % int(home_economy.get("road_income",0)), 16)
-			var save_city_button = _add_button("💾 ذخیره شهر", self, "save_now")
-			_style_button(save_city_button, false)
+			_add_label("دسترسی‌های مدیریت شهر", 18)
+			_add_button("🏛️ شهرداری و خدمات شهری", self, "show_page", ["municipality"])
+			_add_button("🏢 اقتصاد خصوصی و کسب‌وکارها", self, "show_page", ["private_economy"])
+			var home_reports_button = _add_button("📋 گزارش‌ها و مشکلات شهر", self, "show_page", ["report"])
+			home_reports_button.name = "HomeReportsButton"
+			HomePage.build(self, s)
+		"map":
+			MapPage.build(self, s)
 		"buildings":
-			_add_label("ساخت‌وساز شهر", 22)
-			_add_label("زمین شهر: %d قطعه | اشغال‌شده: %d | آزاد: %d" % [int(s.get("land_owned",10)),game.get_land_used(),game.get_land_free()], 19)
-			_add_label("برای گسترش شهر باید زمین بخری؛ هر ساختمان چند قطعه از زمین را اشغال می‌کند.", 15)
-			var land_button = _add_button("خرید ۱ قطعه زمین | قیمت: %d سکه" % game.get_land_unit_price(), self, "buy_land")
-			land_button.disabled = game.get_available_money() < game.get_land_unit_price()
-			var categories = ["همه","خانه‌ها","کشاورزی","ماهیگیری","معادن","کارخانه‌ها","کسب‌وکارها","خدمات شهری","تفریح و فرهنگ","انبارها"]
-			_add_label("برای دیدن ساختمان‌ها، دسته موردنظر را باز کن:", 18)
-			for category in categories:
-				var is_expanded = selected_building_category == category
-				var category_button = _add_button(("▼ " if is_expanded else "▶ ") + category, self, "select_building_category", [category])
-				if is_expanded:
-					_add_building_category_items(category)
-			if selected_building_category == "همه" or selected_building_category == "معادن":
-				_add_label("مدیریت معادن:", 18)
-				for mine_index in range(game.get_mines().size()):
-					var mine = game.get_mines()[mine_index]
-					var mine_status = ("فعال" if bool(mine.get("active",false)) else "متوقف")
-					if str(mine.get("resource","")) == "iron_ore":
-						mine_status += " | ذخیره: %d" % int(mine.get("remaining",0))
-						if int(mine.get("remaining",0)) <= 0:
-							_add_button("شارژ معدن آهن — ۱۰۰۰ سکه", self, "refill_mine", [mine_index])
-					_add_label("%s — %s" % [game.get_resource_definitions()[str(mine.get("resource","stone"))].name,mine_status])
-			_add_label("ساختمان‌ها:", 18)
-			var district_ids = []
-			var district_names = {}
-			for building in s.buildings:
-				var district_id = str(building.get("district_id", ""))
-				var district_name = str(building.get("district_name", "منطقه صنعتی خارج شهر"))
-				var group_id = district_id if district_id != "" else "industrial"
-				if not district_ids.has(group_id):
-					district_ids.append(group_id)
-					district_names[group_id] = district_name
-			for district_id in district_ids:
-				var group_name = str(district_names.get(district_id, "منطقه صنعتی خارج شهر"))
-				var expanded = bool(current_district_expanded.get(district_id, false))
-				var district_button = _add_button(("▼ " if expanded else "▶ ") + group_name, self, "toggle_current_district", [district_id])
-				_style_button(district_button, false)
-				if expanded:
-					var capacity_info = game.get_district_capacity_summary(district_id)
-					_add_label("ظرفیت محله | خانه‌ها: %d/۲۰  •  ساختمان‌های عادی: %d/۲۰  •  اضطراری: %d/۱۰" % [int(capacity_info.get("house_count",0)),int(capacity_info.get("other_count",0)),int(capacity_info.get("emergency_count",0))], 15)
-					_add_label("حداکثر ۲ عدد از هر نوع ساختمان؛ سهمیه اضطراری جدا از ظرفیت عادی است.", 14)
-					var district_building_counts = {}
-					for building in s.buildings:
-						var count_district_id = str(building.get("district_id", ""))
-						var count_group_id = count_district_id if count_district_id != "" else "industrial"
-						if count_group_id != district_id:
-							continue
-						var count_building_id = str(building.get("id", ""))
-						district_building_counts[count_building_id] = int(district_building_counts.get(count_building_id, 0)) + 1
-					var district_building_labels = {}
-					for i in range(s.buildings.size()):
-						var building = s.buildings[i]
-						var building_district_id = str(building.get("district_id", ""))
-						var building_group_id = building_district_id if building_district_id != "" else "industrial"
-						if building_group_id != district_id:
-							continue
-						var building_id = str(building.get("id", ""))
-						var building_definition = game.get_building_definitions().get(building_id, {})
-						if not district_building_labels.has(building_id):
-							var building_count = int(district_building_counts.get(building_id, 1))
-							var building_name = str(building_definition.get("name", "ساختمان"))
-							_add_label("%s ×%d" % [building_name, building_count], 16)
-							district_building_labels[building_id] = true
-						var production_output = str(building_definition.get("output", ""))
-						if production_output != "":
-							var assigned_workers = game._workers_for_building(i)
-							var required_workers = int(building_definition.get("jobs", 0))
-							var production_amount = int(building_definition.get("amount", 0))
-							var production_status = "آماده تولید در نوبت اقتصادی بعدی"
-							if assigned_workers <= 0:
-								production_status = "متوقف — بدون کارگر"
-							elif building_id == "woodcutter" and game.get_forest_tree_count() <= 0:
-								production_status = "متوقف — درختی در جنگل باقی نمانده"
-							elif str(building_definition.get("input", "")) != "" and int(s.resources.get(str(building_definition.get("input", "")), 0)) < int(building_definition.get("input_amount", 0)):
-								production_status = "متوقف — مواد اولیه کافی نیست"
-							elif game.get_free_storage() < production_amount:
-								production_status = "متوقف — انبار جا ندارد"
-							_add_label("وضعیت تولید: %s" % production_status, 15)
-							_add_label("نیروی کار: %d از %d نفر | محصول: %s" % [assigned_workers, required_workers, str(game.get_resource_definitions().get(production_output, {}).get("name", production_output))], 14)
-						if int(building.get("balance", 0)) > 0:
-							_add_label("سود در انتظار انتقال خودکار %s: %d سکه" % [str(building_definition.get("name", "ساختمان")), int(building.get("balance", 0))], 15)
-			if district_ids.size() == 0:
-				_add_label("هنوز ساختمانی در محله‌ای ساخته نشده است.", 15)
+			BuildingsPage.build(self, s)
 		"citizens":
-			_add_label(" جمعیت: %d | شاغل: %d | بیکار: %d" % [s.population,game.get_employed_count(),game.get_unemployed_count()], 20)
-			var poor_citizens = 0
-			var middle_citizens = 0
-			var wealthy_citizens = 0
-			for wealth_citizen in s.citizens:
-				var citizen_wallet = int(wealth_citizen.get("wallet",0))
-				if citizen_wallet < 500:
-					poor_citizens += 1
-				elif citizen_wallet < 1200:
-					middle_citizens += 1
-				else:
-					wealthy_citizens += 1
-			_add_label("وضعیت اقتصادی شهروندان | فقیر: %d نفر  |  متوسط: %d نفر  |  ثروتمند: %d نفر" % [poor_citizens,middle_citizens,wealthy_citizens], 17)
-			_add_label("ظرفیت مسکن: %d | ظرفیت شغلی: %d" % [game.get_housing_capacity(),game.get_job_capacity()])
-			_add_label("رضایت شهروندان: %d/۱۰۰" % int(s.get("satisfaction",50)))
-			_add_label("نیازهای روزانه: " + _needs_summary(), 15)
-			var resident_requests = s.get("resident_requests",[])
-			_add_label("📣 درخواست‌های شهروندان: %d" % resident_requests.size(),18)
-			for resident_request in resident_requests:
-				_add_label(str(resident_request.get("title","درخواست شهروندان"))+" | روز "+str(int(resident_request.get("day",s.day))),17)
-				_add_label(str(resident_request.get("description","")),15)
-				var request_building_button = _add_button("🏗️ ساخت پیشنهادی",self,"go_to_resident_request_building",[str(resident_request.get("building_id",""))])
-				request_building_button.rect_min_size = Vector2(0, 42 if get_viewport_rect().size.x < 900 else 36)
-				_apply_font(request_building_button, 16 if get_viewport_rect().size.x < 900 else 15)
-				if bool(resident_request.get("accepted",false)):
-					_add_label("✓ پذیرفته شده؛ با ساخت ساختمان پیشنهادی، درخواست تکمیل می‌شود.",15)
-				else:
-					_add_button("پذیرفتن و تعهد ساخت",self,"resolve_resident_request",[int(resident_request.get("id",0)),true])
-					_add_button("رد درخواست",self,"resolve_resident_request",[int(resident_request.get("id",0)),false])
-			_add_label("روش جذب شهروند: " + ("خودکار" if str(s.get("citizen_recruitment_mode","auto")) == "auto" else "دستی"), 18)
-			var auto_recruit_button = _add_button("فعال‌کردن جذب خودکار", self, "set_recruitment_mode", ["auto"])
-			var manual_recruit_button = _add_button("فعال‌کردن جذب دستی", self, "set_recruitment_mode", ["manual"])
-			auto_recruit_button.disabled = str(s.get("citizen_recruitment_mode","auto")) == "auto"
-			manual_recruit_button.disabled = str(s.get("citizen_recruitment_mode","auto")) == "manual"
-			_add_label("درخواست‌های در انتظار: %d" % s.get("citizen_requests", []).size(), 18)
-			for request_index in range(s.get("citizen_requests", []).size()):
-				var request = s.citizen_requests[request_index]
-				_add_label("متقاضی شماره %d | درخواست در روز %d" % [int(request.get("id",0)),int(request.get("day",s.day))], 17)
-				_add_button("قبول درخواست شماره %d" % int(request.get("id",0)), self, "accept_citizen_request", [request_index])
-				_add_button("رد درخواست شماره %d" % int(request.get("id",0)), self, "reject_citizen_request", [request_index])
-			if int(s.population) >= game.get_housing_capacity():
-				_add_label("ظرفیت خانه‌ها پر است؛ برای جذب شهروند جدید خانه بساز.", 15)
-			elif int(s.reputation) < 25:
-				_add_label("اعتبار شهر باید حداقل ۲۵ باشد تا متقاضی جدید بیاید.", 15)
-			var citizen_groups = {"بیکاران":[],"کارمندان شهرداری":[],"کارمندان بخش خصوصی":[],"کارآفرینان بخش خصوصی":[]}
-			for citizen in s.citizens:
-				var group_name = "بیکاران"
-				if str(citizen.get("job","")) != "":
-					group_name = "کارمندان شهرداری"
-				elif int(citizen.get("private_business_id",0)) > 0:
-					group_name = "کارآفرینان بخش خصوصی"
-				elif int(citizen.get("private_job_id",0)) > 0:
-					group_name = "کارمندان بخش خصوصی"
-				citizen_groups[group_name].append(citizen)
-			for group_name in ["بیکاران","کارمندان شهرداری","کارمندان بخش خصوصی","کارآفرینان بخش خصوصی"]:
-				var group_citizens = citizen_groups[group_name]
-				if group_citizens.empty():
-					continue
-				var group_expanded = bool(citizen_status_expanded.get(group_name,false))
-				var group_button = _add_button(("%s " % ("▼" if group_expanded else "▶")) + "%s (%d)" % [group_name,group_citizens.size()], self, "toggle_citizen_status_group", [group_name])
-				_style_button(group_button,false)
-				if group_expanded:
-					for citizen in group_citizens:
-						var citizen_role = group_name
-						if str(citizen.get("job","")) != "":
-							citizen_role += ": " + str(citizen.job)
-						_add_label("شهروند %s — %s | کیف پول: %d سکه | زمین خصوصی: %d قطعه" % [str(citizen.id),citizen_role,int(citizen.get("wallet",0)),int(citizen.get("private_land",0))])
-						var interest_names = {"food":"خوراک","industry":"صنعت","services":"خدمات"}
-						_add_label("استعداد کارآفرینی: %d | ریسک‌پذیری: %d | علاقه: %s | پس‌انداز: %d" % [int(citizen.get("entrepreneurship",0)),int(citizen.get("risk_tolerance",0)),str(interest_names.get(str(citizen.get("business_interest","")),"نامشخص")),int(citizen.get("saving_habit",0))], 14)
-			_add_button(" تخصیص دوباره شغل‌ها", self, "reassign_jobs")
+			CitizensPage.build(self, s)
 		"bank":
-			_add_label("🏦 بانک و امور مالی شهر",22)
-			_add_label("بانک مرکزی: %s | بانک شهری: %d" % ["فعال" if game.has_central_bank() else "ساخته نشده",game.get_building_count("municipal_bank")],17)
-			_add_label("وام فقط با بانک مرکزی و سپرده‌گذاری با بانک شهری فعال می‌شود.",15)
-			_add_label("موجودی خزانه: %d سکه | ظرفیت آزاد: %d سکه" % [int(s.money),game.get_available_money()],16)
-			_add_label("حداکثر وام قابل دریافت: %d سکه" % game.get_bank_loan_limit(),16)
-			var player_active_loans = 0
-			for player_loan in s.get("bank_loans", []):
-				if str(player_loan.get("status", "active")) == "active":
-					player_active_loans += 1
-			_add_label("وام‌های فعال شهرداری: %d از ۲" % player_active_loans,16)
-			_add_label("شهروندان شاغل و کم‌پول نیز در صورت فعال‌بودن بانک مرکزی، خودکار وام می‌گیرند؛ سقف هر شهروند ۲ وام فعال است و قسط از کیف پول خودش کم می‌شود.",15)
-			var citizen_active_loans = 0
-			for bank_citizen in s.get("citizens", []):
-				for citizen_loan in bank_citizen.get("bank_loans", []):
-					if str(citizen_loan.get("status", "active")) == "active":
-						citizen_active_loans += 1
-			_add_label("وام‌های فعال شهروندان: %d" % citizen_active_loans,16)
-			_add_label("💳 دریافت وام",19)
-			for loan_option in [{"amount":1000,"days":7},{"amount":3000,"days":14},{"amount":5000,"days":30}]:
-				var loan_button = _add_button("درخواست وام %d سکه‌ای — %d روزه" % [int(loan_option.amount),int(loan_option.days)],self,"request_bank_loan",[int(loan_option.amount),int(loan_option.days)])
-				loan_button.disabled = not game.has_central_bank() or game.get_bank_loan_limit() < int(loan_option.amount) or player_active_loans >= 2
-			for loan_index in range(s.get("bank_loans",[]).size()):
-				var loan = s.bank_loans[loan_index]
-				_add_label("وام #%d | اصل: %d | سود: %d | مانده: %d | وضعیت: %s" % [int(loan.get("id",loan_index+1)),int(loan.get("principal",0)),int(loan.get("interest",0)),int(loan.get("remaining",0)),"فعال" if str(loan.get("status","")) == "active" else "تسویه‌شده"],15)
-				if str(loan.get("status","")) == "active":
-					var manual_button = _add_button("پرداخت دستی قسط وام #%d — تا %d سکه" % [int(loan.get("id",loan_index+1)),min(int(loan.get("remaining",0)),int(loan.get("daily_installment",0)))],self,"repay_bank_loan_manual",[loan_index])
-					manual_button.disabled = int(loan.get("last_manual_payment_day",0)) == int(s.get("day",1)) or game.get_available_money() <= 0
-					var full_button = _add_button("تسویه کامل وام #%d — %d سکه" % [int(loan.get("id",loan_index+1)),int(loan.get("remaining",0))],self,"repay_bank_loan",[loan_index])
-					full_button.disabled = game.get_available_money() < int(loan.get("remaining",0))
-			_add_label("🏧 سپرده‌گذاری",19)
-			_add_label("سود کل سپرده: ۷ روز ۳٪ | ۱۴ روز ۷٪ | ۳۰ روز ۱۵٪؛ برداشت پیش از سررسید بدون سود است.",14)
-			for deposit_option in [{"amount":500,"days":7},{"amount":1000,"days":14},{"amount":2500,"days":30}]:
-				var deposit_button = _add_button("سپرده %d سکه‌ای — %d روزه" % [int(deposit_option.amount),int(deposit_option.days)],self,"open_bank_deposit",[int(deposit_option.amount),int(deposit_option.days)])
-				deposit_button.disabled = game.get_building_count("municipal_bank") <= 0 or game.get_available_money() < int(deposit_option.amount)
-			for deposit_index in range(s.get("bank_deposits",[]).size()):
-				var deposit = s.bank_deposits[deposit_index]
-				var deposit_status = str(deposit.get("status","active"))
-				if deposit_status == "withdrawn":
-					continue
-				_add_label("سپرده #%d | اصل: %d | سود: %d | سررسید: روز %d | %s" % [int(deposit.get("id",deposit_index+1)),int(deposit.get("principal",0)),int(deposit.get("interest",0)),int(deposit.get("maturity_day",0)),"آماده برداشت" if deposit_status == "matured" or int(s.day) >= int(deposit.get("maturity_day",0)) else "در حال سپرده"],15)
-				_add_button("برداشت سپرده #%d" % int(deposit.get("id",deposit_index+1)),self,"withdraw_bank_savings",[deposit_index])
-			_add_label("📜 گردش حساب و سوابق مالی",19)
-			if s.get("bank_transactions",[]).empty():
-				_add_label("هنوز تراکنش بانکی ثبت نشده است.",15)
-			else:
-				for transaction_index in range(s.bank_transactions.size()-1,-1,-1):
-					var transaction = s.bank_transactions[transaction_index]
-					_add_label("روز %d | %s | %d سکه | %s" % [int(transaction.get("day",0)),str(transaction.get("kind","")),int(transaction.get("amount",0)),str(transaction.get("description",""))],14)
+			BankPage.build(self, s)
 		"municipality":
-			var civic = game.get_civic_overview()
-			_add_label("🏛️ شهرداری و مدیریت اقتصاد شهر", 22)
-			_municipality_section("🟨 زمین و قیمت‌گذاری", "land")
-			_add_label("زمین خصوصی آماده فروش: %d قطعه | قیمت هر قطعه: %d سکه" % [int(civic.get("private_land_available",0)),int(civic.get("private_land_price",300))], 17)
-			_add_button("کاهش قیمت زمین خصوصی ۵۰ سکه", self, "adjust_private_land_price", [-50])
-			_add_button("افزایش قیمت زمین خصوصی ۵۰ سکه", self, "adjust_private_land_price", [50])
-			_end_municipality_section()
-			_municipality_section("💰 مالیات و مجوزها", "tax")
-			_add_label("نرخ مالیات کسب‌وکارهای خصوصی: %d درصد" % int(civic.get("tax_rate",8)), 18)
-			var tax_down = _add_button("کاهش مالیات خصوصی ۱٪", self, "adjust_business_tax", [-1])
-			var tax_up = _add_button("افزایش مالیات خصوصی ۱٪", self, "adjust_business_tax", [1])
-			tax_down.disabled = int(civic.get("tax_rate",8)) <= 0
-			tax_up.disabled = int(civic.get("tax_rate",8)) >= 30
-			_add_label("هزینه صدور مجوز: %d سکه | درآمد مالیات امروز: %d سکه" % [int(civic.get("permit_fee",50)),int(civic.get("daily_tax",0))], 16)
-			_add_button("کاهش هزینه مجوز ۱۰ سکه", self, "adjust_business_permit_fee", [-10])
-			_add_button("افزایش هزینه مجوز ۱۰ سکه", self, "adjust_business_permit_fee", [10])
-			_add_label("درآمد فروش زمین و صدور مجوز جدا از مالیات محاسبه می‌شود.", 15)
-			_end_municipality_section()
-			_municipality_section("📨 درخواست‌های شهروندان", "requests")
-			_add_label("درخواست‌های شهروندان برای بررسی شهرداری: %d" % int(civic.get("request_count",0)), 19)
-			if civic.get("requests", []).empty():
-				_add_label("درخواستی در انتظار بررسی نیست.", 16)
-			for municipal_request in civic.get("requests", []):
-				_add_label("%s | شهروند شماره %d | روز %d | مبلغ: %d سکه" % [str(municipal_request.get("title","درخواست شهروند")),int(municipal_request.get("citizen_id",0)),int(municipal_request.get("day",s.day)),int(municipal_request.get("amount",0))], 17)
-				_add_button("تأیید درخواست", self, "resolve_civic_request", [int(municipal_request.get("id",0)), true])
-				_add_button("رد درخواست", self, "resolve_civic_request", [int(municipal_request.get("id",0)), false])
-			_end_municipality_section()
-			_municipality_section("🏢 املاک و درآمد اجاره", "properties")
-			_add_label("مجموع درآمد اجاره املاک شهرداری (جدا از مالیات): %d سکه" % int(civic.get("rent_income",0)), 16)
-			_add_label("املاک تجاری شهرداری:", 18)
-			var municipal_property_count = 0
-			for property_index in range(s.buildings.size()):
-				var property = s.buildings[property_index]
-				var property_data = game.get_building_definitions().get(str(property.get("id","")), {})
-				var property_category = str(property_data.get("category",""))
-				if property_category != "کسب‌وکارها" and property_category != "کارخانه‌ها":
-					continue
-				municipal_property_count += 1
-				if int(property.get("rented_to",0)) > 0:
-					_add_label("%s | اجاره‌داده‌شده به شهروند %d | تا روز %d" % [str(property_data.get("name","ملک")),int(property.get("rented_to",0)),int(property.get("rent_until_day",0))],15)
-				else:
-					_add_label("%s | متعلق به شهرداری | آماده اجاره با درخواست شهروند" % str(property_data.get("name","ملک")),15)
-			if municipal_property_count == 0:
-				_add_label("هنوز ملک تجاری متعلق به شهرداری ساخته نشده است.", 16)
-			_end_municipality_section()
-			_municipality_section("🏗️ پروژه‌های عمرانی", "projects")
-			_add_label("پروژه‌های عمرانی در حال اجرا: %d" % int(civic.get("project_count",0)), 17)
-			for civic_project in civic.get("projects", []):
-				_add_label("%s | تحویل روز %d | اعتبار مالیاتی: %d سکه" % [str(game.get_building_definitions().get(str(civic_project.get("building_id","")),{}).get("name","پروژه")),int(civic_project.get("finish_day",0)),int(civic_project.get("tax_credit",0))], 15)
-			_end_municipality_section()
+			MunicipalityPage.build(self, s)
 		"private_economy":
-			var private_economy_data = game.get_civic_overview()
-			_add_label("🏙️ اقتصاد خصوصی و مشارکت مردمی", 22)
-			_add_label("این بخش با تصمیم شهروندان اداره می‌شود؛ مردم می‌توانند سرمایه‌گذاری کنند، شغل بسازند و برای توسعه خدمات عمومی پیشنهاد بدهند.", 15)
-			_add_label("کسب‌وکار خصوصی: %d | فروش روزانه: %d سکه" % [int(private_economy_data.get("business_count",0)),int(private_economy_data.get("daily_revenue",0))], 18)
-			_add_label("سرمایه در گردش: %d | مالیات امروز: %d سکه | نرخ مالیات: %d٪" % [int(private_economy_data.get("private_balance",0)),int(private_economy_data.get("daily_tax",0)),int(private_economy_data.get("tax_rate",8))], 16)
-			_add_label("زمین خصوصی آزاد: %d قطعه | قیمت هر قطعه: %d | هزینه مجوز: %d" % [int(private_economy_data.get("private_land_available",0)),int(private_economy_data.get("private_land_price",0)),int(private_economy_data.get("permit_fee",0))], 15)
-			_add_label("درخواست‌های منتظر تصمیم شهرداری: %d" % int(private_economy_data.get("request_count",0)), 18)
-			for request in private_economy_data.get("requests", []):
-				var request_type = str(request.get("type",""))
-				var citizen_id = int(request.get("citizen_id",0))
-				_add_label("📨 %s | متقاضی: شهروند %d | روز %d" % [str(request.get("title","درخواست شهروند")),citizen_id,int(request.get("day",s.day))], 16)
-				if request_type == "community_project":
-					_add_label("هزینه پروژه: %d | سهم مردم: %d | سهم شهرداری: %d" % [int(request.get("amount",0)),int(request.get("contribution",0)),int(request.get("municipal_amount",0))], 15)
-				elif request_type == "permit":
-					_add_label("هزینه کسب‌وکار و مجوز: %d | زمین موردنیاز: %d قطعه" % [int(request.get("amount",0)),int(request.get("footprint",1))], 15)
-				elif request_type == "land":
-					_add_label("تعداد زمین: %d | مبلغ معامله: %d" % [int(request.get("plots",1)),int(request.get("amount",0))], 15)
-				elif request_type == "rent":
-					_add_label("اجاره روزانه: %d | مبلغ ۷ روز: %d" % [int(request.get("daily_rent",0)),int(request.get("amount",0))], 15)
-				elif request_type == "public_project":
-					_add_label("هزینه پروژه با سرمایه کسب‌وکار: %d" % int(request.get("amount",0)), 15)
-				var request_row = HBoxContainer.new()
-				request_row.add_constant_override("separation", 8)
-				content.add_child(request_row)
-				var approve_button = Button.new()
-				approve_button.text = "تأیید"
-				_style_button(approve_button,false)
-				_apply_font(approve_button,16)
-				approve_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				approve_button.connect("pressed",self,"resolve_private_request",[int(request.get("id",0)),true])
-				request_row.add_child(approve_button)
-				var reject_button = Button.new()
-				reject_button.text = "رد درخواست"
-				_style_button(reject_button,false)
-				_apply_font(reject_button,16)
-				reject_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				reject_button.connect("pressed",self,"resolve_private_request",[int(request.get("id",0)),false])
-				request_row.add_child(reject_button)
-			if private_economy_data.get("requests", []).empty():
-				_add_label("درخواستی در انتظار نیست. شهروندان با توجه به نیازهای شهر و سرمایه‌شان پیشنهادهای تازه می‌سازند.", 15)
-			_add_label("🏗️ پروژه‌های مشارکتی در حال اجرا: %d" % int(private_economy_data.get("project_count",0)), 18)
-			for project in private_economy_data.get("projects", []):
-				var project_data = game.get_building_definitions().get(str(project.get("building_id","")),{"name":"پروژه شهری"})
-				_add_label("%s | پیشنهاددهنده: شهروند %d | تحویل روز %d" % [str(project_data.get("name","پروژه شهری")),int(project.get("citizen_id",0)),int(project.get("finish_day",0))], 15)
-				_add_label("سهم مردم: %d | سهم شهرداری: %d" % [int(project.get("citizen_contribution",0)),int(project.get("municipal_contribution",0))], 14)
-			_add_label("🏪 کسب‌وکارهای مردم", 19)
-			if private_economy_data.get("private_businesses", []).empty():
-				_add_label("هنوز کسب‌وکار خصوصی تأسیس نشده؛ مردم پس از پس‌انداز، برای زمین، اجاره ملک یا مجوز کسب‌وکار درخواست می‌دهند.", 15)
-			for business in private_economy_data.get("private_businesses", []):
-				_add_label("%s | مالک: شهروند %d | کارمند: %d | فروش روزانه: %d سکه" % [str(business.get("name","کسب‌وکار")),int(business.get("owner_citizen_id",0)),business.get("employees",[]).size(),int(business.get("last_revenue",0))], 16)
-				_add_label("سرمایه: %d | مالیات: %d | اعتبار مالیاتی پروژه‌ها: %d" % [int(business.get("balance",0)),int(business.get("last_tax",0)),int(business.get("tax_credit",0))], 14)
-				if bool(business.get("rented_municipal",false)):
-					_add_label("ملک شهرداری؛ پایان اجاره: روز %d" % int(business.get("rent_until_day",0)), 14)
-			_add_label("🧠 هوش و توان شهروندان", 19)
-			_add_label("تصمیم مردم بر اساس سرمایه، کارآفرینی، ریسک‌پذیری، خلاقیت، علاقه شغلی، رضایت عمومی و کمبود خدمات شهر گرفته می‌شود.", 15)
-			for citizen_index in range(min(8,s.citizens.size())):
-				var resident = s.citizens[citizen_index]
-				_add_label("شهروند %d | کیف پول: %d | کارآفرینی: %d | خلاقیت: %d | مشارکت اجتماعی: %d" % [int(resident.get("id",citizen_index+1)),int(resident.get("wallet",0)),int(resident.get("entrepreneurship",0)),int(resident.get("creativity",0)),int(resident.get("civic_mindedness",0))], 14)
-
+			PrivateEconomyPage.build(self, s)
 		"commerce":
-			_add_label("🛒 بازار، تجارت و واردات", 22)
-			_add_label("فهرست استان‌های تجاری هر روز تغییر می‌کند و با ارتقای سطح شهر، گزینه‌های بیشتری آزاد می‌شود.", 15)
-			_add_button(("▼ " if commerce_section_expanded.domestic else "▶ ") + "بازار داخلی و خریدوفروش", self, "_toggle_commerce_section", ["domestic"])
-			if commerce_section_expanded.domestic:
-				_add_label("قیمت‌ها بر اساس عرضه و تقاضا تغییر می‌کنند.", 15)
-				for id in game.get_resource_definitions().keys():
-					var d = game.get_resource_definitions()[id]
-					var stock = int(s.resources.get(id,0))
-					var market_stock = int(s.market_stock.get(id,0))
-					var buy_price = game.get_market_price(id,"buy")
-					var sell_price = game.get_market_price(id,"sell")
-					_add_label("%s | انبار: %d | بازار: %d/۱۰۰ | خرید: %d | فروش: %d" % [d.name,stock,market_stock,buy_price,sell_price])
-					var buy_button = _add_button("خرید ۵ واحد "+d.name, self, "buy_item", [id,5])
-					buy_button.disabled = int(s.market_stock.get(id,0)) < 5 or game.get_free_storage() < 5 or game.get_available_money() < buy_price * 5
-					var sell_button = _add_button("فروش ۵ واحد "+d.name, self, "sell_item", [id,5])
-					sell_button.disabled = stock < 5 or int(s.market_stock.get(id,0)) > 95 or game.get_available_money() >= game.get_treasury_capacity()
-			_add_button(("▼ " if commerce_section_expanded.export else "▶ ") + "صادرات به استان‌ها", self, "_toggle_commerce_section", ["export"])
-			if commerce_section_expanded.export:
-				var trade_ids = game.get_daily_trade_city_ids()
-				_add_label("استان‌های فعال امروز: %d | ظرفیت حمل آزاد: %d واحد" % [trade_ids.size(),game.get_transport_capacity_remaining()],16)
-				_add_label("هر استان فقط کالاهای موردنیاز خودش را می‌خرد؛ کالاهای دیگر برای صادرات به آن استان پذیرفته نمی‌شوند. فهرست فردا تغییر می‌کند.",14)
-				for city_id in trade_ids:
-					var city = game.get_trade_cities()[city_id]
-					_add_label("%s | ظرفیت باقی‌مانده: %d از %d واحد" % [city.name,int(s.trade_remaining.get(city_id,city.daily_capacity)),int(city.daily_capacity)],18)
-					for resource_id in game.get_resource_definitions().keys():
-						var export_price = game.get_trade_export_price(city_id,resource_id)
-						if export_price <= 0:
-							continue
-						var city_demand_left = int(s.trade_demand_remaining.get(city_id,city.demand).get(resource_id,0))
-						_add_label("%s | تقاضا: %d | قیمت صادرات: %d سکه" % [game.get_resource_definitions()[resource_id].name,city_demand_left,export_price],15)
-						var export_button = _add_button("صادرات ۵ واحد "+game.get_resource_definitions()[resource_id].name+" به "+city.name,self,"export_to_city",[city_id,resource_id,5])
-						export_button.disabled = int(s.resources.get(resource_id,0)) <= 0 or int(s.trade_remaining.get(city_id,city.daily_capacity)) <= 0 or game.get_transport_capacity_remaining() <= 0
-				_add_label("آخرین معامله: "+str(s.get("last_trade_report","هنوز معامله‌ای انجام نشده است.")),16)
-			_add_button(("▼ " if commerce_section_expanded.import else "▶ ") + "واردات از استان‌ها", self, "_toggle_commerce_section", ["import"])
-			if commerce_section_expanded.import:
-				var import_ids = game.get_daily_trade_city_ids()
-				_add_label("استان‌های فعال امروز: %d | ظرفیت کامیون آزاد: %d از %d واحد" % [import_ids.size(),game.get_transport_capacity_remaining(),game.get_transport_daily_capacity()],16)
-				_add_label("هزینه کالا و ۱۰٪ کرایه حمل هنگام سفارش پرداخت می‌شود؛ زمان تحویل بسته به فاصله استان است.",15)
-				for city_id in import_ids:
-					var city = game.get_import_cities()[city_id]
-					_add_label("%s | زمان حمل: %d روز" % [city.name,int(city.travel_days)],18)
-					for resource_id in game.get_resource_definitions().keys():
-						var import_stock = int(s.city_export_stock.get(city_id,city.supply).get(resource_id,0))
-						var price = game.get_import_price(city_id,resource_id)
-						if import_stock <= 0:
-							continue
-						_add_label("%s | موجودی: %d | قیمت: %d سکه/واحد" % [game.get_resource_definitions()[resource_id].name,import_stock,price],15)
-						var import_button = _add_button("سفارش ۵ واحد "+game.get_resource_definitions()[resource_id].name+" از "+city.name,self,"import_from_city",[city_id,resource_id,5])
-						import_button.disabled = game.get_free_storage() < 5 or game.get_transport_capacity_remaining() < 5 or game.get_available_money() < (5 * price + int(ceil(float(5 * price) * 0.10)))
-			_add_button(("▼ " if commerce_section_expanded.shipments else "▶ ") + "محموله‌های در راه", self, "_toggle_commerce_section", ["shipments"])
-			if commerce_section_expanded.shipments:
-				if s.trade_shipments.empty():
-					_add_label("محموله‌ای در راه نیست.")
-				for shipment in s.trade_shipments:
-					var shipment_city = game.get_import_cities().get(str(shipment.get("city_id","")) ,{"name":"نامشخص"})
-					var shipment_resource = game.get_resource_definitions().get(str(shipment.get("resource_id","")) ,{"name":"کالای نامشخص"})
-					_add_label("#%d | %s | %d واحد %s | تحویل روز %d" % [int(shipment.get("id",0)),shipment_city.name,int(shipment.get("amount",0)),shipment_resource.name,int(shipment.get("arrival_day",0))],15)
-				_add_label("آخرین سفارش: "+str(s.get("last_import_report","")),15)
-			_add_button(("▼ " if commerce_section_expanded.contracts else "▶ ") + "قراردادهای واردات", self, "_toggle_commerce_section", ["contracts"])
-			if commerce_section_expanded.contracts:
-				if s.import_contracts.empty():
-					_add_label("قرارداد فعالی ثبت نشده است.")
-				for contract_index in range(s.import_contracts.size()):
-					var contract = s.import_contracts[contract_index]
-					var contract_city = game.get_import_cities().get(str(contract.get("city_id","")) ,{"name":"نامشخص"})
-					var contract_resource = game.get_resource_definitions().get(str(contract.get("resource_id","")) ,{"name":"نامشخص"})
-					var active_label = "فعال" if bool(contract.get("active",false)) else "پایان‌یافته/لغوشده"
-					_add_label("%s | %s | روزانه %d واحد | %d روز باقی‌مانده | %s" % [contract_city.name,contract_resource.name,int(contract.get("daily_amount",0)),int(contract.get("days_left",0)),active_label],15)
-					if bool(contract.get("active",false)):
-						_add_button("لغو قرارداد "+contract_resource.name,self,"cancel_import",[contract_index])
-				for import_city_id in game.get_daily_trade_city_ids():
-					var import_city = game.get_import_cities()[import_city_id]
-					_add_button("قرارداد ۷ روزه: ۲ واحد چوب از "+import_city.name,self,"make_import_contract",[import_city_id,"wood",2,7])
+			_add_button("📦 مدیریت انبار و تولید", self, "show_page", ["storage"])
+			CommercePage.build(self, s)
 		"transport":
-			_add_label("🛣️ جاده‌ها و حمل‌ونقل شهری و بین‌شهری",22)
-			_add_label("جاده‌های اصلی شهر و مسیرهای بین‌شهری",19)
-			_add_label("سطح جاده‌های بین‌شهری: %d از ۳" % int(s.get("road_level",1)),17)
-			var road_level = int(s.get("road_level",1))
-			if road_level < 3:
-				var next_road_cost = 1500 if road_level == 1 else 3500
-				var road_button = _add_button("احداث و ارتقای مسیر بین‌شهری به سطح %d — %d سکه" % [road_level+1,next_road_cost],self,"upgrade_road")
-				road_button.disabled = int(s.level) < road_level+1 or game.get_available_money() < next_road_cost
-			else:
-				_add_label("مسیرهای بین‌شهری به بالاترین سطح رسیده‌اند.")
-			_add_label("🚏 ایستگاه‌های حمل‌ونقل شهری",19)
-			_add_label("ایستگاه اتوبوس: %d | ایستگاه تاکسی: %d" % [game.get_building_count("bus_station"),game.get_building_count("taxi_station")],16)
-			for facility_id in ["bus_station","taxi_station"]:
-				var facility = game.get_building_definitions().get(facility_id,{})
-				if facility.empty():
-					continue
-				var facility_button = _add_button("ساخت "+str(facility.get("name","ایستگاه"))+" — %d سکه | زمین: %d قطعه" % [int(facility.get("cost",0)),game.get_land_size(facility_id)],self,"build_transport_facility",[facility_id])
-				facility_button.disabled = int(s.level) < int(facility.get("level_unlock",1))
-			_add_label("🚚 پایانه و ناوگان کامیون",19)
-			_add_label("پایانه حمل‌ونقل: %d | کامیون فعال: %d | ظرفیت روزانه: %d واحد" % [game.get_building_count("transport_depot"),game.get_transport_truck_count(),game.get_transport_daily_capacity()],17)
-			_add_label("ظرفیت مصرف‌شده امروز: %d | ظرفیت باقی‌مانده: %d" % [int(s.get("transport_used_today",0)),game.get_transport_capacity_remaining()],16)
-			_add_label("هر پایانه با ۲ کارمند، یک کامیون را فعال می‌کند؛ هر پایانه حداکثر ۲ کامیون پشتیبانی می‌کند.",15)
-			_add_label("نگهداری روزانه ناوگان: %d سکه | نگهداری جاده: %d سکه" % [game.get_fleet_maintenance(),game.get_road_maintenance()],16)
-			var depot = game.get_building_definitions().get("transport_depot",{})
-			if not depot.empty():
-				var depot_button = _add_button("ساخت پایانه حمل‌ونقل — %d سکه | زمین: %d قطعه" % [int(depot.get("cost",0)),game.get_land_size("transport_depot")],self,"build_transport_facility",["transport_depot"])
-				depot_button.disabled = int(s.level) < int(depot.get("level_unlock",1))
-			_add_label("ظرفیت کامیون‌ها بین واردات، قراردادهای تأمین و صادرات مشترک است.",15)
+			TransportPage.build(self, s)
 		"imports":
-			_add_label(" واردات و حمل‌ونقل بین‌شهری", 22)
-			_add_label("ظرفیت کامیون آزاد امروز: %d از %d واحد" % [game.get_transport_capacity_remaining(),game.get_transport_daily_capacity()],16)
-			_add_label("هزینه کالا و ۱۰٪ کرایه حمل هنگام سفارش پرداخت می‌شود. محموله پس از ۱ یا ۲ روز می‌رسد.",15)
-			for city_id in game.get_import_cities().keys():
-				var city = game.get_import_cities()[city_id]
-				_add_label("%s | زمان حمل: %d روز" % [city.name,int(city.travel_days)],18)
-				for resource_id in game.get_resource_definitions().keys():
-					var stock = int(s.city_export_stock.get(city_id,city.supply).get(resource_id,0))
-					var price = game.get_import_price(city_id,resource_id)
-					if stock <= 0:
-						continue
-					_add_label("%s | موجودی: %d | قیمت: %d سکه/واحد" % [game.get_resource_definitions()[resource_id].name,stock,price],15)
-					var import_button = _add_button("سفارش ۵ واحد "+game.get_resource_definitions()[resource_id].name+" از "+city.name,self,"import_from_city",[city_id,resource_id,5])
-					import_button.disabled = game.get_free_storage() < 5 or game.get_transport_capacity_remaining() < 5 or game.get_available_money() < (5 * price + int(ceil(float(5 * price) * 0.10)))
-			_add_label(" محموله‌های در راه:",18)
-			if s.trade_shipments.empty():
-				_add_label("محموله‌ای در راه نیست.")
-			for shipment in s.trade_shipments:
-				var shipment_city = game.get_import_cities().get(str(shipment.get("city_id","")),{"name":"نامشخص"})
-				var shipment_resource = game.get_resource_definitions().get(str(shipment.get("resource_id","")),{"name":"کالای نامشخص"})
-				_add_label("#%d | %s | %d واحد %s | تحویل روز %d" % [int(shipment.get("id",0)),shipment_city.name,int(shipment.get("amount",0)),shipment_resource.name,int(shipment.get("arrival_day",0))],15)
-			_add_label("آخرین سفارش: "+str(s.get("last_import_report","")),15)
-			_add_label(" قراردادهای واردات:",18)
-			if s.import_contracts.empty():
-				_add_label("قرارداد فعالی ثبت نشده است.")
-			for contract_index in range(s.import_contracts.size()):
-				var contract = s.import_contracts[contract_index]
-				var contract_city = game.get_import_cities().get(str(contract.get("city_id","")),{"name":"نامشخص"})
-				var contract_resource = game.get_resource_definitions().get(str(contract.get("resource_id","")),{"name":"نامشخص"})
-				var active_label = "فعال" if bool(contract.get("active",false)) else "پایان‌یافته/لغوشده"
-				_add_label("%s | %s | روزانه %d واحد | %d روز باقی‌مانده | %s" % [contract_city.name,contract_resource.name,int(contract.get("daily_amount",0)),int(contract.get("days_left",0)),active_label],15)
-				if bool(contract.get("active",false)):
-					_add_button("لغو قرارداد "+contract_resource.name,self,"cancel_import",[contract_index])
-			for city_id in game.get_import_cities().keys():
-				var city = game.get_import_cities()[city_id]
-				_add_button("قرارداد ۷ روزه: ۲ واحد چوب از "+city.name,self,"make_import_contract",[city_id,"wood",2,7])
+			ImportsPage.build(self, s)
 		"storage":
-			_add_label("مدیریت و تنظیم خودکار انبار", 22)
-			_add_label("ظرفیت: %d | مصرف‌شده: %d | فضای خالی: %d" % [game.get_storage_capacity(),game.get_storage_used(),game.get_free_storage()])
-			_add_label("برای هر ماده حداقل و حداکثر موجودی تعیین کن. تنظیمات در پایان هر روز اجرا می‌شوند.",15)
-			_add_label("اگر موجودی از حداقل کمتر شود، می‌توانی خرید از بازار یا افزایش تولید کارخانه را انتخاب کنی؛ اگر از حداکثر بیشتر شود، فروش خودکار انجام می‌شود.",15)
-			for id in game.get_resource_definitions().keys():
-				var resource_name = str(game.get_resource_definitions()[id].name)
-				var rule = game.get_storage_rule(id)
-				var current_amount = int(s.resources.get(id,0))
-				var market_amount = int(s.market_stock.get(id,0))
-				var is_expanded = bool(storage_section_expanded.get(str(id), false))
-				var section_button = _add_button(("▼ " if is_expanded else "▶ ") + resource_name + " | موجودی: %d" % current_amount,self,"toggle_storage_section",[str(id)])
-				_style_button(section_button,false)
-				if not is_expanded:
-					continue
-				var section_body = VBoxContainer.new()
-				section_body.add_constant_override("separation",5)
-				section_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				content.add_child(section_body)
-				active_section_container = section_body
-				_add_label("موجودی انبار: %d | موجودی بازار: %d" % [current_amount,market_amount],16)
-				_add_label("حداقل موجودی: %d | حداکثر موجودی: %d" % [int(rule.get("minimum",10)),int(rule.get("maximum",40))],16)
-				var controls = HBoxContainer.new()
-				controls.add_constant_override("separation",6)
-				controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				active_section_container.add_child(controls)
-				var low_down = Button.new()
-				low_down.text = PersianText.reshaper("حداقل −")
-				_style_button(low_down,false)
-				_apply_font(low_down,16)
-				low_down.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				low_down.connect("pressed",self,"adjust_storage_rule",[id,"minimum",-5])
-				controls.add_child(low_down)
-				var low_up = Button.new()
-				low_up.text = PersianText.reshaper("حداقل +")
-				_style_button(low_up,false)
-				_apply_font(low_up,16)
-				low_up.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				low_up.connect("pressed",self,"adjust_storage_rule",[id,"minimum",5])
-				controls.add_child(low_up)
-				var high_down = Button.new()
-				high_down.text = PersianText.reshaper("حداکثر −")
-				_style_button(high_down,false)
-				_apply_font(high_down,16)
-				high_down.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				high_down.connect("pressed",self,"adjust_storage_rule",[id,"maximum",-5])
-				controls.add_child(high_down)
-				var high_up = Button.new()
-				high_up.text = PersianText.reshaper("حداکثر +")
-				_style_button(high_up,false)
-				_apply_font(high_up,16)
-				high_up.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				high_up.connect("pressed",self,"adjust_storage_rule",[id,"maximum",5])
-				controls.add_child(high_up)
-				_add_label("وقتی موجودی کم شد: "+("خرید از بازار" if str(rule.get("low_action","market")) == "market" else "افزایش تولید کارخانه"),15)
-				_add_button("تغییر روش تأمین",self,"toggle_storage_low_action",[id])
-				_add_label("وقتی موجودی زیاد شد: "+("فروش به بازار" if str(rule.get("high_action","market")) == "market" else "فروش از فروشگاه‌ها"),15)
-				_add_button("تغییر روش فروش",self,"toggle_storage_high_action",[id])
-				_add_button("اجرای تنظیمات همین ماده",self,"run_storage_rule",[id])
-				active_section_container = null
-			_add_label("ذخیره درختان جنگل: %d / ۱۰۰" % game.get_forest_tree_count())
-
+			StoragePage.build(self, s)
 		"report":
-			_add_label("گزارش وقایع شهر", 22)
-			var events = s.get("report_events", [])
-			var filter_box = OptionButton.new()
-			filter_box.rect_min_size = Vector2(0, 52 if get_viewport_rect().size.x < 900 else 44)
-			filter_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			_apply_font(filter_box, 18 if get_viewport_rect().size.x < 900 else 16)
-			var filter_ids = ["all","events","citizens","issues","finance","progress","trade"]
-			var filter_titles = ["همه گزارش‌ها","رویدادهای شهر","شهروندان","مشکلات شهر","بانک و امور مالی","پیشرفت شهر","تجارت و محموله‌ها"]
-			for filter_index in range(filter_ids.size()):
-				filter_box.add_item(PersianText.reshaper(filter_titles[filter_index]))
-			filter_box.select(max(0, filter_ids.find(report_filter_category)))
-			filter_box.connect("item_selected", self, "set_report_filter")
-			content.add_child(filter_box)
-			var visible_count = 0
-			for event in events:
-				var category = str(event.get("category", game.get_report_event_category(event.get("message", ""))))
-				if report_filter_category == "all" or category == report_filter_category:
-					visible_count += 1
-			_add_label("جدیدترین گزارش‌ها بالا | ذخیره حداکثر ۶۰ پیام | نمایش %d از %d" % [visible_count, events.size()], 15)
-			if visible_count == 0:
-				_add_label("برای این دسته هنوز گزارشی ثبت نشده است.", 18)
-			else:
-				for event_index in range(events.size() - 1, -1, -1):
-					var event = events[event_index]
-					var category = str(event.get("category", game.get_report_event_category(event.get("message", ""))))
-					if report_filter_category != "all" and category != report_filter_category:
-						continue
-					var stamp = OS.get_datetime_from_unix_time(int(event.get("timestamp", 0)))
-					var time_text = "%02d/%02d - %02d:%02d" % [int(stamp.get("day", 1)), int(stamp.get("month", 1)), int(stamp.get("hour", 0)), int(stamp.get("minute", 0))]
-					_add_label("[%s] روز %d | %s" % [time_text, int(event.get("day", 1)), str(event.get("message", ""))], 17)
-
+			CityReportPage.build(self, s)
+		"settings":
+			_add_label("⚙️ تنظیمات بازی", 24)
+			_add_label("زبان بازی", 19)
+			_add_button(("فارسی ✓" if ui_language == "fa" else "فارسی"), self, "set_language", ["fa"])
+			_add_button(("انگلیسی ✓" if ui_language == "en" else "انگلیسی"), self, "set_language", ["en"])
+			_add_button(("ترکی ✓" if ui_language == "tr" else "ترکی"), self, "set_language", ["tr"])
+			_add_button("🏙️ تغییر نام شهر", self, "_open_city_name_setup", [false])
+			_add_label("در حالت خودکار، بازی با چرخش گوشی هماهنگ می‌شود؛ حتی وقتی گوشی را ۱۸۰ درجه می‌چرخانی. دو حالت دیگر جهت صفحه را ثابت نگه می‌دارند.", 16)
+			var current_orientation = str(game.state.get("screen_orientation", "landscape"))
+			_add_button(("🔄 خودکار ✓" if current_orientation == "auto" else "🔄 خودکار"), self, "set_screen_orientation", ["auto"])
+			_add_button(("📱 افقی ✓" if current_orientation == "landscape" else "📱 افقی"), self, "set_screen_orientation", ["landscape"])
+			_add_button(("📱 عمودی ✓" if current_orientation == "portrait" else "📱 عمودی"), self, "set_screen_orientation", ["portrait"])
 		"audio":
-			_add_label("🔊 تنظیمات صدا و موسیقی", 24)
-			_add_label("تمام صداها و موسیقی‌ها اختصاصی و به‌صورت ریاضی درون بازی ساخته می‌شوند؛ فایل صوتی دارای حق‌نشر استفاده نشده است.", 16)
-			_add_button(("🔇 خاموش‌کردن موسیقی" if audio_manager.is_music_enabled() else "🎵 روشن‌کردن موسیقی"), self, "toggle_music_enabled")
-			_add_label("بلندی موسیقی", 17)
-			_add_audio_slider("music")
-			_add_button(("🔕 خاموش‌کردن افکت‌ها" if audio_manager.is_effects_enabled() else "🔔 روشن‌کردن افکت‌ها"), self, "toggle_effects_enabled")
-			_add_label("بلندی افکت‌ها", 17)
-			_add_audio_slider("effects")
-			_add_label("🌦️ صدای محیط شهر", 21)
-			_add_label("یک فضای صوتی انتخاب کن. هر زمان خواستی می‌توانی آن را عوض یا خاموش کنی.", 15)
-			_add_button(("🔇 خاموش‌کردن صدای محیط" if audio_manager.is_environment_enabled() else "🌿 روشن‌کردن صدای محیط"), self, "toggle_environment_enabled")
-			_add_label("بلندی صدای محیط", 17)
-			_add_audio_slider("environment")
-			var environment_mode = audio_manager.get_environment_mode()
-			_add_label("انتخاب فضای محیطی", 17)
-			_add_button(("🏙️ شهر ✓" if environment_mode == "city" else "🏙️ شهر"), self, "set_environment_mode", ["city"])
-			_add_button(("🌧️ باران ✓" if environment_mode == "rain" else "🌧️ باران"), self, "set_environment_mode", ["rain"])
-			_add_button(("🌳 طبیعت و پرندگان ✓" if environment_mode == "nature" else "🌳 طبیعت و پرندگان"), self, "set_environment_mode", ["nature"])
-			_add_button(("🚗 ترافیک ✓" if environment_mode == "traffic" else "🚗 ترافیک"), self, "set_environment_mode", ["traffic"])
-			_add_label("🎧 آزمایش صداهای اختصاصی", 21)
-			_add_button("▶️ صدای کلیک", audio_manager, "play_sfx", ["click"])
-			_add_button("🏗️ صدای ساخت‌وساز", audio_manager, "play_sfx", ["construction"])
-			_add_button("🎁 صدای دریافت جایزه", audio_manager, "play_sfx", ["reward"])
-			_add_button("💧 صدای آب", audio_manager, "play_sfx", ["water"])
-			_add_button("🐦 صدای پرندگان", audio_manager, "play_sfx", ["birds"])
-			_add_button("🚨 صدای آژیر اضطراری", audio_manager, "play_sfx", ["siren"])
-			_add_button("⚠️ هشدار کمبود منابع", audio_manager, "play_sfx", ["warning"])
-			_add_button("🎉 صدای رویداد شهر", audio_manager, "play_sfx", ["event"])
-			_add_button("⬅️ بازگشت به شهر", self, "return_home_from_menu")
+			AudioSettingsPage.build(self)
 		"help":
 			_add_label("❔ راهنمای کامل مینی زکا سیتی", 25)
 			_add_label("اینجا هر زمان گیر کردی برگرد؛ از شروع بازی تا اقتصاد، ساختمان‌ها و رقابت شهرها را قدم‌به‌قدم توضیح داده‌ایم.", 17)
@@ -1763,8 +3000,8 @@ func show_page(page):
 			_add_help_section("روز، شب و ساخت‌وساز", "هر روز بازی ۱۰ دقیقه زمان واقعی دارد؛ ۷ دقیقه روز و ۳ دقیقه شب است. پایان روز، درآمدها، هزینه‌ها، تولید و رویدادها محاسبه می‌شوند. هم‌زمان حداکثر دو پروژه ساخت فعال می‌توانی داشته باشی؛ زمان ساخت را از بالای صفحه دنبال کن.", "home")
 			_add_help_section("جاده و ناوگان", "جاده و ناوگان برای جابه‌جایی و پشتیبانی تجارت کاربرد دارند و می‌توانند هزینه نگهداری داشته باشند. پیش از توسعه مسیرها، درآمد و توان پرداخت هزینه‌های نگهداری را بررسی کن.", "transport")
 			_add_label("🎯 مأموریت‌ها و سرگرمی‌های بلندمدت", 21)
-			_add_help_section("مأموریت‌های روزانه و هفتگی", "مأموریت‌های روزانه با گذر روز عوض می‌شوند و مأموریت هفتگی هدف بزرگ‌تری دارد. انجام مأموریت همیشه به معنی دریافت جایزه نیست؛ اگر دکمه دریافت جایزه نمایش داده شد، آن را بزن. علامت هدیه بالای دکمه مأموریت‌ها یعنی جایزه آماده دریافت داری.", "missions")
-			_add_help_section("ورود روزانه و زنجیره ورود", "با ورود در روزهای مختلف، زنجیره ورودت را حفظ کن و هدیه روزانه را از شهر من دریافت کن. جایزه روزانه را باید دستی دریافت کنی؛ اگر ظرفیت خزانه پر باشد، ابتدا باید برای دریافت آن فضا ایجاد کنی.", "home")
+			_add_help_section("مأموریت‌های روزانه و هفتگی", "مأموریت‌های روزانه با گذر روز عوض می‌شوند و مأموریت هفتگی هدف بزرگ‌تری دارد. انجام مأموریت همیشه به معنی دریافت جایزه نیست؛ اگر دکمه دریافت جایزه نمایش داده شد، آن را بزن. علامت هدیه بالای دکمه پیشرفت و مأموریت‌ها یعنی جایزه آماده دریافت داری.", "missions")
+			_add_help_section("تقویم جایزه ورود", "از آیکون تقویم گوشه بالای صفحه، هر ۷ جایزه را ببین و جایزه آماده را دریافت کن. هر جایزه ۲۴ ساعت پس از دریافت قبلی باز می‌شود؛ اگر ۴۸ ساعت بگذرد و جایزه بعدی را نگیری، زنجیره از روز اول شروع می‌شود. روز هفتم صندوق طلایی ویژه دارد.", "home")
 			_add_help_section("شهرهای رقیب و رتبه‌بندی", "شهرهای همسایه در گذر روزها رشد می‌کنند. امتیاز توسعه شهر تو با امتیاز آن‌ها مقایسه می‌شود؛ برای بهتر شدن رتبه، جمعیت، سطح و توسعه شهر را بالا ببر. این رتبه‌بندی فعلاً در همین ذخیره بازی محاسبه می‌شود.", "progress")
 			_add_help_section("رازهای مخفی", "گاهی با گذر روزها یک سرنخ پنهان پیدا می‌کنی. سرنخ و هدفش را در پیشرفت شهر بخوان. وقتی نوار پیشرفت به هدف رسید، جایزه را از همان صفحه دستی دریافت کن.", "progress")
 			_add_help_section("پروژه‌های عظیم", "برج بزرگ، مرکز تجارت و فرودگاه پروژه‌های چندمرحله‌ای هستند. هر مرحله به سطح، جمعیت، ساختمان یا صادرات مشخص و هزینه جداگانه نیاز دارد. فقط یک پروژه عظیم را هم‌زمان می‌توانی پیش ببری؛ پیش از سرمایه‌گذاری، شرایط و موجودی آزاد خزانه را بررسی کن.", "progress")
@@ -1780,381 +3017,39 @@ func show_page(page):
 			_add_label("• خانه بساز، اما خدمات و شغل متناسب با جمعیت را فراموش نکن.", 16)
 			_add_label("• همه منابع را نفروش؛ برای تولید و ساخت‌وساز ذخیره نگه دار.", 16)
 			_add_label("• قبل از قبول درخواست شهروند یا شروع پروژه عظیم، هزینه و شرط‌ها را بخوان.", 16)
-			_add_label("• جایزه مأموریت، هدیه ورود و درآمد آفلاین را در صورت آماده بودن دستی دریافت کن.", 16)
+			_add_label("• جایزه مأموریت و درآمد آفلاین را در صورت آماده بودن دریافت کن؛ هدیه ورود در تقویم است.", 16)
 			_add_label("• هر روز گزارش شهر، رویداد هفتگی و رتبه رقبا را بررسی کن.", 16)
 			_add_button("🏙️ حالا برگردیم به شهر!", self, "return_home_from_menu")
 
+
+		"ranking":
+			RankingPage.build(self, s)
+		"achievements":
+			AchievementsPage.build(self, s)
 		"progress":
-			_add_label("🏗️ هدف‌های بلندمدت شهر",23)
-			_add_label("این هدف‌ها با ساخت‌وساز و رشد شهر کامل می‌شوند. پیشرفت هر هدف ذخیره می‌شود و پس از تکمیل، می‌توانی جایزه‌اش را دریافت کنی.",16)
-			for project in game.get_long_term_projects():
-				var project_done = int(project.progress) >= int(project.goal)
-				_add_label(str(project.title),19)
-				_add_label(str(project.description),16)
-				_add_label("میزان پیشرفت: %d از %d\nجایزه: %d سکه و %d تجربه" % [int(project.progress),int(project.goal),int(project.reward),int(project.xp)],16)
-				var project_bar = ProgressBar.new()
-				project_bar.min_value = 0
-				project_bar.max_value = max(1,int(project.goal))
-				project_bar.value = int(project.progress)
-				project_bar.percent_visible = false
-				project_bar.rect_min_size = Vector2(0,12)
-				content.add_child(project_bar)
-				if bool(project.claimed):
-					_add_label("✓ این جایزه را دریافت کرده‌ای",15)
-				elif project_done:
-					_add_button("🎁 دریافت جایزه پروژه",self,"claim_long_term_project",[str(project.id)])
-				else:
-					_add_label("● هنوز در حال تکمیل این هدف هستی",15)
-
-			_add_label("🏙️ رتبه‌بندی شهرها",23)
-			_add_label("شهر تو با شهرهای رقیب مقایسه می‌شود. هر روز ممکن است امتیاز آن‌ها تغییر کند؛ با افزایش سطح، جمعیت و ساختمان‌ها رتبه‌ات را بهتر کن.",15)
-			for rival_row in game.get_rival_standings():
-				var rival_prefix = "👑 " if bool(rival_row.get("is_player",false)) else "🏘️ "
-				_add_label("%sرتبه %d ـ %s\nامتیاز توسعه: %d | جمعیت: %d نفر | سطح: %d" % [rival_prefix,int(rival_row.get("rank",0)),str(rival_row.get("name","")),int(rival_row.get("score",0)),int(rival_row.get("population",0)),int(rival_row.get("level",1))],16)
-			_add_label("🔎 رازها و کشفیات",23)
-			var mystery = game.get_mystery_status()
-			if bool(mystery.get("active",false)):
-				_add_label("سرنخ تازه: "+str(mystery.get("title","راز مخفی")),18)
-				_add_label(str(mystery.get("clue","")),15)
-				_add_label(str(mystery.get("objective","")),16)
-				_add_label("پیشرفت سرنخ: %d از %d\nپاداش کشف: %d سکه و %d تجربه" % [int(mystery.get("progress",0)),int(mystery.get("goal",1)),int(mystery.get("reward",0)),int(mystery.get("xp",0))],16)
-				if int(mystery.get("progress",0)) >= int(mystery.get("goal",1)):
-					_add_button("🗝️ باز کردن راز و دریافت جایزه",self,"claim_mystery_reward")
-			else:
-				_add_label("فعلاً سرنخ تازه‌ای پیدا نکرده‌ای. با پیشرفت شهر و گذشت روزها، ممکن است راز تازه‌ای کشف شود.",15)
-				_add_label("تعداد رازهای کشف‌شده: %d" % int(mystery.get("completed",0)),15)
-			_add_label("🏛️ پروژه‌های بزرگ شهری",23)
-			var landmark_status = game.get_landmark_project_status()
-			if bool(landmark_status.get("active",false)):
-				var stage_data = landmark_status.get("stage_data",{})
-				_add_label("پروژه در حال اجرا: %s\nمرحله %d از %d" % [str(landmark_status.get("title","")),int(landmark_status.get("stage",1)),int(landmark_status.get("stage_total",1))],18)
-				_add_label("کار این مرحله: %s\nهزینه تکمیل: %d سکه" % [str(stage_data.get("title","")),int(stage_data.get("cost",0))],16)
-				_add_label("برای انجام این مرحله لازم است: سطح شهر %d، جمعیت %d نفر و دست‌کم %d ساختمان داشته باشی." % [int(stage_data.get("level",1)),int(stage_data.get("population",0)),int(stage_data.get("buildings",0))],15)
-				var stage_button = _add_button("🏗️ سرمایه‌گذاری و تکمیل این مرحله",self,"invest_landmark_stage")
-				stage_button.disabled = not bool(landmark_status.get("requirements_met",false)) or game.get_available_money() < int(stage_data.get("cost",0))
-			else:
-				_add_label("در هر زمان فقط یک پروژه بزرگ را می‌توانی دنبال کنی. هر پروژه چند مرحله دارد و برای عبور از هر مرحله باید شرط‌های آن را فراهم کنی و هزینه‌اش را بپردازی.",15)
-				for landmark in game.get_landmark_project_definitions():
-					var completed_landmarks = landmark_status.get("completed",[])
-					var is_completed_landmark = str(landmark.id) in completed_landmarks
-					_add_label("%s\nجایزه پس از افتتاح: %d سکه و %d تجربه" % [str(landmark.title),int(landmark.reward),int(landmark.xp)],17)
-					_add_label(str(landmark.description),14)
-					if is_completed_landmark:
-						_add_label("✓ این سازه در شهر افتتاح شده است",15)
-					else:
-						_add_button("آغاز پروژه "+str(landmark.title),self,"start_landmark_project",[str(landmark.id)])
-
-			_add_label("🏆 رتبه، افتخارات و رکوردهای شهر",23)
-			var league = game.get_city_league()
-			_add_label("جایگاه فعلی شهر: %s\nامتیاز توسعه: %d" % [str(league.name),int(league.score)],19)
-			if int(league.next) > 0:
-				_add_label("برای رسیدن به رتبه بعدی، %d امتیاز دیگر لازم داری." % max(0,int(league.next)-int(league.score)),15)
-			_add_label("این رتبه فقط بر اساس وضعیت شهر خودت محاسبه می‌شود و جدول رتبه‌بندی جهانی نیست.",14)
-			var weekly = game.get_weekly_challenge()
-			_add_label("🏁 چالش این هفته: "+str(weekly.title),19)
-			_add_label(str(weekly.description),15)
-			_add_label("پیشرفت این هفته: %d از %d\nجایزه: %d سکه و %d تجربه" % [int(weekly.progress),int(weekly.goal),int(weekly.reward),int(weekly.xp)],16)
-			if bool(weekly.claimed):
-				_add_label("✓ جایزه چالش این هفته را دریافت کرده‌ای.",15)
-			elif int(weekly.progress) >= int(weekly.goal):
-				_add_button("🏆 دریافت جایزه رقابت هفتگی",self,"claim_weekly_challenge")
-			var records = game.get_city_records()
-			_add_label("📊 رکوردهای ثبت‌شده شهر",19)
-			_add_label("بیشترین جمعیت ثبت‌شده: %d نفر\nبیشترین موجودی خزانه: %d سکه" % [int(records.get("peak_population",0)),int(records.get("peak_money",0))],16)
-			_add_label("بالاترین سطح شهر: %d\nبیشترین رضایت ثبت‌شده: %d از ۱۰۰\nبیشترین تعداد ساختمان: %d" % [int(records.get("peak_level",1)),int(records.get("peak_satisfaction",0)),int(records.get("most_buildings",0))],16)
-			var achievement_list = game.get_achievements()
-			var unlocked_achievements = 0
-			for achievement in achievement_list:
-				if bool(achievement.unlocked):
-					unlocked_achievements += 1
-			_add_label("افتخارات به‌دست‌آمده: %d از %d" % [unlocked_achievements,achievement_list.size()],17)
-			for achievement in achievement_list:
-				var achievement_status = "🏅 بازشده" if bool(achievement.unlocked) else "🔒 هنوز باز نشده"
-				_add_label(achievement_status+" | "+str(achievement.title),18)
-				_add_label(str(achievement.description),15)
+			ProgressPage.build(self, s)
 		"missions":
-			_add_label("📅 مأموریت‌های روزانه", 23)
-			_add_label("هر روز سه هدف تازه برای توسعه شهر؛ پیشرفت و جایزه‌ها جدا از مأموریت‌های اصلی ذخیره می‌شوند.", 16)
-			for daily_mission in game.get_daily_missions():
-				if bool(daily_mission.get("claimed", false)):
-					continue
-				var daily_card = PanelContainer.new()
-				daily_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				var daily_style = StyleBoxFlat.new()
-				var daily_done = int(daily_mission.progress) >= int(daily_mission.goal)
-				daily_style.bg_color = Color("#493719") if daily_done and not bool(daily_mission.claimed) else Color("#202b3b")
-				daily_style.border_color = Color("#fbbf24") if daily_done and not bool(daily_mission.claimed) else Color("#64748b")
-				daily_style.set_border_width_all(2)
-				daily_style.set_corner_radius_all(10)
-				daily_style.content_margin_left = 12
-				daily_style.content_margin_right = 12
-				daily_style.content_margin_top = 10
-				daily_style.content_margin_bottom = 10
-				daily_card.add_stylebox_override("panel", daily_style)
-				content.add_child(daily_card)
-				var daily_body = VBoxContainer.new()
-				daily_body.add_constant_override("separation", 5)
-				daily_card.add_child(daily_body)
-				var daily_title = Label.new()
-				daily_title.text = PersianText.reshaper(str(daily_mission.title))
-				daily_title.align = Label.ALIGN_RIGHT
-				daily_title.autowrap = true
-				_apply_font(daily_title, 18)
-				daily_title.add_color_override("font_color", Color("#fde68a") if daily_done else Color("#ffffff"))
-				daily_body.add_child(daily_title)
-				var daily_desc = Label.new()
-				daily_desc.text = PersianText.reshaper(str(daily_mission.description))
-				daily_desc.align = Label.ALIGN_RIGHT
-				daily_desc.autowrap = true
-				_apply_font(daily_desc, 16)
-				daily_desc.add_color_override("font_color", Color("#dbeafe"))
-				daily_body.add_child(daily_desc)
-				var daily_progress = Label.new()
-				daily_progress.text = PersianText.reshaper("پیشرفت: %d از %d  |  جایزه: %d سکه + %d تجربه" % [int(daily_mission.progress), int(daily_mission.goal), int(daily_mission.reward), int(daily_mission.xp)])
-				daily_progress.align = Label.ALIGN_RIGHT
-				daily_progress.autowrap = true
-				_apply_font(daily_progress, 15)
-				daily_body.add_child(daily_progress)
-				if bool(daily_mission.claimed):
-					var daily_status = Label.new()
-					daily_status.text = PersianText.reshaper("✓ جایزه امروز دریافت شده")
-					daily_status.align = Label.ALIGN_RIGHT
-					_apply_font(daily_status, 16)
-					daily_status.add_color_override("font_color", Color("#86efac"))
-					daily_body.add_child(daily_status)
-				elif daily_done:
-					_add_daily_claim_button(daily_body, str(daily_mission.id))
-				else:
-					var daily_go_button = Button.new()
-					daily_go_button.text = PersianText.reshaper("رفتن ←")
-					daily_go_button.rect_min_size = Vector2(0, 46 if get_viewport_rect().size.x < 900 else 40)
-					daily_go_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-					_apply_font(daily_go_button, 17)
-					_style_button(daily_go_button, false)
-					daily_go_button.connect("pressed", self, "go_to_mission_target", [str(daily_mission.id)])
-					daily_body.add_child(daily_go_button)
-					var daily_waiting = Label.new()
-					daily_waiting.text = PersianText.reshaper("● در حال انجام")
-					daily_waiting.align = Label.ALIGN_RIGHT
-					_apply_font(daily_waiting, 15)
-					daily_waiting.add_color_override("font_color", Color("#cbd5e1"))
-					daily_body.add_child(daily_waiting)
-			_add_label("━━━━━━━━━━━━━━━━━━━━", 14)
-			var mission_list = game.get_missions()
-			var main_total = 0
-			var main_claimed = 0
-			var side_total = 0
-			var side_claimed = 0
-			for definition in game.MISSION_DEFINITIONS:
-				if bool(definition.get("legacy", false)):
-					continue
-				if str(definition.get("type","main")) == "side":
-					side_total += 1
-				else:
-					main_total += 1
-			for saved_mission in mission_list:
-				var saved_type = "main"
-				var saved_legacy = false
-				for definition in game.MISSION_DEFINITIONS:
-					if str(definition.id) == str(saved_mission.get("id","")):
-						saved_type = str(definition.get("type","main"))
-						saved_legacy = bool(definition.get("legacy", false))
-						break
-				if bool(saved_mission.get("claimed",false)) and not saved_legacy:
-					if saved_type == "side":
-						side_claimed += 1
-					else:
-						main_claimed += 1
-			_add_label("🎯 مأموریت‌های شهر", 23)
-			_add_label("اصلی: %d از %d تکمیل‌شده   |   فرعی: %d از %d تکمیل‌شده" % [main_claimed,main_total,side_claimed,side_total],17)
-			var summary_panel = PanelContainer.new()
-			var summary_style = StyleBoxFlat.new()
-			summary_style.bg_color = Color("#172b3f")
-			summary_style.border_color = Color("#38bdf8")
-			summary_style.set_border_width_all(2)
-			summary_style.set_corner_radius_all(12)
-			summary_style.content_margin_left = 14
-			summary_style.content_margin_right = 14
-			summary_style.content_margin_top = 10
-			summary_style.content_margin_bottom = 10
-			summary_panel.add_stylebox_override("panel", summary_style)
-			summary_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			content.add_child(summary_panel)
-			var summary_label = Label.new()
-			summary_label.text = PersianText.reshaper("پیشرفت کلی مأموریت‌ها: %d از %d" % [main_claimed + side_claimed, main_total + side_total])
-			summary_label.align = Label.ALIGN_CENTER
-			summary_label.autowrap = true
-			summary_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			_apply_font(summary_label, 19)
-			summary_label.add_color_override("font_color", Color("#ffffff"))
-			summary_panel.add_child(summary_label)
-			var visible_missions = 0
-			var last_mission_type = ""
-			for mission_index in range(mission_list.size()):
-				var mission = mission_list[mission_index]
-				var definition = {}
-				for item in game.MISSION_DEFINITIONS:
-					if str(item.id) == str(mission.get("id", "")):
-						definition = item
-						break
-				if definition.empty():
-					continue
-				var is_legacy_mission = bool(definition.get("legacy", false))
-				var mission_is_claimed = bool(mission.get("claimed", false))
-				var mission_is_unlocked = bool(mission.get("unlocked", false))
-				# Claimed missions disappear; future locked missions stay hidden.
-				# Only pending legacy rewards remain visible for old save files.
-				if is_legacy_mission:
-					if mission_is_claimed or not bool(mission.get("completed", false)):
-						continue
-				elif mission_is_claimed or not mission_is_unlocked:
-					continue
-				visible_missions += 1
-				var mission_type = "legacy" if is_legacy_mission else str(definition.get("type","main"))
-				if mission_type != last_mission_type:
-					last_mission_type = mission_type
-					if mission_type == "legacy":
-						_add_label("🎁 پاداش‌های باقی‌مانده از نسخه قبلی", 21)
-						_add_label("اگر در نسخه قبلی مأموریتی را کامل کرده بودی اما جایزه‌اش را نگرفته بودی، اینجا هنوز قابل دریافت است.",15)
-					elif mission_type == "main":
-						_add_label("📘 مأموریت‌های اصلی", 21)
-					else:
-						_add_label("⭐ مأموریت‌های فرعی", 21)
-				var is_claimed = bool(mission.get("claimed", false))
-				var is_completed = bool(mission.get("completed", false))
-				var card = PanelContainer.new()
-				card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				card.rect_min_size = Vector2(0, 0)
-				card.rect_clip_content = false
-				var card_style = StyleBoxFlat.new()
-				card_style.bg_color = Color("#173b32") if is_claimed else (Color("#493719") if is_completed else Color("#202b3b"))
-				card_style.border_color = Color("#4ade80") if is_claimed else (Color("#fbbf24") if is_completed else Color("#64748b"))
-				card_style.set_border_width_all(2)
-				card_style.set_corner_radius_all(12)
-				card_style.content_margin_left = 0
-				card_style.content_margin_right = 0
-				card_style.content_margin_top = 0
-				card_style.content_margin_bottom = 0
-				card.add_stylebox_override("panel", card_style)
-				content.add_child(card)
-				var card_margin = MarginContainer.new()
-				card_margin.add_constant_override("margin_left", 14)
-				card_margin.add_constant_override("margin_right", 14)
-				card_margin.add_constant_override("margin_top", 12)
-				card_margin.add_constant_override("margin_bottom", 12)
-				card_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				card.add_child(card_margin)
-				var card_body = VBoxContainer.new()
-				card_body.add_constant_override("separation", 7)
-				card_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				card_body.rect_clip_content = false
-				card_margin.add_child(card_body)
-				var is_unlocked = bool(mission.get("unlocked", false))
-				var status_text = "✓ جایزه دریافت شده" if is_claimed else ("🎁 جایزه آماده دریافت" if is_completed else ("● در حال انجام" if is_unlocked else "🔒 پس از تکمیل مرحله قبلی باز می‌شود"))
-				var title_row = HBoxContainer.new()
-				title_row.add_constant_override("separation", 8)
-				card_body.add_child(title_row)
-				var title_label = Label.new()
-				title_label.text = PersianText.reshaper(str(definition.title))
-				title_label.align = Label.ALIGN_RIGHT
-				title_label.clip_text = false
-				title_label.autowrap = true
-				title_label.rect_min_size = Vector2(0, 34)
-				title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				_apply_font(title_label, 19)
-				title_label.add_color_override("font_color", Color("#86efac") if is_claimed else (Color("#fde68a") if is_completed else Color("#ffffff")))
-				title_row.add_child(title_label)
-				var status_label = Label.new()
-				status_label.text = PersianText.reshaper(status_text)
-				status_label.align = Label.ALIGN_RIGHT
-				status_label.autowrap = true
-				status_label.clip_text = false
-				status_label.rect_min_size = Vector2(0, 30)
-				status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				_apply_font(status_label, 16)
-				status_label.add_color_override("font_color", Color("#86efac") if is_claimed else (Color("#fde68a") if is_completed else Color("#cbd5e1")))
-				card_body.add_child(status_label)
-				var description_label = Label.new()
-				description_label.text = PersianText.reshaper(str(definition.description))
-				description_label.align = Label.ALIGN_RIGHT
-				description_label.autowrap = true
-				description_label.clip_text = false
-				description_label.rect_min_size = Vector2(0, 48)
-				description_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				_apply_font(description_label, 17)
-				description_label.add_color_override("font_color", Color("#f8fafc"))
-				card_body.add_child(description_label)
-				var current_progress = int(mission.get("progress", 0))
-				var target_progress = max(1, int(definition.goal))
-				var progress_label = Label.new()
-				progress_label.text = PersianText.reshaper("پیشرفت: %d از %d     |     پاداش: %d سکه + %d تجربه" % [current_progress, target_progress, int(definition.reward), int(definition.get("xp",0))])
-				progress_label.align = Label.ALIGN_RIGHT
-				progress_label.autowrap = true
-				progress_label.clip_text = false
-				progress_label.rect_min_size = Vector2(0, 34)
-				progress_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				_apply_font(progress_label, 16)
-				progress_label.add_color_override("font_color", Color("#bae6fd"))
-				card_body.add_child(progress_label)
-				var mission_progress = ProgressBar.new()
-				mission_progress.min_value = 0
-				mission_progress.max_value = target_progress
-				mission_progress.value = min(current_progress, target_progress)
-				mission_progress.percent_visible = false
-				mission_progress.rect_min_size = Vector2(0, 12)
-				var mission_fill = StyleBoxFlat.new()
-				mission_fill.bg_color = Color("#22c55e") if is_completed else Color("#38bdf8")
-				mission_fill.set_corner_radius_all(6)
-				mission_progress.add_stylebox_override("fg", mission_fill)
-				var mission_bg = StyleBoxFlat.new()
-				mission_bg.bg_color = Color("#334155")
-				mission_bg.set_corner_radius_all(6)
-				mission_progress.add_stylebox_override("bg", mission_bg)
-				card_body.add_child(mission_progress)
-				if not is_claimed:
-					var hint_label = Label.new()
-					hint_label.text = PersianText.reshaper("راهنما: " + str(definition.get("hint", "از بخش‌های شهر هدف را دنبال کن.")))
-					hint_label.align = Label.ALIGN_RIGHT
-					hint_label.autowrap = true
-					hint_label.clip_text = false
-					hint_label.rect_min_size = Vector2(0, 48)
-					hint_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-					_apply_font(hint_label, 16)
-					hint_label.add_color_override("font_color", Color("#cbd5e1"))
-					card_body.add_child(hint_label)
-				var go_button = Button.new()
-				go_button.text = PersianText.reshaper("رفتن به بخش مربوط  ←")
-				go_button.rect_min_size = Vector2(0, 50 if get_viewport_rect().size.x < 900 else 42)
-				go_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				_apply_font(go_button, 17 if get_viewport_rect().size.x < 900 else 16)
-				_style_button(go_button, false)
-				go_button.connect("pressed", self, "go_to_mission_target", [str(mission.get("id", ""))])
-				card_body.add_child(go_button)
-				if is_unlocked and is_completed and not is_claimed:
-					var claim_button = Button.new()
-					claim_button.text = PersianText.reshaper("🎁 دریافت جایزه و باز کردن مرحله بعد")
-					claim_button.rect_min_size = Vector2(0, 58 if get_viewport_rect().size.x < 900 else 50)
-					claim_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-					_apply_font(claim_button, 18)
-					_style_button(claim_button, false)
-					claim_button.connect("pressed", self, "claim_mission", [mission_index])
-					card_body.add_child(claim_button)
-			if visible_missions == 0:
-				_add_label("آموزش هنوز شروع نشده است؛ بازی را ادامه بده.", 17)
+			MissionsPage.build(self, s)
+
 		_:
 			_add_label("بخش پیدا نشد.")
 	# Extra scrollable safe area so the last controls/text stay above Android browser navigation bars.
 	var bottom_scroll_space = Control.new()
-	bottom_scroll_space.rect_min_size = Vector2(0, 180 if get_viewport_rect().size.x < 900 else 90)
+	bottom_scroll_space.custom_minimum_size = Vector2(0, 180 if get_viewport_rect().size.x < 900 else 90)
 	bottom_scroll_space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_child(bottom_scroll_space)
-	header_label.text = PersianText.reshaper("مینی زکا سیتی  |  خزانه: %d  |  جمعیت: %d" % [s.money,s.population])
+	var header_stats = "خزانه: %d  |  جمعیت: %d" % [s.money,s.population]
+	var city_title = str(s.get("city_name", "شهر من")).strip_edges()
+	if city_title.is_empty():
+		city_title = "شهر من"
+	var header_text = city_title + "\n" + header_stats
+	header_label.text = PersianText.reshaper(header_text)
 
 func _municipality_section(title, section_id):
 	var expanded = bool(municipality_section_expanded.get(section_id, false))
 	var header = _add_button(("▼ " if expanded else "▶ ") + title, self, "toggle_municipality_section", [section_id])
 	active_section_container = VBoxContainer.new()
-	active_section_container.add_constant_override("separation", 5)
+	active_section_container.add_theme_constant_override("separation", 5)
 	active_section_container.visible = expanded
 	content.add_child(active_section_container)
 
@@ -2178,222 +3073,38 @@ func toggle_municipality_section(section_id):
 	show_page("municipality")
 
 func _add_home_services_panel(city_state):
-	var compact = get_viewport_rect().size.x < 900
-	var panel = PanelContainer.new()
-	var panel_style = StyleBoxFlat.new()
-	panel_style.bg_color = Color("#172235")
-	panel_style.border_color = Color("#475569")
-	panel_style.set_border_width_all(1)
-	panel_style.set_corner_radius_all(12)
-	panel_style.content_margin_left = 12
-	panel_style.content_margin_right = 12
-	panel_style.content_margin_top = 10
-	panel_style.content_margin_bottom = 10
-	panel.add_stylebox_override("panel", panel_style)
-	content.add_child(panel)
-	var body = VBoxContainer.new()
-	body.add_constant_override("separation", 9)
-	panel.add_child(body)
+	return CityDashboardBuilder._add_home_services_panel(self, city_state)
 
-	var total_coverage = 0
-	var service_count = game.SERVICE_GROUPS.size()
-	for service_id in game.SERVICE_GROUPS.keys():
-		total_coverage += int(city_state.get("services", {}).get(service_id, 0))
-	var average_coverage = int(round(float(total_coverage) / float(max(1, service_count))))
-	var header = Button.new()
-	header.text = PersianText.reshaper(("%s  🏙️  خدمات و زیرساخت شهر" % ("▼" if home_city_details_expanded else "▶")) + "     میانگین پوشش: %d%%" % average_coverage)
-	header.rect_min_size = Vector2(0, 62 if compact else 54)
-	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.align = Button.ALIGN_RIGHT
-	_apply_font(header, 19 if compact else 17)
-	_style_button(header, false)
-	header.connect("pressed", self, "toggle_home_city_details")
-	body.add_child(header)
-
-	var hint = Label.new()
-	hint.text = PersianText.reshaper("وضعیت آب، برق، درمان، امنیت و امکانات شهر را یک‌جا ببین.")
-	hint.align = Label.ALIGN_RIGHT
-	hint.autowrap = true
-	_apply_font(hint, 15 if compact else 14)
-	hint.add_color_override("font_color", Color("#cbd5e1"))
-	body.add_child(hint)
-
-	if not home_city_details_expanded:
-		return
-
-	var section_line = HSeparator.new()
-	body.add_child(section_line)
-	var section_title = Label.new()
-	section_title.text = PersianText.reshaper("شاخص خدمات شهری")
-	section_title.align = Label.ALIGN_RIGHT
-	_apply_font(section_title, 18)
-	section_title.add_color_override("font_color", Color("#f8fafc"))
-	body.add_child(section_title)
-
-	var grid = GridContainer.new()
-	grid.columns = 2
-	grid.add_constant_override("hseparation", 8)
-	grid.add_constant_override("vseparation", 8)
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.add_child(grid)
-	var service_order = ["food","water","power","health","education","safety","leisure","sanitation"]
-	for service_id in service_order:
-		if not game.SERVICE_GROUPS.has(service_id):
-			continue
-		var service_data = game.SERVICE_GROUPS[service_id]
-		var coverage = int(clamp(int(city_state.get("services", {}).get(service_id, 0)), 0, 100))
-		var need = int(clamp(int(city_state.get("needs", {}).get(service_id, 60)), 0, 100))
-		var building_total = 0
-		for building_id in service_data.get("buildings", []):
-			building_total += game.get_building_count(str(building_id))
-		_add_service_metric_card(grid, str(service_data.get("name", service_id)), coverage, need, building_total, compact)
-
-	var infra_title = Label.new()
-	infra_title.text = PersianText.reshaper("زیرساخت‌های پشتیبان")
-	infra_title.align = Label.ALIGN_RIGHT
-	_apply_font(infra_title, 18)
-	infra_title.add_color_override("font_color", Color("#f8fafc"))
-	body.add_child(infra_title)
-	var central_bank_status = "فعال" if game.has_central_bank() else ("بازسازی: %d روز" % int(city_state.get("central_bank_rebuild_days_left", 0)) if int(city_state.get("central_bank_rebuild_days_left", 0)) > 0 else "ساخته نشده")
-	var infrastructure_text = "ساختمان‌ها: %d   |   ظرفیت انبار: %d\nبانک مرکزی: %s   |   بانک شهری: %d\nجنگل: %d/۱۰۰ درخت   |   معادن فعال: %d" % [city_state.buildings.size(), game.get_storage_capacity(), central_bank_status, game.get_building_count("municipal_bank"), game.get_forest_tree_count(), _active_mine_count()]
-	var infra_label = Label.new()
-	infra_label.text = PersianText.reshaper(infrastructure_text)
-	infra_label.align = Label.ALIGN_RIGHT
-	infra_label.autowrap = true
-	infra_label.rect_min_size = Vector2(0, 76 if compact else 64)
-	_apply_font(infra_label, 16 if compact else 15)
-	infra_label.add_color_override("font_color", Color("#dbeafe"))
-	body.add_child(infra_label)
 
 func _add_service_metric_card(parent, title_text, coverage, need, building_count, compact):
-	var card = PanelContainer.new()
-	var card_style = StyleBoxFlat.new()
-	card_style.bg_color = Color("#202f43")
-	card_style.border_color = Color("#3b4b61")
-	card_style.set_border_width_all(1)
-	card_style.set_corner_radius_all(9)
-	card_style.content_margin_left = 8
-	card_style.content_margin_right = 8
-	card_style.content_margin_top = 8
-	card_style.content_margin_bottom = 8
-	card.add_stylebox_override("panel", card_style)
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	parent.add_child(card)
-	var stack = VBoxContainer.new()
-	stack.add_constant_override("separation", 4)
-	card.add_child(stack)
+	return CityDashboardBuilder._add_service_metric_card(self, parent, title_text, coverage, need, building_count, compact)
 
-	var title = Label.new()
-	title.text = PersianText.reshaper("%s  (%d ساختمان)" % [title_text, building_count])
-	title.align = Label.ALIGN_RIGHT
-	title.autowrap = true
-	title.rect_min_size = Vector2(0, 38 if compact else 32)
-	_apply_font(title, 16 if compact else 15)
-	title.add_color_override("font_color", Color("#f8fafc"))
-	stack.add_child(title)
-
-	var coverage_label = Label.new()
-	coverage_label.text = PersianText.reshaper("پوشش خدمات: %d٪" % coverage)
-	coverage_label.align = Label.ALIGN_RIGHT
-	_apply_font(coverage_label, 15)
-	coverage_label.add_color_override("font_color", Color("#86efac") if coverage >= 70 else (Color("#fcd34d") if coverage >= 40 else Color("#fca5a5")))
-	stack.add_child(coverage_label)
-
-	var coverage_bar = ProgressBar.new()
-	coverage_bar.min_value = 0
-	coverage_bar.max_value = 100
-	coverage_bar.value = coverage
-	coverage_bar.percent_visible = false
-	coverage_bar.rect_min_size = Vector2(0, 9)
-	var fill = StyleBoxFlat.new()
-	fill.bg_color = Color("#22c55e") if coverage >= 70 else (Color("#f59e0b") if coverage >= 40 else Color("#ef4444"))
-	fill.set_corner_radius_all(4)
-	coverage_bar.add_stylebox_override("fg", fill)
-	var track = StyleBoxFlat.new()
-	track.bg_color = Color("#334155")
-	track.set_corner_radius_all(4)
-	coverage_bar.add_stylebox_override("bg", track)
-	stack.add_child(coverage_bar)
-
-	var need_label = Label.new()
-	need_label.text = PersianText.reshaper("رضایت از این نیاز: %d٪" % need)
-	need_label.align = Label.ALIGN_RIGHT
-	_apply_font(need_label, 14)
-	need_label.add_color_override("font_color", Color("#cbd5e1"))
-	stack.add_child(need_label)
 
 func _service_summary():
-	var parts = []
-	for id in game.SERVICE_GROUPS.keys():
-		var label = str(game.SERVICE_GROUPS[id].name)
-		parts.append("%s %d%%" % [label, int(game.state.get("services",{}).get(id,0))])
-	return " | ".join(parts)
+	return CityDashboardBuilder._service_summary(self)
+
 
 func _needs_summary():
-	var labels = {"food":"خوراک","water":"آب","power":"برق","health":"سلامت","education":"آموزش","safety":"امنیت","leisure":"تفریح","sanitation":"بهداشت"}
-	var parts = []
-	for id in labels.keys():
-		parts.append("%s %d%%" % [labels[id], int(game.state.get("needs",{}).get(id,60))])
-	return " | ".join(parts)
+	return CityDashboardBuilder._needs_summary(self)
+
 
 func _active_mine_count():
-	var count = 0
-	for mine in game.get_mines():
-		if bool(mine.get("active", false)):
-			count += 1
-	return count
+	return CityDashboardBuilder._active_mine_count(self)
+
 
 func _sort_building_ids_by_unlock_priority(a, b):
-	var definitions = game.get_building_definitions()
-	var first = definitions[str(a)]
-	var second = definitions[str(b)]
-	var first_level = int(first.get("level_unlock", 1))
-	var second_level = int(second.get("level_unlock", 1))
-	if first_level != second_level:
-		return first_level < second_level
-	var first_population = int(first.get("unlock", 0))
-	var second_population = int(second.get("unlock", 0))
-	if first_population != second_population:
-		return first_population < second_population
-	var first_cost = int(first.get("cost", 0))
-	var second_cost = int(second.get("cost", 0))
-	if first_cost != second_cost:
-		return first_cost < second_cost
-	return str(first.get("name", a)) < str(second.get("name", b))
+	return CityDashboardBuilder._sort_building_ids_by_unlock_priority(self, a, b)
+
 
 func _add_building_category_items(category):
-	var visible_buildings = 0
-	var definitions = game.get_building_definitions()
-	var building_ids = []
-	for id in definitions.keys():
-		var data = definitions[id]
-		if category == "همه" and str(data.get("category","")) == "حمل‌ونقل":
-			continue
-		if category == "ماهیگیری" and not str(id) in ["fish_lake","fishing_dock","fish_market","fish_processing_plant"]:
-			continue
-		if category != "همه" and category != "ماهیگیری" and str(data.get("category","")) != category:
-			continue
-		building_ids.append(str(id))
-	building_ids.sort_custom(self, "_sort_building_ids_by_unlock_priority")
-	for id in building_ids:
-		var data = definitions[id]
-		visible_buildings += 1
-		var s = game.state
-		var population_unlocked = int(s.population) >= int(data.get("unlock", 0))
-		var required_level = int(data.get("level_unlock", 1))
-		var level_unlocked = int(s.level) >= required_level
-		var unlocked = population_unlocked and level_unlocked
-		var label = "%s | هزینه: %d | زمین: %d قطعه | جمعیت: %d | سطح: %d" % [data.name,data.cost,game.get_land_size(id),data.unlock,required_level]
-		if not level_unlocked:
-			label += " | 🔒 قفل سطح"
-		var building_button = _add_button(label, self, "build_building", [id])
-		building_button.disabled = not level_unlocked
-		if id == mission_target_building_id:
-			building_button.modulate = Color("#fde68a")
-			building_button.name = "MissionTargetBuilding"
-			mission_target_building_button = building_button
-	if visible_buildings == 0:
-		_add_label("در این دسته ساختمانی تعریف نشده است.", 16)
+	return CityDashboardBuilder._add_building_category_items(self, category)
+
+
+func select_building_group(group_name):
+	var requested = str(group_name)
+	selected_building_group = "" if selected_building_group == requested else requested
+	selected_building_category = ""
+	show_page("buildings")
 
 func select_building_category(category):
 	var requested = str(category)
@@ -2406,10 +3117,7 @@ func refill_mine(index):
 	_show_message(result.message)
 
 func _resource_summary():
-	var parts = []
-	for id in game.get_resource_definitions().keys():
-		parts.append("%s: %d" % [game.get_resource_definitions()[id].name,game.state.resources.get(id,0)])
-	return " | ".join(parts)
+	return CityDashboardBuilder._resource_summary(self)
 
 
 func resolve_civic_request(request_id, approved):
@@ -2421,6 +3129,43 @@ func resolve_private_request(request_id, approved):
 	var result = game.resolve_civic_request(request_id, approved)
 	show_page("private_economy")
 	_show_message(result.message)
+
+func _add_policy_slider(title, current_value, minimum_value, maximum_value, step_value, method_name, unit_text):
+	var group = VBoxContainer.new()
+	group.add_theme_constant_override("separation", 5)
+	group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.add_child(group)
+	var title_label = Label.new()
+	title_label.text = PersianText.reshaper(str(title))
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	title_label.text_direction = Control.TEXT_DIRECTION_RTL
+	_apply_font(title_label, 16)
+	group.add_child(title_label)
+	var value_label = Label.new()
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	value_label.text = PersianText.reshaper("%s %s" % [str(int(current_value)), str(unit_text)])
+	_apply_font(value_label, 19)
+	value_label.add_theme_color_override("font_color", Color("#f5d477"))
+	group.add_child(value_label)
+	var slider = HSlider.new()
+	slider.min_value = float(minimum_value)
+	slider.max_value = float(maximum_value)
+	slider.step = float(step_value)
+	slider.value = clampf(float(current_value), float(minimum_value), float(maximum_value))
+	slider.custom_minimum_size = Vector2(0, 38)
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	group.add_child(slider)
+	slider.value_changed.connect(func(value):
+		value_label.text = PersianText.reshaper("%s %s" % [str(int(round(value))), str(unit_text)])
+	)
+	slider.drag_ended.connect(func(changed):
+		if changed:
+			var target_value = int(round(slider.value / float(step_value))) * int(step_value)
+			var delta = target_value - int(current_value)
+			if delta != 0:
+				call(method_name, delta)
+	)
+	return slider
 
 func adjust_business_tax(delta):
 	var result = game.adjust_business_tax(delta)
@@ -2464,10 +3209,26 @@ func withdraw_bank_savings(index):
 
 func buy_land():
 	var result = game.buy_land(1)
-	show_page("buildings")
+	show_page("transport")
 	_show_message(result.message)
 
 func build_building(id):
+	var data = game.get_building_definitions().get(str(id), {})
+	if data.is_empty():
+		return
+	var is_first_building_started = game.state.get("buildings", []).size() <= 1 and game.state.get("constructions", []).is_empty()
+	var required_level = int(data.get("level_unlock", 1))
+	var required_population = int(data.get("unlock", 0))
+	var current_level = int(game.state.get("level", 1))
+	var current_population = int(game.state.get("population", 0))
+	if current_level < required_level or current_population < required_population:
+		var reasons = []
+		if current_level < required_level:
+			reasons.append("سطح شهر باید به %d برسد (سطح فعلی: %d)" % [required_level, current_level])
+		if current_population < required_population:
+			reasons.append("جمعیت شهر باید به %d نفر برسد (جمعیت فعلی: %d)" % [required_population, current_population])
+		_show_message("🔒 برای باز شدن %s: %s." % [str(data.get("name", "این ساختمان")), " و ".join(reasons)])
+		return
 	var previous_level = int(game.state.get("level", 1))
 	var result = game.build(id)
 	if bool(result.get("ok", false)):
@@ -2476,6 +3237,15 @@ func build_building(id):
 			audio_manager.play_sfx("level")
 	show_page("buildings")
 	_show_message(result.message)
+	if bool(result.get("ok", false)) and is_first_building_started:
+		_show_temporary_message("💡 برای دیدن جزئیات، به بخش «شهر من» برو.", 4.0)
+
+func _show_temporary_message(text, seconds=4.0):
+	var shown_text = PersianText.reshaper(str(text))
+	message_label.text = shown_text
+	await get_tree().create_timer(float(seconds)).timeout
+	if is_instance_valid(message_label) and message_label.text == shown_text:
+		message_label.text = ""
 
 func toggle_home_city_details():
 	var was_expanded = home_city_details_expanded
@@ -2579,11 +3349,32 @@ func reassign_jobs():
 	_show_message("تخصیص شغل‌ها به‌روزرسانی شد.")
 
 func upgrade_road():
+	var current_road_level = int(game.state.get("road_level", 1))
+	var required_city_level = current_road_level + 1
+	var current_city_level = int(game.state.get("level", 1))
+	if current_city_level < required_city_level:
+		_show_message("🔒 برای ارتقای جاده، سطح شهر باید به %d برسد (سطح فعلی: %d)." % [required_city_level, current_city_level])
+		return
 	var result = game.upgrade_roads()
 	show_page("transport")
 	_show_message(result.message)
 
 func build_transport_facility(building_id):
+	var data = game.get_building_definitions().get(str(building_id), {})
+	if data.is_empty():
+		return
+	var required_level = int(data.get("level_unlock", 1))
+	var required_population = int(data.get("unlock", 0))
+	var current_level = int(game.state.get("level", 1))
+	var current_population = int(game.state.get("population", 0))
+	if current_level < required_level or current_population < required_population:
+		var reasons = []
+		if current_level < required_level:
+			reasons.append("سطح شهر باید به %d برسد (سطح فعلی: %d)" % [required_level, current_level])
+		if current_population < required_population:
+			reasons.append("جمعیت شهر باید به %d نفر برسد (جمعیت فعلی: %d)" % [required_population, current_population])
+		_show_message("🔒 برای باز شدن %s: %s." % [str(data.get("name", "این ایستگاه")), " و ".join(reasons)])
+		return
 	var previous_level = int(game.state.get("level", 1))
 	var result = game.build(str(building_id))
 	if bool(result.get("ok", false)):
@@ -2595,7 +3386,7 @@ func build_transport_facility(building_id):
 
 func advance_day():
 	var report = game.end_day()
-	game.state["clock_last_unix"] = OS.get_unix_time()
+	game.state["clock_last_unix"] = Time.get_unix_time_from_system()
 	clock_cycle_seconds = 0.0
 	game.state["clock_cycle_seconds"] = 0
 	show_page("home")
@@ -2608,12 +3399,15 @@ func import_from_city(city_id, resource_id, amount):
 
 func make_import_contract(city_id, resource_id, amount, days):
 	var result = game.create_import_contract(city_id, resource_id, amount, days)
-	show_page("imports")
+	show_page("commerce")
 	_show_message(result.message)
+
+func make_import_contract_from_slider(city_id, slider, days):
+	make_import_contract(city_id, "wood", int(round(slider.value)), days)
 
 func cancel_import(index):
 	var result = game.cancel_import_contract(index)
-	show_page("imports")
+	show_page("commerce")
 	_show_message(result.message)
 
 func export_to_city(city_id, resource_id, amount):
@@ -2630,6 +3424,18 @@ func sell_item(id, amount):
 	var result = game.sell_resource(id, amount)
 	show_page("market")
 	_show_message(result.message)
+
+func buy_item_from_slider(id, slider):
+	buy_item(id, int(round(slider.value)))
+
+func sell_item_from_slider(id, slider):
+	sell_item(id, int(round(slider.value)))
+
+func export_from_slider(city_id, resource_id, slider):
+	export_to_city(city_id, resource_id, int(round(slider.value)))
+
+func import_from_slider(city_id, resource_id, slider):
+	import_from_city(city_id, resource_id, int(round(slider.value)))
 
 
 func toggle_current_district(district_id):
@@ -2655,6 +3461,11 @@ func adjust_storage_rule(resource_id, field, delta):
 	show_page("storage")
 	_show_message(result.message)
 
+func set_storage_target_slider(resource_id, value):
+	var result = game.set_storage_target(str(resource_id), int(value))
+	show_page("storage")
+	_show_message(result.message)
+
 func toggle_storage_low_action(resource_id):
 	var result = game.toggle_storage_action(str(resource_id), "low")
 	show_page("storage")
@@ -2677,8 +3488,10 @@ func go_to_mission_target(mission_id):
 	mission_target_building_id = ""
 	mission_target_building_button = null
 	match str(mission_id):
-		"daily_build", "daily_land":
+		"daily_build":
 			target_page = "buildings"
+		"daily_land":
+			target_page = "transport"
 		"daily_hire", "daily_population", "daily_satisfaction":
 			target_page = "citizens"
 		"daily_export":
@@ -2688,9 +3501,11 @@ func go_to_mission_target(mission_id):
 			selected_building_category = "کسب‌وکارها"
 		"daily_day":
 			target_page = "home"
-		"buy_land_tutorial", "build_house_tutorial":
+		"buy_land_tutorial":
+			target_page = "transport"
+		"build_house_tutorial":
 			target_page = "buildings"
-			selected_building_category = "خانه‌ها" if str(mission_id) == "build_house_tutorial" else ""
+			selected_building_category = "خانه‌ها"
 		"build_farm_tutorial", "side_fish_lake", "side_fishing_dock":
 			target_page = "buildings"
 			selected_building_category = "کشاورزی"
@@ -2740,7 +3555,6 @@ func go_to_mission_target(mission_id):
 		"build_house_tutorial": mission_target_building_id = "small_house"
 		"build_farm_tutorial": mission_target_building_id = "farm"
 		"market_tutorial": mission_target_building_id = "mineral_market"
-		"transport_tutorial": mission_target_building_id = "transport_depot"
 		"main_water", "side_water": mission_target_building_id = "water_tower"
 		"main_power", "side_power": mission_target_building_id = "power_station"
 		"main_school", "side_school": mission_target_building_id = "school"
@@ -2762,8 +3576,7 @@ func go_to_mission_target(mission_id):
 		"side_university": mission_target_building_id = "university"
 		"side_cultural": mission_target_building_id = "cultural_center"
 		"side_iron_mine": mission_target_building_id = "iron_mine"
-		"side_fish_lake": mission_target_building_id = "fish_lake"
-		"side_fishing_dock": mission_target_building_id = "fishing_dock"
+		"side_fish_lake", "side_fishing_dock": mission_target_building_id = "fishing_dock"
 		"side_fish_market": mission_target_building_id = "fish_market"
 		"side_fish_processing": mission_target_building_id = "fish_processing_plant"
 		"side_grocery": mission_target_building_id = "grocery_store"
@@ -2775,6 +3588,17 @@ func go_to_mission_target(mission_id):
 		target_page = "buildings"
 		var target_definition = game.get_building_definitions().get(mission_target_building_id, {})
 		selected_building_category = "ماهیگیری" if mission_target_building_id in ["fish_lake", "fishing_dock", "fish_market", "fish_processing_plant"] else str(target_definition.get("category", ""))
+	if target_page == "buildings":
+		if selected_building_category == "خانه‌ها":
+			selected_building_group = "مسکونی"
+		elif selected_building_category == "انبارها":
+			selected_building_group = "انبارها"
+		elif selected_building_category in ["کشاورزی","ماهیگیری","معادن","کارخانه‌ها","کسب‌وکارها"]:
+			selected_building_group = "اقتصادی"
+		elif selected_building_category in ["خدمات شهری","تفریح و فرهنگ"]:
+			selected_building_group = "عمومی"
+		elif selected_building_category == "":
+			selected_building_group = ""
 	show_page(target_page)
 	if game_scroll_container != null and is_instance_valid(game_scroll_container):
 		game_scroll_container.scroll_vertical = 0
@@ -2794,7 +3618,8 @@ func claim_login_reward():
 	var result = game.claim_login_reward()
 	if bool(result.get("ok", false)):
 		audio_manager.play_sfx("reward")
-	show_page("home")
+	_close_daily_reward_calendar()
+	show_page(current_page)
 	_show_message(str(result.message))
 
 func resolve_resident_request(request_id, accepted):
@@ -2802,9 +3627,54 @@ func resolve_resident_request(request_id, accepted):
 	show_page("citizens")
 	_show_message(str(result.message))
 
+func go_to_report_solution(issue_key, service_need):
+	var building_id = ""
+	match str(issue_key):
+		"unemployed", "low_wallet":
+			building_id = "office"
+	match str(service_need):
+		"food": building_id = "grocery_store"
+		"water": building_id = "water_tower"
+		"power": building_id = "power_station"
+		"health": building_id = "clinic"
+		"education": building_id = "school"
+		"safety": building_id = "police_station"
+		"leisure": building_id = "small_park"
+		"sanitation": building_id = "waste_facility"
+	if building_id == "":
+		_show_message("برای این گزارش هنوز ساختمان مشخصی تعریف نشده است.")
+		return
+	var definition = game.get_building_definitions().get(building_id, {})
+	if definition.is_empty():
+		_show_message("ساختمان پیشنهادی این گزارش در فهرست ساخت‌وساز پیدا نشد.")
+		return
+	mission_target_building_id = building_id
+	selected_building_category = str(definition.get("category", ""))
+	if selected_building_category == "خانه‌ها":
+		selected_building_group = "مسکونی"
+	elif selected_building_category == "انبارها":
+		selected_building_group = "انبارها"
+	elif selected_building_category in ["کشاورزی", "ماهیگیری", "معادن", "کارخانه‌ها", "کسب‌وکارها"]:
+		selected_building_group = "اقتصادی"
+	else:
+		selected_building_group = "عمومی"
+	show_page("buildings")
+	if game_scroll_container != null and is_instance_valid(game_scroll_container):
+		game_scroll_container.scroll_vertical = 0
+		call_deferred("_scroll_to_mission_target_building")
+	_show_message("ساختمان پیشنهادی برای حل مشکل شهروندان را باز کردم.")
+
 func go_to_resident_request_building(building_id):
 	var definition = game.get_building_definitions().get(str(building_id),{})
 	selected_building_category = str(definition.get("category","خدمات شهری"))
+	if selected_building_category == "خانه‌ها":
+		selected_building_group = "مسکونی"
+	elif selected_building_category == "انبارها":
+		selected_building_group = "انبارها"
+	elif selected_building_category in ["کشاورزی","ماهیگیری","معادن","کارخانه‌ها","کسب‌وکارها"]:
+		selected_building_group = "اقتصادی"
+	else:
+		selected_building_group = "عمومی"
 	show_page("buildings")
 	_show_message("دسته ساختمان پیشنهادی شهروندان باز شد.")
 
@@ -2846,11 +3716,11 @@ func claim_weekly_challenge():
 func _add_daily_claim_button(parent, mission_id):
 	var claim_button = Button.new()
 	claim_button.text = PersianText.reshaper("🎁 دریافت جایزه")
-	claim_button.rect_min_size = Vector2(0, 48 if get_viewport_rect().size.x < 900 else 42)
+	claim_button.custom_minimum_size = Vector2(0, 48 if get_viewport_rect().size.x < 900 else 42)
 	claim_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_font(claim_button, 17)
 	_style_button(claim_button, false)
-	claim_button.connect("pressed", self, "claim_daily_mission", [mission_id])
+	claim_button.connect("pressed", Callable(self, "claim_daily_mission").bind(mission_id))
 	parent.add_child(claim_button)
 
 func claim_daily_mission(mission_id):
@@ -2867,6 +3737,30 @@ func claim_mission(index):
 	show_page("missions")
 	_show_message(result.message)
 
+func speed_up_construction(construction_index):
+	var result = game.speed_up_construction(int(construction_index))
+	show_page("buildings")
+	_show_message(str(result.get("message", "")))
+	if bool(result.get("ok", false)):
+		audio_manager.play_sfx("construction")
+
+
 func save_now():
 	var ok = game.save_game()
 	_show_message("شهر ذخیره شد." if ok else "ذخیره‌سازی ناموفق بود.")
+
+func select_map_district(district_id):
+	selected_map_district_id = str(district_id)
+	selected_map_building_data = {}
+	show_page("map")
+
+
+func select_map_building(building_data):
+	selected_map_building_data = building_data.duplicate(true) if building_data is Dictionary else {}
+	selected_map_district_id = str(selected_map_building_data.get("district_id", selected_map_district_id))
+	show_page("map")
+
+
+func clear_selected_map_building():
+	selected_map_building_data = {}
+	show_page("map")

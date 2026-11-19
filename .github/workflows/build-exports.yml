@@ -1,13 +1,13 @@
 name: Test and build Mini ZekaCity Android
 
 concurrency:
-  group: mini-zeka-city-android
+  group: mini-zeka-city-android-release
   cancel-in-progress: true
 
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, godot4-migration, godot4-integration]
     paths:
       - 'scripts/**'
       - 'assets/**'
@@ -15,150 +15,262 @@ on:
       - '*.godot'
       - '*.tscn'
       - 'export_presets.cfg'
+      - 'project.godot'
+      - 'project.godot.*'
       - '.github/workflows/build-exports.yml'
 
 permissions:
-  contents: read
+  actions: write
+  contents: write
 
 jobs:
-  android:
+  export:
     runs-on: ubuntu-22.04
-    env:
-      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-      ANDROID_HOME: /usr/local/lib/android/sdk
+    timeout-minutes: 40
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Ensure virtual display for Godot editor
-        timeout-minutes: 3
+      - name: Convert custom boot splash to PNG
         run: |
-          set -euo pipefail
-          if command -v xvfb-run >/dev/null 2>&1; then
-            echo "xvfb-run is already available on the GitHub runner."
-          else
-            echo "Installing Xvfb because it is not preinstalled."
-            timeout --signal=TERM --kill-after=10s 90s sudo apt-get update
-            timeout --signal=TERM --kill-after=10s 60s sudo apt-get install -y xvfb
-          fi
-          command -v xvfb-run
+          sudo apt-get update
+          sudo apt-get install -y librsvg2-bin
+          rsvg-convert -o assets/boot-splash.png assets/boot-splash.svg
 
-      - name: Download Godot 3.6.3 editor and export templates
+      - name: Download Godot 4.4.1 editor and export templates
         run: |
-          wget -q https://github.com/godotengine/godot/releases/download/3.6.3-stable/Godot_v3.6.3-stable_x11.64.zip -O /tmp/godot.zip
+          set -euxo pipefail
+          mkdir -p /tmp/godot /tmp/godot-templates
+          curl -fL --retry 5 --retry-all-errors --retry-delay 3 https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip -o /tmp/godot.zip 2>&1 | tee /tmp/godot-download-editor.log
           unzip -q /tmp/godot.zip -d /tmp/godot
-          chmod +x /tmp/godot/Godot_v3.6.3-stable_x11.64
-          wget -q https://github.com/godotengine/godot/releases/download/3.6.3-stable/Godot_v3.6.3-stable_export_templates.tpz -O /tmp/templates.tpz
-          mkdir -p "$HOME/.local/share/godot/templates/3.6.3.stable"
+          chmod +x /tmp/godot/Godot_v4.4.1-stable_linux.x86_64
+          curl -fL --retry 5 --retry-all-errors --retry-delay 3 https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz -o /tmp/templates.tpz 2>&1 | tee /tmp/godot-download-templates.log
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.4.1.stable"
           unzip -q /tmp/templates.tpz -d /tmp/godot-templates
-          cp -a /tmp/godot-templates/templates/. "$HOME/.local/share/godot/templates/3.6.3.stable/"
+          cp -a /tmp/godot-templates/templates/. "$HOME/.local/share/godot/export_templates/4.4.1.stable/"
 
-      - name: Set up Java 17 for Android SDK tools
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      # Avoid android-actions/setup-android here: its default "tools" package is
-      # obsolete and causes sdkmanager to fail on current Android repositories.
-      - name: Install Android platform and build tools
-        run: |
-          set -euo pipefail
-          SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
-          if [ ! -x "$SDKMANAGER" ]; then
-            SDKMANAGER="$(find "$ANDROID_SDK_ROOT/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)"
-          fi
-          test -x "$SDKMANAGER"
-          # sdkmanager closes stdin after reading the licenses; with pipefail enabled,
-          # the resulting SIGPIPE from yes would incorrectly fail this step.
-          set +o pipefail
-          yes | "$SDKMANAGER" --sdk_root="$ANDROID_SDK_ROOT" --licenses
-          set -o pipefail
-          "$SDKMANAGER" --sdk_root="$ANDROID_SDK_ROOT" --install "platform-tools" "platforms;android-31" "build-tools;34.0.0"
-          mkdir -p "$HOME/.config/godot"
-          cat > "$HOME/.config/godot/editor_settings-3.tres" <<EOF
-          [gd_resource type="EditorSettings" format=2]
-
-          [resource]
-          export/android/android_sdk_path = "$ANDROID_SDK_ROOT"
-          export/android/debug_keystore = "$HOME/.android/debug.keystore"
-          export/android/debug_keystore_user = "androiddebugkey"
-          export/android/debug_keystore_pass = "android"
-          EOF
-
-      - name: Import project resources before Android export
-        timeout-minutes: 5
+      - name: Import and validate converted Godot 4 project
         run: |
           set -o pipefail
-          timeout --signal=TERM --kill-after=15s 4m xvfb-run -a /tmp/godot/Godot_v3.6.3-stable_x11.64 --audio-driver Dummy --editor --import --path . --quit --verbose 2>&1 | tee /tmp/godot-import.log
-          if grep -E "SCRIPT ERROR|Parse Error|ERROR:" /tmp/godot-import.log; then exit 1; fi
+          /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --editor --path . --import 2>&1 | tee /tmp/godot-import.log
 
       - name: Run game logic smoke tests
         timeout-minutes: 1
         run: |
           set -o pipefail
-          timeout 25s xvfb-run -a /tmp/godot/Godot_v3.6.3-stable_x11.64 --audio-driver Dummy --path . --script res://tests/logic_smoke_test.gd 2>&1 | tee /tmp/godot-tests.log
+          timeout 25s /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --audio-driver Dummy --path . --script res://tests/logic_smoke_test.gd 2>&1 | tee /tmp/godot-tests.log
           grep -q "Mini ZekaCity logic smoke tests passed." /tmp/godot-tests.log
           if grep -E "SCRIPT ERROR|Parse Error" /tmp/godot-tests.log; then exit 1; fi
 
       - name: Exercise every menu page for runtime validation
-        timeout-minutes: 1
+        timeout-minutes: 2
         run: |
           set -o pipefail
-          timeout 25s xvfb-run -a /tmp/godot/Godot_v3.6.3-stable_x11.64 --audio-driver Dummy --path . --script res://tests/ui_smoke_test.gd 2>&1 | tee /tmp/godot-ui-tests.log
+          timeout 90s /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --audio-driver Dummy --path . --script res://tests/ui_smoke_test.gd 2>&1 | tee /tmp/godot-ui-tests.log
           grep -q "Mini ZekaCity UI smoke tests passed." /tmp/godot-ui-tests.log
           if grep -E "SCRIPT ERROR|Parse Error" /tmp/godot-ui-tests.log; then exit 1; fi
 
       - name: Launch the actual main scene for runtime validation
         run: |
           set -o pipefail
-          timeout 15s xvfb-run -a /tmp/godot/Godot_v3.6.3-stable_x11.64 --path . --audio-driver Dummy --quit 2>&1 | tee /tmp/godot-main-scene.log
+          timeout 15s /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --path . --audio-driver Dummy --quit 2>&1 | tee /tmp/godot-main-scene.log
           if grep -E "SCRIPT ERROR|Parse Error" /tmp/godot-main-scene.log; then exit 1; fi
 
-      - name: Configure Android release signing
+      - name: Set up Java 17 and Android SDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android command-line tools
+        run: |
+          set -euxo pipefail
+          # Keep Android SDK environment variables on the runner's single SDK path.
+          # The hosted runner already defines ANDROID_HOME; using a second SDK path
+          # makes Gradle reject the Android export because the two paths disagree.
+          : "${ANDROID_HOME:=/usr/local/lib/android/sdk}"
+          export ANDROID_HOME
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
+          mkdir -p "$ANDROID_HOME/cmdline-tools" /tmp/android-cli
+          curl -fL --retry 5 --retry-all-errors --retry-delay 3 https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o /tmp/android-cli.zip
+          unzip -q /tmp/android-cli.zip -d /tmp/android-cli
+          mkdir -p "$ANDROID_HOME/cmdline-tools/latest"
+          # The hosted runner's shared SDK directory does not allow timestamp preservation.
+          cp -R /tmp/android-cli/cmdline-tools/. "$ANDROID_HOME/cmdline-tools/latest/"
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
+          # sdkmanager exits after accepting licenses; avoid pipefail treating yes SIGPIPE as failure.
+          set +o pipefail
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" --licenses
+          set -o pipefail
+
+      - name: Install Android build dependencies
+        run: |
+          set -euxo pipefail
+          sdkmanager --sdk_root="$ANDROID_HOME" --install "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;23.2.8568313" "cmake;3.10.2.4988404"
+
+      - name: Configure Godot to use Java 17 and Android SDK
+        run: |
+          set -euxo pipefail
+          test -d "$JAVA_HOME/bin"
+          test -d "$ANDROID_HOME/platform-tools"
+          mkdir -p "$HOME/.config/godot" "$HOME/.android"
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            "$JAVA_HOME/bin/keytool" -genkeypair -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey -keypass android -dname "CN=Android Debug,O=Android,C=US" -validity 10000 -keyalg RSA -keysize 2048
+          fi
+          cat > "$HOME/.config/godot/editor_settings-4.tres" <<EOF
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/java_sdk_path = "$JAVA_HOME"
+          export/android/android_sdk_path = "$ANDROID_HOME"
+          export/android/debug_keystore = "$HOME/.android/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          EOF
+          "$JAVA_HOME/bin/java" -version
+          cat "$HOME/.config/godot/editor_settings-4.tres"
+
+      - name: Install Android build template into the project
+        timeout-minutes: 5
+        run: |
+          set -euxo pipefail
+          TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/4.4.1.stable"
+          test -s "$TEMPLATE_DIR/android_source.zip"
+          mkdir -p android/plugins android/build
+          touch android/build/.gdignore
+          printf '%s\n' '4.4.1.stable' > android/.build_version
+          unzip -q -o "$TEMPLATE_DIR/android_source.zip" -d android/build
+          chmod +x android/build/gradlew
+          test -s android/build/build.gradle
+          test -x android/build/gradlew
+          touch android/build/gradle.properties
+          if grep -q '^org.gradle.java.home=' android/build/gradle.properties; then
+            sed -i "s|^org.gradle.java.home=.*|org.gradle.java.home=$JAVA_HOME|" android/build/gradle.properties
+          else
+            printf '\norg.gradle.java.home=%s\n' "$JAVA_HOME" >> android/build/gradle.properties
+          fi
+          echo "Godot Android Gradle template installed in android/build with Java 17."
+
+      - name: Set monotonically increasing Android version
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          path = Path('export_presets.cfg')
+          data = path.read_text(encoding='utf-8')
+          run_number = int(os.environ['GITHUB_RUN_NUMBER'])
+          code = max(2, run_number)
+          if 'version/code=1' not in data or 'version/name="1.0.0"' not in data:
+              raise SystemExit('Unexpected Android version fields; refusing to overwrite them')
+          data = data.replace('version/code=1', f'version/code={code}', 1)
+          data = data.replace('version/name="1.0.0"', f'version/name="1.0.{run_number}"', 1)
+          path.write_text(data, encoding='utf-8')
+          print(f'Android version: 1.0.{run_number} (code {code})')
+          PY
+      # Secret contains Base64-encoded PKCS#12 keystore generated by generate-android-signing-key.yml.
+      - name: Export signed Android Release APK (when signing secrets are configured)
+        id: android_release
         env:
-          # Support both the original signing-secret names and the newer release-prefixed names.
-          ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 || secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEYSTORE_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS || secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
           set -euo pipefail
-          test -n "$ANDROID_RELEASE_KEYSTORE_BASE64" || { echo "Missing GitHub secret: ANDROID_RELEASE_KEYSTORE_BASE64"; exit 1; }
-          test -n "$ANDROID_RELEASE_KEYSTORE_PASSWORD" || { echo "Missing GitHub secret: ANDROID_RELEASE_KEYSTORE_PASSWORD"; exit 1; }
-          test -n "$ANDROID_RELEASE_KEY_ALIAS" || { echo "Missing GitHub secret: ANDROID_RELEASE_KEY_ALIAS"; exit 1; }
-          mkdir -p build/android
-          echo "$ANDROID_RELEASE_KEYSTORE_BASE64" | base64 --decode > build/android/release.keystore
-          python3 - <<'PY'
-          import json, os
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || [ -z "$ANDROID_KEY_ALIAS" ]; then
+            echo "release_ready=false" >> "$GITHUB_OUTPUT"
+            echo "Release signing secrets are not configured; skipping signed APK."
+            exit 0
+          fi
+          P12_PATH="$RUNNER_TEMP/minizekacity-release.p12"
+          KEYSTORE_PATH="$RUNNER_TEMP/minizekacity-release.keystore"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$P12_PATH"
+          test -s "$P12_PATH"
+          # Verify the uploaded PKCS#12 file and alias before importing it.
+          "$JAVA_HOME/bin/keytool" -list -storetype PKCS12 \
+            -keystore "$P12_PATH" -storepass "$ANDROID_KEYSTORE_PASSWORD" \
+            -alias "$ANDROID_KEY_ALIAS"
+          "$JAVA_HOME/bin/keytool" -importkeystore -noprompt \
+            -srckeystore "$P12_PATH" -srcstoretype PKCS12 \
+            -srcstorepass "$ANDROID_KEYSTORE_PASSWORD" \
+            -srcalias "$ANDROID_KEY_ALIAS" \
+            -destkeystore "$KEYSTORE_PATH" -deststoretype JKS \
+            -deststorepass "$ANDROID_KEYSTORE_PASSWORD" \
+            -destkeypass "$ANDROID_KEYSTORE_PASSWORD" \
+            -destalias "$ANDROID_KEY_ALIAS"
+          test -s "$KEYSTORE_PATH"
+          "$JAVA_HOME/bin/keytool" -list -keystore "$KEYSTORE_PATH" \
+            -storetype JKS -storepass "$ANDROID_KEYSTORE_PASSWORD" \
+            -alias "$ANDROID_KEY_ALIAS"
+          python3 - "$KEYSTORE_PATH" "$ANDROID_KEY_ALIAS" "$ANDROID_KEYSTORE_PASSWORD" <<'PY'
+          import json, sys
           from pathlib import Path
-          path = Path("export_presets.cfg")
-          content = path.read_text()
-          replacements = {
-              'keystore/release=""': 'keystore/release="build/android/release.keystore"',
-              'keystore/release_user=""': 'keystore/release_user=' + json.dumps(os.environ["ANDROID_RELEASE_KEY_ALIAS"]),
-              'keystore/release_password=""': 'keystore/release_password=' + json.dumps(os.environ["ANDROID_RELEASE_KEYSTORE_PASSWORD"]),
+          keystore, alias, password = sys.argv[1:]
+          path = Path('export_presets.cfg')
+          lines = path.read_text(encoding='utf-8').splitlines()
+          start = lines.index('[preset.0.options]') + 1
+          end = next((i for i in range(start, len(lines)) if lines[i].startswith('[preset.')), len(lines))
+          values = {
+              'keystore/release': keystore,
+              'keystore/release_user': alias,
+              'keystore/release_password': password,
           }
-          for old, new in replacements.items():
-              if old not in content:
-                  raise SystemExit(f"Expected Android release setting not found: {old}")
-              content = content.replace(old, new, 1)
-          path.write_text(content)
+          for key, value in values.items():
+              replacement = key + '=' + json.dumps(value)
+              found = next((i for i in range(start, end) if lines[i].startswith(key + '=')), None)
+              if found is None:
+                  lines.insert(end, replacement)
+                  end += 1
+              else:
+                  lines[found] = replacement
+          path.write_text('\n'.join(lines) + '\n', encoding='utf-8')
           PY
-
-      - name: Export Android Release APK
-        timeout-minutes: 10
-        run: |
-          set -o pipefail
           mkdir -p build/android
-          echo "Starting Godot Android Release export..."
-          timeout --signal=TERM --kill-after=30s 9m xvfb-run -a /tmp/godot/Godot_v3.6.3-stable_x11.64 --no-window --audio-driver Dummy --verbose --path . --export-release "Android" build/android/MiniZekaCity-Release.apk 2>&1 | tee /tmp/godot-android-export.log
-          test -s build/android/MiniZekaCity-Release.apk
-          echo "Release APK export completed."
+          /tmp/godot/Godot_v4.4.1-stable_linux.x86_64 --headless --path . --export-release "Android - Myket" build/android/MiniZekaCity-release.apk 2>&1 | tee /tmp/godot-android-release-export.log
+          test -s build/android/MiniZekaCity-release.apk
+          echo "release_ready=true" >> "$GITHUB_OUTPUT"
 
-      - name: Upload Android Release APK
+      - name: Publish signed APK as GitHub Release
+        if: steps.android_release.outputs.release_ready == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: Mini ZekaCity 1.0.${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          make_latest: true
+          fail_on_unmatched_files: true
+          files: build/android/MiniZekaCity-release.apk
+
+      - name: Archive signed Android Release APK
+        if: steps.android_release.outputs.release_ready == 'true'
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
-          name: MiniZekaCity-Android-Release-APK
-          path: build/android/MiniZekaCity-Release.apk
-          if-no-files-found: error
+          name: mini-zeka-city-android-release-apk
+          path: build/android/MiniZekaCity-release.apk
+          retention-days: 30
+      - name: Preserve migration diagnostics
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot4-migration-diagnostics
+          path: |
+            /tmp/godot-download-editor.log
+            /tmp/godot-download-templates.log
+            /tmp/godot-convert.log
+            /tmp/godot-import.log
+            /tmp/godot-tests.log
+            /tmp/godot-ui-tests.log
+            /tmp/godot-main-scene.log
+            /tmp/godot-export.log
+            /tmp/godot-android-template.log
+            /tmp/godot-android-export.log
+            /tmp/godot-android-release-export.log
+          if-no-files-found: ignore
           retention-days: 14
+
+
