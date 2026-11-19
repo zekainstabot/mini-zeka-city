@@ -1925,6 +1925,19 @@ func _open_construction_details():
 			_apply_font(cost_label, 14)
 			cost_label.add_theme_color_override("font_color", Color("#cbd5e1"))
 			project_info.add_child(cost_label)
+			project_panel.name = "ConstructionProject_%d" % index
+			var speedup_cost = max(1, int(ceil(float(remaining) / 300.0)))
+			var speedup_button = Button.new()
+			speedup_button.name = "ConstructionSpeedUpButton_%d" % index
+			speedup_button.text = PersianText.reshaper("تکمیل فوری پروژه — %d ZC" % speedup_cost)
+			speedup_button.custom_minimum_size = Vector2(0, 48)
+			speedup_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			speedup_button.icon = load("res://assets/zeka-coin.svg")
+			speedup_button.icon_max_width = 24
+			_apply_font(speedup_button, 15)
+			_style_button(speedup_button, false)
+			speedup_button.pressed.connect(_complete_construction_from_worker_popup.bind(int(project.get("construction_index", index))))
+			project_info.add_child(speedup_button)
 
 	# Offer a practical next-build suggestion based on the city's weakest service.
 	var recommendation = _get_construction_recommendation()
@@ -2014,6 +2027,18 @@ func _open_recommended_construction(building_id):
 		selected_building_group = "عمومی"
 	show_page("buildings")
 	_show_message("ساختمان پیشنهادی را برای بررسی باز کردم.")
+
+
+func _complete_construction_from_worker_popup(construction_index):
+	if game == null:
+		return
+	var result = game.speed_up_construction(int(construction_index))
+	if bool(result.get("ok", false)):
+		if audio_manager != null:
+			audio_manager.play_sfx("construction")
+			_update_construction_capacity_button()
+			_open_construction_details()
+	_show_message(str(result.get("message", "")))
 
 
 func _close_construction_details():
