@@ -1212,7 +1212,8 @@ func _create_bottom_navigation(parent: VBoxContainer, compact_layout: bool):
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		button.add_theme_color_override("font_color", Color("#e5edf5"))
 		button.add_theme_color_override("font_hover_color", Color("#ffffff"))
-		_apply_font(button, 25 if compact_layout else 27)
+		# Increase bottom dock labels for comfortable reading on phone screens.
+		_apply_font(button, 34 if compact_layout else 36)
 		button.flat = true
 		var target_page = str(entry.page)
 		button.pressed.connect(func():
