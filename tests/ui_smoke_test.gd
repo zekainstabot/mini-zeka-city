@@ -63,16 +63,8 @@ func _run_tests():
 	main.ranking_button.emit_signal("pressed")
 	assert(main.current_page == "ranking", "Top ranking shortcut does not open rankings")
 	main.show_page("home")
-	var home_has_report_action = false
-	for home_child in main.content.get_children():
-		if home_child is Button and str(home_child.text).find("گزارش‌ها") >= 0:
-			home_has_report_action = true
-	assert(home_has_report_action, "Reports action must remain available from My City")
-	var home_has_calendar_action = false
-	for home_child in main.content.get_children():
-		if home_child is Button and str(home_child.text).find("تقویم جایزه‌های ورود") >= 0:
-			home_has_calendar_action = true
-	assert(home_has_calendar_action, "Daily reward calendar must appear below the worker summary on My City")
+	assert(main.content.find_child("HomeReportsButton", true, false) is Button, "Reports action must remain available from My City")
+	assert(main.content.find_child("HomeDailyRewardCalendarButton", true, false) is Button, "Daily reward calendar must appear below the worker summary on My City")
 	assert(navigation_grid.get_combined_minimum_size().x <= main_layout.size.x + 1.0, "Narrow navigation exceeds the safe content width")
 	for nav_button in main.navigation_buttons:
 		assert(nav_button.alignment == HORIZONTAL_ALIGNMENT_CENTER, "Navigation button text is not centered")
