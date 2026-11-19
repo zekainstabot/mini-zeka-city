@@ -898,7 +898,7 @@ func _apply_safe_area_to_floating_controls():
 	var button_size = Vector2(50, 50) if narrow else Vector2(56, 56)
 	# The worker control includes a count ("۲/۲"), so it needs a horizontal
 	# pill shape instead of the square footprint used by icon-only shortcuts.
-	var worker_button_size = Vector2(82, 44) if narrow else Vector2(92, 48)
+	var worker_button_size = Vector2(76, 40) if narrow else Vector2(86, 44)
 	var ranking_button_size = Vector2(60, 56) if narrow else Vector2(66, 60)
 	var gap = 8.0
 	# Keep the second row safely below the tallest first-row control.
@@ -965,7 +965,7 @@ func _apply_safe_area_to_floating_controls():
 		day_night_hud.anchor_right = 0.0
 		day_night_hud.anchor_top = 0.0
 		day_night_hud.anchor_bottom = 0.0
-		day_night_hud.position = Vector2(right_edge - hud_width - 12.0, inset.y + 16.0)
+		day_night_hud.position = Vector2(right_edge - hud_width - 12.0, inset.y + 10.0)
 		day_night_hud.custom_minimum_size = Vector2(hud_width, 52.0 if narrow else 56.0)
 		day_night_hud.size = Vector2(hud_width, 52.0 if narrow else 56.0)
 		if day_night_icon_label != null and is_instance_valid(day_night_icon_label):
@@ -983,7 +983,7 @@ func _apply_safe_area_to_floating_controls():
 		if day_night_hud != null and is_instance_valid(day_night_hud):
 			worker_row_y = maxf(worker_row_y, day_night_hud.get_global_rect().end.y + 10.0)
 		construction_capacity_button.position = Vector2(worker_x, worker_row_y)
-		_apply_font(construction_capacity_button, 22 if narrow else 24)
+		_apply_font(construction_capacity_button, 20 if narrow else 22)
 
 	if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
 		_update_construction_capacity_button()
