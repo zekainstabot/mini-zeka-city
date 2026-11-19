@@ -175,7 +175,8 @@ func _run_tests():
 	main.mission_target_building_id = ""
 	main.show_page("home")
 	assert(main.content.find_child("HomeConstructionPanel", true, false) == null, "Active construction panel must be removed from My City")
-	main.show_page("buildings")
+	main.select_building_group("مسکونی")
+	main.select_building_category("خانه‌ها")
 	assert(main.content.find_child("HomeConstructionPanel", true, false) == null, "Active construction panel must not appear on the buildings page")
 	assert(main.content.find_child("BuildingOption_small_house", true, false) is Button, "Building option must remain visible while the same building is under construction")
 	main._open_construction_details()
