@@ -530,6 +530,24 @@ func record_active_play_seconds(seconds):
 		return
 	state["active_play_seconds_today"] = float(state.get("active_play_seconds_today", 0.0)) + min(float(seconds), 1.0)
 
+func get_report_event_category(message):
+	var text = str(message).strip_edges()
+	if text.is_empty():
+		return ""
+	if text.find("🎲 رویداد شهر") >= 0 or text.find("🏙️ خبر رقبا") >= 0 or text.find("🔎 کشف راز") >= 0 or text.find("⚖️ تصمیم مهم") >= 0 or text.find("رویداد این هفته") >= 0:
+		return "events"
+	if text.find("شهروند شماره") >= 0 or text.find("شهروندان") >= 0 or text.find("درخواست شهروند") >= 0:
+		return "citizens"
+	if text.find("کسری") >= 0 or text.find("کمبود") >= 0 or text.find("متوقف") >= 0 or text.find("تمام شده") >= 0 or text.find("کافی نیست") >= 0 or text.find("گزارش داده‌اند") >= 0:
+		return "issues"
+	if text.find("وام") >= 0 or text.find("قسط") >= 0 or text.find("سپرده") >= 0 or text.find("خزانه") >= 0 or text.find("مالیات") >= 0 or text.find("حقوق") >= 0 or text.find("درآمد امروز") >= 0:
+		return "finance"
+	if text.find("محموله") >= 0 or text.find("قرارداد واردات") >= 0 or text.find("صادرات") >= 0 or text.find("واردات") >= 0 or text.find("تجارت") >= 0:
+		return "trade"
+	if text.find("تبریک") >= 0 or text.find("ساختمان‌های تازه") >= 0 or text.find("ارتقا یافت") >= 0 or text.find("دستاورد") >= 0 or text.find("مأموریت") >= 0:
+		return "progress"
+	return ""
+
 func add_report_event(message, persist=true, metadata={}):
 	var clean_message = str(message).strip_edges()
 	if clean_message == "":
@@ -542,7 +560,10 @@ func add_report_event(message, persist=true, metadata={}):
 		state["district_service_coverage"] = {}
 	var event_id = int(state.get("next_report_event_id", 1))
 	state["next_report_event_id"] = event_id + 1
-	var event = {"id":event_id,"timestamp":Time.get_unix_time_from_system(),"day":int(state.get("day", 1)),"message":clean_message,"resolved":false}
+	var category = str(metadata.get("category", "")) if typeof(metadata) == TYPE_DICTIONARY else ""
+	if category.is_empty():
+		category = get_report_event_category(clean_message)
+	var event = {"id":event_id,"timestamp":Time.get_unix_time_from_system(),"day":int(state.get("day", 1)),"message":clean_message,"category":category,"resolved":false}
 	if typeof(metadata) == TYPE_DICTIONARY:
 		for key in metadata.keys():
 			event[key] = metadata[key]
@@ -580,7 +601,7 @@ func check_citizen_reports(persist=true):
 			previous_keys = []
 		for issue_key in concerns.keys():
 			if not previous_keys.has(issue_key):
-				add_report_event(concerns[issue_key], false, {"citizen_id":citizen_id,"issue_key":issue_key,"resolved":false})
+				add_report_event(concerns[issue_key], false, {"citizen_id":citizen_id,"issue_key":issue_key,"category":"citizens","resolved":false})
 				changed = true
 		for previous_key in previous_keys:
 			if concerns.has(str(previous_key)):
@@ -637,7 +658,7 @@ func check_citizen_reports(persist=true):
 			if not active_keys.has(issue_key):
 				var coverage = int(service_snapshot[selected_need].get("coverage", {}).get(district_id, 0))
 				var message = "شهروندان %s گزارش داده‌اند: پوشش خدمات %s برای جمعیت این محله کافی نیست (%d%%). پیشنهاد: %s." % [str(district.get("name", "این محله")), need_names[selected_need], coverage, need_advice[selected_need]]
-				add_report_event(message, false, {"citizen_id":0,"district_id":district_id,"service_need":selected_need,"issue_key":issue_key,"resolved":false})
+				add_report_event(message, false, {"citizen_id":0,"district_id":district_id,"service_need":selected_need,"issue_key":issue_key,"category":"issues","resolved":false})
 				changed = true
 		for previous_key in active_keys:
 			if not str(previous_key).ends_with("_" + district_id) or current_keys.has(str(previous_key)):
