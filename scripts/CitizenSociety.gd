@@ -11,6 +11,7 @@ func ensure_state(engine):
 		"business_tax_rate": 8,
 		"business_permit_fee": 50,
 		"business_requests": [],
+		"private_request_mode": "auto",
 		"private_businesses": [],
 		"civic_projects": [],
 		"next_private_business_id": 1,
@@ -22,6 +23,8 @@ func ensure_state(engine):
 			state[key] = defaults[key].duplicate(true) if typeof(defaults[key]) == TYPE_ARRAY or typeof(defaults[key]) == TYPE_DICTIONARY else defaults[key]
 	if typeof(state.get("business_requests", null)) != TYPE_ARRAY:
 		state["business_requests"] = []
+	if not str(state.get("private_request_mode", "auto")) in ["auto", "manual"]:
+		state["private_request_mode"] = "auto"
 	if typeof(state.get("private_businesses", null)) != TYPE_ARRAY:
 		state["private_businesses"] = []
 	if typeof(state.get("civic_projects", null)) != TYPE_ARRAY:
@@ -589,10 +592,73 @@ func process_day(engine, report):
 		summary["private_business_tax"] = _process_private_businesses(engine, report)
 		_queue_land_or_permit_requests(engine)
 		_queue_public_project_requests(engine)
+		state = engine.state
+		if str(state.get("private_request_mode", "auto")) == "auto":
+			_process_private_requests_automatically(engine, report)
+			state = engine.state
 		if not state.business_requests.is_empty():
 			report.append("%d درخواست شهروندان برای زمین، مجوز یا پروژه عمرانی در شهرداری منتظر بررسی است." % state.business_requests.size())
 	engine.state = state
 	return summary
+
+func set_private_request_mode(engine, mode):
+	ensure_state(engine)
+	var selected_mode = str(mode)
+	if selected_mode not in ["auto", "manual"]:
+		return {"ok":false,"message":"حالت رسیدگی معتبر نیست."}
+	engine.state["private_request_mode"] = selected_mode
+	engine.save_game()
+	return {"ok":true,"message":"رسیدگی به درخواست‌های اقتصاد خصوصی: %s" % ("خودکار" if selected_mode == "auto" else "دستی")}
+
+func _should_auto_approve_request(engine, request, citizen):
+	var state = engine.state
+	var request_type = str(request.get("type", ""))
+	var wallet = int(citizen.get("wallet", 0))
+	var entrepreneurship = int(citizen.get("entrepreneurship", 50))
+	var risk = int(citizen.get("risk_tolerance", 50))
+	var amount = int(request.get("amount", 0))
+	if request_type == "land":
+		var plots = int(request.get("plots", 1))
+		return entrepreneurship >= 45 and int(state.get("private_land_available", 0)) >= plots and wallet >= amount and max(0, engine.get_treasury_capacity() - int(state.money)) >= amount
+	if request_type == "rent":
+		var index = int(request.get("building_index", -1))
+		return risk >= 35 and entrepreneurship >= 40 and index >= 0 and index < state.buildings.size() and wallet >= amount and max(0, engine.get_treasury_capacity() - int(state.money)) >= amount and int(state.buildings[index].get("rented_to", 0)) == 0
+	if request_type == "permit":
+		var data = engine.get_building_definitions().get(str(request.get("building_id", "")), {})
+		return not data.is_empty() and entrepreneurship >= 45 and int(citizen.get("private_land", 0)) >= int(request.get("footprint", 1)) and wallet >= amount and max(0, engine.get_treasury_capacity() - int(state.money)) >= int(state.get("business_permit_fee", 50))
+	if request_type == "community_project":
+		var building_id = str(request.get("building_id", ""))
+		var need = str(engine.get_building_definitions().get(building_id, {}).get("service_need", ""))
+		var needs = state.get("needs", {})
+		return wallet >= int(request.get("contribution", 0)) and engine.get_available_money() >= int(request.get("municipal_amount", 0)) and engine.get_land_free() >= int(engine.get_land_size(building_id)) and (need == "" or int(needs.get(need, 100)) < 65)
+	if request_type == "public_project":
+		var business_index = _find_business_index(state, int(request.get("business_id", 0)))
+		return business_index >= 0 and int(state.private_businesses[business_index].get("balance", 0)) >= amount
+	return false
+
+func _process_private_requests_automatically(engine, report):
+	var pending_ids = []
+	for request in engine.state.business_requests:
+		pending_ids.append(int(request.get("id", 0)))
+	for request_id in pending_ids:
+		var current_state = engine.state
+		var request_index = -1
+		for i in range(current_state.business_requests.size()):
+			if int(current_state.business_requests[i].get("id", 0)) == request_id:
+				request_index = i
+				break
+		if request_index < 0:
+			continue
+		var request = current_state.business_requests[request_index]
+		var citizen_index = _find_citizen_index(current_state, int(request.get("citizen_id", 0)))
+		var approved = false
+		if citizen_index >= 0:
+			approved = _should_auto_approve_request(engine, request, current_state.citizens[citizen_index])
+		var result = resolve_request(engine, request_id, approved)
+		if not bool(result.get("ok", false)) and approved:
+			result = resolve_request(engine, request_id, false)
+		if bool(result.get("ok", false)):
+			report.append("شهرداری هوشمند درخواست شماره %d را %s کرد." % [request_id, "تأیید" if approved and bool(result.get("ok", false)) else "رد"])
 
 func resolve_request(engine, request_id, approved):
 	ensure_state(engine)
@@ -827,6 +893,7 @@ func get_overview(engine):
 		total_tax += int(business.get("last_tax", 0))
 	return {
 		"requests":state.business_requests,
+		"request_mode":str(state.get("private_request_mode", "auto")),
 		"request_count":state.business_requests.size(),
 		"private_land_available":int(state.private_land_available),
 		"private_land_price":int(state.private_land_price),
