@@ -889,7 +889,8 @@ func _apply_safe_area_to_floating_controls():
 	var right_edge = viewport_size.x - inset.z
 	var button_size = Vector2(50, 50) if narrow else Vector2(56, 56)
 	var gap = 8.0
-	var row_y = inset.y + 82.0
+	# Keep the second row safely below the tallest first-row control.
+	var row_y = inset.y + 16.0 + button_size.y + gap + 12.0
 
 	# Normalize every floating action button and place them in one clean grid.
 	for floating in [daily_reward_button, menu_button, help_button, construction_capacity_button, ranking_button, report_button]:
@@ -910,14 +911,17 @@ func _apply_safe_area_to_floating_controls():
 		daily_reward_button.position = Vector2(inset.x + 12.0 + button_size.x + gap, inset.y + 16.0)
 		_apply_font(daily_reward_button, 23 if narrow else 27)
 
-	# Second row: four equally sized, evenly distributed shortcuts.
-	var shortcuts = [ranking_button, construction_capacity_button, report_button, help_button]
+	# Second row: distribute only the shortcuts that actually exist.
+	# Removed shortcuts must not leave empty columns or distort the layout.
+	var shortcuts = []
+	for candidate in [ranking_button, construction_capacity_button, report_button, help_button]:
+		if candidate != null and is_instance_valid(candidate):
+			shortcuts.append(candidate)
 	var usable_span = maxf(0.0, usable_width - button_size.x)
+	var last_shortcut_index = maxi(1, shortcuts.size() - 1)
 	for i in range(shortcuts.size()):
 		var shortcut = shortcuts[i]
-		if shortcut == null or not is_instance_valid(shortcut):
-			continue
-		var x = inset.x + usable_span * float(i) / 3.0
+		var x = inset.x + usable_span * float(i) / float(last_shortcut_index)
 		shortcut.position = Vector2(x, row_y)
 		if shortcut == ranking_button:
 			_apply_font(shortcut, 21 if narrow else 23)
