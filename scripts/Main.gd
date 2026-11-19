@@ -891,6 +891,7 @@ func _apply_safe_area_to_floating_controls():
 	# The worker control includes a count ("۲/۲"), so it needs a horizontal
 	# pill shape instead of the square footprint used by icon-only shortcuts.
 	var worker_button_size = Vector2(94, 50) if narrow else Vector2(104, 56)
+	var ranking_button_size = Vector2(60, 56) if narrow else Vector2(66, 60)
 	var gap = 8.0
 	# Keep the second row safely below the tallest first-row control.
 	var row_y = inset.y + 16.0 + button_size.y + gap + 12.0
@@ -903,22 +904,32 @@ func _apply_safe_area_to_floating_controls():
 		floating.anchor_top = 0.0
 		floating.anchor_right = 0.0
 		floating.anchor_bottom = 0.0
-		var target_size = worker_button_size if floating == construction_capacity_button else button_size
+		var target_size = button_size
+		if floating == construction_capacity_button:
+			target_size = worker_button_size
+		elif floating == ranking_button:
+			target_size = ranking_button_size
 		floating.custom_minimum_size = target_size
 		floating.size = target_size
 
-	# First row: menu and daily calendar on the left; day/night status stays right.
+	# Left controls: hamburger on top; ranking directly below it, with the
+	# daily-reward calendar beside ranking on the same horizontal line.
+	var left_x = inset.x + 12.0
+	var top_y = inset.y + 16.0
 	if menu_button != null and is_instance_valid(menu_button):
-		menu_button.position = Vector2(inset.x + 12.0, inset.y + 16.0)
+		menu_button.position = Vector2(left_x, top_y)
 		_apply_font(menu_button, 22 if narrow else 25)
+	if ranking_button != null and is_instance_valid(ranking_button):
+		ranking_button.position = Vector2(left_x, top_y + button_size.y + gap)
+		_apply_font(ranking_button, 27 if narrow else 31)
 	if daily_reward_button != null and is_instance_valid(daily_reward_button):
-		daily_reward_button.position = Vector2(inset.x + 12.0 + button_size.x + gap, inset.y + 16.0)
+		daily_reward_button.position = Vector2(left_x + ranking_button_size.x + gap, top_y + button_size.y + gap)
 		_apply_font(daily_reward_button, 23 if narrow else 27)
 
 	# Second row: keep the worker/construction button at the far right,
 	# below the clock HUD, and distribute the remaining shortcuts to its left.
 	var shortcuts = []
-	for candidate in [ranking_button, report_button, help_button]:
+	for candidate in [report_button, help_button]:
 		if candidate != null and is_instance_valid(candidate):
 			shortcuts.append(candidate)
 	var worker_button_valid = construction_capacity_button != null and is_instance_valid(construction_capacity_button)
@@ -931,9 +942,7 @@ func _apply_safe_area_to_floating_controls():
 		var shortcut = shortcuts[i]
 		var x = inset.x + usable_span * float(i) / float(last_shortcut_index)
 		shortcut.position = Vector2(x, row_y)
-		if shortcut == ranking_button:
-			_apply_font(shortcut, 21 if narrow else 23)
-		elif shortcut == report_button:
+		if shortcut == report_button:
 			_apply_font(shortcut, 25 if narrow else 27)
 		else:
 			_apply_font(shortcut, 22 if narrow else 24)
@@ -1691,14 +1700,14 @@ func _build_ranking_button():
 	ranking_button.name = "TopRankingButton"
 	ranking_button.text = "🏆"
 	ranking_button.tooltip_text = "رتبه‌بندی شهرها"
-	ranking_button.custom_minimum_size = Vector2(50, 50)
+	ranking_button.custom_minimum_size = Vector2(66, 60)
 	ranking_button.anchor_left = 0.0
 	ranking_button.anchor_top = 0.0
 	ranking_button.anchor_right = 0.0
 	ranking_button.anchor_bottom = 0.0
 	ranking_button.position = Vector2(206, 20)
 	ranking_button.z_index = 15
-	_apply_font(ranking_button, 21)
+	_apply_font(ranking_button, 27)
 	_style_button(ranking_button, true)
 	ranking_button.pressed.connect(func(): show_page("ranking"))
 	add_child(ranking_button)
