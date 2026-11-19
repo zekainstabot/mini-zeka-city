@@ -24,9 +24,6 @@ static func build(owner, s):
 		owner._add_label("🎲 آخرین اتفاق شهر | روز %d: %s" % [int(recent_event.get("day",s.day)),str(recent_event.get("title","رویداد"))],16)
 
 	owner._add_label("جمعیت: %d نفر  |  شاغل: %d  |  بیکار: %d" % [s.population,game.get_employed_count(),game.get_unemployed_count()], 19)
-	var login_calendar_button = owner._add_button("📅 تقویم جایزه‌های ورود", owner, "_open_daily_reward_calendar")
-	login_calendar_button.name = "HomeDailyRewardCalendarButton"
-	owner._style_button(login_calendar_button, false)
 	var municipal_economy = s.get("last_economy", {})
 	var municipal_daily_income = int(municipal_economy.get("tax_income",0)) + int(municipal_economy.get("consumer_tax_income",0)) + int(municipal_economy.get("station_income",0)) + int(municipal_economy.get("road_income",0))
 	var municipal_daily_total = int(municipal_economy.get("accepted_income",0))
