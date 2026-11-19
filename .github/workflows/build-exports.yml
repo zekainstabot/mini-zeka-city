@@ -7,7 +7,7 @@ concurrency:
 on:
   workflow_dispatch:
   push:
-    branches: [godot4-migration]
+    branches: [main, godot4-migration, godot4-integration]
     paths:
       - 'scripts/**'
       - 'assets/**'
@@ -210,7 +210,7 @@ jobs:
           keystore, alias, password = sys.argv[1:]
           path = Path('export_presets.cfg')
           lines = path.read_text(encoding='utf-8').splitlines()
-          start = lines.index('[preset.1.options]') + 1
+          start = lines.index('[preset.0.options]') + 1
           end = next((i for i in range(start, len(lines)) if lines[i].startswith('[preset.')), len(lines))
           values = {
               'keystore/release': keystore,

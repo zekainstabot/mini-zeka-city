@@ -9,6 +9,8 @@ config/name="Mini ZekaCity"
 config/quit_on_go_back=false
 run/main_scene="res://Main.tscn"
 config/icon="res://assets/minizekacity-icon.svg"
+boot_splash/show_image=false
+boot_splash/bg_color=Color(0.062745, 0.094118, 0.152941, 1)
 
 [display]
 window/handheld/orientation=6

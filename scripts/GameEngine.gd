@@ -15,7 +15,7 @@ const CityEconomySystem = preload("res://scripts/CityEconomySystem.gd")
 const CityProgressSystem = preload("res://scripts/CityProgressSystem.gd")
 
 const SAVE_PATH = "user://mini_zeka_city_save.json"
-const MAX_REPORT_EVENTS = 120
+const MAX_REPORT_EVENTS = 60
 const STORAGE_RESERVE = 50
 const MAX_CONCURRENT_CONSTRUCTIONS = 2
 const DISTRICT_HOUSE_LIMIT = 20
@@ -530,6 +530,26 @@ func record_active_play_seconds(seconds):
 		return
 	state["active_play_seconds_today"] = float(state.get("active_play_seconds_today", 0.0)) + min(float(seconds), 1.0)
 
+func get_report_event_category(message):
+	var text = str(message).strip_edges()
+	if text.is_empty() or text.begins_with("خلاصه مالی:") or text.begins_with("امتیاز تجربه امروز:"):
+		return ""
+	# Keep only meaningful city events, citizen requests, financial problems,
+	# progress milestones, trade updates, and resource/service issues.
+	if text.find("🎲 رویداد شهر") >= 0 or text.find("🏙️ خبر رقبا") >= 0 or text.find("🔎 کشف راز مخفی") >= 0 or text.find("⚖️ تصمیم مهم شهر") >= 0:
+		return "events"
+	if text.find("درخواست شهروندان") >= 0 or text.find("ساختمان درخواستی شهروندان") >= 0 or text.find("درخواست تازه شهروندان") >= 0 or text.find("درخواست جذب شهروند") >= 0 or text.find("شهروند جدید به‌صورت خودکار") >= 0 or text.find("شهروند شماره") >= 0:
+		return "citizens"
+	if text.find("کسری حقوق") >= 0 or text.find("کامل پرداخت نشد") >= 0 or text.find("ظرفیت خزانه پر است") >= 0 or text.find("درآمد امروز دریافت نشد") >= 0 or text.find("مهلت بازسازی بانک مرکزی") >= 0 or text.find("وام شماره") >= 0 or text.find("قسط وام پرداخت نشد") >= 0 or text.find("سپرده شماره") >= 0:
+		return "finance"
+	if text.find("تبریک!") >= 0 or text.find("ساختمان‌های تازه در دسترس") >= 0:
+		return "progress"
+	if text.find("محموله") >= 0 or text.find("قرارداد واردات") >= 0:
+		return "trade"
+	if text.find("استخراج معدن موقتاً متوقف") >= 0 or text.find("ذخیره معدن آهن تمام") >= 0 or text.find("ذخیره غذا تمام شده") >= 0 or text.find("چوب‌بری متوقف شد") >= 0 or text.find("گزارش داده‌اند") >= 0:
+		return "issues"
+	return ""
+
 func add_report_event(message, persist=true, metadata={}):
 	var clean_message = str(message).strip_edges()
 	if clean_message == "":
@@ -542,7 +562,10 @@ func add_report_event(message, persist=true, metadata={}):
 		state["district_service_coverage"] = {}
 	var event_id = int(state.get("next_report_event_id", 1))
 	state["next_report_event_id"] = event_id + 1
-	var event = {"id":event_id,"timestamp":Time.get_unix_time_from_system(),"day":int(state.get("day", 1)),"message":clean_message,"resolved":false}
+	var category = str(metadata.get("category", "")) if typeof(metadata) == TYPE_DICTIONARY else ""
+	if category.is_empty():
+		category = get_report_event_category(clean_message)
+	var event = {"id":event_id,"timestamp":Time.get_unix_time_from_system(),"day":int(state.get("day", 1)),"message":clean_message,"category":category,"resolved":false}
 	if typeof(metadata) == TYPE_DICTIONARY:
 		for key in metadata.keys():
 			event[key] = metadata[key]
@@ -580,7 +603,7 @@ func check_citizen_reports(persist=true):
 			previous_keys = []
 		for issue_key in concerns.keys():
 			if not previous_keys.has(issue_key):
-				add_report_event(concerns[issue_key], false, {"citizen_id":citizen_id,"issue_key":issue_key,"resolved":false})
+				add_report_event(concerns[issue_key], false, {"citizen_id":citizen_id,"issue_key":issue_key,"category":"citizens","resolved":false})
 				changed = true
 		for previous_key in previous_keys:
 			if concerns.has(str(previous_key)):
@@ -637,7 +660,7 @@ func check_citizen_reports(persist=true):
 			if not active_keys.has(issue_key):
 				var coverage = int(service_snapshot[selected_need].get("coverage", {}).get(district_id, 0))
 				var message = "شهروندان %s گزارش داده‌اند: پوشش خدمات %s برای جمعیت این محله کافی نیست (%d%%). پیشنهاد: %s." % [str(district.get("name", "این محله")), need_names[selected_need], coverage, need_advice[selected_need]]
-				add_report_event(message, false, {"citizen_id":0,"district_id":district_id,"service_need":selected_need,"issue_key":issue_key,"resolved":false})
+				add_report_event(message, false, {"citizen_id":0,"district_id":district_id,"service_need":selected_need,"issue_key":issue_key,"category":"issues","resolved":false})
 				changed = true
 		for previous_key in active_keys:
 			if not str(previous_key).ends_with("_" + district_id) or current_keys.has(str(previous_key)):
@@ -664,6 +687,27 @@ func save_game():
 func _normalize_state():
 	if typeof(state.get("report_events", null)) != TYPE_ARRAY:
 		state["report_events"] = []
+	else:
+		# Clean legacy saves as well as new events so routine status/toast messages
+		# do not keep filling the city report history.
+		var meaningful_events = []
+		for report_event in state.report_events:
+			if typeof(report_event) != TYPE_DICTIONARY:
+				continue
+			var category = str(report_event.get("category", ""))
+			if category.is_empty():
+				if int(report_event.get("citizen_id", 0)) > 0:
+					category = "citizens"
+				elif not str(report_event.get("district_id", "")).is_empty():
+					category = "issues"
+				else:
+					category = get_report_event_category(report_event.get("message", ""))
+			if category.is_empty():
+				continue
+			var clean_event = report_event.duplicate(true)
+			clean_event["category"] = category
+			meaningful_events.append(clean_event)
+		state["report_events"] = meaningful_events
 	while state.report_events.size() > MAX_REPORT_EVENTS:
 		state.report_events.pop_front()
 	var next_report_id = max(1, int(state.get("next_report_event_id", 1)))
