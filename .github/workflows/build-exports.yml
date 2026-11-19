@@ -30,10 +30,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install virtual display for Godot editor
+      - name: Ensure virtual display for Godot editor
+        timeout-minutes: 3
         run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb
+          set -euo pipefail
+          if command -v xvfb-run >/dev/null 2>&1; then
+            echo "xvfb-run is already available on the GitHub runner."
+          else
+            echo "Installing Xvfb because it is not preinstalled."
+            timeout --signal=TERM --kill-after=10s 90s sudo apt-get update
+            timeout --signal=TERM --kill-after=10s 60s sudo apt-get install -y xvfb
+          fi
+          command -v xvfb-run
 
       - name: Download Godot 3.6.3 editor and export templates
         run: |
