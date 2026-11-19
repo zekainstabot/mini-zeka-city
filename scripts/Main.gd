@@ -973,7 +973,12 @@ func _apply_safe_area_to_floating_controls():
 	if worker_button_valid:
 		var worker_row_y = row_y
 		if day_night_hud != null and is_instance_valid(day_night_hud):
-			worker_row_y = maxf(worker_row_y, day_night_hud.position.y + day_night_hud.size.y + 16.0)
+			worker_row_y = maxf(worker_row_y, day_night_hud.get_global_rect().end.y + 16.0)
+		# The currency cards are part of the main header and can extend below
+		# the clock on compact phones. Keep the worker pill beneath the entire
+		# currency row so it never covers the city-money balance.
+		if currency_hud != null and is_instance_valid(currency_hud):
+			worker_row_y = maxf(worker_row_y, currency_hud.get_global_rect().end.y + 12.0)
 		construction_capacity_button.position = Vector2(worker_x, worker_row_y)
 		_apply_font(construction_capacity_button, 25 if narrow else 28)
 
