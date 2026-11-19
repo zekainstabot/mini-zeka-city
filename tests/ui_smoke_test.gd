@@ -172,9 +172,13 @@ func _run_tests():
 	assert(overview_grid is GridContainer and overview_grid.get_child_count() == 6, "Home overview must show all six city metrics")
 	main.game.state["constructions"] = [{"id":"small_house","finish_at":int(Time.get_unix_time_from_system()) + 125,"district_name":"محله آزمایشی"}]
 	main.show_page("home")
-	var construction_panel = main.content.find_child("HomeConstructionPanel", true, false)
-	assert(construction_panel is PanelContainer, "Active construction is not visible on the home page")
-	assert(construction_panel.get_child_count() > 0)
+	assert(main.content.find_child("HomeConstructionPanel", true, false) == null, "Active construction panel must be removed from My City")
+	main.show_page("buildings")
+	assert(main.content.find_child("HomeConstructionPanel", true, false) == null, "Active construction panel must not appear on the buildings page")
+	main._open_construction_details()
+	assert(main.construction_details_layer.find_child("ConstructionProject_0", true, false) is PanelContainer, "Worker shortcut must list active construction projects")
+	assert(main.construction_details_layer.find_child("ConstructionSpeedUpButton_0", true, false) is Button, "Worker shortcut must offer Zeka Coin instant completion")
+	main._close_construction_details()
 	main.game.state["constructions"] = []
 	main.show_page("home")
 	var service_panel_found = false
