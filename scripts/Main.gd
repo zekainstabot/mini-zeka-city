@@ -1326,6 +1326,20 @@ func _build_ui():
 	menu_button.position = Vector2(105, 48)
 	menu_button.z_index = 15
 	add_child(menu_button)
+	daily_reward_button = Button.new()
+	daily_reward_button.name = "DailyRewardCalendarButton"
+	daily_reward_button.text = "🗓️"
+	daily_reward_button.tooltip_text = "تقویم جایزه ورود روزانه"
+	daily_reward_button.custom_minimum_size = Vector2(50, 50)
+	daily_reward_button.anchor_left = 0.0
+	daily_reward_button.anchor_top = 0.0
+	daily_reward_button.anchor_right = 0.0
+	daily_reward_button.anchor_bottom = 0.0
+	daily_reward_button.z_index = 15
+	_apply_font(daily_reward_button, 25)
+	_style_button(daily_reward_button, true)
+	daily_reward_button.pressed.connect(_open_daily_reward_calendar)
+	add_child(daily_reward_button)
 	# Full-screen modal menu dims the city and separates menu actions
 	# from the navigation and city controls behind it.
 	var menu_layer = CanvasLayer.new()
