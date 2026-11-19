@@ -25,26 +25,14 @@ static func _add_home_services_panel(owner, city_state):
 	for service_id in owner.game.SERVICE_GROUPS.keys():
 		total_coverage += int(city_state.get("services", {}).get(service_id, 0))
 	var average_coverage = int(round(float(total_coverage) / float(max(1, service_count))))
-	var header = Button.new()
-	header.text = owner.PersianText.reshaper(("%s  🏙️  خدمات شهری" % ("▼" if owner.home_city_details_expanded else "▶")) + "     میانگین پوشش: %d%%" % average_coverage)
-	header.custom_minimum_size = Vector2(0, 82 if owner.get_viewport_rect().size.x < 500.0 else (62 if compact else 54))
-	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	owner._apply_font(header, 19 if compact else 17)
-	owner._style_button(header, false)
-	header.connect("pressed", Callable(owner, "toggle_home_city_details"))
-	body.add_child(header)
-
-	var hint = Label.new()
-	hint.text = owner.PersianText.reshaper("وضعیت آب، برق، درمان، امنیت و امکانات شهر را یک‌جا ببین.")
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	owner._apply_font(hint, 15 if compact else 14)
-	hint.add_theme_color_override("font_color", Color("#cbd5e1"))
-	body.add_child(hint)
-
 	if not owner.home_city_details_expanded:
 		return
+	var section_heading = Label.new()
+	section_heading.text = owner.PersianText.reshaper("🏙️ خدمات شهری  |  میانگین پوشش: %d%%" % average_coverage)
+	section_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	owner._apply_font(section_heading, 18 if compact else 17)
+	section_heading.add_theme_color_override("font_color", Color("#fcd34d"))
+	body.add_child(section_heading)
 
 	var section_line = HSeparator.new()
 	body.add_child(section_line)
