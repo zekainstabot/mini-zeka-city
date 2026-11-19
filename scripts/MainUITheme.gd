@@ -21,9 +21,9 @@ static func _get_button_styles(navigation: bool) -> Dictionary:
 	var normal_color = Color("#202124") if navigation else Color("#FFFFFF")
 	var hover_color = Color("#34363A") if navigation else Color("#E8EAED")
 	var pressed_color = Color("#111214") if navigation else Color("#DADCE0")
-	var border_normal = Color("#050505") if navigation else Color("#73777D")
-	var border_hover = Color("#000000") if navigation else Color("#4B5057")
-	var border_pressed = Color("#000000") if navigation else Color("#30343A")
+	var border_normal = Color("#64748B") if navigation else Color("#73777D")
+	var border_hover = Color("#94A3B8") if navigation else Color("#4B5057")
+	var border_pressed = Color("#CBD5E1") if navigation else Color("#30343A")
 	var styles = {
 		"normal": button_style(normal_color, border_normal),
 		"hover": button_style(hover_color, border_hover),
