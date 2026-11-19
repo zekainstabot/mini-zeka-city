@@ -912,17 +912,17 @@ func _apply_safe_area_to_floating_controls():
 			help_button.position = Vector2(right_edge - 162.0, inset.y + 146.0)
 			help_button.size = icon_size
 			_apply_font(help_button, 22)
-		# Swap the day HUD and worker shortcut: workers move to the upper-right; day moves to the left.
-		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
-			construction_capacity_button.custom_minimum_size = Vector2(108, 52)
-			construction_capacity_button.position = Vector2(right_edge - 136.0 - 12.0, inset.y + 16.0)
-			construction_capacity_button.size = Vector2(108, 52)
-			_apply_font(construction_capacity_button, 18)
+		# Ranking takes the upper position; worker shortcut moves below it.
 		if ranking_button != null and is_instance_valid(ranking_button):
 			ranking_button.custom_minimum_size = icon_size
-			ranking_button.position = Vector2(right_edge - 108.0, inset.y + 96.0)
+			ranking_button.position = Vector2(right_edge - 108.0, inset.y + 16.0)
 			ranking_button.size = icon_size
 			_apply_font(ranking_button, 21)
+		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
+			construction_capacity_button.custom_minimum_size = Vector2(108, 52)
+			construction_capacity_button.position = Vector2(right_edge - 136.0 - 12.0, inset.y + 96.0)
+			construction_capacity_button.size = Vector2(108, 52)
+			_apply_font(construction_capacity_button, 18)
 		if report_button != null and is_instance_valid(report_button):
 			report_button.custom_minimum_size = icon_size
 			report_button.position = Vector2(right_edge - 54.0, inset.y + 96.0)
@@ -945,16 +945,16 @@ func _apply_safe_area_to_floating_controls():
 			help_button.position = Vector2(right_edge - 180.0, inset.y + 88.0)
 			help_button.size = Vector2(56, 56)
 			_apply_font(help_button, 24)
-		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
-			construction_capacity_button.custom_minimum_size = Vector2(108, 54)
-			construction_capacity_button.position = Vector2(right_edge - 152.0 - 12.0, inset.y + 18.0)
-			construction_capacity_button.size = Vector2(108, 54)
-			_apply_font(construction_capacity_button, 18)
 		if ranking_button != null and is_instance_valid(ranking_button):
 			ranking_button.custom_minimum_size = Vector2(56, 56)
-			ranking_button.position = Vector2(right_edge - 120.0, inset.y + 88.0)
+			ranking_button.position = Vector2(right_edge - 120.0, inset.y + 18.0)
 			ranking_button.size = Vector2(56, 56)
 			_apply_font(ranking_button, 23)
+		if construction_capacity_button != null and is_instance_valid(construction_capacity_button):
+			construction_capacity_button.custom_minimum_size = Vector2(108, 54)
+			construction_capacity_button.position = Vector2(right_edge - 152.0 - 12.0, inset.y + 88.0)
+			construction_capacity_button.size = Vector2(108, 54)
+			_apply_font(construction_capacity_button, 18)
 		if report_button != null and is_instance_valid(report_button):
 			report_button.custom_minimum_size = Vector2(56, 56)
 			report_button.position = Vector2(right_edge - 58.0, inset.y + 88.0)
