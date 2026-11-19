@@ -1,7 +1,7 @@
-name: Build and publish Mini ZekaCity
+name: Test and build Mini ZekaCity Android
 
 concurrency:
-  group: mini-zeka-city-web-only-v2
+  group: mini-zeka-city-android
   cancel-in-progress: true
 
 on:
@@ -18,11 +18,10 @@ on:
       - '.github/workflows/build-exports.yml'
 
 permissions:
-  actions: write
-  contents: write
+  contents: read
 
 jobs:
-  export:
+  android:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -65,28 +64,15 @@ jobs:
           timeout 15s xvfb-run -a /tmp/godot/Godot_v3.6.3-stable_x11.64 --path . --audio-driver Dummy --quit 2>&1 | tee /tmp/godot-main-scene.log
           if grep -E "SCRIPT ERROR|Parse Error" /tmp/godot-main-scene.log; then exit 1; fi
 
-      - name: Export HTML5 build
+      - name: Export Android APK
         run: |
-          mkdir -p build/web
-          xvfb-run -a /tmp/godot/Godot_v3.6.3-stable_x11.64 --path . --export-debug "HTML5" build/web/index.html
-          touch build/web/.nojekyll
-          python3 - <<'PY'
-          from pathlib import Path
-          page = Path("build/web/index.html")
-          html = page.read_text(encoding="utf-8")
-          html = html.replace("\t\tbody {", "\t\tbody {\n\t\t\toverflow: hidden;\n\t\t\twidth: 100vw;\n\t\t\theight: 100vh;")
-          # Keep Godot's own canvas sizing and device-pixel-ratio handling.
-          # Forcing CSS width/height here can rescale the rendered canvas and blur text.
-          html = html.replace("\t\t#canvas {", "\t\t#canvas {")
-          page.write_text(html, encoding="utf-8")
-          PY
+          mkdir -p build/android
+          xvfb-run -a /tmp/godot/Godot_v3.6.3-stable_x11.64 --path . --export-debug "Android" build/android/MiniZekaCity.apk
 
-      - name: Publish browser build for Render Static Site
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: render-web
-          publish_dir: build/web
-          force_orphan: true
-          commit_message: "Deploy Mini ZekaCity web build: ${{ github.sha }}"
-
+          name: MiniZekaCity-Android-APK
+          path: build/android/MiniZekaCity.apk
+          if-no-files-found: error
+          retention-days: 14
