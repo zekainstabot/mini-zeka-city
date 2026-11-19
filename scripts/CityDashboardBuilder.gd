@@ -248,6 +248,7 @@ static func _add_building_category_items(owner, category):
 		var unlocked = population_unlocked and level_unlocked
 		var label = "%s%s | هزینه: %d | زمین: %d قطعه | جمعیت: %d | سطح: %d" % [data.name, "" if unlocked else " 🔒", data.cost,owner.game.get_land_size(id),data.unlock,required_level]
 		var building_button = owner._add_button(label, owner, "build_building", [id])
+		building_button.name = "BuildingOption_" + id
 		# Locked buildings stay tappable so their exact unlock requirements can be explained.
 		building_button.disabled = false
 		if id == owner.mission_target_building_id:
