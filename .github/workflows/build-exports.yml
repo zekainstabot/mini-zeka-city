@@ -64,15 +64,46 @@ jobs:
           timeout 15s xvfb-run -a /tmp/godot/Godot_v3.6.3-stable_x11.64 --path . --audio-driver Dummy --quit 2>&1 | tee /tmp/godot-main-scene.log
           if grep -E "SCRIPT ERROR|Parse Error" /tmp/godot-main-scene.log; then exit 1; fi
 
-      - name: Export Android APK
+      - name: Configure Android release signing
+        env:
+          ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
+          ANDROID_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEYSTORE_PASSWORD }}
+          ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$ANDROID_RELEASE_KEYSTORE_BASE64" || { echo "Missing GitHub secret: ANDROID_RELEASE_KEYSTORE_BASE64"; exit 1; }
+          test -n "$ANDROID_RELEASE_KEYSTORE_PASSWORD" || { echo "Missing GitHub secret: ANDROID_RELEASE_KEYSTORE_PASSWORD"; exit 1; }
+          test -n "$ANDROID_RELEASE_KEY_ALIAS" || { echo "Missing GitHub secret: ANDROID_RELEASE_KEY_ALIAS"; exit 1; }
+          test -n "$ANDROID_RELEASE_KEY_PASSWORD" || { echo "Missing GitHub secret: ANDROID_RELEASE_KEY_PASSWORD"; exit 1; }
+          mkdir -p build/android
+          echo "$ANDROID_RELEASE_KEYSTORE_BASE64" | base64 --decode > build/android/release.keystore
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          path = Path("export_presets.cfg")
+          content = path.read_text()
+          replacements = {
+              'keystore/release=""': 'keystore/release="build/android/release.keystore"',
+              'keystore/release_user=""': 'keystore/release_user=' + repr(os.environ["ANDROID_RELEASE_KEY_ALIAS"]),
+              'keystore/release_password=""': 'keystore/release_password=' + repr(os.environ["ANDROID_RELEASE_KEY_PASSWORD"]),
+          }
+          for old, new in replacements.items():
+              if old not in content:
+                  raise SystemExit(f"Expected Android release setting not found: {old}")
+              content = content.replace(old, new, 1)
+          path.write_text(content)
+          PY
+
+      - name: Export Android Release APK
         run: |
           mkdir -p build/android
-          xvfb-run -a /tmp/godot/Godot_v3.6.3-stable_x11.64 --path . --export-debug "Android" build/android/MiniZekaCity.apk
+          xvfb-run -a /tmp/godot/Godot_v3.6.3-stable_x11.64 --path . --export-release "Android" build/android/MiniZekaCity-Release.apk
 
-      - name: Upload Android APK
+      - name: Upload Android Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: MiniZekaCity-Android-APK
-          path: build/android/MiniZekaCity.apk
+          name: MiniZekaCity-Android-Release-APK
+          path: build/android/MiniZekaCity-Release.apk
           if-no-files-found: error
           retention-days: 14
