@@ -93,6 +93,10 @@ func _run_tests():
 	assert(home_report_action is Button, "Reports and problems action must be available from My City")
 	assert(home_municipality_action is Button, "Municipality and city services action must be available from My City")
 	assert(home_private_economy_action is Button, "Private economy action must be available from My City")
+	for action_name in ["toggle_home_city_details","toggle_home_buildings","toggle_demolish_panel","toggle_home_economy"]:
+		var home_action = main.content.find_child("HomeAction_" + action_name, true, false)
+		assert(home_action is Button, "My City management action %s must use a matching action card" % action_name)
+		assert(home_action.custom_minimum_size.y == 82, "My City action cards must share the same height")
 	home_report_action.emit_signal("pressed")
 	assert(main.current_page == "report", "My City reports action must open the report page")
 	main.show_page("home")
@@ -201,7 +205,7 @@ func _run_tests():
 	var overview_panel = main.content.find_child("HomeOverviewPanel", true, false)
 	assert(overview_panel is PanelContainer, "Home page city overview panel is missing")
 	var overview_grid = overview_panel.find_child("CityOverviewGrid", true, false)
-	assert(overview_grid is GridContainer and overview_grid.get_child_count() == 6, "Home overview must show three city metrics and three action cards")
+	assert(overview_grid is GridContainer and overview_grid.get_child_count() == 10, "Home overview must show three metrics and seven matching action cards")
 	main.game.state["constructions"] = [{"id":"small_house","finish_at":int(Time.get_unix_time_from_system()) + 125,"district_name":"محله آزمایشی"}]
 	# Keep the regression assertion focused on the normal building option, not the tutorial-highlighted rename.
 	main.mission_target_building_id = ""
