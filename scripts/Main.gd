@@ -183,9 +183,9 @@ func _input(event):
 		else:
 			if touch_scroll_active and touch_scroll_dragging and touch_scroll_axis == "horizontal":
 				var swipe_delta = event.position.x - touch_scroll_start.x
-				if swipe_delta < -90.0 and current_page != "map":
+				if swipe_delta > 90.0 and current_page != "map":
 					show_page("map")
-				elif swipe_delta > 90.0 and current_page == "map":
+				elif swipe_delta < -90.0 and current_page == "map":
 					show_page("home")
 			touch_scroll_active = false
 			touch_scroll_dragging = false
@@ -1210,6 +1210,9 @@ func _create_bottom_navigation(parent: VBoxContainer, compact_layout: bool):
 		var button = Button.new()
 		button.name = "BottomNav_" + str(entry.id)
 		button.text = str(entry.icon) + "\n" + str(entry.label)
+		if str(entry.id) == "home":
+			button.text += "\nراست: نقشه | چپ: برگشت"
+			button.tooltip_text = "با کشیدن به راست به نقشه برو؛ با کشیدن به چپ به شهر من برگرد."
 		button.text_direction = Control.TEXT_DIRECTION_RTL if LanguageManager.is_rtl(ui_language) else Control.TEXT_DIRECTION_LTR
 		button.custom_minimum_size = Vector2(0, 168 if compact_layout else 176)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1219,7 +1222,7 @@ func _create_bottom_navigation(parent: VBoxContainer, compact_layout: bool):
 		button.add_theme_color_override("font_color", Color("#e5edf5"))
 		button.add_theme_color_override("font_hover_color", Color("#ffffff"))
 		# Increase bottom dock labels for comfortable reading on phone screens.
-		_apply_font(button, 34 if compact_layout else 36)
+		_apply_font(button, (17 if compact_layout else 18) if str(entry.id) == "home" else (34 if compact_layout else 36))
 		button.flat = true
 		var target_page = str(entry.page)
 		button.pressed.connect(func():
