@@ -1201,7 +1201,7 @@ func _create_bottom_navigation(parent: VBoxContainer, compact_layout: bool):
 	bottom_navigation_buttons.clear()
 	var entries = [
 		{"id":"development","icon":"🏗️","label":_tr("توسعه"),"page":"development"},
-		{"id":"missions","icon":"🏆","label":_tr("دستاوردها"),"page":"missions"},
+		{"id":"missions","icon":"🏆","label":_tr("ماموریت‌ها"),"page":"missions"},
 		{"id":"home","icon":"🏠","label":_tr("شهر من"),"page":"home"},
 		{"id":"commerce","icon":"🛒","label":_tr("بازار و انبار"),"page":"commerce"},
 		{"id":"bank","icon":"🏦","label":_tr("بانک"),"page":"bank"}
