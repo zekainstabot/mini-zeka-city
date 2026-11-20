@@ -45,7 +45,7 @@ static func build(owner, city_state):
 
 			street_row.add_child(_make_district_block(owner, districts[index], index))
 			index += 1
-			street_row.add_child(_make_vertical_road())
+			street_row.add_child(_make_vertical_road(owner))
 
 			if index < districts.size():
 				street_row.add_child(_make_district_block(owner, districts[index], index))
@@ -54,7 +54,7 @@ static func build(owner, city_state):
 				street_row.add_child(_make_expansion_plot(owner))
 
 			if index < districts.size():
-				map_body.add_child(_make_horizontal_road())
+				map_body.add_child(_make_horizontal_road(owner))
 
 		_add_map_legend(owner, map_body)
 	_add_street_furniture(owner, map_body)
@@ -527,7 +527,7 @@ static func _add_empty_city(owner, parent):
 	empty.add_child(label)
 
 
-static func _make_vertical_road():
+static func _make_vertical_road(owner):
 	var road = PanelContainer.new()
 	road.name = "CityRoadVertical"
 	road.custom_minimum_size = Vector2(34 + int(owner.game.state.get("road_level", 1)) * 5, 90)
@@ -556,7 +556,7 @@ static func _make_vertical_road():
 	return road
 
 
-static func _make_horizontal_road():
+static func _make_horizontal_road(owner):
 	var road = PanelContainer.new()
 	road.name = "CityRoadHorizontal"
 	road.size_flags_horizontal = Control.SIZE_EXPAND_FILL
