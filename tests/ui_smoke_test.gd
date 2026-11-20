@@ -212,6 +212,41 @@ func _run_tests():
 	assert(overview_panel is PanelContainer, "Home page city overview panel is missing")
 	var overview_grid = overview_panel.find_child("CityOverviewGrid", true, false)
 	assert(overview_grid is GridContainer and overview_grid.get_child_count() == 12, "Home overview must show five metrics and seven matching action cards")
+	# Expanded My City panels must automatically scroll into view after their action cards are tapped.
+	main.home_city_details_expanded = false
+	main.home_buildings_expanded = false
+	main.home_economy_expanded = false
+	main.demolish_panel_expanded = false
+	main.toggle_home_city_details()
+	await process_frame
+	await process_frame
+	var city_services_panel = main.content.find_child("HomeCityServicesPanel", true, false)
+	assert(city_services_panel is PanelContainer, "My City services card did not open its details panel")
+	assert(city_services_panel.get_global_rect().position.y < main.game_scroll_container.get_global_rect().end.y, "My City services details did not scroll into view")
+	main.toggle_home_buildings()
+	await process_frame
+	await process_frame
+	var home_buildings_start = main.content.find_child("HomeBuildingsSectionStart", true, false)
+	assert(home_buildings_start is Label, "My City buildings card did not show its details")
+	assert(home_buildings_start.get_global_rect().position.y < main.game_scroll_container.get_global_rect().end.y, "My City buildings details did not scroll into view")
+	main.toggle_demolish_panel()
+	await process_frame
+	await process_frame
+	var home_demolish_start = main.content.find_child("HomeDemolishSectionStart", true, false)
+	assert(home_demolish_start is Label, "My City demolish card did not show its details")
+	assert(home_demolish_start.get_global_rect().position.y < main.game_scroll_container.get_global_rect().end.y, "My City demolish details did not scroll into view")
+	main.toggle_home_economy()
+	await process_frame
+	await process_frame
+	var home_economy_start = main.content.find_child("HomeEconomySectionStart", true, false)
+	assert(home_economy_start is Label, "My City economy card did not show its details")
+	assert(home_economy_start.get_global_rect().position.y < main.game_scroll_container.get_global_rect().end.y, "My City economy details did not scroll into view")
+	main.home_city_details_expanded = false
+	main.home_buildings_expanded = false
+	main.home_economy_expanded = false
+	main.demolish_panel_expanded = false
+	main.show_page("home")
+
 	main.game.state["constructions"] = [{"id":"small_house","finish_at":int(Time.get_unix_time_from_system()) + 125,"district_name":"محله آزمایشی"}]
 	# Keep the regression assertion focused on the normal building option, not the tutorial-highlighted rename.
 	main.mission_target_building_id = ""
