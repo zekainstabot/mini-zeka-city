@@ -8,7 +8,7 @@ static func build(owner, city_state):
 	var industrial = _collect_industrial_buildings(owner)
 
 	owner._add_label("🗺️ نقشه شهر", 24)
-	owner._add_label("هر نقطه یک ساختمان است؛ برای دیدن جزئیات روی آن بزن.", 13)
+	owner._add_label("شبکه خودکار معابر: خیابان اصلی بین محله‌ها، خیابان فرعی داخل محله و کوچه برای دسترسی ساختمان‌ها.", 13)
 
 	var map_panel = PanelContainer.new()
 	map_panel.name = "CityMapCanvas"
@@ -30,6 +30,7 @@ static func build(owner, city_state):
 	map_panel.add_child(map_body)
 
 	_add_map_header(owner, map_body, districts.size(), _count_all_buildings(owner))
+	_add_road_network_summary(owner, map_body, int(owner.game.state.get("road_level", 1)), _count_all_buildings(owner))
 	_add_map_compass(owner, map_body)
 
 	if districts.is_empty():
@@ -109,6 +110,36 @@ static func _add_map_header(owner, parent, district_count, building_count):
 	buildings.add_theme_color_override("font_color", Color("#cbd5e1"))
 	owner._apply_font(buildings, 12)
 	row.add_child(buildings)
+
+
+static func _add_road_network_summary(owner, parent, road_level, building_count):
+	var panel = PanelContainer.new()
+	panel.name = "RoadNetworkSummary"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_theme_stylebox_override("panel", _road_style("#1b3440", "#496575", 9))
+	parent.add_child(panel)
+	var body = VBoxContainer.new()
+	body.add_theme_constant_override("separation", 4)
+	panel.add_child(body)
+	var title = Label.new()
+	title.text = owner.PersianText.reshaper("🛣️ شبکه معابر شهر")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	owner._apply_font(title, 13)
+	title.add_theme_color_override("font_color", Color("#f1f5f9"))
+	body.add_child(title)
+	var detail = Label.new()
+	detail.text = owner.PersianText.reshaper("خیابان اصلی: اتصال محله‌ها  •  خیابان فرعی: مسیر داخل محله  •  کوچه: دسترسی ساختمان‌ها")
+	detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	owner._apply_font(detail, 10)
+	detail.add_theme_color_override("font_color", Color("#cbd5e1"))
+	body.add_child(detail)
+	var level = Label.new()
+	level.text = owner.PersianText.reshaper("کیفیت شبکه جاده‌ای: سطح %d از ۳  |  ساختمان‌های روی نقشه: %d" % [road_level, building_count])
+	level.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	owner._apply_font(level, 10)
+	level.add_theme_color_override("font_color", Color("#86efac"))
+	body.add_child(level)
 
 
 static func _add_map_compass(owner, parent):
@@ -198,29 +229,31 @@ static func _make_district_block(owner, district, index):
 			point_grid.add_child(building_row)
 			building_row.add_child(_make_building_dot(owner, buildings[pair_start]))
 			if pair_start + 1 < buildings.size():
-				building_row.add_child(_make_small_road())
+				building_row.add_child(_make_small_road(owner))
 				building_row.add_child(_make_building_dot(owner, buildings[pair_start + 1]))
 			if pair_start + 2 < buildings.size():
-				point_grid.add_child(_make_small_road_vertical())
+				point_grid.add_child(_make_small_road_vertical(owner))
 
 	return panel
 
 
-static func _make_small_road():
+static func _make_small_road(owner):
 	var road = ColorRect.new()
 	road.name = "SmallRoadBetweenBuildings"
 	road.color = Color("#64747a")
-	road.custom_minimum_size = Vector2(18, 4)
+	road.custom_minimum_size = Vector2(18 + int(owner.game.state.get("road_level", 1)) * 2, 5)
+	road.tooltip_text = "کوچه دسترسی ساختمان‌ها"
 	road.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	road.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	return road
 
 
-static func _make_small_road_vertical():
+static func _make_small_road_vertical(owner):
 	var road = ColorRect.new()
 	road.name = "SmallRoadBetweenBuildingRows"
 	road.color = Color("#64747a")
-	road.custom_minimum_size = Vector2(4, 9)
+	road.custom_minimum_size = Vector2(5, 9 + int(owner.game.state.get("road_level", 1)))
+	road.tooltip_text = "اتصال کوچه‌ها"
 	road.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	road.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	return road
@@ -497,7 +530,7 @@ static func _add_empty_city(owner, parent):
 static func _make_vertical_road():
 	var road = PanelContainer.new()
 	road.name = "CityRoadVertical"
-	road.custom_minimum_size = Vector2(34, 90)
+	road.custom_minimum_size = Vector2(34 + int(owner.game.state.get("road_level", 1)) * 5, 90)
 	road.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	road.add_theme_stylebox_override("panel", _road_style("#34434c", "#81909a", 2))
 	var cross_section = HBoxContainer.new()
@@ -527,7 +560,7 @@ static func _make_horizontal_road():
 	var road = PanelContainer.new()
 	road.name = "CityRoadHorizontal"
 	road.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	road.custom_minimum_size.y = 34
+	road.custom_minimum_size.y = 34 + int(owner.game.state.get("road_level", 1)) * 5
 	road.add_theme_stylebox_override("panel", _road_style("#34434c", "#81909a", 2))
 	var cross_section = VBoxContainer.new()
 	cross_section.add_theme_constant_override("separation", 0)
