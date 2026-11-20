@@ -26,6 +26,25 @@ static func build(owner, s):
 		resources_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		owner.content.add_child(resources_body)
 		owner.active_section_container = resources_body
+		var master_target_label = owner._add_label("تنظیم هم‌زمان هدف همه کالاها", 17)
+		var master_slider = HSlider.new()
+		master_slider.min_value = 0
+		master_slider.max_value = max(1, game.get_storage_capacity())
+		master_slider.step = 1
+		master_slider.value = 0
+		master_slider.custom_minimum_size = Vector2(0, 52)
+		master_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		master_slider.focus_mode = Control.FOCUS_NONE
+		resources_body.add_child(master_slider)
+		master_target_label.text = owner.PersianText.reshaper("تنظیم هم‌زمان هدف همه کالاها | مقدار: %d" % int(master_slider.value))
+		master_slider.value_changed.connect(func(value):
+			master_target_label.text = owner.PersianText.reshaper("تنظیم هم‌زمان هدف همه کالاها | مقدار: %d" % int(round(value)))
+		)
+		master_slider.drag_ended.connect(func(changed):
+			if changed:
+				owner.set_all_storage_targets_slider(int(round(master_slider.value)))
+		)
+		owner._add_label("با کشیدن این نوار، مقدار هدف تمام کالاها یکسان تنظیم می‌شود؛ برای تغییر جداگانه از نوار هر کالا استفاده کن.", 13)
 		for id in game.get_resource_definitions().keys():
 			var resource_name = str(game.get_resource_definitions()[id].name)
 			var rule = game.get_storage_rule(id)
