@@ -26,7 +26,7 @@ static func build(owner, s):
 	var municipal_daily_income = int(municipal_economy.get("tax_income",0)) + int(municipal_economy.get("consumer_tax_income",0)) + int(municipal_economy.get("station_income",0)) + int(municipal_economy.get("road_income",0))
 	var municipal_daily_total = int(municipal_economy.get("accepted_income",0))
 	owner._add_label("درآمد روزانه شهرداری: %d سکه" % municipal_daily_total, 18)
-	owner._add_label("اعتبار شهر: %d  |  رضایت: %d/۱۰۰" % [s.reputation,int(s.get("satisfaction",50))], 18)
+	owner._add_label("اعتبار شهر: %d" % s.reputation, 18)
 
 	# Section details are rendered below the overview action cards.
 	owner._add_home_services_panel(s)
