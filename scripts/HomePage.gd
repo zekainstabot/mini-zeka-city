@@ -26,6 +26,8 @@ static func build(owner, s):
 	# Section details are rendered below the overview action cards.
 	owner._add_home_services_panel(s)
 	if owner.home_buildings_expanded:
+		var buildings_heading = owner._add_label("🏗️ ساختمان‌های ساخته‌شده", 19)
+		buildings_heading.name = "HomeBuildingsSectionStart"
 		var home_categories = ["خانه‌ها","کشاورزی","معادن","کارخانه‌ها","کسب‌وکارها","خدمات شهری","تفریح و فرهنگ","انبارها"]
 		var any_home_building = false
 		for home_category in home_categories:
@@ -45,6 +47,8 @@ static func build(owner, s):
 			owner._add_label("هنوز ساختمانی در شهر ساخته نشده است.", 16)
 
 	if owner.demolish_panel_expanded:
+		var demolish_heading = owner._add_label("🧱 مدیریت تخریب ساختمان‌ها", 19)
+		demolish_heading.name = "HomeDemolishSectionStart"
 		owner._add_label("ساختمان موردنظر را انتخاب کن:", 16)
 		for home_id in game.get_building_definitions().keys():
 			var home_count = game.get_building_count(home_id)
@@ -85,6 +89,8 @@ static func build(owner, s):
 			owner._add_label("برای تخریب، ابتدا یک ساختمان را انتخاب کن.", 15)
 
 	if owner.home_economy_expanded:
+		var economy_heading = owner._add_label("📊 منابع و گزارش مالی", 19)
+		economy_heading.name = "HomeEconomySectionStart"
 		owner._add_label("منابع: " + owner._resource_summary(), 16)
 		owner._add_label("ذخیره غذای شهر: %d واحد" % int(s.resources.get("food",0)), 16)
 		var home_economy = s.get("last_economy", {})
