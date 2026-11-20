@@ -26,7 +26,6 @@ static func build(owner, s):
 	var municipal_daily_income = int(municipal_economy.get("tax_income",0)) + int(municipal_economy.get("consumer_tax_income",0)) + int(municipal_economy.get("station_income",0)) + int(municipal_economy.get("road_income",0))
 	var municipal_daily_total = int(municipal_economy.get("accepted_income",0))
 	owner._add_label("درآمد روزانه شهرداری: %d سکه" % municipal_daily_total, 18)
-	owner._add_label("اعتبار شهر: %d" % s.reputation, 18)
 
 	# Section details are rendered below the overview action cards.
 	owner._add_home_services_panel(s)
@@ -139,6 +138,7 @@ static func _add_city_overview_panel(owner, city_state):
 	_add_overview_metric(owner, grid, "👥 جمعیت", "%d نفر" % int(city_state.get("population", 0)), Color("#bfdbfe"))
 	_add_overview_metric(owner, grid, "🧑‍🏭 نیروی کار", "%d شاغل  •  %d بیکار" % [employed, unemployed], Color("#a7f3d0"))
 	_add_overview_metric(owner, grid, "😊 رضایت شهروندان", "%d از ۱۰۰" % satisfaction, Color("#c4b5fd"))
+	_add_overview_metric(owner, grid, "🏛️ اعتبار شهرداری", "%d از ۱۰۰" % int(city_state.get("reputation", 50)), Color("#fcd34d"))
 	_add_overview_action(owner, grid, "📋 گزارش‌ها و مشکلات شهر", "مشاهده گزارش‌ها و رسیدگی به مشکلات", "report", Color("#93c5fd"))
 	_add_overview_action(owner, grid, "🏛️ شهرداری و خدمات شهری", "مدیریت خدمات و امور شهرداری", "municipality", Color("#fcd34d"))
 	_add_overview_action(owner, grid, "🏢 اقتصاد خصوصی", "کسب‌وکارها و مشارکت شهروندان", "private_economy", Color("#86efac"))
