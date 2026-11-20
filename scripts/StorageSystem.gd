@@ -9,7 +9,7 @@ static func get_storage_rule(engine, resource_id):
 	if typeof(state.get("storage_rules", null)) != TYPE_DICTIONARY:
 		state["storage_rules"] = {}
 	if not state.storage_rules.has(str(resource_id)):
-		state.storage_rules[str(resource_id)] = {"target":40,"low_action":"market","high_action":"market"}
+		state.storage_rules[str(resource_id)] = {"target":40,"low_action":"factory","high_action":"market"}
 	var rule = state.storage_rules[str(resource_id)]
 	# Migrate older minimum/maximum rules without losing the user's chosen upper stock limit.
 	if not rule.has("target"):
