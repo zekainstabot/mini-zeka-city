@@ -21,11 +21,21 @@ static func build(owner, s):
 				citizen_active_loans += 1
 	owner._add_label("وام‌های فعال شهروندان: %d" % citizen_active_loans,16)
 	owner._add_label("💳 دریافت وام",19)
-	for loan_option in [{"amount":1000,"days":7},{"amount":3000,"days":14},{"amount":5000,"days":30}]:
-		var loan_button = owner._add_button("درخواست وام %d سکه‌ای — %d روزه" % [int(loan_option.amount),int(loan_option.days)],owner,"request_bank_loan",[int(loan_option.amount),int(loan_option.days)])
-		loan_button.disabled = not game.has_central_bank() or game.get_bank_loan_limit() < int(loan_option.amount) or player_active_loans >= 2
-		if loan_button.disabled:
-			loan_button.text += " 🔒"
+	for loan_option in [{"amount":1000,"days":7,"rate":8},{"amount":3000,"days":14,"rate":14},{"amount":5000,"days":30,"rate":25}]:
+		var loan_amount = int(loan_option.amount)
+		var loan_days = int(loan_option.days)
+		var loan_rate = int(loan_option.rate)
+		var loan_interest = int(ceil(float(loan_amount * loan_rate) / 100.0))
+		var estimated_installment = int(ceil(float(loan_amount + loan_interest) / float(loan_days)))
+		var loan_locked = not game.has_central_bank() or game.get_bank_loan_limit() < loan_amount or player_active_loans >= 2
+		var loan_text = "وام %d سکه‌ای | %d روزه\nسود %d٪ • قسط روزانه حدود %d سکه%s" % [loan_amount,loan_days,loan_rate,estimated_installment,"  🔒" if loan_locked else ""]
+		var loan_button = owner._add_button(loan_text,owner,"request_bank_loan",[loan_amount,loan_days])
+		# Keep locked options in the normal button color; the lock icon alone signals the restriction.
+		# The action handler still validates eligibility and explains what must be fixed.
+		loan_button.disabled = false
+		loan_button.custom_minimum_size = Vector2(0, 66)
+		loan_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		owner._apply_font(loan_button, 16)
 		owner._style_button(loan_button, false)
 	for loan_index in range(s.get("bank_loans",[]).size()):
 		var loan = s.bank_loans[loan_index]
