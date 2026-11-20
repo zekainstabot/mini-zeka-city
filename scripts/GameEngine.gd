@@ -874,7 +874,11 @@ func _normalize_state():
 	if typeof(state.get("districts", null)) != TYPE_ARRAY:
 		state["districts"] = []
 	for id in RESOURCES.keys():
-		state.market_stock[id] = int(clamp(int(state.market_stock.get(id, 0)), 0, 100))
+		var market_amount = int(state.market_stock.get(id, 0))
+		# Remove the old untouched starting stock of 60 from existing saves too.
+		if market_amount == 60:
+			market_amount = 0
+		state.market_stock[id] = int(clamp(market_amount, 0, 100))
 	for city_id in TRADE_CITIES.keys():
 		state.trade_remaining[city_id] = int(clamp(int(state.trade_remaining.get(city_id, TRADE_CITIES[city_id].daily_capacity)), 0, int(TRADE_CITIES[city_id].daily_capacity)))
 		if typeof(state.city_export_stock.get(city_id, null)) != TYPE_DICTIONARY:
