@@ -104,6 +104,12 @@ func _run_tests():
 	for nav_button in main.navigation_buttons:
 		assert(nav_button.alignment == HORIZONTAL_ALIGNMENT_CENTER, "Navigation button text is not centered")
 		assert(nav_button.autowrap_mode == TextServer.AUTOWRAP_WORD_SMART, "Navigation button text does not wrap")
+	var construction_dock_button = main.bottom_navigation_buttons.get("development")
+	assert(construction_dock_button is Button, "Construction bottom navigation button is missing")
+	assert(construction_dock_button.text.ends_with("ساخت و ساز"), "Construction button label changed unexpectedly")
+	assert(construction_dock_button.get_theme_font_size("font_size") < main.bottom_navigation_buttons.home.get_theme_font_size("font_size"), "Construction label must use a smaller font than My City")
+	assert(not main.bottom_navigation_buttons.home.text.contains("راست: نقشه"), "Swipe instructions must not be inside the My City button")
+	assert(main.bottom_navigation_bar.find_child("HomeGestureHint", true, false) is Label, "Swipe instructions must appear separately from the My City button")
 	main._open_daily_reward_calendar()
 	await process_frame
 	var reward_center = main.daily_reward_layer.get_child(0).get_child(0)
