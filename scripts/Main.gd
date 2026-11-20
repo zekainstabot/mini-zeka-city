@@ -3551,6 +3551,14 @@ func adjust_storage_rule(resource_id, field, delta):
 	show_page("storage")
 	_show_message(result.message)
 
+func set_all_storage_targets_slider(value):
+	var target_value = int(clamp(value, 0, max(1, game.get_storage_capacity())))
+	for resource_id in game.get_resource_definitions().keys():
+		game.set_storage_target(str(resource_id), target_value)
+	game.save_game()
+	show_page("storage")
+	_show_message("موجودی هدف همه کالاها روی %d تنظیم شد." % target_value)
+
 func set_storage_target_slider(resource_id, value):
 	var result = game.set_storage_target(str(resource_id), int(value))
 	show_page("storage")
