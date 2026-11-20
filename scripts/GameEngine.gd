@@ -225,7 +225,7 @@ func new_game():
 			{"id":"small_warehouse","workers":0,"balance":0}
 		],
 		"resources": {"stone":0,"iron_ore":0,"wood":0,"lumber":0,"furniture":0,"food":0,"fish":0,"processed_fish":0},
-		"market_stock": {"stone":60,"iron_ore":60,"wood":60,"lumber":60,"furniture":60,"food":60,"fish":60,"processed_fish":60},
+		"market_stock": {"stone":0,"iron_ore":0,"wood":0,"lumber":0,"furniture":0,"food":0,"fish":0,"processed_fish":0},
 		"trade_remaining": {"mehrabad":25,"navid":18,"golestan":30},
 		"trade_demand_remaining": {"mehrabad":{"stone":20,"iron_ore":10,"wood":25,"lumber":15,"furniture":8},"navid":{"stone":8,"iron_ore":25,"wood":10,"lumber":20,"furniture":18},"golestan":{"stone":15,"iron_ore":8,"wood":18,"lumber":12,"furniture":25}},
 		"last_trade_report": "هنوز معامله بین‌شهری انجام نشده است.",
@@ -743,7 +743,13 @@ func _normalize_state():
 		var saved_rule = state.storage_rules.get(resource_id, {})
 		if typeof(saved_rule) != TYPE_DICTIONARY:
 			saved_rule = {}
-		state.storage_rules[resource_id] = {"target":max(0,int(saved_rule.get("target",saved_rule.get("maximum",40)))),"low_action":str(saved_rule.get("low_action","market")),"high_action":"market"}
+		var saved_target = max(0, int(saved_rule.get("target", saved_rule.get("maximum", 40))))
+		var saved_low_action = str(saved_rule.get("low_action", "factory"))
+		# The old default (target 40 + market) bought stock automatically and charged the treasury.
+		# Migrate that untouched default to production-only supply; preserve custom targets/actions.
+		if saved_target == 40 and saved_low_action == "market":
+			saved_low_action = "factory"
+		state.storage_rules[resource_id] = {"target":saved_target,"low_action":saved_low_action,"high_action":"market"}
 	if typeof(state.get("market_stock", null)) != TYPE_DICTIONARY:
 		state.market_stock = {}
 	if typeof(state.get("trade_remaining", null)) != TYPE_DICTIONARY:
@@ -868,7 +874,7 @@ func _normalize_state():
 	if typeof(state.get("districts", null)) != TYPE_ARRAY:
 		state["districts"] = []
 	for id in RESOURCES.keys():
-		state.market_stock[id] = int(clamp(int(state.market_stock.get(id, 60)), 0, 100))
+		state.market_stock[id] = int(clamp(int(state.market_stock.get(id, 0)), 0, 100))
 	for city_id in TRADE_CITIES.keys():
 		state.trade_remaining[city_id] = int(clamp(int(state.trade_remaining.get(city_id, TRADE_CITIES[city_id].daily_capacity)), 0, int(TRADE_CITIES[city_id].daily_capacity)))
 		if typeof(state.city_export_stock.get(city_id, null)) != TYPE_DICTIONARY:
@@ -896,7 +902,7 @@ func _normalize_state():
 		if not state.resources.has(id):
 			state.resources[id] = 0
 		if not state.market_stock.has(id):
-			state.market_stock[id] = 100
+			state.market_stock[id] = 0
 
 func _sync_population():
 	return CityPopulationSystem._sync_population(self)
