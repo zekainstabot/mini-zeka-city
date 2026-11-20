@@ -55,8 +55,11 @@ static func build(owner, s):
 	owner._add_label("سود کل سپرده: ۷ روز ۳٪ | ۱۴ روز ۷٪ | ۳۰ روز ۱۵٪؛ برداشت پیش از سررسید بدون سود است.",14)
 	for deposit_option in [{"amount":500,"days":7},{"amount":1000,"days":14},{"amount":2500,"days":30}]:
 		var deposit_button = owner._add_button("سپرده %d سکه‌ای — %d روزه" % [int(deposit_option.amount),int(deposit_option.days)],owner,"open_bank_deposit",[int(deposit_option.amount),int(deposit_option.days)])
-		deposit_button.disabled = game.get_building_count("municipal_bank") <= 0 or game.get_available_money() < int(deposit_option.amount)
-		if deposit_button.disabled:
+		var deposit_locked = game.get_building_count("municipal_bank") <= 0 or game.get_available_money() < int(deposit_option.amount)
+		# Keep locked deposit options in the same normal color as every other bank button.
+		# The lock icon signals the restriction; the action handler validates eligibility.
+		deposit_button.disabled = false
+		if deposit_locked:
 			deposit_button.text += " 🔒"
 		owner._style_button(deposit_button, false)
 	for deposit_index in range(s.get("bank_deposits",[]).size()):
