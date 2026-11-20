@@ -3361,6 +3361,7 @@ func toggle_home_city_details():
 		home_economy_expanded = false
 		demolish_panel_expanded = false
 	show_page("home")
+	call_deferred("_scroll_to_home_expanded_section")
 
 func toggle_home_buildings():
 	var was_expanded = home_buildings_expanded
@@ -3370,6 +3371,7 @@ func toggle_home_buildings():
 		home_economy_expanded = false
 		demolish_panel_expanded = false
 	show_page("home")
+	call_deferred("_scroll_to_home_expanded_section")
 
 func toggle_home_economy():
 	var was_expanded = home_economy_expanded
@@ -3379,6 +3381,7 @@ func toggle_home_economy():
 		home_buildings_expanded = false
 		demolish_panel_expanded = false
 	show_page("home")
+	call_deferred("_scroll_to_home_expanded_section")
 
 func toggle_demolish_panel():
 	var was_expanded = demolish_panel_expanded
@@ -3388,6 +3391,29 @@ func toggle_demolish_panel():
 		home_buildings_expanded = false
 		home_economy_expanded = false
 	show_page("home")
+	call_deferred("_scroll_to_home_expanded_section")
+
+
+func _scroll_to_home_expanded_section():
+	if game_scroll_container == null or not is_instance_valid(game_scroll_container):
+		return
+	await get_tree().process_frame
+	var target_name = ""
+	if home_city_details_expanded:
+		target_name = "HomeCityServicesPanel"
+	elif home_buildings_expanded:
+		target_name = "HomeBuildingsSectionStart"
+	elif demolish_panel_expanded:
+		target_name = "HomeDemolishSectionStart"
+	elif home_economy_expanded:
+		target_name = "HomeEconomySectionStart"
+	if target_name == "":
+		return
+	var target = content.find_child(target_name, true, false)
+	if target == null or not is_instance_valid(target):
+		return
+	var target_y = target.get_global_position().y - game_scroll_container.get_global_position().y + game_scroll_container.scroll_vertical
+	game_scroll_container.scroll_vertical = max(0, int(target_y - 16.0))
 
 func select_home_building(id):
 	selected_home_building_id = str(id)
