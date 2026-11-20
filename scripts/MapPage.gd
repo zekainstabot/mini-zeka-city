@@ -176,12 +176,10 @@ static func _make_district_block(owner, district, index):
 	stats.add_theme_color_override("font_color", Color("#d1fae5"))
 	stack.add_child(stats)
 
-	var point_grid = GridContainer.new()
+	var point_grid = VBoxContainer.new()
 	point_grid.name = "BuildingPointGrid_" + district_id
-	point_grid.columns = 5
 	point_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	point_grid.add_theme_constant_override("h_separation", 4)
-	point_grid.add_theme_constant_override("v_separation", 4)
+	point_grid.add_theme_constant_override("separation", 3)
 	stack.add_child(point_grid)
 
 	if buildings.is_empty():
@@ -192,10 +190,40 @@ static func _make_district_block(owner, district, index):
 		empty.add_theme_color_override("font_color", Color("#a7f3d0"))
 		point_grid.add_child(empty)
 	else:
-		for building in buildings:
-			point_grid.add_child(_make_building_dot(owner, building))
+		for pair_start in range(0, buildings.size(), 2):
+			var building_row = HBoxContainer.new()
+			building_row.alignment = BoxContainer.ALIGNMENT_CENTER
+			building_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			building_row.add_theme_constant_override("separation", 3)
+			point_grid.add_child(building_row)
+			building_row.add_child(_make_building_dot(owner, buildings[pair_start]))
+			if pair_start + 1 < buildings.size():
+				building_row.add_child(_make_small_road())
+				building_row.add_child(_make_building_dot(owner, buildings[pair_start + 1]))
+			if pair_start + 2 < buildings.size():
+				point_grid.add_child(_make_small_road_vertical())
 
 	return panel
+
+
+static func _make_small_road():
+	var road = ColorRect.new()
+	road.name = "SmallRoadBetweenBuildings"
+	road.color = Color("#64747a")
+	road.custom_minimum_size = Vector2(18, 4)
+	road.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	road.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	return road
+
+
+static func _make_small_road_vertical():
+	var road = ColorRect.new()
+	road.name = "SmallRoadBetweenBuildingRows"
+	road.color = Color("#64747a")
+	road.custom_minimum_size = Vector2(4, 9)
+	road.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	road.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	return road
 
 
 static func _make_building_dot(owner, building):
