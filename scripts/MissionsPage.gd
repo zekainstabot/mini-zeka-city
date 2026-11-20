@@ -268,20 +268,8 @@ static func build(owner, s):
 			owner._apply_font(hint_label, 16)
 			hint_label.add_theme_color_override("font_color", Color("#cbd5e1"))
 			card_body.add_child(hint_label)
-		var go_button = Button.new()
-		go_button.text = owner.PersianText.reshaper("رفتن به بخش مربوط  ←")
-		go_button.custom_minimum_size = Vector2(0, 50 if owner.get_viewport_rect().size.x < 900 else 44)
-		# Fill the card width so Persian text never collapses into a vertical stack.
-		go_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		go_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		go_button.autowrap_mode = TextServer.AUTOWRAP_OFF
-		owner._apply_font(go_button, 17 if owner.get_viewport_rect().size.x < 900 else 16)
-		go_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
-		go_button.text_direction = Control.TEXT_DIRECTION_RTL
-		owner._style_button(go_button, false)
-		go_button.connect("pressed", Callable(owner, "go_to_mission_target").bind(str(mission.get("id", ""))))
-		card_body.add_child(go_button)
-		if is_unlocked and is_completed and not is_claimed:
+		if is_completed and not is_claimed:
+			# Once the mission is complete, replace navigation with the reward action.
 			var claim_button = Button.new()
 			claim_button.text = owner.PersianText.reshaper("🎁 دریافت")
 			claim_button.custom_minimum_size = Vector2(0, 42 if owner.get_viewport_rect().size.x < 900 else 36)
@@ -292,5 +280,19 @@ static func build(owner, s):
 			owner._style_button(claim_button, false)
 			claim_button.connect("pressed", Callable(owner, "claim_mission").bind(mission_index))
 			card_body.add_child(claim_button)
+		else:
+			# Keep the navigation action available only while the mission is in progress.
+			var go_button = Button.new()
+			go_button.text = owner.PersianText.reshaper("رفتن به بخش مربوط  ←")
+			go_button.custom_minimum_size = Vector2(0, 50 if owner.get_viewport_rect().size.x < 900 else 44)
+			go_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			go_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			go_button.autowrap_mode = TextServer.AUTOWRAP_OFF
+			owner._apply_font(go_button, 17 if owner.get_viewport_rect().size.x < 900 else 16)
+			go_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+			go_button.text_direction = Control.TEXT_DIRECTION_RTL
+			owner._style_button(go_button, false)
+			go_button.connect("pressed", Callable(owner, "go_to_mission_target").bind(str(mission.get("id", ""))))
+			card_body.add_child(go_button)
 	if visible_missions == 0:
 		owner._add_label("آموزش هنوز شروع نشده است؛ بازی را ادامه بده.", 17)
