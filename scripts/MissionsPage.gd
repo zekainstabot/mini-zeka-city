@@ -283,12 +283,12 @@ static func build(owner, s):
 		card_body.add_child(go_button)
 		if is_unlocked and is_completed and not is_claimed:
 			var claim_button = Button.new()
-			claim_button.text = owner.PersianText.reshaper("🎁 دریافت جایزه و باز کردن مرحله بعد")
-			claim_button.custom_minimum_size = Vector2(0, 58 if owner.get_viewport_rect().size.x < 900 else 50)
+			claim_button.text = owner.PersianText.reshaper("🎁 دریافت و ادامه")
+			claim_button.custom_minimum_size = Vector2(0, 42 if owner.get_viewport_rect().size.x < 900 else 36)
 			claim_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			claim_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 			claim_button.text_direction = Control.TEXT_DIRECTION_RTL
-			owner._apply_font(claim_button, 18)
+			owner._apply_font(claim_button, 16)
 			owner._style_button(claim_button, false)
 			claim_button.connect("pressed", Callable(owner, "claim_mission").bind(mission_index))
 			card_body.add_child(claim_button)
