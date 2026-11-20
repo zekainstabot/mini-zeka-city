@@ -1207,28 +1207,41 @@ func _create_bottom_navigation(parent: VBoxContainer, compact_layout: bool):
 		{"id":"bank","icon":"🏦","label":_tr("بانک"),"page":"bank"}
 	]
 	for entry in entries:
+		var item_column = VBoxContainer.new()
+		item_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		item_column.size_flags_stretch_ratio = 1.0
+		item_column.add_theme_constant_override("separation", 1)
+		dock_row.add_child(item_column)
 		var button = Button.new()
 		button.name = "BottomNav_" + str(entry.id)
 		button.text = str(entry.icon) + "\n" + str(entry.label)
 		if str(entry.id) == "home":
-			button.text += "\nراست: نقشه | چپ: برگشت"
 			button.tooltip_text = "با کشیدن به راست به نقشه برو؛ با کشیدن به چپ به شهر من برگرد."
 		button.text_direction = Control.TEXT_DIRECTION_RTL if LanguageManager.is_rtl(ui_language) else Control.TEXT_DIRECTION_LTR
-		button.custom_minimum_size = Vector2(0, 168 if compact_layout else 176)
+		button.custom_minimum_size = Vector2(0, (142 if compact_layout else 150) if str(entry.id) == "home" else (168 if compact_layout else 176))
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.size_flags_stretch_ratio = 1.0
 		button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		button.add_theme_color_override("font_color", Color("#e5edf5"))
 		button.add_theme_color_override("font_hover_color", Color("#ffffff"))
-		# Increase bottom dock labels for comfortable reading on phone screens.
-		_apply_font(button, (17 if compact_layout else 18) if str(entry.id) == "home" else (34 if compact_layout else 36))
+		# Keep the construction label compact enough to remain on one line.
+		var nav_font_size = (17 if compact_layout else 18) if str(entry.id) == "home" else ((15 if compact_layout else 16) if str(entry.id) == "development" else (34 if compact_layout else 36))
+		_apply_font(button, nav_font_size)
 		button.flat = true
 		var target_page = str(entry.page)
 		button.pressed.connect(func():
 			show_page(target_page)
 		)
-		dock_row.add_child(button)
+		item_column.add_child(button)
+		if str(entry.id) == "home":
+			var gesture_hint = Label.new()
+			gesture_hint.name = "HomeGestureHint"
+			gesture_hint.text = PersianText.reshaper("راست: نقشه | چپ: برگشت")
+			gesture_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			gesture_hint.add_theme_color_override("font_color", Color("#cbd5e1"))
+			_apply_font(gesture_hint, 10)
+			item_column.add_child(gesture_hint)
 		bottom_navigation_buttons[str(entry.id)] = button
 	_update_bottom_navigation()
 
