@@ -205,7 +205,7 @@ func _run_tests():
 	var overview_panel = main.content.find_child("HomeOverviewPanel", true, false)
 	assert(overview_panel is PanelContainer, "Home page city overview panel is missing")
 	var overview_grid = overview_panel.find_child("CityOverviewGrid", true, false)
-	assert(overview_grid is GridContainer and overview_grid.get_child_count() == 11, "Home overview must show four metrics and seven matching action cards")
+	assert(overview_grid is GridContainer and overview_grid.get_child_count() == 12, "Home overview must show five metrics and seven matching action cards")
 	main.game.state["constructions"] = [{"id":"small_house","finish_at":int(Time.get_unix_time_from_system()) + 125,"district_name":"محله آزمایشی"}]
 	# Keep the regression assertion focused on the normal building option, not the tutorial-highlighted rename.
 	main.mission_target_building_id = ""
