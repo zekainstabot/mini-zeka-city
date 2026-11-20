@@ -13,6 +13,7 @@ static func _add_home_services_panel(owner, city_state):
 		return
 
 	var panel = PanelContainer.new()
+	panel.name = "HomeCityServicesPanel"
 	var panel_style = StyleBoxFlat.new()
 	panel_style.bg_color = Color("#172235")
 	panel_style.border_color = Color("#475569")
