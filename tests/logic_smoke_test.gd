@@ -400,6 +400,8 @@ func _init():
 	assert(timed_manual_game.process_citizen_recruitment_interval(60.0) == 2)
 	assert(timed_manual_game.state.citizen_requests.size() == 4)
 
+	# A new city starts with an empty domestic market; seed stock here to test a deliberate purchase.
+	game.state.market_stock.food = 10
 	var market_money_before = int(game.state.money)
 	var market_stock_before = int(game.state.market_stock.food)
 	var market_result = game.buy_resource("food", 5)
